@@ -6,8 +6,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-directory', metavar='PATH', type=str, default='.',
                         help="Location with sinograms")
-    parser.add_argument('-n', '--num-sinograms', metavar='N', type=int, default=None,
-                        help="Number of sinograms to estimate")
+    parser.add_argument('-f', '--first', type=int, default=0,
+                        help="First sinogram to use")
+    parser.add_argument('-l', '--last', type=int, default=1000,
+                        help="Last sinogram to use")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-s', '--angle-step', metavar='F', type=float,
@@ -23,10 +25,8 @@ if __name__ == '__main__':
     cor = pm.get_filter('centerofrotation')
 
     # configure nodes
-    sino_reader.set_properties(path=args.input_directory)
-
-    if args.num_sinograms:
-        sino_reader.set_properties(count=args.num_sinograms)
+    count = args.last - args.first
+    sino_reader.set_properties(path=args.input_directory, nth=args.first, count=count)
 
     angle_step = args.angle_step if args.angle_step else np.pi / args.num_projections
     cor.set_properties(angle_step=angle_step)

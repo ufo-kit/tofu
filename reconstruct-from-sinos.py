@@ -4,12 +4,7 @@ import argparse
 import numpy as np
 from gi.repository import Ufo
 
-def number_of_tiff_files(path):
-    return len([name for name in os.listdir(path) if name.endswith('.tif')])
-
 if __name__ == '__main__':
-    n_sinograms = number_of_tiff_files('./sinograms')
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--axis', type=float, default=1000.0,
                         required=True,
@@ -18,7 +13,7 @@ if __name__ == '__main__':
                         help="Angle step between projections")
     parser.add_argument('-f', '--first', type=int, default=0,
                         help="First slice")
-    parser.add_argument('-l', '--last', type=int, default=n_sinograms,
+    parser.add_argument('-l', '--last', type=int, default=1000,
                         help="Last slice")
     parser.add_argument('-o', '--output-directory', type=str, default='.',
                         help="Location to store reconstructed slices")
