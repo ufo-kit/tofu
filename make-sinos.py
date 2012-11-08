@@ -32,33 +32,43 @@ if __name__ == '__main__':
     proj_start = n_files - count
 
     pm = Ufo.PluginManager()
+    dark_reader = pm.get_filter('reader')
+    dark_averager = pm.get_filter('averager')
+    dark_repeater = Ufo.FilterRepeater()
     flat_reader = pm.get_filter('reader')
     flat_averager = pm.get_filter('averager')
+    flat_repeater = Ufo.FilterRepeater()
     proj_reader = pm.get_filter('reader')
     writer = pm.get_filter('writer')
-    repeater = Ufo.FilterRepeater()
 
-    sub = pm.get_filter('subtract')
+    ffc = pm.get_filter('flatfieldcorrection')
     sinogenerator = pm.get_filter('sinogenerator')
 
     # configure nodes
+    dark_reader.set_properties(path=args.input_directory, count=150)
     flat_reader.set_properties(path=args.input_directory, nth=flat_start, count=150)
     proj_reader.set_properties(path=args.input_directory, nth=proj_start, count=count)
     writer.set_properties(prefix='sinogram-', path=args.output_directory)
-    repeater.set_properties(count=count)
+    dark_repeater.set_properties(count=count)
+    flat_repeater.set_properties(count=count)
     sinogenerator.set_properties(num_projections=count)
 
     g = Ufo.Graph()
     dist = Ufo.TransferMode.DISTRIBUTE
 
-    # subtract averaged flats from projections
+    # average darks and flats
     g.connect_filters(flat_reader, flat_averager)
-    g.connect_filters(flat_averager, repeater)
-    g.connect_filters_full(proj_reader, 0, sub, 0, dist)
-    g.connect_filters_full(repeater, 0, sub, 1, dist)
+    g.connect_filters(flat_averager, flat_repeater)
+    g.connect_filters(dark_reader, dark_averager)
+    g.connect_filters(dark_averager, dark_repeater)
+
+    # clean raw projections
+    g.connect_filters_full(proj_reader, 0, ffc, 0, dist)
+    g.connect_filters_full(dark_repeater, 0, ffc, 1, dist)
+    g.connect_filters_full(flat_repeater, 0, ffc, 2, dist)
 
     # create sinograms from corrected projections
-    g.connect_filters(sub, sinogenerator)
+    g.connect_filters(ffc, sinogenerator)
 
     # backproject filtered sinograms
     g.connect_filters(sinogenerator, writer)
