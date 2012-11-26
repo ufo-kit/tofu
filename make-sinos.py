@@ -4,8 +4,11 @@ import argparse
 import numpy as np
 from gi.repository import Ufo
 
-def number_of_tiff_files(path):
-    return len([name for name in os.listdir(path) if name.endswith('.tif')])
+
+def number_of_files(path):
+    suffixes = ['.tif', '.tiff', '.edf']
+    return len([p for p in os.listdir(path)
+                if os.path.splitext(p.lower())[1] in suffixes])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -18,7 +21,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    n_files = number_of_tiff_files(args.input_directory)
+    n_files = number_of_files(args.input_directory)
 
     if n_files == 0:
         print 'No input files found.'
@@ -69,10 +72,7 @@ if __name__ == '__main__':
 
     # create sinograms from corrected projections
     g.connect_filters(ffc, sinogenerator)
-
-    # backproject filtered sinograms
     g.connect_filters(sinogenerator, writer)
 
     s = Ufo.Scheduler()
     s.run(g)
-
