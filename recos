@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import argparse
+import numpy as np
+from gi.repository import Ufo
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--axis', type=float, default=1000.0,
+                        required=True,
+                        help="Axis position")
+    parser.add_argument('-s', '--angle-step', type=float, default=None,
+                        help="Angle step between projections")
+    parser.add_argument('-f', '--first', type=int, default=0, metavar='N',
+                        help="First slice")
+    parser.add_argument('-l', '--last', type=int, default=1000, metavar='N',
+                        help="Last slice")
+    parser.add_argument('-o', '--output', type=str, default='.', metavar='PATH',
+                        help="Location to store reconstructed slices")
+    parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
+                        help="Location with sinograms")
+    
+    parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
+                        help="Paths to search for plugins and kernel files")
+    parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
+                        help="ZeroMQ addresses of machines on which `ufod' is running")
+
+    args = parser.parse_args()
+    cargs = {}
+
+    if args.include:
+        config = Ufo.Config(paths=args.include)
+        cargs['config'] = config
+
+    # create nodes
+    pm = Ufo.PluginManager(**cargs)
+    sino_reader = pm.get_task('reader')
+    writer = pm.get_task('writer')
+    fft = pm.get_task('fft')
+    ifft = pm.get_task('ifft')
+    fltr = pm.get_task('filter')
+    bp = pm.get_task('backproject')
+
+    # configure nodes
+    sino_reader.set_properties(path=args.input,
+                               nth=args.first,
+                               count=(args.last - args.first))
+    writer.set_properties(prefix='slice-', path=args.output)
+    fft.set_properties(dimensions=1)
+    ifft.set_properties(dimensions=1)
+    bp.set_properties(axis_pos=args.axis)
+
+    if args.angle_step:
+        bp.set_properties(angle_step=args.angle_step)
+
+    g = Ufo.TaskGraph()
+
+    # backproject filtered sinograms
+    g.connect_nodes(sino_reader, fft)
+    g.connect_nodes(fft, fltr)
+    g.connect_nodes(fltr, ifft)
+    g.connect_nodes(ifft, bp)
+    g.connect_nodes(bp, writer)
+
+    res = Ufo.Resources(**cargs)
+    ag = Ufo.ArchGraph.new(res, args.server)
+    s = Ufo.Scheduler()
+    s.run(ag, g)
+
+
+# vim: ft=python
