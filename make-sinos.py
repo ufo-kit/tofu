@@ -1,78 +1,83 @@
+#!/usr/bin/env python
 import os
-import sys
+import math
 import argparse
-import numpy as np
 from gi.repository import Ufo
 
 
-def number_of_files(path):
-    suffixes = ['.tif', '.tiff', '.edf']
-    return len([p for p in os.listdir(path)
-                if os.path.splitext(p.lower())[1] in suffixes])
+def split_extended_path(extended_path):
+    """Return (path, first, last-1) from *extended_path* (e.g.
+    /home/foo/bla:0:10)."""
+    split = extended_path.split(':')
+    path = split[0]
+    filenames = sorted([f for f in os.listdir(path)
+                        if os.path.isfile(os.path.join(path, f))])
+
+    first = int(split[1]) if len(split) > 1 else 0
+    last = int(split[2]) - first if len(split) > 2 else len(filenames) - first
+    return (path, first, last)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-directory', metavar='PATH', type=str, default='.',
-                        help="Location with raw projections in EDF or TIFF format")
-    parser.add_argument('-o', '--output-directory', metavar='PATH', type=str, default='.',
-                        help="Location to store reconstructed slices")
-    parser.add_argument('-p', '--num-projections', metavar='N', type=int, required=True,
-                        help="Number of projections")
+    parser.add_argument('--projection-dir', metavar='PATH', type=str,
+                        default='.')
+    parser.add_argument('--output-dir', metavar='PATH', type=str,
+                        default='.')
+    parser.add_argument('--flat-dir', metavar='PATH', type=str)
+    parser.add_argument('--dark-dir', metavar='PATH', type=str)
 
     args = parser.parse_args()
-    
-    n_files = number_of_files(args.input_directory)
 
-    if n_files == 0:
-        print 'No input files found.'
-        sys.exit(1)
-
-    if not os.path.exists(args.output_directory):
-        os.mkdir(args.output_directory)
-
-    count = args.num_projections
-    flat_start = n_files - count - 200
-    proj_start = n_files - count
 
     pm = Ufo.PluginManager()
-    dark_reader = pm.get_filter('reader')
-    dark_averager = pm.get_filter('averager')
-    dark_repeater = Ufo.FilterRepeater()
-    flat_reader = pm.get_filter('reader')
-    flat_averager = pm.get_filter('averager')
-    flat_repeater = Ufo.FilterRepeater()
-    proj_reader = pm.get_filter('reader')
-    writer = pm.get_filter('writer')
+    g = Ufo.TaskGraph()
 
-    ffc = pm.get_filter('flatfieldcorrection')
-    sinogenerator = pm.get_filter('sinogenerator')
+    proj_path, proj_nth, proj_count = split_extended_path(args.projection_dir)
+    proj_reader = pm.get_task('reader')
+    proj_reader.set_properties(path=proj_path, nth=proj_nth, count=proj_count)
 
-    # configure nodes
-    dark_reader.set_properties(path=args.input_directory, count=150)
-    flat_reader.set_properties(path=args.input_directory, nth=flat_start, count=150)
-    proj_reader.set_properties(path=args.input_directory, nth=proj_start, count=count)
-    writer.set_properties(prefix='sinogram-', path=args.output_directory)
-    dark_repeater.set_properties(count=count)
-    flat_repeater.set_properties(count=count)
-    sinogenerator.set_properties(num_projections=count)
+    writer = pm.get_task('writer')
+    writer.set_properties(filename='{0}/output-%05i.tif'.format(args.output_dir))
 
-    g = Ufo.Graph()
-    dist = Ufo.TransferMode.DISTRIBUTE
+    sinogen = pm.get_task('sino-generator')
+    sinogen.set_properties(num_projections=proj_count)
 
-    # average darks and flats
-    g.connect_filters(flat_reader, flat_averager)
-    g.connect_filters(flat_averager, flat_repeater)
-    g.connect_filters(dark_reader, dark_averager)
-    g.connect_filters(dark_averager, dark_repeater)
+    if args.flat_dir and args.dark_dir:
+        # Read flat fields
+        flat_path, flat_nth, flat_count = split_extended_path(args.flat_dir)
+        flat_reader = pm.get_task('reader')
+        flat_reader.set_properties(path=flat_path, nth=flat_nth, count=flat_count)
 
-    # clean raw projections
-    g.connect_filters_full(proj_reader, 0, ffc, 0, dist)
-    g.connect_filters_full(dark_repeater, 0, ffc, 1, dist)
-    g.connect_filters_full(flat_repeater, 0, ffc, 2, dist)
+        flat_avg = pm.get_task('averager')
+        flat_avg.set_properties(num_generate=proj_count)
 
-    # create sinograms from corrected projections
-    g.connect_filters(ffc, sinogenerator)
-    g.connect_filters(sinogenerator, writer)
+        # Read dark fields
+        dark_path, dark_nth, dark_count = split_extended_path(args.dark_dir)
+        dark_reader = pm.get_task('reader')
+        dark_reader.set_properties(path=dark_path, nth=dark_nth, count=dark_count)
 
-    s = Ufo.Scheduler()
-    s.run(g)
+        dark_avg = pm.get_task('averager')
+        dark_avg.set_properties(num_generate=proj_count)
+
+        # Setup flat-field correction
+        ffc = pm.get_task('flat-field-correction')
+        ffc.set_properties(absorption_correction=True)
+
+        g.connect_nodes(dark_reader, dark_avg)
+        g.connect_nodes(flat_reader, flat_avg)
+
+        g.connect_nodes_full(dark_avg, ffc, 0)
+        g.connect_nodes_full(flat_avg, ffc, 1)
+        g.connect_nodes_full(proj_reader, ffc, 2)
+
+        g.connect_nodes(ffc, sinogen)
+    else:
+        g.connect_nodes(proj_reader, sinogen)
+
+    g.connect_nodes(sinogen, writer)
+
+    # Execute the graph
+    sched = Ufo.Scheduler()
+    sched.set_task_expansion(False)
+    sched.run(g)
