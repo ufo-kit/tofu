@@ -9,7 +9,6 @@ from gi.repository import Ufo
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--axis', type=float, default=1000.0,
-                        required=True,
                         help="Axis position")
     parser.add_argument('-s', '--angle-step', type=float, default=None,
                         help="Angle step between projections")
@@ -47,7 +46,8 @@ if __name__ == '__main__':
     sino_reader.set_properties(path=args.input,
                                nth=args.first,
                                count=(args.last - args.first))
-    writer.set_properties(prefix='slice-', path=args.output)
+    outname = os.path.join(os.path.abspath(args.output), 'slice-%05i.tif')
+    writer.set_properties(filename=outname)
     fft.set_properties(dimensions=1)
     ifft.set_properties(dimensions=1)
     bp.set_properties(axis_pos=args.axis)
@@ -64,10 +64,8 @@ if __name__ == '__main__':
     g.connect_nodes(ifft, bp)
     g.connect_nodes(bp, writer)
 
-    res = Ufo.Resources(**cargs)
-    ag = Ufo.ArchGraph.new(res, args.server)
-    s = Ufo.Scheduler()
-    s.run(ag, g)
+    sched = Ufo.Scheduler()
+    sched.run(g)
 
 
 # vim: ft=python
