@@ -2,9 +2,15 @@
 
 import os
 import sys
+import re
 import argparse
 import numpy as np
 from gi.repository import Ufo
+
+
+def is_format_specifier(path):
+    return re.search(r"%[0-9]+i", path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,7 +23,8 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--last', type=int, default=1000, metavar='N',
                         help="Last slice")
     parser.add_argument('-o', '--output', type=str, default='.', metavar='PATH',
-                        help="Location to store reconstructed slices")
+                        help="Path to location or format-specified file path"
+                             "for storing reconstructed slices")
     parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
                         help="Location with sinograms")
     
@@ -46,7 +53,14 @@ if __name__ == '__main__':
     sino_reader.set_properties(path=args.input,
                                nth=args.first,
                                count=(args.last - args.first))
-    outname = os.path.join(os.path.abspath(args.output), 'slice-%05i.tif')
+
+    abs_path = os.path.abspath(args.output)
+
+    if is_format_specifier(args.output):
+        outname = abs_path
+    else:
+        outname = os.path.join(abs_path, 'slice-%05i.tif')
+
     writer.set_properties(filename=outname)
     fft.set_properties(dimensions=1)
     ifft.set_properties(dimensions=1)
