@@ -18,16 +18,16 @@ if __name__ == '__main__':
                         help="Axis position")
     parser.add_argument('-s', '--angle-step', type=float, default=None,
                         help="Angle step between projections")
-    parser.add_argument('-f', '--first', type=int, default=0, metavar='N',
-                        help="First slice")
-    parser.add_argument('-l', '--last', type=int, default=1000, metavar='N',
-                        help="Last slice")
     parser.add_argument('-o', '--output', type=str, default='.', metavar='PATH',
                         help="Path to location or format-specified file path"
                              "for storing reconstructed slices")
     parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
                         help="Location with sinograms")
     
+    parser.add_argument('--first-slice', type=int, default=None, metavar='N',
+                        help="First slice")
+    parser.add_argument('--last-slice', type=int, default=None, metavar='N',
+                        help="Last slice")
     parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
                         help="Paths to search for plugins and kernel files")
     parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     # create nodes
     pm = Ufo.PluginManager(**cargs)
-    sino_reader = pm.get_task('reader')
+    reader = pm.get_task('reader')
     writer = pm.get_task('writer')
     fft = pm.get_task('fft')
     ifft = pm.get_task('ifft')
@@ -50,9 +50,13 @@ if __name__ == '__main__':
     bp = pm.get_task('backproject')
 
     # configure nodes
-    sino_reader.set_properties(path=args.input,
-                               nth=args.first,
-                               count=(args.last - args.first))
+    reader.props.path = args.input
+
+    if args.first_slice:
+        reader.props.nth = args.first_slice
+
+        if args.last_slice:
+            reader.props.count = args.last_slice - args.first_slice
 
     abs_path = os.path.abspath(args.output)
 
@@ -72,7 +76,7 @@ if __name__ == '__main__':
     g = Ufo.TaskGraph()
 
     # backproject filtered sinograms
-    g.connect_nodes(sino_reader, fft)
+    g.connect_nodes(reader, fft)
     g.connect_nodes(fft, fltr)
     g.connect_nodes(fltr, ifft)
     g.connect_nodes(ifft, bp)
