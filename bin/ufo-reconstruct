@@ -24,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
                         help="Location with sinograms")
     
+    parser.add_argument('--method', choices=['fbp', 'sart'], default='fbp')
     parser.add_argument('--first-slice', type=int, default=None, metavar='N',
                         help="First slice")
     parser.add_argument('--last-slice', type=int, default=None, metavar='N',
@@ -40,16 +41,12 @@ if __name__ == '__main__':
         config = Ufo.Config(paths=args.include)
         cargs['config'] = config
 
-    # create nodes
+    # Create reader and writer
     pm = Ufo.PluginManager(**cargs)
     reader = pm.get_task('reader')
     writer = pm.get_task('writer')
-    fft = pm.get_task('fft')
-    ifft = pm.get_task('ifft')
-    fltr = pm.get_task('filter')
-    bp = pm.get_task('backproject')
 
-    # configure nodes
+    # Configure reader and writer
     reader.props.path = args.input
 
     if args.first_slice:
@@ -66,21 +63,41 @@ if __name__ == '__main__':
         outname = os.path.join(abs_path, 'slice-%05i.tif')
 
     writer.set_properties(filename=outname)
-    fft.set_properties(dimensions=1)
-    ifft.set_properties(dimensions=1)
-    bp.set_properties(axis_pos=args.axis)
 
-    if args.angle_step:
-        bp.set_properties(angle_step=args.angle_step)
-
+    # Setup graph depending on the chosen method
     g = Ufo.TaskGraph()
 
-    # backproject filtered sinograms
-    g.connect_nodes(reader, fft)
-    g.connect_nodes(fft, fltr)
-    g.connect_nodes(fltr, ifft)
-    g.connect_nodes(ifft, bp)
-    g.connect_nodes(bp, writer)
+    if args.method == 'fbp':
+        fft = pm.get_task('fft')
+        ifft = pm.get_task('ifft')
+        fltr = pm.get_task('filter')
+        bp = pm.get_task('backproject')
+
+        fft.props.dimensions = 1
+        ifft.props.dimensions = 1
+        bp.props.axis_pos = args.axis
+
+        if args.angle_step:
+            bp.props.angle_step = args.angle_step
+
+        g.connect_nodes(reader, fft)
+        g.connect_nodes(fft, fltr)
+        g.connect_nodes(fltr, ifft)
+        g.connect_nodes(ifft, bp)
+        g.connect_nodes(bp, writer)
+
+    if args.method == 'sart':
+        art = pm.get_task('art')
+        art.set_properties(method='sart',
+                           projector='joseph',
+                           regularizer='tv',
+                           angle_step=args.angle_step,
+                           max_iterations=5,
+                           max_regularizer_iterations=20,
+                           posc=False)
+
+        g.connect_nodes(reader, art)
+        g.connect_nodes(art, writer)
 
     sched = Ufo.Scheduler()
     sched.run(g)
