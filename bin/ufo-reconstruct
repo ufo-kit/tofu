@@ -52,7 +52,7 @@ def run(args):
 
     reader = get_task('reader', path=args.input)
 
-    if args.first_slice:
+    if args.first_slice != None:
         reader.props.nth = args.first_slice
 
         if args.last_slice:
