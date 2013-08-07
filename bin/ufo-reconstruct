@@ -9,6 +9,15 @@ import ConfigParser as configparser
 from gi.repository import Ufo
 
 
+CONFIG_NAME = 'reco.conf'
+CONFIG_TEMPLATE = """[general]
+#axis = 0.0
+#angle_step = 0.0
+#input = path/to/sinograms
+#output = path/to/output
+"""
+
+
 def get_output_name(output_path):
     abs_path = os.path.abspath(output_path)
 
@@ -18,49 +27,15 @@ def get_output_name(output_path):
     return os.path.join(abs_path, 'slice-%05i.tif')
 
 
-if __name__ == '__main__':
-    # Read configuration first and use any set values as default for the
-    # argument parser
-    cfg_parser = configparser.ConfigParser()
-    cfg_parser.read(['reco.conf'])
-
-    def get_config(section, option, default=None):
-        try:
-            return cfg_parser.get(section, option)
-        except configparser.NoOptionError:
-            return default
+def init(args):
+    if not os.path.exists(CONFIG_NAME):
+        with open(CONFIG_NAME, 'w') as f:
+            f.write(CONFIG_TEMPLATE)
+    else:
+        sys.exit("{0} already exists".format(CONFIG_NAME))
 
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--axis', type=float,
-                        default=get_config('general', 'axis'),
-                        help="Axis position")
-    parser.add_argument('-s', '--angle-step', type=float,
-                        default=get_config('general', 'angle_step'),
-                        help="Angle step between projections")
-    parser.add_argument('-o', '--output', type=str,
-                        default=get_config('general', 'output', '.'),
-                        metavar='PATH',
-                        help="Path to location or format-specified file path "
-                             "for storing reconstructed slices")
-    parser.add_argument('-i', '--input', type=str,
-                        default=get_config('general', 'input', '.'),
-                        metavar='PATH',
-                        help="Location with sinograms")
-
-    parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'], default='fbp')
-    parser.add_argument('--first-slice', type=int, default=None, metavar='N',
-                        help="First slice")
-    parser.add_argument('--last-slice', type=int, default=None, metavar='N',
-                        help="Last slice")
-    parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
-                        help="Paths to search for plugins and kernel files")
-    parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
-                        help="ZeroMQ addresses of machines on which `ufod' is running")
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help="Reconstruct without writing data")
-
-    args = parser.parse_args()
+def run(args):
     cargs = {}
 
     if args.include:
@@ -145,6 +120,66 @@ if __name__ == '__main__':
 
     sched = Ufo.Scheduler()
     sched.run(g)
+
+
+if __name__ == '__main__':
+    # Read configuration first and use any set values as default for the
+    # argument parser
+    cfg_parser = configparser.ConfigParser()
+    cfg_parser.read([CONFIG_NAME])
+
+    def get_config(section, option, default=None):
+        try:
+            return cfg_parser.get(section, option)
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            return default
+
+
+    parser = argparse.ArgumentParser()
+
+    subparsers = parser.add_subparsers(title="Commands", metavar='')
+
+    # init parser
+    cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
+    cmd_parser.set_defaults(func=init)
+
+    # run parser
+    cmd_parser = subparsers.add_parser('run', help="Run reconstruction")
+    cmd_parser.set_defaults(func=run)
+
+    cmd_parser.add_argument('-a', '--axis', type=float,
+                            default=get_config('general', 'axis'),
+                            help="Axis position")
+    cmd_parser.add_argument('-s', '--angle-step', type=float,
+                            default=get_config('general', 'angle_step'),
+                            help="Angle step between projections")
+    cmd_parser.add_argument('-o', '--output', type=str,
+                            default=get_config('general', 'output', '.'),
+                            metavar='PATH',
+                            help="Path to location or format-specified file path "
+                                 "for storing reconstructed slices")
+    cmd_parser.add_argument('-i', '--input', type=str,
+                            default=get_config('general', 'input', '.'),
+                            metavar='PATH',
+                            help="Location with sinograms")
+
+    cmd_parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
+                            default='fbp',
+                            help="Reconstruction method")
+    cmd_parser.add_argument('--first-slice', type=int, default=None, metavar='N',
+                            help="First slice")
+    cmd_parser.add_argument('--last-slice', type=int, default=None, metavar='N',
+                            help="Last slice")
+    cmd_parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
+                            help="Paths to search for plugins and kernel files")
+    cmd_parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
+                            help="ZeroMQ addresses of machines on which `ufod' is running")
+    cmd_parser.add_argument('--dry-run', action='store_true', default=False,
+                            help="Reconstruct without writing data")
+
+
+    args = parser.parse_args()
+    args.func(args)
 
 
 # vim: ft=python
