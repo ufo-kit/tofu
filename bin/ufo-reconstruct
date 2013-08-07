@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
                         help="Location with sinograms")
     
-    parser.add_argument('--method', choices=['fbp', 'sart'], default='fbp')
+    parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'], default='fbp')
     parser.add_argument('--first-slice', type=int, default=None, metavar='N',
                         help="First slice")
     parser.add_argument('--last-slice', type=int, default=None, metavar='N',
@@ -67,6 +67,11 @@ if __name__ == '__main__':
     # Setup graph depending on the chosen method
     g = Ufo.TaskGraph()
 
+    def get_task(name, **kwargs):
+        task = pm.get_task(name)
+        task.set_properties(**kwargs)
+        return task
+
     if args.method == 'fbp':
         fft = pm.get_task('fft')
         ifft = pm.get_task('ifft')
@@ -98,6 +103,25 @@ if __name__ == '__main__':
 
         g.connect_nodes(reader, art)
         g.connect_nodes(art, writer)
+
+    if args.method == 'dfi':
+        cut = get_task('cut-sinogram', center_of_rotation=args.axis)
+        pad = get_task('zeropadding', oversampling=1)
+        fft = get_task('fft', dimensions=1, auto_zeropadding=0)
+        dfi = get_task('dfi-sinc')
+        ifft = get_task('ifft', dimensions=2)
+        swap_forward = get_task('swap-quadrants')
+        swap_backward = get_task('swap-quadrants')
+
+        g.connect_nodes(reader, cut)
+        g.connect_nodes(cut, pad)
+        g.connect_nodes(pad, fft)
+        g.connect_nodes(fft, dfi)
+        g.connect_nodes(dfi, swap_forward)
+        g.connect_nodes(swap_forward, ifft)
+        g.connect_nodes(ifft, swap_backward)
+        g.connect_nodes(swap_backward, writer)
+
 
     sched = Ufo.Scheduler()
     sched.run(g)
