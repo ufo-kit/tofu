@@ -8,8 +8,13 @@ import numpy as np
 from gi.repository import Ufo
 
 
-def is_format_specifier(path):
-    return re.search(r"%[0-9]+i", path)
+def get_output_name(output_path):
+    abs_path = os.path.abspath(output_path)
+
+    if re.search(r"%[0-9]+i", output_path):
+        return abs_path
+
+    return os.path.join(abs_path, 'slice-%05i.tif')
 
 
 if __name__ == '__main__':
@@ -19,11 +24,11 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--angle-step', type=float, default=None,
                         help="Angle step between projections")
     parser.add_argument('-o', '--output', type=str, default='.', metavar='PATH',
-                        help="Path to location or format-specified file path"
+                        help="Path to location or format-specified file path "
                              "for storing reconstructed slices")
     parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
                         help="Location with sinograms")
-    
+
     parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'], default='fbp')
     parser.add_argument('--first-slice', type=int, default=None, metavar='N',
                         help="First slice")
@@ -33,6 +38,8 @@ if __name__ == '__main__':
                         help="Paths to search for plugins and kernel files")
     parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
                         help="ZeroMQ addresses of machines on which `ufod' is running")
+    parser.add_argument('--dry-run', action='store_true', default=False,
+                        help="Reconstruct without writing data")
 
     args = parser.parse_args()
     cargs = {}
@@ -43,11 +50,13 @@ if __name__ == '__main__':
 
     # Create reader and writer
     pm = Ufo.PluginManager(**cargs)
-    reader = pm.get_task('reader')
-    writer = pm.get_task('writer')
 
-    # Configure reader and writer
-    reader.props.path = args.input
+    def get_task(name, **kwargs):
+        task = pm.get_task(name)
+        task.set_properties(**kwargs)
+        return task
+
+    reader = get_task('reader', path=args.input)
 
     if args.first_slice:
         reader.props.nth = args.first_slice
@@ -55,22 +64,15 @@ if __name__ == '__main__':
         if args.last_slice:
             reader.props.count = args.last_slice - args.first_slice
 
-    abs_path = os.path.abspath(args.output)
-
-    if is_format_specifier(args.output):
-        outname = abs_path
+    if args.dry_run:
+        writer = get_task('null')
     else:
-        outname = os.path.join(abs_path, 'slice-%05i.tif')
+        outname = get_output_name(args.output)
+        writer = get_task('writer', filename=outname)
 
-    writer.set_properties(filename=outname)
 
     # Setup graph depending on the chosen method
     g = Ufo.TaskGraph()
-
-    def get_task(name, **kwargs):
-        task = pm.get_task(name)
-        task.set_properties(**kwargs)
-        return task
 
     if args.method == 'fbp':
         fft = get_task('fft', dimensions=1)
