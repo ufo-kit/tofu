@@ -91,10 +91,12 @@ def run(args):
                        method='sart',
                        projector='joseph',
                        regularizer='tv',
-                       angle_step=args.angle_step,
                        max_iterations=5,
                        max_regularizer_iterations=20,
                        posc=False)
+
+        if args.angle_step:
+            art.props.angle_step = args.angle_step
 
         g.connect_nodes(reader, art)
         g.connect_nodes(art, writer)
