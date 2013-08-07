@@ -73,14 +73,13 @@ if __name__ == '__main__':
         return task
 
     if args.method == 'fbp':
-        fft = pm.get_task('fft')
-        ifft = pm.get_task('ifft')
-        fltr = pm.get_task('filter')
-        bp = pm.get_task('backproject')
+        fft = get_task('fft', dimensions=1)
+        ifft = get_task('ifft', dimensions=1)
+        fltr = get_task('filter')
+        bp = get_task('backproject')
 
-        fft.props.dimensions = 1
-        ifft.props.dimensions = 1
-        bp.props.axis_pos = args.axis
+        if args.axis:
+            bp.props.axis_pos = args.axis
 
         if args.angle_step:
             bp.props.angle_step = args.angle_step
@@ -92,14 +91,14 @@ if __name__ == '__main__':
         g.connect_nodes(bp, writer)
 
     if args.method == 'sart':
-        art = pm.get_task('art')
-        art.set_properties(method='sart',
-                           projector='joseph',
-                           regularizer='tv',
-                           angle_step=args.angle_step,
-                           max_iterations=5,
-                           max_regularizer_iterations=20,
-                           posc=False)
+        art = get_task('art',
+                       method='sart',
+                       projector='joseph',
+                       regularizer='tv',
+                       angle_step=args.angle_step,
+                       max_iterations=5,
+                       max_regularizer_iterations=20,
+                       posc=False)
 
         g.connect_nodes(reader, art)
         g.connect_nodes(art, writer)
