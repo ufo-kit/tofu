@@ -35,7 +35,7 @@ class DefaultConfigParser(configparser.ConfigParser):
 def get_output_name(output_path):
     abs_path = os.path.abspath(output_path)
 
-    if re.search(r"%[0-9]+i", output_path):
+    if re.search(r"%[0-9]*i", output_path):
         return abs_path
 
     return os.path.join(abs_path, 'slice-%05i.tif')
