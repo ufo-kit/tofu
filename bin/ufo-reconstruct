@@ -5,6 +5,7 @@ import sys
 import re
 import argparse
 import numpy as np
+import ConfigParser as configparser
 from gi.repository import Ufo
 
 
@@ -18,15 +19,33 @@ def get_output_name(output_path):
 
 
 if __name__ == '__main__':
+    # Read configuration first and use any set values as default for the
+    # argument parser
+    cfg_parser = configparser.ConfigParser()
+    cfg_parser.read(['reco.conf'])
+
+    def get_config(section, option, default=None):
+        try:
+            return cfg_parser.get(section, option)
+        except configparser.NoOptionError:
+            return default
+
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--axis', type=float, default=1000.0,
+    parser.add_argument('-a', '--axis', type=float,
+                        default=get_config('general', 'axis'),
                         help="Axis position")
-    parser.add_argument('-s', '--angle-step', type=float, default=None,
+    parser.add_argument('-s', '--angle-step', type=float,
+                        default=get_config('general', 'angle_step'),
                         help="Angle step between projections")
-    parser.add_argument('-o', '--output', type=str, default='.', metavar='PATH',
+    parser.add_argument('-o', '--output', type=str,
+                        default=get_config('general', 'output', '.'),
+                        metavar='PATH',
                         help="Path to location or format-specified file path "
                              "for storing reconstructed slices")
-    parser.add_argument('-i', '--input', type=str, default='.', metavar='PATH',
+    parser.add_argument('-i', '--input', type=str,
+                        default=get_config('general', 'input', '.'),
+                        metavar='PATH',
                         help="Location with sinograms")
 
     parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'], default='fbp')
