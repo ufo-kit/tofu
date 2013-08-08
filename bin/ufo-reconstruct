@@ -142,6 +142,7 @@ def run(args, cfg_parser):
 
 
     sched = Ufo.Scheduler()
+    sched.props.enable_tracing = args.enable_tracing
     sched.run(g)
 
 
@@ -190,6 +191,8 @@ if __name__ == '__main__':
                             help="Paths to search for plugins and kernel files")
     cmd_parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
                             help="ZeroMQ addresses of machines on which `ufod' is running")
+    cmd_parser.add_argument('--enable-tracing', action='store_true', default=False,
+                            help="Enable tracing and store result in .PID.json")
     cmd_parser.add_argument('--dry-run', action='store_true', default=False,
                             help="Reconstruct without writing data")
 
