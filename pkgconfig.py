@@ -1,29 +1,26 @@
 # -*- coding: utf-8 -*-
+# Copyright (c) 2013 Matthias Vogelgesang <matthias.vogelgesang@gmail.com>
 
-"""
-pkgconfig is a Python module to interface with the pkg-config command line
-tool.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 
-It can be used to 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
-- check if a package exists
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
-    >>> pkgconfig.exists('glib-2.0')
-    True
-
-- check if a package meets certain version requirements
-
-    >>> pkgconfig.installed('glib-2.0', '< 2.26')
-    False
-
-- query CFLAGS and LDFLAGS
-
-    >>> pkgconfig.cflags('glib-2.0')
-    '-I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include'
-
-    >>> pkgconfig.libs('glib-2.0')
-    '-lglib-2.0'
-"""
+"""pkgconfig is a Python module to interface with the pkg-config command line
+tool."""
 
 import subprocess
 import re
@@ -31,7 +28,8 @@ import re
 
 def _compare_versions(v1, v2):
     """
-    Compare two version strings.
+    Compare two version strings and return -1, 0 or 1 depending on the equality
+    of the subset of matching version numbers.
 
     The implementation is taken from the top answer at
     http://stackoverflow.com/a/1714190/997768.
@@ -48,20 +46,31 @@ def _split_version_specifier(spec):
     return m.group(2), m.group(1)
 
 
+def _convert_error(func):
+    def _wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except OSError:
+            raise EnvironmentError("pkg-config is not installed")
+
+    return _wrapper
+
+
+@_convert_error
 def _query(package, option):
     cmd = 'pkg-config {0} {1}'.format(option, package).split()
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
     out, err = proc.communicate()
+
     return out.rstrip()
 
 
+@_convert_error
 def exists(package):
     """Return True if package information is available."""
-    try:
-        cmd = 'pkg-config --exists {0}'.format(package).split()
-        return subprocess.call(cmd) == 0
-    except OSError:
-        raise EnvironmentError("pkg-config not installed")
+    cmd = 'pkg-config --exists {0}'.format(package).split()
+    return subprocess.call(cmd) == 0
 
 
 def cflags(package):
@@ -102,14 +111,17 @@ def installed(package, version):
         msg = "{0} is not a correct version specifier".format(version)
         raise ValueError(msg)
 
-    comparison_table = {
-        '>': result > 0,
-        '>=': result >= 0,
-        '': result == 0,
-        '=': result == 0,
-        '==': result == 0,
-        '<=': result <= 0,
-        '<': result < 0
-    }
+    if comparator in ('', '=', '=='):
+        return result == 0
 
-    return comparison_table[comparator]
+    if comparator == '>':
+        return result > 0
+
+    if comparator == '>=':
+        return result >= 0
+
+    if comparator == '<':
+        return result < 0
+
+    if comparator == '<=':
+        return result <= 0
