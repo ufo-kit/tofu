@@ -1,0 +1,2 @@
+include pkgconfig.py
+include README.md
