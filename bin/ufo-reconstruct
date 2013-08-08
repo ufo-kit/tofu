@@ -3,6 +3,7 @@
 import os
 import sys
 import re
+import glob
 import argparse
 import numpy as np
 import ConfigParser as configparser
@@ -79,8 +80,19 @@ def run(args, cfg_parser):
         writer = get_task('writer', filename=outname)
 
 
-    # Setup graph depending on the chosen method
+    # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
+
+    if args.from_projections:
+        if args.last_slice != None and args.first_slice != None:
+            count = args.last_slice - args.first_slice
+        else:
+            count = len(glob.glob(args.input))
+
+        sino_output = get_task('sino-generator', num_projections=count)
+        g.connect_nodes(reader, sino_output)
+    else:
+        sino_output = reader
 
     if args.method == 'fbp':
         fft = get_task('fft', dimensions=1)
@@ -99,7 +111,7 @@ def run(args, cfg_parser):
         if crop_width:
             ifft.props.crop_width = int(crop_width)
 
-        g.connect_nodes(reader, fft)
+        g.connect_nodes(sino_output, fft)
         g.connect_nodes(fft, fltr)
         g.connect_nodes(fltr, ifft)
         g.connect_nodes(ifft, bp)
@@ -117,7 +129,7 @@ def run(args, cfg_parser):
         if args.angle_step:
             art.props.angle_step = args.angle_step
 
-        g.connect_nodes(reader, art)
+        g.connect_nodes(sino_output, art)
         g.connect_nodes(art, writer)
 
     if args.method == 'dfi':
@@ -131,7 +143,7 @@ def run(args, cfg_parser):
         swap_forward = get_task('swap-quadrants')
         swap_backward = get_task('swap-quadrants')
 
-        g.connect_nodes(reader, cut)
+        g.connect_nodes(sino_output, cut)
         g.connect_nodes(cut, pad)
         g.connect_nodes(pad, fft)
         g.connect_nodes(fft, dfi)
@@ -178,7 +190,7 @@ if __name__ == '__main__':
     cmd_parser.add_argument('-i', '--input', type=str,
                             default=cfg_parser.get_config('general', 'input', '.'),
                             metavar='PATH',
-                            help="Location with sinograms")
+                            help="Location with sinograms or projections")
 
     cmd_parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
                             default='fbp',
@@ -191,6 +203,8 @@ if __name__ == '__main__':
                             help="Paths to search for plugins and kernel files")
     cmd_parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
                             help="ZeroMQ addresses of machines on which `ufod' is running")
+    cmd_parser.add_argument('--from-projections', action='store_true', default=False,
+                            help="Reconstruct from projections instead of sinograms")
     cmd_parser.add_argument('--enable-tracing', action='store_true', default=False,
                             help="Enable tracing and store result in .PID.json")
     cmd_parser.add_argument('--dry-run', action='store_true', default=False,
