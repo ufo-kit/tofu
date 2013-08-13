@@ -154,7 +154,10 @@ def run(args, cfg_parser):
 
 
     sched = Ufo.Scheduler()
-    sched.props.enable_tracing = args.enable_tracing
+
+    if hasattr(sched.props, 'enable_tracing'):
+        sched.props.enable_tracing = args.enable_tracing
+
     sched.run(g)
 
 
