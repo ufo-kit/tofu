@@ -26,6 +26,7 @@ if __name__ == '__main__':
                         default='.')
     parser.add_argument('--flat-dir', metavar='PATH', type=str)
     parser.add_argument('--dark-dir', metavar='PATH', type=str)
+    parser.add_argument('--disable-absorption-correction', action='store_true')
 
     args = parser.parse_args()
 
@@ -62,7 +63,9 @@ if __name__ == '__main__':
 
         # Setup flat-field correction
         ffc = pm.get_task('flat-field-correction')
-        ffc.set_properties(absorption_correction=True)
+        correct = not args.disable_absorption_correction
+        print("Enable absorption correction: {0}".format(correct))
+        ffc.set_properties(absorption_correction=correct)
 
         g.connect_nodes(dark_reader, dark_avg)
         g.connect_nodes(flat_reader, flat_avg)
