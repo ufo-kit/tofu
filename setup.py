@@ -16,7 +16,7 @@ setup(
     author_email='matthias.vogelgesang@kit.edu',
     url='http://ufo.kit.edu',
     scripts=['bin/ufo-reconstruct',
-             'bin/ufo-ffc-sinos',
+             'bin/ufo-sinos',
              'bin/ufo-estimate-center',
              ],
     long_description=open('README.md').read(),
