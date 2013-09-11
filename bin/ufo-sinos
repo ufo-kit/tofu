@@ -64,15 +64,14 @@ if __name__ == '__main__':
         # Setup flat-field correction
         ffc = pm.get_task('flat-field-correction')
         correct = not args.disable_absorption_correction
-        print("Enable absorption correction: {0}".format(correct))
         ffc.set_properties(absorption_correction=correct)
 
         g.connect_nodes(dark_reader, dark_avg)
         g.connect_nodes(flat_reader, flat_avg)
 
-        g.connect_nodes_full(dark_avg, ffc, 0)
-        g.connect_nodes_full(flat_avg, ffc, 1)
-        g.connect_nodes_full(proj_reader, ffc, 2)
+        g.connect_nodes_full(proj_reader, ffc, 0)
+        g.connect_nodes_full(dark_avg, ffc, 1)
+        g.connect_nodes_full(flat_avg, ffc, 2)
 
         g.connect_nodes(ffc, sinogen)
     else:
