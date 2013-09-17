@@ -17,6 +17,9 @@ CONFIG_TEMPLATE = """[general]
 # input = path/to/sinograms
 # output = path/to/output
 
+## Reconstruct from projections instead of sinograms
+# from_projections = True
+
 [fbp]
 # crop_width = 128
 
@@ -206,7 +209,8 @@ if __name__ == '__main__':
                             help="Paths to search for plugins and kernel files")
     cmd_parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
                             help="ZeroMQ addresses of machines on which `ufod' is running")
-    cmd_parser.add_argument('--from-projections', action='store_true', default=False,
+    cmd_parser.add_argument('--from-projections', action='store_true',
+                            default=cfg_parser.get_config('general', 'from_projections', False),
                             help="Reconstruct from projections instead of sinograms")
     cmd_parser.add_argument('--enable-tracing', action='store_true', default=False,
                             help="Enable tracing and store result in .PID.json")
