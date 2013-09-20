@@ -18,6 +18,15 @@ def split_extended_path(extended_path):
     return (path, first, last)
 
 
+NEG_LOG_SOURCE = """
+__kernel void neg_log (global float *input,
+                       global float *output)
+{
+    int idx = get_global_id (1) * get_global_size (0) + get_global_id (0);
+    output[idx] = - log (input[idx]);
+}"""
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', metavar='PATH', type=str,
@@ -63,8 +72,7 @@ if __name__ == '__main__':
 
         # Setup flat-field correction
         ffc = pm.get_task('flat-field-correction')
-        correct = not args.disable_absorption_correction
-        ffc.set_properties(absorption_correction=correct)
+        ffc.set_properties(absorption_correction=False)
 
         g.connect_nodes(dark_reader, dark_avg)
         g.connect_nodes(flat_reader, flat_avg)
@@ -73,7 +81,14 @@ if __name__ == '__main__':
         g.connect_nodes_full(dark_avg, ffc, 1)
         g.connect_nodes_full(flat_avg, ffc, 2)
 
-        g.connect_nodes(ffc, sinogen)
+        if args.disable_absorption_correction:
+            neglog = pm.get_task('opencl')
+            neglog.props.source = NEG_LOG_SOURCE
+            neglog.props.kernel = 'neg_log'
+            g.connect_nodes(ffc, neglog)
+            g.connect_nodes(neglog, sinogen)
+        else:
+            g.connect_nodes(ffc, sinogen)
     else:
         g.connect_nodes(proj_reader, sinogen)
 
