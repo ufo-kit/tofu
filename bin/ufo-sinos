@@ -20,12 +20,12 @@ def split_extended_path(extended_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projection-dir', metavar='PATH', type=str,
+    parser.add_argument('-i', '--input', metavar='PATH', type=str,
                         default='.', required=True)
-    parser.add_argument('--output-dir', metavar='PATH', type=str,
+    parser.add_argument('-o', '--output', metavar='PATH', type=str,
                         default='.')
-    parser.add_argument('--flat-dir', metavar='PATH', type=str)
-    parser.add_argument('--dark-dir', metavar='PATH', type=str)
+    parser.add_argument('--flats', metavar='PATH', type=str)
+    parser.add_argument('--darks', metavar='PATH', type=str)
     parser.add_argument('--disable-absorption-correction', action='store_true')
 
     args = parser.parse_args()
@@ -34,19 +34,19 @@ if __name__ == '__main__':
     pm = Ufo.PluginManager()
     g = Ufo.TaskGraph()
 
-    proj_path, proj_nth, proj_count = split_extended_path(args.projection_dir)
+    proj_path, proj_nth, proj_count = split_extended_path(args.input)
     proj_reader = pm.get_task('reader')
     proj_reader.set_properties(path=proj_path, nth=proj_nth, count=proj_count)
 
     writer = pm.get_task('writer')
-    writer.set_properties(filename='{0}/output-%05i.tif'.format(args.output_dir))
+    writer.set_properties(filename='{0}'.format(args.output))
 
     sinogen = pm.get_task('sino-generator')
     sinogen.set_properties(num_projections=proj_count)
 
-    if args.flat_dir and args.dark_dir:
+    if args.flats and args.darks:
         # Read flat fields
-        flat_path, flat_nth, flat_count = split_extended_path(args.flat_dir)
+        flat_path, flat_nth, flat_count = split_extended_path(args.flats)
         flat_reader = pm.get_task('reader')
         flat_reader.set_properties(path=flat_path, nth=flat_nth, count=flat_count)
 
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         flat_avg.set_properties(num_generate=proj_count)
 
         # Read dark fields
-        dark_path, dark_nth, dark_count = split_extended_path(args.dark_dir)
+        dark_path, dark_nth, dark_count = split_extended_path(args.darks)
         dark_reader = pm.get_task('reader')
         dark_reader.set_properties(path=dark_path, nth=dark_nth, count=dark_count)
 
