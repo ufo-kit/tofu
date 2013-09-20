@@ -5,6 +5,7 @@ import sys
 import re
 import glob
 import argparse
+import logging
 import numpy as np
 import ConfigParser as configparser
 from gi.repository import Ufo
@@ -29,6 +30,8 @@ CONFIG_TEMPLATE = """[general]
 [dfi]
 # oversampling = 2
 """
+
+LOG = logging.getLogger(__name__)
 
 
 class DefaultConfigParser(configparser.ConfigParser):
@@ -71,7 +74,6 @@ def run(args, cfg_parser):
         task.set_properties(**kwargs)
         return task
 
-    print args.input
     reader = get_task('reader', path=args.input)
 
     if args.first_slice != None:
@@ -85,6 +87,7 @@ def run(args, cfg_parser):
     else:
         outname = get_output_name(args.output)
         writer = get_task('writer', filename=outname)
+        LOG.info("Write to {}".format(outname))
 
 
     # Setup graph depending on the chosen method and input data
@@ -96,10 +99,10 @@ def run(args, cfg_parser):
         else:
             count = len(glob.glob(args.input))
 
+        LOG.info("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
         if args.darks and args.flats:
-            print args.flats, args.darks
             dark_reader = get_task('reader', path=args.flats)
             flat_reader = get_task('reader', path=args.darks)
             correction = get_task('flat-field-correction')
@@ -128,6 +131,7 @@ def run(args, cfg_parser):
 
         if crop_width:
             ifft.props.crop_width = int(crop_width)
+            LOG.info("Cropping to {} pixels".format(ifft.props.crop_width))
 
         g.connect_nodes(sino_output, fft)
         g.connect_nodes(fft, fltr)
@@ -174,6 +178,7 @@ def run(args, cfg_parser):
     sched = Ufo.Scheduler()
 
     if hasattr(sched.props, 'enable_tracing'):
+        LOG.info("Use tracing: {}".format(args.enable_tracing))
         sched.props.enable_tracing = args.enable_tracing
 
     sched.run(g)
@@ -186,6 +191,8 @@ if __name__ == '__main__':
     cfg_parser.read([CONFIG_NAME])
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help="Verbose output")
 
     subparsers = parser.add_subparsers(title="Commands", metavar='')
 
@@ -242,6 +249,10 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
     args.func(args, cfg_parser)
 
 
