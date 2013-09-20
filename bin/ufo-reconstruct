@@ -12,13 +12,16 @@ from gi.repository import Ufo
 
 CONFIG_NAME = 'reco.conf'
 CONFIG_TEMPLATE = """[general]
-# axis = 0.0
-# angle_step = 0.0
-# input = path/to/sinograms
-# output = path/to/output
+#axis = 0.0
+#angle_step = 0.0
+#input = path/to/sinograms
+#output = path/to/output
 
 ## Reconstruct from projections instead of sinograms
-# from_projections = True
+#from_projections = True
+## Flat-field correction will not be performed if these are missing
+#darks = path/to/darks
+#flats = path/to/flats
 
 [fbp]
 # crop_width = 128
@@ -68,6 +71,7 @@ def run(args, cfg_parser):
         task.set_properties(**kwargs)
         return task
 
+    print args.input
     reader = get_task('reader', path=args.input)
 
     if args.first_slice != None:
@@ -93,7 +97,18 @@ def run(args, cfg_parser):
             count = len(glob.glob(args.input))
 
         sino_output = get_task('sino-generator', num_projections=count)
-        g.connect_nodes(reader, sino_output)
+
+        if args.darks and args.flats:
+            print args.flats, args.darks
+            dark_reader = get_task('reader', path=args.flats)
+            flat_reader = get_task('reader', path=args.darks)
+            correction = get_task('flat-field-correction')
+            g.connect_nodes_full(reader, correction, 0)
+            g.connect_nodes_full(dark_reader, correction, 1)
+            g.connect_nodes_full(flat_reader, correction, 0)
+            g.connect_nodes(correction, sino_output)
+        else:
+            g.connect_nodes(reader, sino_output)
     else:
         sino_output = reader
 
@@ -186,7 +201,7 @@ if __name__ == '__main__':
                             default=cfg_parser.get_config('general', 'axis'),
                             help="Axis position")
     cmd_parser.add_argument('-s', '--angle-step', type=float,
-                            default=cfg_parser.get_config('general', 'angle_step'),
+                            default=cfg_parser.get_config('general', 'angle_step', None),
                             help="Angle step between projections")
     cmd_parser.add_argument('-o', '--output', type=str,
                             default=cfg_parser.get_config('general', 'output', '.'),
@@ -197,6 +212,14 @@ if __name__ == '__main__':
                             default=cfg_parser.get_config('general', 'input', '.'),
                             metavar='PATH',
                             help="Location with sinograms or projections")
+    cmd_parser.add_argument('--flats', type=str,
+                            default=cfg_parser.get_config('general', 'flats'),
+                            metavar='PATH',
+                            help="Location with flats")
+    cmd_parser.add_argument('--darks', type=str,
+                            default=cfg_parser.get_config('general', 'darks'),
+                            metavar='PATH',
+                            help="Location with darks")
 
     cmd_parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
                             default='fbp',
