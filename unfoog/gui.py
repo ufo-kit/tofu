@@ -157,7 +157,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
-        reco.run(Bunch(d), self.cfg_parser)
+        try:
+            reco.run(Bunch(d), self.cfg_parser)
+        except Exception as e:
+            QtGui.QMessageBox.warning(self, "Warning", str(e))
 
         _disable_wait_cursor()
         self.main_widget.setEnabled(True)
