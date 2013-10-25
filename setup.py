@@ -1,5 +1,5 @@
 import pkgconfig
-from setuptools import setup
+from setuptools import setup, find_packages
 
 VERSION='0.0.1'
 
@@ -15,6 +15,7 @@ setup(
     author='Matthias Vogelgesang',
     author_email='matthias.vogelgesang@kit.edu',
     url='http://ufo.kit.edu',
+    packages=find_packages(),
     scripts=['bin/ufo-reconstruct',
              'bin/ufo-sinos',
              'bin/ufo-estimate-center',
