@@ -136,29 +136,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.close()
 
     def on_reconstruct(self):
-        d = {
-            'input': str(self.input_path_line.text()),
-            'output': str(self.output_path_line.text()),
-            'from_projections': self.proj_button.isChecked(),
-            'include': None,
-            'dry_run': False,
-            'method': 'fbp',
-            'axis': self.axis_spin.value(),
-            'angle_step': self.angle_step.value(),
-            'enable_tracing': False,
-            'first_slice': None,
-            'last_slice': None,
-            'darks': None,
-            'flats': None,
-        }
-
         _enable_wait_cursor()
         self.main_widget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
 
         try:
-            reco.run(Bunch(d), self.cfg_parser)
+            reco.run(self.cfg_parser,
+                     str(self.input_path_line.text()),
+                     str(self.output_path_line.text()),
+                     axis=self.axis_spin.value(),
+                     angle_step=self.angle_step.value(),
+                     from_projections=self.proj_button.isChecked())
+
         except Exception as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
 

@@ -53,7 +53,11 @@ def init(args, cfg_parser):
 def run(args, cfg_parser):
     from unfoog import reco
 
-    reco.run(args, cfg_parser)
+    reco.run(cfg_parser, args.input, args.output,
+             args.axis, args.angle_step, args.darks, args.flats,
+             args.first_slice, args.last_slice,
+             args.from_projections, args.method,
+             args.include, args.enable_tracing, args.dry_run)
 
 
 def gui(args, cfg_parser):
