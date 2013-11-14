@@ -1,3 +1,5 @@
+## About ufo-scripts
+
 This repository contains data processing scripts to be used with the UFO
 framework. At the moment they are targeted at high-performance reconstruction of
 tomographic data sets.
@@ -21,9 +23,9 @@ To do a reconstruction you simply call
 
 from the command line. To get get correct results, you may need to append
 options such as `--axis-pos/-a` and `--angle-step/-a` (which are given in
-radians!).  Input paths are either directories or glob patterns.
-Output paths are either directories or a format that contains one %i
-specifier:
+radians!). Input paths are either directories or glob patterns. Output paths are
+either directories or a format that contains one `%i`
+[specifier](http://www.pixelbeat.org/programming/gcc/format_specs.html):
 
      $ ufo-reconstruct run --axis-pos=123.4 --angle-step=0.000123 \
          --input="/foo/bar/*.tif" --output="/output/slices-%05i.tif"
