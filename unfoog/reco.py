@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import ConfigParser as configparser
 from gi.repository import Ufo
+from . import tifffile
 
 
 LOG = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
     else:
         outname = get_output_name(output_path)
         writer = get_task('writer', filename=outname)
-        LOG.info("Write to {}".format(outname))
+        LOG.debug("Write to {}".format(outname))
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
@@ -64,7 +65,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
         else:
             count = len(glob.glob(input_path))
 
-        LOG.info("num_projections = {}".format(count))
+        LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
         if darks and flats:
@@ -96,7 +97,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
 
         if crop_width:
             ifft.props.crop_width = int(crop_width)
-            LOG.info("Cropping to {} pixels".format(ifft.props.crop_width))
+            LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
 
         g.connect_nodes(sino_output, fft)
         g.connect_nodes(fft, fltr)
@@ -142,7 +143,52 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
     sched = Ufo.Scheduler()
 
     if hasattr(sched.props, 'enable_tracing'):
-        LOG.info("Use tracing: {}".format(enable_tracing))
+        LOG.debug("Use tracing: {}".format(enable_tracing))
         sched.props.enable_tracing = enable_tracing
 
     sched.run(g)
+
+
+def read_tiff(filename):
+    tif = tifffile.TiffFile(filename)
+    arr = np.copy(tif.asarray())
+    tif.close()
+    return arr
+
+
+def estimate_center(cfg_parser, filename, n_iterations=10):
+    def heaviside(A):
+        return (A >= 0.0) * 1.0
+
+    def get_score(guess, m0):
+        outname_template = '/tmp/foobarfoo-%05i.tif'
+        run(cfg_parser, filename, outname_template, axis=guess)
+        result = read_tiff('/tmp/foobarfoo-00000.tif')
+        Q_IA = float(np.sum(np.abs(result)) / m0)
+        Q_IN = float(-np.sum(result * heaviside(-result)) / m0)
+        LOG.info("Q_IA={}, Q_IN={}".format(Q_IA, Q_IN))
+        return Q_IA
+
+    def best_center(center, width):
+        trials = [center + (width / 4.0) * x for x in range(-2, 3)]
+        scores = [(guess, get_score(guess, m0)) for guess in trials]
+        LOG.info(scores)
+        best = sorted(scores, cmp=lambda x, y: cmp(x[1], y[1]))
+        return best[0][0]
+
+    # Use a sinogram that probably has some interesting data
+    sinogram = read_tiff(filename)
+    initial_width = sinogram.shape[1]
+    m0 = np.mean(np.sum(sinogram, axis=1))
+
+    center = initial_width / 2.0
+    width = initial_width / 2.0
+    new_center = center
+
+    for i in range(n_iterations):
+        LOG.info("Estimate iteration: {}".format(i))
+        new_center = best_center(new_center, width)
+        LOG.info("Currently best center: {}".format(new_center))
+        width /= 2.0
+
+    return new_center

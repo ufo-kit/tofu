@@ -66,6 +66,40 @@ def gui(args, cfg_parser):
     gui.main(args, cfg_parser)
 
 
+def estimate(args, cfg_parser):
+    from unfoog import reco
+    sinos = sorted(glob.glob(os.path.join(args.input, '*.tif')))
+
+    if not sinos:
+        sys.exit("No valid input")
+
+    middle = sinos[len(sinos) / 2]
+    center = reco.estimate_center(cfg_parser, middle, args.num_iterations)
+    print(">>> Best axis of rotation: {}".format(center))
+
+
+def add_reco_input_arguments(parser, cfg_parser):
+    parser.add_argument('-a', '--axis', type=float,
+                        default=cfg_parser.get_config('general', 'axis'),
+                        help="Axis position")
+    parser.add_argument('-s', '--angle-step', type=float,
+                        default=cfg_parser.get_config('general', 'angle_step', None),
+                        help="Angle step between projections")
+    parser.add_argument('-i', '--input', type=str,
+                        default=cfg_parser.get_config('general', 'input', '.'),
+                        metavar='PATH',
+                        help="Location with sinograms or projections")
+    parser.add_argument('--flats', type=str,
+                        default=cfg_parser.get_config('general', 'flats'),
+                        metavar='PATH',
+                        help="Location with flats")
+    parser.add_argument('--darks', type=str,
+                        default=cfg_parser.get_config('general', 'darks'),
+                        metavar='PATH',
+                        help="Location with darks")
+    return parser
+
+
 def main():
     # Read configuration first and use any set values as default for the
     # argument parser
@@ -84,31 +118,14 @@ def main():
 
     # run parser
     cmd_parser = subparsers.add_parser('run', help="Run reconstruction")
+    cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
     cmd_parser.set_defaults(func=run)
 
-    cmd_parser.add_argument('-a', '--axis', type=float,
-                            default=cfg_parser.get_config('general', 'axis'),
-                            help="Axis position")
-    cmd_parser.add_argument('-s', '--angle-step', type=float,
-                            default=cfg_parser.get_config('general', 'angle_step', None),
-                            help="Angle step between projections")
     cmd_parser.add_argument('-o', '--output', type=str,
                             default=cfg_parser.get_config('general', 'output', '.'),
                             metavar='PATH',
                             help="Path to location or format-specified file path "
                                  "for storing reconstructed slices")
-    cmd_parser.add_argument('-i', '--input', type=str,
-                            default=cfg_parser.get_config('general', 'input', '.'),
-                            metavar='PATH',
-                            help="Location with sinograms or projections")
-    cmd_parser.add_argument('--flats', type=str,
-                            default=cfg_parser.get_config('general', 'flats'),
-                            metavar='PATH',
-                            help="Location with flats")
-    cmd_parser.add_argument('--darks', type=str,
-                            default=cfg_parser.get_config('general', 'darks'),
-                            metavar='PATH',
-                            help="Location with darks")
 
     cmd_parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
                             default='fbp',
@@ -132,6 +149,15 @@ def main():
     # gui parser
     cmd_parser = subparsers.add_parser('gui', help="Run GUI")
     cmd_parser.set_defaults(func=gui)
+
+    # estimate parser
+    cmd_parser = subparsers.add_parser('estimate',
+                                       help="Estimate center of rotation")
+    cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
+    cmd_parser.set_defaults(func=estimate)
+
+    cmd_parser.add_argument('--num-iterations', type=int, default=10, metavar='N',
+                            help="Number of iterations")
 
     args = parser.parse_args()
 
