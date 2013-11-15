@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION='0.3dev'
+VERSION='0.3'
 
 setup(
     name='ufo-scripts',
