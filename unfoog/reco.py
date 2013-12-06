@@ -74,7 +74,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
             correction = get_task('flat-field-correction')
             g.connect_nodes_full(reader, correction, 0)
             g.connect_nodes_full(dark_reader, correction, 1)
-            g.connect_nodes_full(flat_reader, correction, 0)
+            g.connect_nodes_full(flat_reader, correction, 2)
             g.connect_nodes(correction, sino_output)
         else:
             g.connect_nodes(reader, sino_output)
