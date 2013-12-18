@@ -74,21 +74,22 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         # Parameters group
         param_grid = QtGui.QGridLayout()
-        param_group = QtGui.QGroupBox("param")
+        param_group = QtGui.QGroupBox("Parameters")
         param_group.setLayout(param_grid)
         param_group.setFlat(True)
 
         self.axis_spin = QtGui.QDoubleSpinBox()
-        self.axis_spin.setDecimals(10)
-        self.axis_spin.setValue(float(self.cfg_parser.get_config('general', 'axis', default=0.0)))
+        self.axis_spin.setDecimals(2)
+        self.axis_spin.setMaximum(8192.0)
+        self.axis_spin.setValue(float(self.cfg_parser.get_config('general', 'axis', default=256.0)))
 
         self.angle_step = QtGui.QDoubleSpinBox()
         self.angle_step.setDecimals(10)
         self.angle_step.setValue(float(self.cfg_parser.get_config('general', 'angle_step', default=0.0)))
 
-        param_grid.addWidget(QtGui.QLabel('Axis:'), 0, 0)
+        param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
-        param_grid.addWidget(QtGui.QLabel('Angle step:'), 1, 0)
+        param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
         param_grid.addWidget(self.angle_step, 1, 1)
 
         # Output group
