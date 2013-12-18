@@ -9,27 +9,8 @@ import logging
 import numpy as np
 import ConfigParser as configparser
 from gi.repository import Ufo
+from unfoog import config
 
-
-CONFIG_NAME = 'reco.conf'
-CONFIG_TEMPLATE = """[general]
-#axis = 0.0
-#angle_step = 0.0
-#input = path/to/sinograms
-#output = path/to/output
-
-## Reconstruct from projections instead of sinograms
-#from_projections = True
-## Flat-field correction will not be performed if these are missing
-#darks = path/to/darks
-#flats = path/to/flats
-
-[fbp]
-# crop_width = 128
-
-[dfi]
-# oversampling = 2
-"""
 
 LOG = logging.getLogger(__name__)
 
@@ -43,11 +24,10 @@ class DefaultConfigParser(configparser.ConfigParser):
 
 
 def init(args, cfg_parser):
-    if not os.path.exists(CONFIG_NAME):
-        with open(CONFIG_NAME, 'w') as f:
-            f.write(CONFIG_TEMPLATE)
+    if not os.path.exists(config.NAME):
+        config.write()
     else:
-        sys.exit("{0} already exists".format(CONFIG_NAME))
+        sys.exit("{0} already exists".format(config.NAME))
 
 
 def run(args, cfg_parser):
@@ -104,7 +84,7 @@ def main():
     # Read configuration first and use any set values as default for the
     # argument parser
     cfg_parser = DefaultConfigParser()
-    cfg_parser.read([CONFIG_NAME])
+    cfg_parser.read([config.NAME])
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true',

@@ -22,7 +22,7 @@ def get_output_name(output_path):
     return os.path.join(abs_path, 'slice-%05i.tif')
 
 
-def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
+def run(cfg_parser, input='', output='', axis=None, angle=None,
         darks=None, flats=None, first_slice=None, last_slice=None,
         from_projections=False, method='fbp',
         include=None, enable_tracing=False, dry_run=False):
@@ -41,7 +41,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('reader', path=input_path)
+    reader = get_task('reader', path=input)
 
     if first_slice != None:
         reader.props.nth = first_slice
@@ -52,7 +52,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
     if dry_run:
         writer = get_task('null')
     else:
-        outname = get_output_name(output_path)
+        outname = get_output_name(output)
         writer = get_task('writer', filename=outname)
         LOG.debug("Write to {}".format(outname))
 
@@ -63,7 +63,7 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
         if last_slice != None and first_slice != None:
             count = last_slice - first_slice
         else:
-            count = len(glob.glob(input_path))
+            count = len(glob.glob(input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
@@ -90,8 +90,8 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
         if axis:
             bp.props.axis_pos = axis
 
-        if angle_step:
-            bp.props.angle_step = angle_step
+        if angle:
+            bp.props.angle_step = angle
 
         crop_width = cfg_parser.get_config('fbp', 'crop_width')
 
@@ -114,8 +114,8 @@ def run(cfg_parser, input_path, output_path, axis=None, angle_step=None,
                        max_regularizer_iterations=20,
                        posc=False)
 
-        if angle_step:
-            art.props.angle_step = angle_step
+        if angle:
+            art.props.angle_step = angle
 
         g.connect_nodes(sino_output, art)
         g.connect_nodes(art, writer)

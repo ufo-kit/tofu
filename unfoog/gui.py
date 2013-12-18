@@ -1,7 +1,7 @@
 import sys
 import time
 from PyQt4 import QtGui, QtCore
-from . import reco
+from . import reco, config
 
 
 def _set_line_edit_to_path(line_edit):
@@ -110,6 +110,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         close_button = button_group.addButton(QtGui.QDialogButtonBox.Close)
         reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
+        save_button = button_group.addButton("Save", QtGui.QDialogButtonBox.AcceptRole)
 
         main_vbox.addWidget(input_group)
         main_vbox.addWidget(param_group)
@@ -122,10 +123,18 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_path_button.clicked.connect(self.on_output_path_clicked)
         close_button.clicked.connect(self.on_close)
         reco_button.clicked.connect(self.on_reconstruct)
+        save_button.clicked.connect(self.on_save)
 
         self.main_widget.setLayout(main_vbox)
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
+
+    def param_dict(self):
+        return dict(axis=self.axis_spin.value(),
+                    angle=self.angle_step.value(),
+                    input=str(self.input_path_line.text()),
+                    output=str(self.output_path_line.text()),
+                    from_projections=self.proj_button.isChecked())
 
     def on_input_path_clicked(self, checked):
         _set_line_edit_to_path(self.input_path_line)
@@ -136,6 +145,11 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_close(self):
         self.close()
 
+    def on_save(self):
+        d = self.param_dict()
+        d['disable'] = ''
+        config.write(**d)
+
     def on_reconstruct(self):
         _enable_wait_cursor()
         self.main_widget.setEnabled(False)
@@ -143,12 +157,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.app.processEvents()
 
         try:
-            reco.run(self.cfg_parser,
-                     str(self.input_path_line.text()),
-                     str(self.output_path_line.text()),
-                     axis=self.axis_spin.value(),
-                     angle_step=self.angle_step.value(),
-                     from_projections=self.proj_button.isChecked())
+            reco.run(self.cfg_parser, **self.param_dict())
 
         except Exception as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
