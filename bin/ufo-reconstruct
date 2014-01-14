@@ -34,7 +34,8 @@ def run(args, cfg_parser):
     from unfoog import reco
 
     reco.run(cfg_parser, args.input, args.output,
-             args.axis, args.angle_step, args.darks, args.flats,
+             args.axis, args.angle_step, args.angle_offset,
+             args.darks, args.flats,
              args.first_slice, args.last_slice,
              args.from_projections, args.method,
              args.include, args.enable_tracing, args.dry_run)
@@ -64,7 +65,10 @@ def add_reco_input_arguments(parser, cfg_parser):
                         help="Axis position")
     parser.add_argument('-s', '--angle-step', type=float,
                         default=cfg_parser.get_config('general', 'angle_step', None),
-                        help="Angle step between projections")
+                        help="Angle step between projections in radians")
+    parser.add_argument('--angle-offset', type=float,
+                        default=cfg_parser.get_config('general', 'angle_offset', None),
+                        help="Angle offset of first projection in radians")
     parser.add_argument('-i', '--input', type=str,
                         default=cfg_parser.get_config('general', 'input', '.'),
                         metavar='PATH',

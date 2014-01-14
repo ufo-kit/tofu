@@ -22,7 +22,8 @@ def get_output_name(output_path):
     return os.path.join(abs_path, 'slice-%05i.tif')
 
 
-def run(cfg_parser, input='', output='', axis=None, angle=None,
+def run(cfg_parser, input='', output='',
+        axis=None, angle=None, offset=None,
         darks=None, flats=None, first_slice=None, last_slice=None,
         from_projections=False, method='fbp',
         include=None, enable_tracing=False, dry_run=False):
@@ -92,6 +93,9 @@ def run(cfg_parser, input='', output='', axis=None, angle=None,
 
         if angle:
             bp.props.angle_step = angle
+
+        if offset:
+            bp.props.angle_offset = offset
 
         crop_width = cfg_parser.get_config('fbp', 'crop_width')
 
