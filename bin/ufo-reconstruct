@@ -7,20 +7,12 @@ import glob
 import argparse
 import logging
 import numpy as np
-import ConfigParser as configparser
 from gi.repository import Ufo
 from unfoog import config
 
 
 LOG = logging.getLogger(__name__)
 
-
-class DefaultConfigParser(configparser.ConfigParser):
-    def get_config(self, section, option, default=None):
-        try:
-            return self.get(section, option)
-        except (configparser.NoOptionError, configparser.NoSectionError):
-            return default
 
 
 def init(args, cfg_parser):
@@ -30,15 +22,13 @@ def init(args, cfg_parser):
         sys.exit("{0} already exists".format(config.NAME))
 
 
-def run(args, cfg_parser):
+def run_tomo(params):
     from unfoog import reco
+    reco.tomo(params)
 
-    reco.run(cfg_parser, args.input, args.output,
-             args.axis, args.angle_step, args.angle_offset,
-             args.darks, args.flats,
-             args.first_slice, args.last_slice,
-             args.from_projections, args.method,
-             args.include, args.enable_tracing, args.dry_run)
+
+def run_lamino(params):
+    pass
 
 
 def gui(args, cfg_parser):
@@ -59,37 +49,7 @@ def estimate(args, cfg_parser):
     print(">>> Best axis of rotation: {}".format(center))
 
 
-def add_reco_input_arguments(parser, cfg_parser):
-    parser.add_argument('-a', '--axis', type=float,
-                        default=cfg_parser.get_config('general', 'axis'),
-                        help="Axis position")
-    parser.add_argument('-s', '--angle-step', type=float,
-                        default=cfg_parser.get_config('general', 'angle_step', None),
-                        help="Angle step between projections in radians")
-    parser.add_argument('--angle-offset', type=float,
-                        default=cfg_parser.get_config('general', 'angle_offset', None),
-                        help="Angle offset of first projection in radians")
-    parser.add_argument('-i', '--input', type=str,
-                        default=cfg_parser.get_config('general', 'input', '.'),
-                        metavar='PATH',
-                        help="Location with sinograms or projections")
-    parser.add_argument('--flats', type=str,
-                        default=cfg_parser.get_config('general', 'flats'),
-                        metavar='PATH',
-                        help="Location with flats")
-    parser.add_argument('--darks', type=str,
-                        default=cfg_parser.get_config('general', 'darks'),
-                        metavar='PATH',
-                        help="Location with darks")
-    return parser
-
-
 def main():
-    # Read configuration first and use any set values as default for the
-    # argument parser
-    cfg_parser = DefaultConfigParser()
-    cfg_parser.read([config.NAME])
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true',
                         help="Verbose output")
@@ -98,57 +58,43 @@ def main():
 
     # init parser
     cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
-    cmd_parser.set_defaults(func=init)
+    cmd_parser.set_defaults(func=init, params=None)
 
-    # run parser
-    cmd_parser = subparsers.add_parser('run', help="Run reconstruction")
-    cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
-    cmd_parser.set_defaults(func=run)
+    # tomo parser
+    tomo_params = config.TomoParams()
+    cmd_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
+    cmd_parser = tomo_params.add_arguments(cmd_parser)
+    cmd_parser.set_defaults(func=run_tomo, params=tomo_params)
 
-    cmd_parser.add_argument('-o', '--output', type=str,
-                            default=cfg_parser.get_config('general', 'output', '.'),
-                            metavar='PATH',
-                            help="Path to location or format-specified file path "
-                                 "for storing reconstructed slices")
-
-    cmd_parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
-                            default='fbp',
-                            help="Reconstruction method")
-    cmd_parser.add_argument('--first-slice', type=int, default=None, metavar='N',
-                            help="First slice")
-    cmd_parser.add_argument('--last-slice', type=int, default=None, metavar='N',
-                            help="Last slice")
-    cmd_parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
-                            help="Paths to search for plugins and kernel files")
-    cmd_parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
-                            help="ZeroMQ addresses of machines on which `ufod' is running")
-    cmd_parser.add_argument('--from-projections', action='store_true',
-                            default=cfg_parser.get_config('general', 'from_projections', False),
-                            help="Reconstruct from projections instead of sinograms")
-    cmd_parser.add_argument('--enable-tracing', action='store_true', default=False,
-                            help="Enable tracing and store result in .PID.json")
-    cmd_parser.add_argument('--dry-run', action='store_true', default=False,
-                            help="Reconstruct without writing data")
+    # lamino parser
+    lamino_params = config.LaminoParams()
+    cmd_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
+    cmd_parser = lamino_params.add_arguments(cmd_parser)
+    cmd_parser.set_defaults(func=run_lamino, params=lamino_params)
 
     # gui parser
     cmd_parser = subparsers.add_parser('gui', help="Run GUI")
-    cmd_parser.set_defaults(func=gui)
+    cmd_parser.set_defaults(func=gui, params=tomo_params)
 
     # estimate parser
     cmd_parser = subparsers.add_parser('estimate',
                                        help="Estimate center of rotation")
-    cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
-    cmd_parser.set_defaults(func=estimate)
+    # cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
+    cmd_parser.set_defaults(func=estimate, params=None)
 
     cmd_parser.add_argument('--num-iterations', type=int, default=10, metavar='N',
                             help="Number of iterations")
 
+    # parse args and update parameter structures
     args = parser.parse_args()
+
+    lamino_params.update(args)
+    tomo_params.update(args)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    args.func(args, cfg_parser)
+    args.func(args.params)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ import glob
 import argparse
 import logging
 import numpy as np
-import ConfigParser as configparser
 from gi.repository import Ufo
 from . import tifffile
 
@@ -22,16 +21,11 @@ def get_output_name(output_path):
     return os.path.join(abs_path, 'slice-%05i.tif')
 
 
-def run(cfg_parser, input='', output='',
-        axis=None, angle=None, offset=None,
-        darks=None, flats=None, first_slice=None, last_slice=None,
-        from_projections=False, method='fbp',
-        include=None, enable_tracing=False, dry_run=False):
-
+def tomo(params):
     cargs = {}
 
-    if include:
-        config = Ufo.Config(paths=include)
+    if params.include:
+        config = Ufo.Config(paths=params.include)
         cargs['config'] = config
 
     # Create reader and writer
@@ -42,36 +36,27 @@ def run(cfg_parser, input='', output='',
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('reader', path=input)
+    reader = get_task('reader', path=params.input)
 
-    if first_slice != None:
-        reader.props.nth = first_slice
-
-        if last_slice:
-            reader.props.count = last_slice - first_slice
-
-    if dry_run:
+    if params.dry_run:
         writer = get_task('null')
     else:
-        outname = get_output_name(output)
+        outname = get_output_name(params.output)
         writer = get_task('writer', filename=outname)
         LOG.debug("Write to {}".format(outname))
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
 
-    if from_projections:
-        if last_slice != None and first_slice != None:
-            count = last_slice - first_slice
-        else:
-            count = len(glob.glob(input))
+    if params.from_projections:
+        count = len(glob.glob(params.input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
-        if darks and flats:
-            dark_reader = get_task('reader', path=flats)
-            flat_reader = get_task('reader', path=darks)
+        if params.darks and params.flats:
+            dark_reader = get_task('reader', path=params.flats)
+            flat_reader = get_task('reader', path=params.darks)
             correction = get_task('flat-field-correction')
             g.connect_nodes_full(reader, correction, 0)
             g.connect_nodes_full(dark_reader, correction, 1)
@@ -82,25 +67,24 @@ def run(cfg_parser, input='', output='',
     else:
         sino_output = reader
 
-    if method == 'fbp':
+    if params.method == 'fbp':
         fft = get_task('fft', dimensions=1)
         ifft = get_task('ifft', dimensions=1)
         fltr = get_task('filter')
         bp = get_task('backproject')
 
-        if axis:
-            bp.props.axis_pos = axis
+        if params.axis:
+            bp.props.axis_pos = params.axis
 
-        if angle:
-            bp.props.angle_step = angle
+        if params.angle:
+            bp.props.angle_step = params.angle
 
-        if offset:
-            bp.props.angle_offset = offset
+        if params.offset:
+            print params.offset
+            bp.props.angle_offset = params.offset
 
-        crop_width = cfg_parser.get_config('fbp', 'crop_width')
-
-        if crop_width:
-            ifft.props.crop_width = int(crop_width)
+        if params.crop_width:
+            ifft.props.crop_width = int(params.crop_width)
             LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
 
         g.connect_nodes(sino_output, fft)
@@ -109,7 +93,7 @@ def run(cfg_parser, input='', output='',
         g.connect_nodes(ifft, bp)
         g.connect_nodes(bp, writer)
 
-    if method == 'sart':
+    if params.method == 'sart':
         art = get_task('art',
                        method='sart',
                        projector='joseph',
@@ -118,16 +102,16 @@ def run(cfg_parser, input='', output='',
                        max_regularizer_iterations=20,
                        posc=False)
 
-        if angle:
-            art.props.angle_step = angle
+        if params.angle:
+            art.props.angle_step = params.angle
 
         g.connect_nodes(sino_output, art)
         g.connect_nodes(art, writer)
 
-    if method == 'dfi':
-        oversampling = int(cfg_parser.get_config('dfi', 'oversampling') or 1)
+    if params.method == 'dfi':
+        oversampling = params.oversampling or 1
 
-        cut = get_task('cut-sinogram', center_of_rotation=axis)
+        cut = get_task('cut-sinogram', center_of_rotation=params.axis)
         pad = get_task('zeropadding', oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')
@@ -147,8 +131,8 @@ def run(cfg_parser, input='', output='',
     sched = Ufo.Scheduler()
 
     if hasattr(sched.props, 'enable_tracing'):
-        LOG.debug("Use tracing: {}".format(enable_tracing))
-        sched.props.enable_tracing = enable_tracing
+        LOG.debug("Use tracing: {}".format(params.enable_tracing))
+        sched.props.enable_tracing = params.enable_tracing
 
     sched.run(g)
 
