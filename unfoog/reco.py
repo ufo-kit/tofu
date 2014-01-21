@@ -137,6 +137,79 @@ def tomo(params):
     sched.run(g)
 
 
+def lamino(params):
+    cargs = {}
+
+    if params.include:
+        config = Ufo.Config(paths=params.include)
+        cargs['config'] = config
+
+    # Create reader and writer
+    pm = Ufo.PluginManager(**cargs)
+
+    radios = pm.get_task('reader')
+    pad = pm.get_task('padding-2d')
+    rec = pm.get_task('lamino-bp')
+    ramp = pm.get_task('lamino-ramp')
+    conv = pm.get_task('lamino-conv')
+    fft1 = pm.get_task('fft')
+    fft2 = pm.get_task('fft')
+    ifft = pm.get_task('ifft')
+    writer = pm.get_task('writer')
+
+    if params.downsample > 1:
+        downsample = pm.get_task('downsample')
+        downsample.set_properties(factor=params.downsample)
+
+    radios.set_properties(path=params.input)
+    writer.set_properties(filename=params.output)
+
+    vx, vy, vz = params.bbox
+
+    xpad = (params.pad[0] - params.width) / 2 / params.downsample
+    ypad = (params.pad[1] - params.height) / 2 / params.downsample
+
+    pad.set_properties(xl=xpad, xr=xpad, yt=ypad, yb=ypad, mode='brep')
+    ramp.set_properties(width=params.pad[0] / params.downsample,
+                        height=params.pad[1] / params.downsample,
+                        fwidth=vx, theta=params.tilt, tau=params.tau)
+
+    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.offset,
+                       proj_ox=params.axis[0] / params.downsample,
+                       proj_oy=params.axis[1] / params.downsample,
+                       vol_sx=vx, vol_sy=vy, vol_sz=vz,
+                       vol_ox=vx/2, vol_oy=vy/2, vol_oz=vz/2)
+
+    fft1.set_properties(dimensions=2)
+    fft2.set_properties(dimensions=2)
+    ifft.set_properties(dimensions=2)
+
+    g = Ufo.TaskGraph()
+
+    # Padding and filtering
+    if params.downsample > 1:
+        g.connect_nodes(radios, downsample)
+        g.connect_nodes(downsample, pad)
+    else:
+        g.connect_nodes(radios, pad)
+
+    g.connect_nodes(pad, fft1)
+    g.connect_nodes(ramp, fft2)
+    g.connect_nodes_full(fft1, conv, 0)
+    g.connect_nodes_full(fft2, conv, 1)
+    g.connect_nodes(conv, ifft)
+
+    # Reconstruction
+    g.connect_nodes(ifft, rec)
+    g.connect_nodes(rec, writer)
+
+    sched = Ufo.Scheduler()
+    sched.set_task_expansion(False)
+    sched.run(g)
+
+    print xpad, ypad
+
+
 def read_tiff(filename):
     tif = tifffile.TiffFile(filename)
     arr = np.copy(tif.asarray())

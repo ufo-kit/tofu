@@ -39,7 +39,6 @@ class RecoParams(object):
         self.output = self._config.value('general', 'output', '.')
         self.darks = self._config.value('general', 'darks')
         self.flats = self._config.value('general', 'flats')
-        self.axis = self._config.value('general', 'axis')
         self.angle = self._config.value('general', 'angle', None)
         self.offset = self._config.value('general', 'angle_offset', 0)
         self.dry_run = False
@@ -61,9 +60,6 @@ class RecoParams(object):
         parser.add_argument('--darks', type=str,
                             default=self.darks, metavar='PATH',
                             help="Location with darks")
-        parser.add_argument('--axis', type=float,
-                            default=self.axis,
-                            help="Axis position")
         parser.add_argument('--angle', type=float,
                             default=self.angle,
                             help="Angle step between projections in radians")
@@ -89,6 +85,7 @@ class TomoParams(RecoParams):
         self.from_projections = self._config.value('fbp', 'from_projections', False)
         self.crop_width = self._config.value('fbp', 'crop_width', None)
         self.oversampling = self._config.value('dfi', 'oversampling', None)
+        self.axis = self._config.value('general', 'axis')
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)
@@ -96,6 +93,9 @@ class TomoParams(RecoParams):
         parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
                             default=self.method,
                             help="Reconstruction method")
+        parser.add_argument('--axis', type=float,
+                            default=self.axis,
+                            help="Axis position")
         parser.add_argument('--crop-width', type=int,
                             default=self.crop_width,
                             help="Width of final slice")
@@ -113,11 +113,20 @@ class TomoParams(RecoParams):
 class LaminoParams(RecoParams):
     def __init__(self):
         super(LaminoParams, self).__init__()
-        self.tilt = None
-        self.width = None
-        self.height = None
-        self.depth = None
+        self.axis = self._config.value('general', 'axis')
+        self.axis = [float(x) for x in self.axis.split(' ')] if self.axis else None
+
         self.tau = 0.3
+        self.tilt = self._config.value('lamino', 'tilt')
+        self.width = self._config.value('lamino', 'width')
+        self.height = self._config.value('lamino', 'height')
+        self.downsample = self._config.value('lamino', 'downsample', 1)
+
+        self.bbox = self._config.value('lamino', 'bbox')
+        self.bbox = [int(x) for x in self.bbox.split(' ')] if self.bbox else None
+
+        self.pad = self._config.value('lamino', 'pad')
+        self.pad = [int(x) for x in self.pad.split(' ')] if self.pad else None
 
     def add_arguments(self, parser):
         parser = super(LaminoParams, self).add_arguments(parser)
@@ -125,15 +134,24 @@ class LaminoParams(RecoParams):
         parser.add_argument('--tilt', type=float,
                             default=self._config.value('lamino', 'tilt'),
                             help="Tilt angle of sample in radians")
+        parser.add_argument('--axis', nargs='+', action='append',
+                            default=self.axis,
+                            help="Axis")
+        parser.add_argument('--bbox', nargs='+', action='append',
+                            default=self.bbox,
+                            help="Bounding box of reconstructed volume")
+        parser.add_argument('--pad', nargs='+', action='append',
+                            default=self.pad,
+                            help="Final padded size of input")
         parser.add_argument('--width', type=int,
-                            default=self._config.value('lamino', 'width', 128),
-                            help="Width of the volume box")
+                            default=self.width,
+                            help="Width of the input projection")
         parser.add_argument('--height', type=int,
-                            default=self._config.value('lamino', 'height', 128),
-                            help="Height of the volume box")
-        parser.add_argument('--depth', type=int,
-                            default=self._config.value('lamino', 'depth', 8),
-                            help="Depth of the volume box")
+                            default=self.height,
+                            help="Height of the input projection")
+        parser.add_argument('--downsample', type=int,
+                            default=self.downsample,
+                            help="Downsampling factor")
 
         return parser
 
