@@ -22,9 +22,13 @@ TEMPLATE = """[general]
 """
 
 class DefaultConfigParser(configparser.ConfigParser):
-    def value(self, section, option, default=None):
+    def value(self, section, option, default=None, target=None):
         try:
-            return self.get(section, option)
+            v = self.get(section, option)
+            if target:
+                return target(v)
+            return v
+
         except (configparser.NoOptionError, configparser.NoSectionError):
             return default
 
@@ -34,12 +38,12 @@ class RecoParams(object):
         self._config = DefaultConfigParser()
         self._config.read([NAME])
 
-        self.include = self._config.value('general', 'include', None)
+        self.include = self._config.value('general', 'include')
         self.input = self._config.value('general', 'input', '.')
         self.output = self._config.value('general', 'output', '.')
         self.darks = self._config.value('general', 'darks')
         self.flats = self._config.value('general', 'flats')
-        self.angle = self._config.value('general', 'angle', None)
+        self.angle = self._config.value('general', 'angle', target=float)
         self.offset = self._config.value('general', 'angle_offset', 0)
         self.dry_run = False
         self.enable_tracing = False
@@ -83,9 +87,9 @@ class TomoParams(RecoParams):
         super(TomoParams, self).__init__()
         self.method = self._config.value('general', 'method', 'fbp')
         self.from_projections = self._config.value('fbp', 'from_projections', False)
-        self.crop_width = self._config.value('fbp', 'crop_width', None)
-        self.oversampling = self._config.value('dfi', 'oversampling', None)
-        self.axis = self._config.value('general', 'axis')
+        self.crop_width = self._config.value('fbp', 'crop_width', target=int)
+        self.oversampling = self._config.value('dfi', 'oversampling', target=int)
+        self.axis = self._config.value('general', 'axis', target=float)
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)

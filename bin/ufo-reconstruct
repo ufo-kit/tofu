@@ -32,10 +32,10 @@ def run_lamino(params):
     reco.lamino(params)
 
 
-def gui(args, cfg_parser):
+def gui(params):
     from unfoog import gui
 
-    gui.main(args, cfg_parser)
+    gui.main(params)
 
 
 def estimate(args, cfg_parser):
@@ -67,15 +67,15 @@ def main():
     cmd_parser = tomo_params.add_arguments(cmd_parser)
     cmd_parser.set_defaults(func=run_tomo, params=tomo_params)
 
+    # gui parser
+    cmd_parser = subparsers.add_parser('gui', help="GUI for tomographic reconstruction")
+    cmd_parser.set_defaults(func=gui, params=tomo_params)
+
     # lamino parser
     lamino_params = config.LaminoParams()
     cmd_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
     cmd_parser = lamino_params.add_arguments(cmd_parser)
     cmd_parser.set_defaults(func=run_lamino, params=lamino_params)
-
-    # gui parser
-    cmd_parser = subparsers.add_parser('gui', help="Run GUI")
-    cmd_parser.set_defaults(func=gui, params=tomo_params)
 
     # estimate parser
     cmd_parser = subparsers.add_parser('estimate',

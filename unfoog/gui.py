@@ -10,9 +10,9 @@ def _set_line_edit_to_path(line_edit):
     line_edit.setText(path)
 
 
-def _new_path_line_edit(cfg_parser, cfg_key, default=''):
+def _new_path_line_edit(text):
     line_edit = QtGui.QLineEdit()
-    line_edit.setText(cfg_parser.get_config('general', cfg_key, default=default))
+    line_edit.setText(text)
     return line_edit
 
 
@@ -30,11 +30,10 @@ class Bunch(object):
 
 
 class ApplicationWindow(QtGui.QMainWindow):
-    def __init__(self, app, args, cfg_parser):
+    def __init__(self, app, params):
         QtGui.QMainWindow.__init__(self)
-        self.args = args
+        self.params = params
         self.app = app
-        self.cfg_parser = cfg_parser
         self.do_layout()
 
     def do_layout(self):
@@ -58,14 +57,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         sino_button = QtGui.QRadioButton("Sinograms")
         self.proj_button = QtGui.QRadioButton("Projections")
         input_path_button = QtGui.QPushButton("Browse ...")
-        self.input_path_line = _new_path_line_edit(self.cfg_parser, 'input')
+        self.input_path_line = _new_path_line_edit(self.params.input)
 
-        from_projections = self.cfg_parser.get_config('general',
-                                                      'from_projections',
-                                                       default=None)
-
-        sino_button.setChecked(not from_projections)
-        self.proj_button.setChecked(from_projections is not None)
+        sino_button.setChecked(not self.params.from_projections)
+        self.proj_button.setChecked(self.params.from_projections is not None)
 
         input_grid.addWidget(sino_button, 0, 0)
         input_grid.addWidget(self.proj_button, 1, 0)
@@ -81,11 +76,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin = QtGui.QDoubleSpinBox()
         self.axis_spin.setDecimals(2)
         self.axis_spin.setMaximum(8192.0)
-        self.axis_spin.setValue(float(self.cfg_parser.get_config('general', 'axis', default=256.0)))
+        self.axis_spin.setValue(self.params.axis)
 
         self.angle_step = QtGui.QDoubleSpinBox()
         self.angle_step.setDecimals(10)
-        self.angle_step.setValue(float(self.cfg_parser.get_config('general', 'angle_step', default=0.0)))
+        self.angle_step.setValue(self.params.angle)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
@@ -98,7 +93,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_group.setLayout(output_grid)
         output_group.setFlat(True)
 
-        self.output_path_line = _new_path_line_edit(self.cfg_parser, 'output', default='./slice-%05i.tif')
+        self.output_path_line = _new_path_line_edit(self.params.output)
         output_path_button = QtGui.QPushButton("Browse ...")
 
         output_grid.addWidget(QtGui.QLabel("Path:"), 0, 0)
@@ -129,13 +124,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
 
-    def param_dict(self):
-        return dict(axis=self.axis_spin.value(),
-                    angle=self.angle_step.value(),
-                    input=str(self.input_path_line.text()),
-                    output=str(self.output_path_line.text()),
-                    from_projections=self.proj_button.isChecked())
-
     def on_input_path_clicked(self, checked):
         _set_line_edit_to_path(self.input_path_line)
 
@@ -156,8 +144,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
+        self.params.axis = self.axis_spin.value()
+        self.params.angle = self.angle_step.value()
+        self.params.input = str(self.input_path_line.text())
+        self.params.output = str(self.output_path_line.text())
+        self.params.from_projections = self.proj_button.isChecked()
+
         try:
-            reco.run(self.cfg_parser, **self.param_dict())
+            reco.tomo(self.params)
 
         except Exception as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
@@ -166,9 +160,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setEnabled(True)
 
 
-def main(args, cfg_parser):
+def main(params):
     app = QtGui.QApplication(sys.argv)
 
-    window = ApplicationWindow(app, args, cfg_parser)
+    window = ApplicationWindow(app, params)
     window.show()
     sys.exit(app.exec_())
