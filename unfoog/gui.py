@@ -76,11 +76,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin = QtGui.QDoubleSpinBox()
         self.axis_spin.setDecimals(2)
         self.axis_spin.setMaximum(8192.0)
-        self.axis_spin.setValue(self.params.axis)
+        self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
 
         self.angle_step = QtGui.QDoubleSpinBox()
         self.angle_step.setDecimals(10)
-        self.angle_step.setValue(self.params.angle)
+        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
