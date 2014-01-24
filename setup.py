@@ -12,6 +12,7 @@ setup(
     scripts=['bin/ufo-reconstruct',
              'bin/ufo-sinos',
              'bin/ufo-estimate-center',
+             'bin/ufo-perf',
              ],
     long_description=open('README.md').read(),
 )
