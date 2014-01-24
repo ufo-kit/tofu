@@ -64,7 +64,7 @@ def main():
     overhead = (total_time / exec_time - 1.0) * 100
     bandwidth = args.width * args.height * args.num_projections * 4 / exec_time / 1024. / 1024.
 
-    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:2f}MB/s"
+    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s"
 
     print(msg.format(args.width, args.height, args.num_projections,
                      exec_time, total_time, overhead, bandwidth))
