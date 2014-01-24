@@ -90,7 +90,7 @@ def main():
     parser.add_argument('--num-runs', type=int, default=3,
                         help="Number of runs")
 
-    parser.add_argument('--nv-devices', type=str, default='',
+    parser.add_argument('--nv-devices', type=str, default=None,
                         help="Range of devices to be scanned over")
 
     parser.add_argument('-o', '--output', type=str,
@@ -99,8 +99,9 @@ def main():
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
 
-    var = ','.join(str(n) for n in range(*range_from(args.nv_devices)))
-    os.environ['CUDA_VISIBLE_DEVICES'] = var
+    if args.nv_devices:
+        var = ','.join(str(n) for n in range(*range_from(args.nv_devices)))
+        os.environ['CUDA_VISIBLE_DEVICES'] = var
 
     for width in range(*range_from(args.width)):
         for height in range(*range_from(args.height)):
