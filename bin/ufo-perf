@@ -52,6 +52,7 @@ def measure(width, height, num_projections, num_runs, output):
     msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s\n"
     output.write(msg.format(width, height, num_projections,
                             exec_time, total_time, overhead, bandwidth))
+    output.flush()
 
 
 def range_from(s):
