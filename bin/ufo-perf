@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import argparse
 import time
@@ -89,11 +90,17 @@ def main():
     parser.add_argument('--num-runs', type=int, default=3,
                         help="Number of runs")
 
+    parser.add_argument('--nv-devices', type=str, default='',
+                        help="Range of devices to be scanned over")
+
     parser.add_argument('-o', '--output', type=str,
                         help="Output file for results")
 
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
+
+    var = ','.join(str(n) for n in range(*range_from(args.nv_devices)))
+    os.environ['CUDA_VISIBLE_DEVICES'] = var
 
     for width in range(*range_from(args.width)):
         for height in range(*range_from(args.height)):
