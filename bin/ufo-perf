@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import argparse
 import time
 import math
@@ -34,7 +35,7 @@ def reco(width, height, num_projections):
     return scheduler.props.time
 
 
-def measure(width, height, num_projections, num_runs):
+def measure(width, height, num_projections, num_runs, output):
     exec_times = []
     total_times = []
 
@@ -48,10 +49,9 @@ def measure(width, height, num_projections, num_runs):
     overhead = (total_time / exec_time - 1.0) * 100
     bandwidth = width * height * num_projections * 4 / exec_time / 1024. / 1024.
 
-    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s"
-
-    print(msg.format(width, height, num_projections,
-                     exec_time, total_time, overhead, bandwidth))
+    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s\n"
+    output.write(msg.format(width, height, num_projections,
+                            exec_time, total_time, overhead, bandwidth))
 
 
 def range_from(s):
@@ -88,12 +88,16 @@ def main():
     parser.add_argument('--num-runs', type=int, default=3,
                         help="Number of runs")
 
+    parser.add_argument('-o', '--output', type=str,
+                        help="Output file for results")
+
     args = parser.parse_args()
+    output = sys.stdout if not args.output else open(args.output, 'w')
 
     for width in range(*range_from(args.width)):
         for height in range(*range_from(args.height)):
             for num_projections in range(*range_from(args.num_projections)):
-                measure(width, height, num_projections, args.num_runs)
+                measure(width, height, num_projections, args.num_runs, output)
 
 
 if __name__ == '__main__':
