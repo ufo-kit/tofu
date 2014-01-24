@@ -34,40 +34,66 @@ def reco(width, height, num_projections):
     return scheduler.props.time
 
 
+def measure(width, height, num_projections, num_runs):
+    exec_times = []
+    total_times = []
+
+    for i in range(num_runs):
+        start = time.time()
+        exec_times.append(reco(width, height, num_projections))
+        total_times.append(time.time() - start)
+
+    exec_time = sum(exec_times) / len(exec_times)
+    total_time = sum(total_times) / len(total_times)
+    overhead = (total_time / exec_time - 1.0) * 100
+    bandwidth = width * height * num_projections * 4 / exec_time / 1024. / 1024.
+
+    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s"
+
+    print(msg.format(width, height, num_projections,
+                     exec_time, total_time, overhead, bandwidth))
+
+
+def range_from(s):
+    """
+    Split *s* separated by ':' into int triple, filling missing values with 1s.
+    """
+    lst = [int(x) for x in s.split(':')]
+
+    if len(lst) == 1:
+        frm = lst[0]
+        return (frm, frm + 1, 1)
+
+    if len(lst) == 2:
+        return (lst[0], lst[1], 1)
+
+    if len(lst) == 3:
+        return (lst[0], lst[1], lst[2])
+
+    raise ValueError("Cannot parse {}".format(s))
+
+
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--width', type=int, default=1024,
-                        help="Width of a generated projection")
+    parser.add_argument('--width', type=str, default='1024',
+                        help="Width or range of width of a generated projection")
 
-    parser.add_argument('--height', type=int, default=1024,
-                        help="Height of a generated projection")
+    parser.add_argument('--height', type=str, default='1024',
+                        help="Height or range of height of a generated projection")
 
-    parser.add_argument('--num-projections', type=int, default=512,
-                        help="Number of projections")
+    parser.add_argument('--num-projections', type=str, default='512',
+                        help="Number or range of number of projections")
 
     parser.add_argument('--num-runs', type=int, default=3,
                         help="Number of runs")
 
     args = parser.parse_args()
 
-    exec_times = []
-    total_times = []
-
-    for i in range(args.num_runs):
-        start = time.time()
-        exec_times.append(reco(args.width, args.height, args.num_projections))
-        total_times.append(time.time() - start)
-
-    exec_time = sum(exec_times) / len(exec_times)
-    total_time = sum(total_times) / len(total_times)
-    overhead = (total_time / exec_time - 1.0) * 100
-    bandwidth = args.width * args.height * args.num_projections * 4 / exec_time / 1024. / 1024.
-
-    msg = "width={} height={} n_proj={} exec={:.4f}s total={:.4f}s overhead={:.2f}% bandwidth={:.2f}MB/s"
-
-    print(msg.format(args.width, args.height, args.num_projections,
-                     exec_time, total_time, overhead, bandwidth))
+    for width in range(*range_from(args.width)):
+        for height in range(*range_from(args.height)):
+            for num_projections in range(*range_from(args.num_projections)):
+                measure(width, height, num_projections, args.num_runs)
 
 
 if __name__ == '__main__':
