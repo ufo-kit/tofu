@@ -28,12 +28,12 @@ radians!). Input paths are either directories or glob patterns. Output paths are
 either directories or a format that contains one `%i`
 [specifier](http://www.pixelbeat.org/programming/gcc/format_specs.html):
 
-    $ ufo-reconstruct run --axis-pos=123.4 --angle-step=0.000123 \
+    $ ufo-reconstruct tomo --axis-pos=123.4 --angle-step=0.000123 \
          --input="/foo/bar/*.tif" --output="/output/slices-%05i.tif"
 
 You can get a help for all options by running
 
-    $ ufo-reconstruct run --help
+    $ ufo-reconstruct tomo --help
 
 and more verbose output by running with the `-v/--verbose` flag.
 
@@ -44,6 +44,21 @@ You can also load reconstruction parameters from a configuration file called
 
 Note, that options passed via the command line always override configuration
 parameters!
+
+
+### Performance measurement
+
+If you are running at least ufo-core/filters 0.6, you can evaluate the performance
+of the filtered backprojection (without sinogram transposition!), with
+
+    $ ufo-perf
+
+You can customize parameter scans, pretty easily via
+
+    $ ufo-perf --width 256:8192:256 --height 512
+
+which will reconstruct all combinations of width between 256 and 8192 with a
+step of 256 and a fixed height of 512 pixels.
 
 
 ### Estimating the center of rotation
