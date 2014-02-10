@@ -7,6 +7,7 @@ TEMPLATE = """[general]
 {disable}angle = {angle}
 {disable}input = {input}
 {disable}output = {output}
+# angle_offset = 0.0
 
 ## Reconstruct from projections instead of sinograms
 {disable_fp}from_projections = {from_projections}
@@ -19,6 +20,14 @@ TEMPLATE = """[general]
 
 [dfi]
 # oversampling = 2
+
+[lamino]
+# tilt = 0.1            # Tilt angle
+# width = 2048          # Width of input
+# height = 2048         # Height of input
+# downsample = 2        # Downsampling factor
+# bbox = 256 256 256    # Reconstruction box
+# pad = 0 0             # Padding added around input
 """
 
 class DefaultConfigParser(configparser.ConfigParser):
