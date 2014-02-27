@@ -130,6 +130,9 @@ def tomo(params):
 
     sched = Ufo.Scheduler()
 
+    if params.remote:
+        sched.set_properties(remotes=params.remote)
+
     if hasattr(sched.props, 'enable_tracing'):
         LOG.debug("Use tracing: {}".format(params.enable_tracing))
         sched.props.enable_tracing = params.enable_tracing

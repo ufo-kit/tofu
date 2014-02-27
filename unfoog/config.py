@@ -99,6 +99,7 @@ class TomoParams(RecoParams):
         self.crop_width = self._config.value('fbp', 'crop_width', target=int)
         self.oversampling = self._config.value('dfi', 'oversampling', target=int)
         self.axis = self._config.value('general', 'axis', target=float)
+        self.remote = self._config.value('general', 'remotes', [])
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)
@@ -115,7 +116,7 @@ class TomoParams(RecoParams):
         parser.add_argument('--oversampling', type=int,
                             default=self.oversampling,
                             help="Oversample factor")
-        parser.add_argument('--server', type=str, nargs='*', default=[], metavar='ADDR',
+        parser.add_argument('--remote', type=str, nargs='*', default=self.remote, metavar='ADDR',
                             help="ZeroMQ addresses of machines on which `ufod' is running")
         parser.add_argument('--from-projections', action='store_true',
                             default=self.from_projections,
