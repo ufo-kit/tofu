@@ -18,9 +18,9 @@ in a prepared virtualenv or as root for system-wide installation.
 
 ### Reconstruction
 
-To do a reconstruction you simply call
+To do a tomographic reconstruction you simply call
 
-    $ ufo-reconstruct run -i $PATH_TO_SINOGRAMS
+    $ ufo-reconstruct tomo -i $PATH_TO_SINOGRAMS
 
 from the command line. To get get correct results, you may need to append
 options such as `--axis-pos/-a` and `--angle-step/-a` (which are given in
