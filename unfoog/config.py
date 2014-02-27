@@ -1,3 +1,4 @@
+import re
 import ConfigParser as configparser
 
 
@@ -99,7 +100,11 @@ class TomoParams(RecoParams):
         self.crop_width = self._config.value('fbp', 'crop_width', target=int)
         self.oversampling = self._config.value('dfi', 'oversampling', target=int)
         self.axis = self._config.value('general', 'axis', target=float)
-        self.remote = self._config.value('general', 'remotes', [])
+
+        def list_split(arg):
+            return re.split(' |, |,', arg)
+
+        self.remote = self._config.value('general', 'remotes', [], target=list_split)
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)
