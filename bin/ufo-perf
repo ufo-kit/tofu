@@ -17,6 +17,7 @@ def reco(width, height, num_projections, args):
 
     generate.set_properties(number=height, width=width, height=num_projections)
     bp.set_properties(axis_pos=width / 2, angle_step=math.pi / num_projections)
+    null.set_properties(force_download=True)
 
     g = Ufo.TaskGraph()
 
