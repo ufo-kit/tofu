@@ -8,27 +8,33 @@ import math
 from gi.repository import Ufo, GLib
 
 
-def reco(width, height, num_projections, addresses):
+def reco(width, height, num_projections, addresses, disable_filtering=False):
     pm = Ufo.PluginManager()
 
     generate = pm.get_task('generate')
-    fft = pm.get_task('fft')
-    ifft = pm.get_task('ifft')
-    fltr = pm.get_task('filter')
     bp = pm.get_task('backproject')
     null = pm.get_task('null')
 
     generate.set_properties(number=height, width=width, height=num_projections)
     bp.set_properties(axis_pos=width / 2, angle_step=math.pi / num_projections)
-    fft.set_properties(dimensions=1)
-    ifft.set_properties(dimensions=1)
 
     g = Ufo.TaskGraph()
-    g.connect_nodes(generate, fft)
-    g.connect_nodes(fft, fltr)
-    g.connect_nodes(fltr, ifft)
-    g.connect_nodes(ifft, bp)
-    g.connect_nodes(bp, null)
+
+    if not disable_filtering:
+        fft = pm.get_task('fft')
+        ifft = pm.get_task('ifft')
+        fltr = pm.get_task('filter')
+
+        fft.set_properties(dimensions=1)
+        ifft.set_properties(dimensions=1)
+        g.connect_nodes(generate, fft)
+        g.connect_nodes(fft, fltr)
+        g.connect_nodes(fltr, ifft)
+        g.connect_nodes(ifft, bp)
+        g.connect_nodes(bp, null)
+    else:
+        g.connect_nodes(generate, bp)
+        g.connect_nodes(bp, null)
 
     scheduler = Ufo.Scheduler()
 
@@ -36,17 +42,18 @@ def reco(width, height, num_projections, addresses):
         scheduler.set_properties(remotes=addresses)
 
     scheduler.run(g)
-
     return scheduler.props.time
 
 
-def measure(width, height, num_projections, num_runs, output, addresses):
+def measure(width, height, num_projections, num_runs, output, addresses,
+            disable_filtering=False):
     exec_times = []
     total_times = []
 
     for i in range(num_runs):
         start = time.time()
-        exec_times.append(reco(width, height, num_projections, addresses))
+        exec_times.append(reco(width, height, num_projections, addresses,
+                               disable_filtering))
         total_times.append(time.time() - start)
 
     exec_time = sum(exec_times) / len(exec_times)
@@ -103,6 +110,9 @@ def main():
     parser.add_argument('-a', '--addresses', type=str, nargs='*', metavar='ADDR',
                         help="Addresses of remote servers running `ufod'")
 
+    parser.add_argument('--disable-filtering', action='store_true', default=False,
+                        help="Disable filtering of sinograms")
+
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
 
@@ -114,7 +124,7 @@ def main():
         for height in range(*range_from(args.height)):
             for num_projections in range(*range_from(args.num_projections)):
                 measure(width, height, num_projections, args.num_runs, output,
-                        args.addresses)
+                        args.addresses, args.disable_filtering)
 
 
 if __name__ == '__main__':
