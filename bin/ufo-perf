@@ -8,7 +8,7 @@ import math
 from gi.repository import Ufo, GLib
 
 
-def reco(width, height, num_projections, addresses, disable_filtering=False):
+def reco(width, height, num_projections, args):
     pm = Ufo.PluginManager()
 
     generate = pm.get_task('generate')
@@ -20,7 +20,7 @@ def reco(width, height, num_projections, addresses, disable_filtering=False):
 
     g = Ufo.TaskGraph()
 
-    if not disable_filtering:
+    if not args.disable_filtering:
         fft = pm.get_task('fft')
         ifft = pm.get_task('ifft')
         fltr = pm.get_task('filter')
@@ -38,22 +38,23 @@ def reco(width, height, num_projections, addresses, disable_filtering=False):
 
     scheduler = Ufo.Scheduler()
 
-    if addresses:
-        scheduler.set_properties(remotes=addresses)
+    if args.addresses:
+        scheduler.set_properties(remotes=args.addresses)
+
+    if args.enable_tracing:
+        scheduler.set_properties(enable_tracing=True)
 
     scheduler.run(g)
     return scheduler.props.time
 
 
-def measure(width, height, num_projections, num_runs, output, addresses,
-            disable_filtering=False):
+def measure(width, height, num_projections, output, args):
     exec_times = []
     total_times = []
 
-    for i in range(num_runs):
+    for i in range(args.num_runs):
         start = time.time()
-        exec_times.append(reco(width, height, num_projections, addresses,
-                               disable_filtering))
+        exec_times.append(reco(width, height, num_projections, args))
         total_times.append(time.time() - start)
 
     exec_time = sum(exec_times) / len(exec_times)
@@ -113,6 +114,9 @@ def main():
     parser.add_argument('--disable-filtering', action='store_true', default=False,
                         help="Disable filtering of sinograms")
 
+    parser.add_argument('--enable-tracing', action='store_true', default=False,
+                        help="Enable tracing")
+
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
 
@@ -123,8 +127,7 @@ def main():
     for width in range(*range_from(args.width)):
         for height in range(*range_from(args.height)):
             for num_projections in range(*range_from(args.num_projections)):
-                measure(width, height, num_projections, args.num_runs, output,
-                        args.addresses, args.disable_filtering)
+                measure(width, height, num_projections, output, args)
 
 
 if __name__ == '__main__':
