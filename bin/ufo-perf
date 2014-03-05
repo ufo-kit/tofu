@@ -63,6 +63,7 @@ def measure(width, height, num_projections, output, args):
     overhead = (total_time / exec_time - 1.0) * 100
     input_bandwidth = width * height * num_projections * 4 / exec_time / 1024. / 1024.
     output_bandwidth = width * width * height * 4 / exec_time / 1024. / 1024.
+    slice_bandwidth = height / exec_time
 
     # Four bytes of our output bandwidth constitute one slice pixel, for each
     # pixel we have to do roughly n * 6 floating point ops (2 mad, 1 add, 1
@@ -70,12 +71,14 @@ def measure(width, height, num_projections, output, args):
     flops = output_bandwidth / 4 * 6 * num_projections / 1024
 
     msg = ("width={:<6d} height={:<6d} n_proj={:<6d}  "
-           "exec={:.4f}s  total={:.4f}s overhead={:.2f}%  "
-           "bandwidth_i={:.2f}MB/s  bandwidth_o={:.2f}MB/s flops={:.2f}GFLOPs\n")
+           "exec={:.4f}s  total={:.4f}s  overhead={:.2f}%  "
+           "bandwidth_i={:.2f}MB/s  bandwidth_o={:.2f}MB/s slices={:.2f}/s  "
+           "flops={:.2f}GFLOPs\n")
 
     output.write(msg.format(width, height, num_projections,
                             exec_time, total_time, overhead,
-                            input_bandwidth, output_bandwidth, flops))
+                            input_bandwidth, output_bandwidth, slice_bandwidth,
+                            flops))
     output.flush()
 
 
