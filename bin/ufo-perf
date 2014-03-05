@@ -19,6 +19,9 @@ def reco(width, height, num_projections, args):
     bp.set_properties(axis_pos=width / 2, angle_step=math.pi / num_projections)
     null.set_properties(force_download=True)
 
+    if args.backproject_mode:
+        bp.set_properties(mode=args.backproject_mode)
+
     g = Ufo.TaskGraph()
 
     if not args.disable_filtering:
@@ -130,6 +133,9 @@ def main():
 
     parser.add_argument('--enable-tracing', action='store_true', default=False,
                         help="Enable tracing")
+
+    parser.add_argument('--backproject-mode', choices=['nearest', 'texture'],
+                        help="Backproject mode")
 
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
