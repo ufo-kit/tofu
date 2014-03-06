@@ -54,7 +54,7 @@ class RecoParams(object):
         self.darks = self._config.value('general', 'darks')
         self.flats = self._config.value('general', 'flats')
         self.angle = self._config.value('general', 'angle', target=float)
-        self.offset = self._config.value('general', 'angle_offset', 0)
+        self.angle_offset = self._config.value('general', 'angle_offset', 0)
         self.dry_run = False
         self.enable_tracing = False
 
@@ -78,7 +78,7 @@ class RecoParams(object):
                             default=self.angle,
                             help="Angle step between projections in radians")
         parser.add_argument('--offset', type=float,
-                            default=self.offset,
+                            default=self.angle_offset,
                             help="Angle offset of first projection in radians")
         parser.add_argument('--enable-tracing', action='store_true', default=False,
                             help="Enable tracing and store result in .PID.json")

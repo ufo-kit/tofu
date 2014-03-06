@@ -79,9 +79,9 @@ def tomo(params):
         if params.angle:
             bp.props.angle_step = params.angle
 
-        if params.offset:
-            print params.offset
-            bp.props.angle_offset = params.offset
+        if params.angle_offset:
+            print params.angle_offset
+            bp.props.angle_offset = params.angle_offset
 
         if params.crop_width:
             ifft.props.crop_width = int(params.crop_width)
@@ -177,7 +177,7 @@ def lamino(params):
                         height=params.pad[1] / params.downsample,
                         fwidth=vx, theta=params.tilt, tau=params.tau)
 
-    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.offset,
+    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.angle_offset,
                        proj_ox=params.axis[0] / params.downsample,
                        proj_oy=params.axis[1] / params.downsample,
                        vol_sx=vx, vol_sy=vy, vol_sz=vz,
