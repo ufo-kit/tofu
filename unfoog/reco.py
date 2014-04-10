@@ -1,8 +1,6 @@
 import os
-import sys
 import re
 import glob
-import argparse
 import logging
 import numpy as np
 from gi.repository import Ufo
@@ -111,7 +109,6 @@ def tomo(params):
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
 
-        cut = get_task('cut-sinogram', center_of_rotation=params.axis)
         pad = get_task('zeropadding', oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')
@@ -119,8 +116,7 @@ def tomo(params):
         swap_forward = get_task('swap-quadrants')
         swap_backward = get_task('swap-quadrants')
 
-        g.connect_nodes(sino_output, cut)
-        g.connect_nodes(cut, pad)
+        g.connect_nodes(sino_output, pad)
         g.connect_nodes(pad, fft)
         g.connect_nodes(fft, dfi)
         g.connect_nodes(dfi, swap_forward)
