@@ -187,12 +187,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.main_widget)
 
     def on_correct_box_clicked(self, checked):
-        if self.correct_box.isChecked():
-            self.status = True
-            self.change_status()
-        else:
-            self.status = False
-            self.change_status()
+        self.status = self.correct_box.isChecked()
+        self.change_status()
 
     def change_status(self):
         self.darks_path_line.setEnabled(self.status)
