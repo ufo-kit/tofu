@@ -4,11 +4,10 @@ import ConfigParser as configparser
 
 NAME = 'reco.conf'
 TEMPLATE = """[general]
-{disable}axis = {axis}
-{disable}angle = {angle}
+{disable}axis =
+{disable}offset = 0.0
 {disable}input = {input}
 {disable}output = {output}
-# angle_offset = 0.0
 
 ## Reconstruct from projections instead of sinograms
 {disable_fp}from_projections = {from_projections}
@@ -16,10 +15,11 @@ TEMPLATE = """[general]
 #darks = path/to/darks
 #flats = path/to/flats
 
-[fbp]
+[tomo]
+{disable}axis = {axis}
+{disable}angle = {angle}
 # crop_width = 128
-
-[dfi]
+# method = 'fbp'        # or 'sart' or 'dfi'
 # oversampling = 2
 
 [lamino]
@@ -31,148 +31,140 @@ TEMPLATE = """[general]
 # pad = 0 0             # Padding added around input
 """
 
-class DefaultConfigParser(configparser.ConfigParser):
-    def value(self, section, option, default=None, target=None):
-        try:
-            v = self.get(section, option)
-            if target:
-                return target(v)
-            return v
 
+class DefaultConfigParser(configparser.ConfigParser):
+    def value(self, section, option):
+        try:
+            return self.get(section, option)
         except (configparser.NoOptionError, configparser.NoSectionError):
-            return default
+            return None
 
 
 class RecoParams(object):
     def __init__(self):
-        self._config = DefaultConfigParser()
-        self._config.read([NAME])
-
-        self.include = self._config.value('general', 'include')
-        self.input = self._config.value('general', 'input', '.')
-        self.output = self._config.value('general', 'output', '.')
-        self.darks = self._config.value('general', 'darks')
-        self.flats = self._config.value('general', 'flats')
-        self.angle = self._config.value('general', 'angle', target=float)
-        self.angle_offset = self._config.value('general', 'angle_offset', 0)
-        self.dry_run = False
-        self.enable_tracing = False
+        self.types = {}
 
     def add_arguments(self, parser):
-        parser.add_argument('-i', '--input', type=str,
-                            default=self.input, metavar='PATH',
-                            help="Location with sinograms or projections")
-        parser.add_argument('-o', '--output', type=str,
-                            default=self.output, metavar='PATH',
-                            help="Path to location or format-specified file path "
-                            "for storing reconstructed slices")
-        parser.add_argument('--include', type=str, nargs='*', default=None, metavar='PATH',
-                            help="Paths to search for plugins and kernel files")
-        parser.add_argument('--flats', type=str,
-                            default=self.flats, metavar='PATH',
-                            help="Location with flats")
-        parser.add_argument('--darks', type=str,
-                            default=self.darks, metavar='PATH',
-                            help="Location with darks")
-        parser.add_argument('--angle', type=float,
-                            default=self.angle,
-                            help="Angle step between projections in radians")
-        parser.add_argument('--offset', type=float,
-                            default=self.angle_offset,
-                            help="Angle offset of first projection in radians")
-        parser.add_argument('--enable-tracing', action='store_true', default=False,
-                            help="Enable tracing and store result in .PID.json")
-        parser.add_argument('--dry-run', action='store_true', default=False,
-                            help="Reconstruct without writing data")
+        self._add_argument(parser, '--config', type=str,
+                           default=NAME, metavar='FILE',
+                           help="File name of configuration")
+        self._add_argument(parser, '-i', '--input', type=str,
+                           default='.', metavar='PATH',
+                           help="Location with sinograms or projections")
+        self._add_argument(parser, '-o', '--output', type=str,
+                           default='.', metavar='PATH',
+                           help="Path to location or format-specified file path "
+                           "for storing reconstructed slices")
+        self._add_argument(parser, '--include', type=str, nargs='*', default=None, metavar='PATH',
+                           help="Paths to search for plugins and kernel files")
+        self._add_argument(parser, '--flats', type=str,
+                           default=None, metavar='PATH',
+                           help="Location with flats")
+        self._add_argument(parser, '--darks', type=str,
+                           default=None, metavar='PATH',
+                           help="Location with darks")
+        self._add_argument(parser, '--angle', type=float,
+                           default=None,
+                           help="Angle step between projections in radians")
+        self._add_argument(parser, '--offset', type=float,
+                           default=0,
+                           help="Angle offset of first projection in radians")
+        self._add_argument(parser, '--enable-tracing', action='store_true', default=False,
+                           help="Enable tracing and store result in .PID.json")
+        self._add_argument(parser, '--dry-run', action='store_true', default=False,
+                           help="Reconstruct without writing data")
+        self._add_argument(parser, '--from-projections', action='store_true',
+                           default=False,
+                           help="Reconstruct from projections instead of sinograms")
         return parser
 
     def update(self, args):
+        config = DefaultConfigParser()
+        config.read(args.config)
+
         for k, v in args.__dict__.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
+            setattr(self, k, v)
+
+        self._override(args, config, 'general')
+
+        return config
+
+    def _add_argument(self, parser, *args, **kwargs):
+        arg = parser.add_argument(*args, **kwargs)
+        self.types[arg.dest] = arg.type
+
+    def _override(self, args, config, section):
+        for k, v in args.__dict__.items():
+            override = config.value(section, k)
+
+            if override:
+                vtype = self.types.get(k, None)
+
+                if vtype:
+                    setattr(self, k, vtype(override))
+                else:
+                    setattr(self, k, override)
 
 
 class TomoParams(RecoParams):
     def __init__(self):
         super(TomoParams, self).__init__()
-        self.method = self._config.value('general', 'method', 'fbp')
-        self.from_projections = self._config.value('fbp', 'from_projections', False)
-        self.crop_width = self._config.value('fbp', 'crop_width', target=int)
-        self.oversampling = self._config.value('dfi', 'oversampling', target=int)
-        self.axis = self._config.value('general', 'axis', target=float)
-
-        def list_split(arg):
-            return re.split(' |, |,', arg)
-
-        self.remote = self._config.value('general', 'remotes', [], target=list_split)
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)
 
-        parser.add_argument('--method', choices=['fbp', 'sart', 'dfi'],
-                            default=self.method,
-                            help="Reconstruction method")
-        parser.add_argument('--axis', type=float,
-                            default=self.axis,
-                            help="Axis position")
-        parser.add_argument('--crop-width', type=int,
-                            default=self.crop_width,
-                            help="Width of final slice")
-        parser.add_argument('--oversampling', type=int,
-                            default=self.oversampling,
-                            help="Oversample factor")
-        parser.add_argument('--remote', type=str, nargs='*', default=self.remote, metavar='ADDR',
-                            help="ZeroMQ addresses of machines on which `ufod' is running")
-        parser.add_argument('--from-projections', action='store_true',
-                            default=self.from_projections,
-                            help="Reconstruct from projections instead of sinograms")
+        self._add_argument(parser, '--method', choices=['fbp', 'sart', 'dfi'],
+                           default='fbp',
+                           help="Reconstruction method")
+        self._add_argument(parser, '--axis', type=float,
+                           default=None,
+                           help="Axis position")
+        self._add_argument(parser, '--crop-width', type=int,
+                           default=None,
+                           help="Width of final slice")
+        self._add_argument(parser, '--oversampling', type=int, default=None,
+                           help="Oversample factor")
         return parser
+
+    def update(self, args):
+        config = super(TomoParams, self).update(args)
+        self._override(args, config, 'tomo')
 
 
 class LaminoParams(RecoParams):
     def __init__(self):
         super(LaminoParams, self).__init__()
-        self.axis = self._config.value('general', 'axis')
-        self.axis = [float(x) for x in self.axis.split(' ')] if self.axis else None
-
-        self.tau = 0.3
-        self.tilt = self._config.value('lamino', 'tilt')
-        self.width = self._config.value('lamino', 'width')
-        self.height = self._config.value('lamino', 'height')
-        self.downsample = self._config.value('lamino', 'downsample', 1)
-
-        self.bbox = self._config.value('lamino', 'bbox')
-        self.bbox = [int(x) for x in self.bbox.split(' ')] if self.bbox else None
-
-        self.pad = self._config.value('lamino', 'pad')
-        self.pad = [int(x) for x in self.pad.split(' ')] if self.pad else None
 
     def add_arguments(self, parser):
         parser = super(LaminoParams, self).add_arguments(parser)
 
         parser.add_argument('--tilt', type=float,
-                            default=self._config.value('lamino', 'tilt'),
+                            default=None,
                             help="Tilt angle of sample in radians")
         parser.add_argument('--axis', nargs='+', action='append',
-                            default=self.axis,
+                            default=None,
                             help="Axis")
         parser.add_argument('--bbox', nargs='+', action='append',
-                            default=self.bbox,
+                            default=None,
                             help="Bounding box of reconstructed volume")
         parser.add_argument('--pad', nargs='+', action='append',
-                            default=self.pad,
+                            default=None,
                             help="Final padded size of input")
         parser.add_argument('--width', type=int,
-                            default=self.width,
+                            default=None,
                             help="Width of the input projection")
         parser.add_argument('--height', type=int,
-                            default=self.height,
+                            default=None,
                             help="Height of the input projection")
         parser.add_argument('--downsample', type=int,
-                            default=self.downsample,
+                            default=1,
                             help="Downsampling factor")
 
         return parser
+
+    def update(self, args):
+        config = super(LaminoParams, self).update(args)
+        self._override(args, config, 'lamino')
 
 
 def write(axis=0.0, angle=0.0, disable='#',

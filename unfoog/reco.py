@@ -77,9 +77,8 @@ def tomo(params):
         if params.angle:
             bp.props.angle_step = params.angle
 
-        if params.angle_offset:
-            print params.angle_offset
-            bp.props.angle_offset = params.angle_offset
+        if params.offset:
+            bp.props.angle_offset = params.offset
 
         if params.crop_width:
             ifft.props.crop_width = int(params.crop_width)
@@ -126,8 +125,8 @@ def tomo(params):
 
     sched = Ufo.Scheduler()
 
-    if params.remote:
-        sched.set_properties(remotes=params.remote)
+    # if params.remote:
+    #     sched.set_properties(remotes=params.remote)
 
     if hasattr(sched.props, 'enable_tracing'):
         LOG.debug("Use tracing: {}".format(params.enable_tracing))

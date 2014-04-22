@@ -15,26 +15,28 @@ LOG = logging.getLogger(__name__)
 
 
 
-def init(params):
+def init(args, params):
     if not os.path.exists(config.NAME):
         config.write()
     else:
         sys.exit("{0} already exists".format(config.NAME))
 
 
-def run_tomo(params):
+def run_tomo(args, params):
     from unfoog import reco
+    params.update(args)
     reco.tomo(params)
 
 
-def run_lamino(params):
+def run_lamino(args, params):
     from unfoog import reco
+    params.update(args)
     reco.lamino(params)
 
 
-def gui(params):
+def gui(args, params):
     from unfoog import gui
-
+    params.update(args)
     gui.main(params)
 
 
@@ -80,7 +82,7 @@ def main():
     # estimate parser
     cmd_parser = subparsers.add_parser('estimate',
                                        help="Estimate center of rotation")
-    # cmd_parser = add_reco_input_arguments(cmd_parser, cfg_parser)
+
     cmd_parser.set_defaults(func=estimate, params=None)
 
     cmd_parser.add_argument('--num-iterations', type=int, default=10, metavar='N',
@@ -89,13 +91,10 @@ def main():
     # parse args and update parameter structures
     args = parser.parse_args()
 
-    lamino_params.update(args)
-    tomo_params.update(args)
-
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    args.func(args.params)
+    args.func(args, args.params)
 
 
 if __name__ == '__main__':
