@@ -24,6 +24,7 @@ TEMPLATE = """[general]
 
 [lamino]
 # tilt = 0.1            # Tilt angle
+# tau = 10              # Pixel size in microns
 # width = 2048          # Width of input
 # height = 2048         # Height of input
 # downsample = 2        # Downsampling factor
@@ -146,26 +147,29 @@ class LaminoParams(RecoParams):
         parser = super(LaminoParams, self).add_arguments(parser)
 
         self._add_argument(parser, '--tilt', type=float,
-                            default=None,
-                            help="Tilt angle of sample in radians")
+                           default=None,
+                           help="Tilt angle of sample in radians")
         self._add_argument(parser, '--axis', nargs='+', action='append',
-                            default=None,
-                            help="Axis")
+                           default=None, type=float,
+                           help="Axis")
+        self._add_argument(parser, '--tau', type=float,
+                           default=None,
+                           help="Pixel size in microns")
         self._add_argument(parser, '--bbox', nargs='+', action='append',
-                            default=None, type=int,
-                            help="Bounding box of reconstructed volume")
+                           default=None, type=int,
+                           help="Bounding box of reconstructed volume")
         self._add_argument(parser, '--pad', nargs='+', action='append',
-                            default=None, type=int,
-                            help="Final padded size of input")
+                           default=None, type=int,
+                           help="Final padded size of input")
         self._add_argument(parser, '--width', type=int,
-                            default=None,
-                            help="Width of the input projection")
+                           default=None,
+                           help="Width of the input projection")
         self._add_argument(parser, '--height', type=int,
-                            default=None,
-                            help="Height of the input projection")
+                           default=None,
+                           help="Height of the input projection")
         self._add_argument(parser, '--downsample', type=int,
-                            default=1,
-                            help="Downsampling factor")
+                           default=1,
+                           help="Downsampling factor")
 
         return parser
 

@@ -172,7 +172,7 @@ def lamino(params):
                         height=params.pad[1] / params.downsample,
                         fwidth=vx, theta=params.tilt, tau=params.tau)
 
-    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.angle_offset,
+    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.offset,
                        proj_ox=params.axis[0] / params.downsample,
                        proj_oy=params.axis[1] / params.downsample,
                        vol_sx=vx, vol_sy=vy, vol_sz=vz,
@@ -202,10 +202,8 @@ def lamino(params):
     g.connect_nodes(rec, writer)
 
     sched = Ufo.Scheduler()
-    sched.set_task_expansion(False)
+    sched.set_properties(expand=False)
     sched.run(g)
-
-    print xpad, ypad
 
 
 def read_tiff(filename):
