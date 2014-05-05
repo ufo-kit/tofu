@@ -138,25 +138,25 @@ class LaminoParams(RecoParams):
     def add_arguments(self, parser):
         parser = super(LaminoParams, self).add_arguments(parser)
 
-        parser.add_argument('--tilt', type=float,
+        self._add_argument(parser, '--tilt', type=float,
                             default=None,
                             help="Tilt angle of sample in radians")
-        parser.add_argument('--axis', nargs='+', action='append',
+        self._add_argument(parser, '--axis', nargs='+', action='append',
                             default=None,
                             help="Axis")
-        parser.add_argument('--bbox', nargs='+', action='append',
+        self._add_argument(parser, '--bbox', nargs='+', action='append',
                             default=None,
                             help="Bounding box of reconstructed volume")
-        parser.add_argument('--pad', nargs='+', action='append',
+        self._add_argument(parser, '--pad', nargs='+', action='append',
                             default=None,
                             help="Final padded size of input")
-        parser.add_argument('--width', type=int,
+        self._add_argument(parser, '--width', type=int,
                             default=None,
                             help="Width of the input projection")
-        parser.add_argument('--height', type=int,
+        self._add_argument(parser, '--height', type=int,
                             default=None,
                             help="Height of the input projection")
-        parser.add_argument('--downsample', type=int,
+        self._add_argument(parser, '--downsample', type=int,
                             default=1,
                             help="Downsampling factor")
 
