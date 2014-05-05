@@ -43,6 +43,7 @@ class DefaultConfigParser(configparser.ConfigParser):
 class RecoParams(object):
     def __init__(self):
         self.types = {}
+        self.lists = []
 
     def add_arguments(self, parser):
         self._add_argument(parser, '--config', type=str,
@@ -93,17 +94,23 @@ class RecoParams(object):
         arg = parser.add_argument(*args, **kwargs)
         self.types[arg.dest] = arg.type
 
+        if arg.nargs in ('*', '+'):
+            self.lists.append(arg.dest)
+
     def _override(self, args, config, section):
         for k, v in args.__dict__.items():
-            override = config.value(section, k)
+            value = config.value(section, k)
 
-            if override:
+            if value:
                 vtype = self.types.get(k, None)
 
-                if vtype:
-                    setattr(self, k, vtype(override))
+                def get_typed(p):
+                    return vtype(p) if vtype else p
+
+                if k in self.lists:
+                    setattr(self, k, [get_typed(x) for x in value.split()])
                 else:
-                    setattr(self, k, override)
+                    setattr(self, k, get_typed(value))
 
 
 class TomoParams(RecoParams):
@@ -145,10 +152,10 @@ class LaminoParams(RecoParams):
                             default=None,
                             help="Axis")
         self._add_argument(parser, '--bbox', nargs='+', action='append',
-                            default=None,
+                            default=None, type=int,
                             help="Bounding box of reconstructed volume")
         self._add_argument(parser, '--pad', nargs='+', action='append',
-                            default=None,
+                            default=None, type=int,
                             help="Final padded size of input")
         self._add_argument(parser, '--width', type=int,
                             default=None,
