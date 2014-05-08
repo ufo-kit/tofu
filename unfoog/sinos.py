@@ -82,5 +82,5 @@ def make_sinos(args):
 
     # Execute the graph
     sched = Ufo.Scheduler()
-    sched.set_task_expansion(False)
+    sched.set_properties(expand=False)
     sched.run(g)
