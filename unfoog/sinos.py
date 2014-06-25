@@ -25,21 +25,51 @@ __kernel void neg_log (global float *input,
 }"""
 
 
-def make_sinos(args):
-    """Make the sinograms with arguments provided by *args*."""
+def _set_pass(y_0, height, proj_reader, flat_reader=None, dark_reader=None):
+    """Set pass in a multipass execution. We need to set the *y_0* and *height* which tell us which
+    row do we start and end with in this pass. *proj_reader* is the projection reader, *writer* is
+    image writer which also needs to be told what is the offset of the file name index which depends
+    again on the *y_0*. *flat_reader* and *dark_reader* are optional dark and flat field readers.
+    """
+    def set_reader(reader):
+        if reader:
+            reader.props.y = y_0
+            reader.props.height = height
+
+    set_reader(proj_reader)
+    set_reader(flat_reader)
+    set_reader(dark_reader)
+
+
+def _execute(args, limits):
+    """Execute one pass with *limits* (height of the projections as [start, region])."""
+    sched = Ufo.Scheduler()
+    sched.set_properties(expand=False)
+    g = make_sino_graph(args, limits=limits)
+    sched.run(g)
+
+
+def make_sino_graph(args, limits=None):
+    """Create a graph for sinograms generation. *args* are static arguments and *limits* are used to
+    determine the number of sinograms to be processed in this pass if given.
+    """
     pm = Ufo.PluginManager()
     g = Ufo.TaskGraph()
 
     proj_path, proj_nth, proj_count = split_extended_path(args.input)
     proj_reader = pm.get_task('reader')
     proj_reader.set_properties(path=proj_path, nth=proj_nth, count=proj_count)
+    if args.chunk:
+        proj_reader.props.height = args.chunk
 
     writer = pm.get_task('writer')
-    writer.set_properties(filename='{0}'.format(args.output))
+    writer.set_properties(filename='{0}'.format(args.output), append=bool(args.chunk))
 
     sinogen = pm.get_task('sino-generator')
     sinogen.set_properties(num_projections=proj_count)
 
+    flat_reader = None
+    dark_reader = None
     if args.flats and args.darks:
         # Read flat fields
         flat_path, flat_nth, flat_count = split_extended_path(args.flats)
@@ -53,6 +83,10 @@ def make_sinos(args):
         dark_path, dark_nth, dark_count = split_extended_path(args.darks)
         dark_reader = pm.get_task('reader')
         dark_reader.set_properties(path=dark_path, nth=dark_nth, count=dark_count)
+
+        if args.chunk:
+            flat_reader.props.height = args.chunk
+            dark_reader.props.height = args.chunk
 
         dark_avg = pm.get_task('averager')
         dark_avg.set_properties(num_generate=proj_count)
@@ -80,7 +114,25 @@ def make_sinos(args):
 
     g.connect_nodes(sinogen, writer)
 
-    # Execute the graph
-    sched = Ufo.Scheduler()
-    sched.set_properties(expand=False)
-    sched.run(g)
+    if limits:
+        _set_pass(limits[0], limits[1], proj_reader, flat_reader=flat_reader,
+                  dark_reader=dark_reader)
+
+    return g
+
+
+def make_sinos(args):
+    """Make the sinograms with arguments provided by *args*."""
+    if args.chunk and not args.num_sinos:
+        raise ValueError('Number of sinograms must be specified for multipass execution')
+    if args.chunk > args.num_sinos:
+        raise ValueError('Number of sinograms must be greater than pass size')
+
+    limits = (0, args.chunk) if args.chunk else None
+    _execute(args, limits=limits)
+
+    if args.chunk:
+        # Starts are indices specifying the row at which to start
+        starts = range(args.chunk, args.num_sinos, args.chunk) + [args.num_sinos]
+        for i in range(len(starts) - 1):
+            _execute(args, limits=(starts[i], starts[i + 1] - starts[i]))
