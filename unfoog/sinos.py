@@ -59,8 +59,6 @@ def make_sino_graph(args, limits=None):
     proj_path, proj_nth, proj_count = split_extended_path(args.input)
     proj_reader = pm.get_task('reader')
     proj_reader.set_properties(path=proj_path, nth=proj_nth, count=proj_count)
-    if args.chunk:
-        proj_reader.props.height = args.chunk
 
     writer = pm.get_task('writer')
     writer.set_properties(filename='{0}'.format(args.output), append=bool(args.chunk))
@@ -83,10 +81,6 @@ def make_sino_graph(args, limits=None):
         dark_path, dark_nth, dark_count = split_extended_path(args.darks)
         dark_reader = pm.get_task('reader')
         dark_reader.set_properties(path=dark_path, nth=dark_nth, count=dark_count)
-
-        if args.chunk:
-            flat_reader.props.height = args.chunk
-            dark_reader.props.height = args.chunk
 
         dark_avg = pm.get_task('averager')
         dark_avg.set_properties(num_generate=proj_count)
@@ -114,7 +108,7 @@ def make_sino_graph(args, limits=None):
 
     g.connect_nodes(sinogen, writer)
 
-    if limits:
+    if args.chunk:
         _set_pass(limits[0], limits[1], proj_reader, flat_reader=flat_reader,
                   dark_reader=dark_reader)
 
