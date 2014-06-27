@@ -3,6 +3,14 @@ import argparse
 from unfoog.sinos import make_sinos
 
 
+def _positive_int(value):
+    result = int(value)
+    if result < 0:
+        raise argparse.ArgumentTypeError('Only positive integers are allowed')
+
+    return result
+
+
 def main():
     """Execute sinogram generation with arguments from command line."""
     parser = argparse.ArgumentParser()
@@ -13,10 +21,9 @@ def main():
     parser.add_argument('--flats', metavar='PATH', type=str)
     parser.add_argument('--darks', metavar='PATH', type=str)
     parser.add_argument('--disable-absorption-correction', action='store_true')
-    parser.add_argument('--num', dest='num_sinos', type=int, default=0,
-                        help='Number of sinograms conatined in the data')
-    parser.add_argument('--pass-size', dest='chunk', type=int, default=0,
+    parser.add_argument('--pass-size', dest='chunk', type=_positive_int, default=0,
                         help='Number of sinograms to process per pass')
+    parser.add_argument('--region', type=str, default='', help='from:to:step sinograms to process')
 
     args = parser.parse_args()
 
