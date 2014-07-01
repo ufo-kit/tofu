@@ -1,4 +1,5 @@
 """Various utility functions."""
+import argparse
 import glob
 
 
@@ -37,3 +38,12 @@ def check_input(input_prefix, region):
     region = range_from(region)
     if total - region[0] < len(range(*region)):
         raise ValueError('Not enough files to satisfy region')
+
+
+def positive_int(value):
+    """Convert *value* to an integer and make sure it is positive."""
+    result = int(value)
+    if result < 0:
+        raise argparse.ArgumentTypeError('Only positive integers are allowed')
+
+    return result

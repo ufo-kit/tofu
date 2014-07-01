@@ -1,5 +1,6 @@
 import re
 import ConfigParser as configparser
+from unfoog.util import positive_int
 
 
 NAME = 'reco.conf'
@@ -127,10 +128,10 @@ class TomoParams(RecoParams):
         self._add_argument(parser, '--axis', type=float,
                            default=None,
                            help="Axis position")
-        self._add_argument(parser, '--crop-width', type=int,
+        self._add_argument(parser, '--crop-width', type=positive_int,
                            default=None,
                            help="Width of final slice")
-        self._add_argument(parser, '--oversampling', type=int, default=None,
+        self._add_argument(parser, '--oversampling', type=positive_int, default=None,
                            help="Oversample factor")
         return parser
 
@@ -161,13 +162,13 @@ class LaminoParams(RecoParams):
         self._add_argument(parser, '--pad', nargs='+', action='append',
                            default=None, type=int,
                            help="Final padded size of input")
-        self._add_argument(parser, '--width', type=int,
+        self._add_argument(parser, '--width', type=positive_int,
                            default=None,
                            help="Width of the input projection")
-        self._add_argument(parser, '--height', type=int,
+        self._add_argument(parser, '--height', type=positive_int,
                            default=None,
                            help="Height of the input projection")
-        self._add_argument(parser, '--downsample', type=int,
+        self._add_argument(parser, '--downsample', type=positive_int,
                            default=1,
                            help="Downsampling factor")
 
