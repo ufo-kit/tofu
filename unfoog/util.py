@@ -1,6 +1,7 @@
 """Various utility functions."""
 import argparse
 import glob
+import logging
 import os
 
 
@@ -64,3 +65,19 @@ def get_filenames(path):
         path = os.path.join(path, '*')
 
     return glob.glob(path)
+
+
+def config_log_handler(handler, log, msg_format=None):
+    """Config logging *handler* to handle *log* and use *msg_format*.
+    """
+    if not msg_format:
+        msg_format = '[%(asctime)s] - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(msg_format)
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
+
+
+def log_dictionary(dictionary, log, level=logging.INFO):
+    """Log all key:value pairs in *dictionary* to *log*. *level* specifies logging level."""
+    for k, v in dictionary.iteritems():
+        log.log(level, '{}: {}'.format(k, v))
