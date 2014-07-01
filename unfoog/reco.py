@@ -5,6 +5,7 @@ import logging
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
+from unfoog.util import range_from, check_input, set_reader
 
 
 LOG = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ def get_output_name(output_path):
 
 
 def tomo(params):
+    if params.region:
+        check_input(params.input, params.region)
     cargs = {}
 
     if params.include:
@@ -34,7 +37,8 @@ def tomo(params):
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('reader', path=params.input)
+    reader = get_task('reader')
+    set_reader(reader, params.input, region=params.region)
 
     if params.dry_run:
         writer = get_task('null')
@@ -47,7 +51,10 @@ def tomo(params):
     g = Ufo.TaskGraph()
 
     if params.from_projections:
-        count = len(glob.glob(params.input))
+        if params.region:
+            count = len(range(*range_from(params.region)))
+        else:
+            count = len(glob.glob(params.input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
@@ -136,6 +143,8 @@ def tomo(params):
 
 
 def lamino(params):
+    if params.region:
+        check_input(params.input, params.region)
     cargs = {}
 
     if params.include:
@@ -146,6 +155,7 @@ def lamino(params):
     pm = Ufo.PluginManager(**cargs)
 
     radios = pm.get_task('reader')
+    set_reader(radios, params.input, region=params.region)
     pad = pm.get_task('padding-2d')
     rec = pm.get_task('lamino-bp')
     ramp = pm.get_task('lamino-ramp')

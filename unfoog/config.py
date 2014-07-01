@@ -8,6 +8,7 @@ TEMPLATE = """[general]
 {disable}axis =
 {disable}offset = 0.0
 {disable}input = {input}
+{disable}region = {region}
 {disable}output = {output}
 
 ## Reconstruct from projections instead of sinograms
@@ -79,6 +80,8 @@ class RecoParams(object):
         self._add_argument(parser, '--from-projections', action='store_true',
                            default=False,
                            help="Reconstruct from projections instead of sinograms")
+        self._add_argument(parser, '--region', type=str, default=None,
+                           help='from:to:step sinograms to process')
         return parser
 
     def update(self, args):
@@ -179,11 +182,10 @@ class LaminoParams(RecoParams):
         self._override(args, config, 'lamino')
 
 
-def write(axis=0.0, angle=0.0, disable='#',
-          input='path/to/input', output='path/to/output',
-          from_projections=True):
+def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',
+          region='from:to:step', output='path/to/output', from_projections=True):
     disable_fp = '#' if not from_projections else ''
-    out = TEMPLATE.format(axis=axis, angle=angle, input=input,
+    out = TEMPLATE.format(axis=axis, angle=angle, input=input, region=region,
                           output=output, from_projections=from_projections,
                           disable=disable, disable_fp=disable_fp)
 
