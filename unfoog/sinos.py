@@ -1,7 +1,6 @@
 """Sinogram generation module."""
-import glob
 from gi.repository import Ufo
-from unfoog.util import range_from, set_reader, check_input
+from unfoog.util import range_from, set_reader, check_input, get_filenames
 
 
 NEG_LOG_SOURCE = """
@@ -50,7 +49,7 @@ def make_sino_graph(args, sino_region=None):
         region = range_from(args.region)
         proj_count = len(range(*region))
     else:
-        proj_count = len(glob.glob(args.input))
+        proj_count = len(get_filenames(args.input))
 
     pm = Ufo.PluginManager()
     g = Ufo.TaskGraph()
@@ -78,14 +77,14 @@ def make_sino_graph(args, sino_region=None):
         flat_reader.set_properties(path=args.flats)
 
         flat_avg = pm.get_task('averager')
-        flat_avg.set_properties(num_generate=proj_count)
+        flat_avg.set_properties(num_generate=len(get_filenames(args.flats)))
 
         # Read dark fields
         dark_reader = pm.get_task('reader')
         dark_reader.set_properties(path=args.darks)
 
         dark_avg = pm.get_task('averager')
-        dark_avg.set_properties(num_generate=proj_count)
+        dark_avg.set_properties(num_generate=len(get_filenames(args.darks)))
 
         # Setup flat-field correction
         ffc = pm.get_task('flat-field-correction')

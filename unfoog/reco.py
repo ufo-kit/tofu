@@ -1,11 +1,10 @@
 import os
 import re
-import glob
 import logging
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
-from unfoog.util import range_from, check_input, set_reader
+from unfoog.util import range_from, check_input, set_reader, get_filenames
 
 
 LOG = logging.getLogger(__name__)
@@ -54,7 +53,7 @@ def tomo(params):
         if params.region:
             count = len(range(*range_from(params.region)))
         else:
-            count = len(glob.glob(params.input))
+            count = len(get_filenames(params.input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)

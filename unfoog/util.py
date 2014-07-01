@@ -1,6 +1,7 @@
 """Various utility functions."""
 import argparse
 import glob
+import os
 
 
 def range_from(s):
@@ -40,7 +41,7 @@ def set_reader(reader, input_prefix, region=None):
 
 def check_input(input_prefix, region):
     """Check if there are enough file from *input_prefix* to satisfy *region*."""
-    total = len(glob.glob(input_prefix))
+    total = len(get_filenames(input_prefix))
     region = range_from(region)
     if total - region[0] < len(range(*region)):
         raise ValueError('Not enough files to satisfy region')
@@ -53,3 +54,13 @@ def positive_int(value):
         raise argparse.ArgumentTypeError('Only positive integers are allowed')
 
     return result
+
+
+def get_filenames(path):
+    """Get all filenams from *path*, which could be a directory or a pattern
+    for matching files in a directory.
+    """
+    if os.path.isdir(path):
+        path = os.path.join(path, '*')
+
+    return glob.glob(path)
