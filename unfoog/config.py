@@ -1,5 +1,6 @@
 import re
 import ConfigParser as configparser
+from unfoog.util import positive_int
 
 
 NAME = 'reco.conf'
@@ -7,6 +8,7 @@ TEMPLATE = """[general]
 {disable}axis =
 {disable}offset = 0.0
 {disable}input = {input}
+{disable}region = {region}
 {disable}output = {output}
 
 ## Reconstruct from projections instead of sinograms
@@ -78,6 +80,8 @@ class RecoParams(object):
         self._add_argument(parser, '--from-projections', action='store_true',
                            default=False,
                            help="Reconstruct from projections instead of sinograms")
+        self._add_argument(parser, '--region', type=str, default=None,
+                           help='from:to:step sinograms to process')
         return parser
 
     def update(self, args):
@@ -127,10 +131,10 @@ class TomoParams(RecoParams):
         self._add_argument(parser, '--axis', type=float,
                            default=None,
                            help="Axis position")
-        self._add_argument(parser, '--crop-width', type=int,
+        self._add_argument(parser, '--crop-width', type=positive_int,
                            default=None,
                            help="Width of final slice")
-        self._add_argument(parser, '--oversampling', type=int, default=None,
+        self._add_argument(parser, '--oversampling', type=positive_int, default=None,
                            help="Oversample factor")
         return parser
 
@@ -161,13 +165,13 @@ class LaminoParams(RecoParams):
         self._add_argument(parser, '--pad', nargs='+', action='append',
                            default=None, type=int,
                            help="Final padded size of input")
-        self._add_argument(parser, '--width', type=int,
+        self._add_argument(parser, '--width', type=positive_int,
                            default=None,
                            help="Width of the input projection")
-        self._add_argument(parser, '--height', type=int,
+        self._add_argument(parser, '--height', type=positive_int,
                            default=None,
                            help="Height of the input projection")
-        self._add_argument(parser, '--downsample', type=int,
+        self._add_argument(parser, '--downsample', type=positive_int,
                            default=1,
                            help="Downsampling factor")
 
@@ -178,11 +182,10 @@ class LaminoParams(RecoParams):
         self._override(args, config, 'lamino')
 
 
-def write(axis=0.0, angle=0.0, disable='#',
-          input='path/to/input', output='path/to/output',
-          from_projections=True):
+def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',
+          region='from:to:step', output='path/to/output', from_projections=True):
     disable_fp = '#' if not from_projections else ''
-    out = TEMPLATE.format(axis=axis, angle=angle, input=input,
+    out = TEMPLATE.format(axis=axis, angle=angle, input=input, region=region,
                           output=output, from_projections=from_projections,
                           disable=disable, disable_fp=disable_fp)
 
