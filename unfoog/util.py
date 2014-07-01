@@ -7,6 +7,10 @@ def range_from(s):
     """
     Split *s* separated by ':' into int triple, filling missing values with 1s.
     """
+    def check(region):
+        if region[0] >= region[1]:
+            raise ValueError("'From' must be less than 'to'")
+
     lst = [int(x) for x in s.split(':')]
 
     if len(lst) == 1:
@@ -14,9 +18,11 @@ def range_from(s):
         return (frm, frm + 1, 1)
 
     if len(lst) == 2:
+        check(lst)
         return (lst[0], lst[1], 1)
 
     if len(lst) == 3:
+        check(lst)
         return (lst[0], lst[1], lst[2])
 
     raise ValueError("Cannot parse {}".format(s))
