@@ -23,7 +23,10 @@ def main():
     parser.add_argument('--disable-absorption-correction', action='store_true')
     parser.add_argument('--pass-size', dest='chunk', type=_positive_int, default=0,
                         help='Number of sinograms to process per pass')
-    parser.add_argument('--region', type=str, default='', help='from:to:step sinograms to process')
+    parser.add_argument('--region', type=str, default='',
+                        help='from:to:step projections to process')
+    parser.add_argument('--sino-region', type=str, default='',
+                        help='from:to:step sinograms to process')
 
     args = parser.parse_args()
 

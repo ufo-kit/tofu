@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # configure nodes
     count = args.last - args.first
-    sino_reader.set_properties(path=args.input_directory, nth=args.first, count=count)
+    sino_reader.set_properties(path=args.input_directory, start=args.first, end=count)
 
     angle_step = args.angle_step if args.angle_step else np.pi / args.num_projections
     cor.set_properties(angle_step=angle_step)
