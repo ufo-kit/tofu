@@ -441,13 +441,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.w_over.ui.histogram.setImageItem(img)
 
     def update_axis(self):
-        if self.move > 0:
-            self.axis = self.width / 2 + self.move
-        elif self.move < 0:
-            self.axis = self.width / 2 - self.move
-        else:
-            self.axis = self.width / 2
-
+        self.axis = self.width / 2 + self.move
         self.axis_num.setText('center of rotation = %i px' % (self.axis))
 
     def on_remove_extrema(self):
