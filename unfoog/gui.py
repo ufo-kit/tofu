@@ -354,6 +354,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.textWidget.setPlainText(logtxt)
 
     def on_run(self):
+        _enable_wait_cursor()
         try:
             self.init_axis()
             self.read_data()
@@ -362,6 +363,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.is_absorptivity = self.absorptivity_checkbox.isChecked()
 
         except Exception as e:
+            _disable_wait_cursor()
             QtGui.QMessageBox.warning(self, "Warning", str(e))
 
     def init_axis(self):
@@ -503,6 +505,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_grid.addWidget(new_axis_group, 0, 0)
         self.axis_grid.addWidget(self.w_over, 1, 0)
         self.axis_grid.addWidget(self.slider, 2, 0)
+        _disable_wait_cursor()
 
         self.slider.valueChanged.connect(self.on_move_slider)
         self.extrema_checkbox.clicked.connect(self.on_remove_extrema)
