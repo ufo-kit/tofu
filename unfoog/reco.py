@@ -22,6 +22,13 @@ def get_output_name(output_path):
 def tomo(params):
     if params.region:
         check_input(params.input, params.region)
+        if not params.offset and params.from_projections:
+            # Calculate the offset from the region
+            LOG.debug('Offset not given, calculating from region')
+            region = range_from(params.region)
+            num_projs = region[1] - region[0]
+            file_offset = region[0] % (2 * num_projs)
+            params.offset = file_offset / float(num_projs) * np.pi
     cargs = {}
 
     if params.include:
