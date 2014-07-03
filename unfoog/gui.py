@@ -375,7 +375,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.view = pg.ViewBox()
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, 999)
-        self.w_over = pg.ImageView(view=self.view)
+        self.w_over = pg.ImageView(self, view=self.view)
         self.w_over.ui.roiBtn.hide()
         self.w_over.ui.normBtn.hide()
         self.overlap_opt = QtGui.QComboBox()
@@ -405,6 +405,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         slider_val = int(adj) + 500
         self.slider.setValue(slider_val)
 
+        self.params.axis = self.axis
+        self.axis_spin.setValue(self.axis)
         self.update_image()
 
     def on_move_slider(self):
