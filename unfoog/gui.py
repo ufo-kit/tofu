@@ -24,13 +24,13 @@ logging.basicConfig(
 )
 
 
-def _set_line_edit_to_path(line_edit):
-    path = QtGui.QFileDialog.getExistingDirectory()
+def _set_line_edit_to_path(parent, line_edit, directory):
+    path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(path)
 
-def _set_line_edit_to_file(line_edit):
-    file_name = QtGui.QFileDialog.getOpenFileName()
+def _set_line_edit_to_file(parent, line_edit, directory):
+    file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(file_name)
 
@@ -78,9 +78,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         input_path_button = QtGui.QPushButton("Browse ...")
         self.input_path_line = _new_path_line_edit(self.params.input)
 
-        self.sino_button.setChecked(True)
-        self.proj_button.setChecked(False)
-
         input_grid.addWidget(self.sino_button, 0, 0)
         input_grid.addWidget(self.proj_button, 1, 0)
         input_grid.addWidget(self.input_path_line, 2, 0)
@@ -97,14 +94,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin.setMaximum(8192.0)
         self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
 
-        self.angle_step = QtGui.QDoubleSpinBox()
-        self.angle_step.setDecimals(10)
-        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+        angle_step = QtGui.QDoubleSpinBox()
+        angle_step.setDecimals(10)
+        angle_step.setValue(self.params.angle if self.params.angle else 0.0)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
         param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
-        param_grid.addWidget(self.angle_step, 1, 1)
+        param_grid.addWidget(angle_step, 1, 1)
 
         # Output group
         output_grid = QtGui.QGridLayout()
@@ -127,15 +124,15 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         # Darks & Flats Group
         correction_grid = QtGui.QGridLayout()
-        self.correction_group = QtGui.QGroupBox("Correction for Projections")
-        self.correction_group.setLayout(correction_grid)
-        self.correction_group.setFlat(True)
+        correction_group = QtGui.QGroupBox("Correction for Projections")
+        correction_group.setLayout(correction_grid)
+        correction_group.setFlat(True)
 
         self.correct_box = QtGui.QCheckBox("Use Correction", self)
-        self.darks_path_line = QtGui.QLineEdit()
+        self.darks_path_line = _new_path_line_edit(self.params.darks)
         self.darks_path_button = QtGui.QPushButton("Browse...")
         self.darks_label = QtGui.QLabel("Dark-field:")
-        self.flats_path_line = QtGui.QLineEdit()
+        self.flats_path_line = _new_path_line_edit(self.params.flats)
         self.flats_path_button = QtGui.QPushButton("Browse...")
         self.flats_label = QtGui.QLabel("Flat-field:")
 
@@ -155,7 +152,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         button_group = QtGui.QDialogButtonBox()
 
         close_button = button_group.addButton(QtGui.QDialogButtonBox.Close)
-        self.reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
+        reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
         save_button = button_group.addButton("Save", QtGui.QDialogButtonBox.AcceptRole)
 
         # Log widget
@@ -170,7 +167,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         reconstruction_grid.addWidget(input_group, 0, 0)
         reconstruction_grid.addWidget(param_group, 1, 0)
         reconstruction_grid.addWidget(output_group, 2, 0)
-        reconstruction_grid.addWidget(self.correction_group, 3, 0)
+        reconstruction_grid.addWidget(correction_group, 3, 0)
         reconstruction_grid.addWidget(button_group, 4, 0)
         reconstruction_grid.addWidget(self.textWidget, 5, 0)
 
@@ -188,7 +185,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         input_path_button.clicked.connect(self.on_input_path_clicked)
         output_path_button.clicked.connect(self.on_output_path_clicked)
         close_button.clicked.connect(self.on_close)
-        self.reco_button.clicked.connect(self.on_reconstruct)
+        reco_button.clicked.connect(self.on_reconstruct)
         save_button.clicked.connect(self.on_save)
         self.proj_button.clicked.connect(self.on_proj_button_clicked)
         self.sino_button.clicked.connect(self.on_sino_button_clicked)
@@ -197,6 +194,23 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.darks_path_button.clicked.connect(self.on_darks_path_clicked)
         self.flats_path_button.clicked.connect(self.on_flats_path_clicked)
         self.main_widget.currentChanged.connect(self.on_tab_changed)
+
+        self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
+        angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
+        input_path_button.clicked.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
+        output_path_button.clicked.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
+        self.darks_path_button.clicked.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
+        self.flats_path_button.clicked.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
+        self.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
+        self.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
+
+        if self.params.from_projections == "True":
+            self.proj_button.setChecked(True)
+            self.sino_button.setChecked(False)
+            self.correct_box.setEnabled(True)
+        else:
+            self.proj_button.setChecked(False)
+            self.sino_button.setChecked(True)
 
         self.main_widget.insertTab(0, reconstruction_group, "Reconstruction")
         self.main_widget.insertTab(1, axis_group, "Rotation Axis")
@@ -207,30 +221,57 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.main_widget)
 
     def do_axis_opts(self):
-        self.axis_opts_grid = QtGui.QGridLayout()
+        # Axis input group
+        axis_input_grid = QtGui.QGridLayout()
+        axis_input_group = QtGui.QGroupBox()
+        axis_input_group.setLayout(axis_input_grid)
+        axis_input_group.setFlat(True)
+
+        self.path_line_0 =  _new_path_line_edit(self.params.deg0)
+        path_button_0 = QtGui.QPushButton("Browse ...")
+        self.path_line_180 =  _new_path_line_edit(self.params.deg180)
+        path_button_180 = QtGui.QPushButton("Browse ...")
+        self.absorptivity_checkbox = QtGui.QCheckBox('is absorptivity')
+        if self.params.absorptivity == "True":
+            self.absorptivity_checkbox.setChecked(True)
+        else:
+            self.absorptivity_checkbox.setChecked(False)
+
+        axis_input_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
+        axis_input_grid.addWidget(self.path_line_0, 0, 1)
+        axis_input_grid.addWidget(path_button_0, 0, 2)
+        axis_input_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
+        axis_input_grid.addWidget(self.path_line_180, 1, 1)
+        axis_input_grid.addWidget(path_button_180, 1, 2)
+        axis_input_grid.addWidget(self.absorptivity_checkbox, 2, 2)
+
+        # Axis button group
+        button_group = QtGui.QDialogButtonBox()
+        close_button = button_group.addButton(QtGui.QDialogButtonBox.Close)
+        run_button = button_group.addButton("Run", QtGui.QDialogButtonBox.AcceptRole)
+        save_button = button_group.addButton("Save", QtGui.QDialogButtonBox.AcceptRole)
+
+        # Axis opts group
+        axis_opts_grid = QtGui.QGridLayout()
         self.axis_opts_group = QtGui.QGroupBox()
-        self.axis_opts_group.setLayout(self.axis_opts_grid)
+        self.axis_opts_group.setLayout(axis_opts_grid)
         self.axis_opts_group.setFlat(True)
 
-        self.path_line_0 = QtGui.QLineEdit()
-        self.path_button_0 = QtGui.QPushButton("Browse ...")
-        self.path_line_180 = QtGui.QLineEdit()
-        self.path_button_180 = QtGui.QPushButton("Browse ...")
-        self.run_button = QtGui.QPushButton("Run")
-        self.absorptivity_checkbox = QtGui.QCheckBox('is absorptivity', self)
+        axis_opts_grid.addWidget(axis_input_group, 0, 0)
+        axis_opts_grid.addWidget(button_group, 1, 0)
 
-        self.axis_opts_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
-        self.axis_opts_grid.addWidget(self.path_line_0, 0, 1)
-        self.axis_opts_grid.addWidget(self.path_button_0, 0, 2)
-        self.axis_opts_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
-        self.axis_opts_grid.addWidget(self.path_line_180, 1, 1)
-        self.axis_opts_grid.addWidget(self.path_button_180, 1, 2)
-        self.axis_opts_grid.addWidget(self.absorptivity_checkbox, 2, 2)
-        self.axis_opts_grid.addWidget(self.run_button, 3, 2)
+        # Connect things
+        path_button_0.clicked.connect(self.on_path_0_clicked)
+        path_button_180.clicked.connect(self.on_path_180_clicked)
+        run_button.clicked.connect(self.on_run)
+        save_button.clicked.connect(self.on_save)
+        close_button.clicked.connect(self.on_close)
+        path_button_0.clicked.connect(lambda value: self.change_value('deg0', str(self.path_line_0.text())))
+        path_button_180.clicked.connect(lambda value: self.change_value('deg180', str(self.path_line_180.text())))
+        self.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.absorptivity_checkbox.isChecked()))
 
-        self.path_button_0.clicked.connect(self.on_path_0_clicked)
-        self.path_button_180.clicked.connect(self.on_path_180_clicked)
-        self.run_button.clicked.connect(self.on_run)
+    def change_value(self, name, value):
+        setattr(self.params, name, value)
 
     def on_tab_changed(self):
         current_tab = self.main_widget.currentIndex()
@@ -263,7 +304,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.change_status()
 
     def on_input_path_clicked(self, checked):
-        _set_line_edit_to_path(self.input_path_line)
+        _set_line_edit_to_path(self, self.input_path_line, self.params.input)
         if "sinogram" in str(self.input_path_line.text()):
             self.sino_button.setChecked(True)
             self.proj_button.setChecked(False)
@@ -276,19 +317,19 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.correct_box.setEnabled(True)
 
     def on_output_path_clicked(self, checked):
-        _set_line_edit_to_path(self.output_path_line)
+        _set_line_edit_to_path(self, self.output_path_line, self.params.output)
 
     def on_darks_path_clicked(self, checked):
-        _set_line_edit_to_path(self.darks_path_line)
+        _set_line_edit_to_path(self, self.darks_path_line, self.params.darks)
 
     def on_flats_path_clicked(self, checked):
-        _set_line_edit_to_path(self.flats_path_line)
+        _set_line_edit_to_path(self, self.flats_path_line, self.params.flats)
 
     def on_path_0_clicked(self, checked):
-        _set_line_edit_to_file(self.path_line_0)
+        _set_line_edit_to_file(self, self.path_line_0, str(self.path_line_0.text()))
 
     def on_path_180_clicked(self, checked):
-        _set_line_edit_to_file(self.path_line_180)
+        _set_line_edit_to_file(self, self.path_line_180, str(self.path_line_180.text()))
 
     def on_close(self):
         self.close()
@@ -300,28 +341,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             pass
 
     def on_save(self):
-        d = self.param_dict()
-        d['disable'] = ''
-        config.write(**d)
+        self.params.write()
 
     def on_reconstruct(self):
         _enable_wait_cursor()
         self.main_widget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
-
-        self.params.axis = self.axis_spin.value()
-        self.params.angle = self.angle_step.value()
-        self.params.input = str(self.input_path_line.text())
-        self.params.output = str(self.output_path_line.text())
-        self.params.from_projections = self.proj_button.isChecked()
-
-        if self.correct_box.isChecked():
-            self.params.darks = str(self.darks_path_line.text())
-            self.params.flats = str(self.flats_path_line.text())
-        else:
-            self.params.darks = None
-            self.params.flats = None
 
         try:
             reco.tomo(self.params)
@@ -360,7 +386,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.read_data()
             self.compute_axis()
             self.do_axis_layout()
-            self.params.is_absorptivity = self.absorptivity_checkbox.isChecked()
 
         except Exception as e:
             _disable_wait_cursor()
@@ -372,10 +397,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         font = QtGui.QFont()
         font.setBold(True)
         self.axis_num.setFont(font)
-        self.view = pg.ViewBox()
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, 999)
-        self.w_over = pg.ImageView(self, view=self.view)
+        self.w_over = pg.ImageView(self)
         self.w_over.ui.roiBtn.hide()
         self.w_over.ui.normBtn.hide()
         self.overlap_opt = QtGui.QComboBox()
@@ -439,7 +463,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         img = pg.ImageItem(self.arr_over.T)
         self.img_width = self.arr_over.T.shape[0]
         self.img_height = self.arr_over.T.shape[1]
-        self.view.addItem(img)
+        self.w_over.addItem(img)
         self.w_over.ui.histogram.setImageItem(img)
 
     def update_axis(self):
@@ -465,6 +489,8 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_choose_new(self):
         for i in reversed(range(self.axis_grid.count())):
             self.axis_grid.itemAt(i).widget().setParent(None)
+
+        self.layout = False
         self.do_axis_opts()
         self.axis_grid.addWidget(self.axis_opts_group, 0, 0, QtCore.Qt.Alignment(QtCore.Qt.AlignTop))
         self.resize(575, 689)
@@ -473,39 +499,41 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.layout = True
         self.resize(900, 900)
 
-        for i in reversed(range(self.axis_grid.count())):
-            self.axis_grid.itemAt(i).widget().setParent(None)
+        # Axis view group
+        axis_view_grid = QtGui.QGridLayout()
+        axis_view_group = QtGui.QGroupBox()
+        axis_view_group.setLayout(axis_view_grid)
+        axis_view_group.setFlat(True)
 
         self.axis_num.setText('center of rotation = %i px' % (self.axis))
         self.extrema_checkbox = QtGui.QCheckBox('remove extrema', self)
         img_size = QtGui.QLabel('width = %i | height = %i' % (self.img_width, self.img_height))
-        self.new_button = QtGui.QPushButton("Choose new ...")
+        choose_button = QtGui.QPushButton("Choose new ...")
         self.absorptivity_checkbox.setEnabled(False)
 
-        new_axis_grid = QtGui.QGridLayout()
-        new_axis_group = QtGui.QGroupBox()
-        new_axis_group.setLayout(new_axis_grid)
-        new_axis_group.setFlat(True)
+        axis_view_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
+        axis_view_grid.addWidget(self.path_line_0, 0, 1)
+        axis_view_grid.addWidget(self.extrema_checkbox, 0, 2)
+        axis_view_grid.addWidget(img_size, 0, 3)
+        axis_view_grid.addWidget(self.overlap_opt, 0, 4)
+        axis_view_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
+        axis_view_grid.addWidget(self.path_line_180, 1, 1)
+        axis_view_grid.addWidget(self.absorptivity_checkbox, 1, 2)
+        axis_view_grid.addWidget(self.axis_num, 1, 3)
+        axis_view_grid.addWidget(choose_button, 1, 4)
 
-        new_axis_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
-        new_axis_grid.addWidget(self.path_line_0, 0, 1)
-        new_axis_grid.addWidget(self.extrema_checkbox, 0, 2)
-        new_axis_grid.addWidget(img_size, 0, 3)
-        new_axis_grid.addWidget(self.overlap_opt, 0, 4)
-        new_axis_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
-        new_axis_grid.addWidget(self.path_line_180, 1, 1)
-        new_axis_grid.addWidget(self.absorptivity_checkbox, 1, 2)
-        new_axis_grid.addWidget(self.axis_num, 1, 3)
-        new_axis_grid.addWidget(self.new_button, 1, 4)
+        # Remove axis opts & show axis view
+        for i in reversed(range(self.axis_grid.count())):
+            self.axis_grid.itemAt(i).widget().setParent(None)
 
-        self.axis_grid.addWidget(new_axis_group, 0, 0)
+        self.axis_grid.addWidget(axis_view_group, 0, 0)
         self.axis_grid.addWidget(self.w_over, 1, 0)
         self.axis_grid.addWidget(self.slider, 2, 0)
         _disable_wait_cursor()
 
         self.slider.valueChanged.connect(self.on_move_slider)
         self.extrema_checkbox.clicked.connect(self.on_remove_extrema)
-        self.new_button.clicked.connect(self.on_choose_new)
+        choose_button.clicked.connect(self.on_choose_new)
 
 
 def main(params):
