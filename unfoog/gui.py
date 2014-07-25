@@ -94,14 +94,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin.setMaximum(8192.0)
         self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
 
-        angle_step = QtGui.QDoubleSpinBox()
-        angle_step.setDecimals(10)
-        angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+        self.angle_step = QtGui.QDoubleSpinBox()
+        self.angle_step.setDecimals(10)
+        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
         param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
-        param_grid.addWidget(angle_step, 1, 1)
+        param_grid.addWidget(self.angle_step, 1, 1)
 
         # Output group
         output_grid = QtGui.QGridLayout()
@@ -129,10 +129,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         correction_group.setFlat(True)
 
         self.correct_box = QtGui.QCheckBox("Use Correction", self)
-        self.darks_path_line = _new_path_line_edit(self.params.darks)
+        self.darks_path_line = QtGui.QLineEdit()
         self.darks_path_button = QtGui.QPushButton("Browse...")
         self.darks_label = QtGui.QLabel("Dark-field:")
-        self.flats_path_line = _new_path_line_edit(self.params.flats)
+        self.flats_path_line = QtGui.QLineEdit()
         self.flats_path_button = QtGui.QPushButton("Browse...")
         self.flats_label = QtGui.QLabel("Flat-field:")
 
@@ -196,7 +196,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.currentChanged.connect(self.on_tab_changed)
 
         self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
-        angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
+        self.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
         input_path_button.clicked.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
         output_path_button.clicked.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
         self.darks_path_button.clicked.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
@@ -348,6 +348,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
+
+        self.params.axis = self.axis_spin.value()
+        self.params.angle = self.angle_step.value()
+        self.params.input = str(self.input_path_line.text())
+        self.params.output = str(self.output_path_line.text())
+        self.params.from_projections = self.proj_button.isChecked()
+
+        if self.correct_box.isChecked():
+           self.params.darks = str(self.darks_path_line.text())
+           self.params.flats = str(self.flats_path_line.text())
+        else:
+           self.params.darks = None
+           self.params.flats = None
 
         try:
             reco.tomo(self.params)

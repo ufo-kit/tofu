@@ -1,6 +1,7 @@
 import re
 import ConfigParser as configparser
 from collections import defaultdict
+from unfoog.util import positive_int
 
 
 NAME = 'reco.conf'
@@ -37,7 +38,7 @@ TEMPLATE = """[general]
 SECTIONS = {
     'general': {
         'angle': {
-            'default': 0.0,
+            'default': None,
             'type': float,
             'help': "Angle step between projections in radians"
             },
@@ -47,11 +48,17 @@ SECTIONS = {
             'action': 'store_true'
             },
         'axis': {
-            'default': 100.0,
+            'default': None,
             'type': float,
             'help': "Axis position",
             'nargs': '+',
             'action': 'append'
+            },
+        'config': {
+            'default': NAME,
+            'type': str,
+            'help': "File name of configuration",
+            'metavar': 'FILE'
             },
         'darks': {
             'default': '.',
@@ -101,7 +108,7 @@ SECTIONS = {
             'metavar': 'PATH'
             },
         'method': {
-            'default': '.',
+            'default': 'fbp',
             'type': str,
             'help': "Reconstruction method",
             'choices': ['fbp', 'sart', 'dfi']
@@ -118,6 +125,11 @@ SECTIONS = {
                     "for storing reconstructed slices",
             'metavar': 'PATH'
             },
+        'region': {
+            'default': None,
+            'type': str,
+            'help': "from:to:step sinograms to process"
+            },
         'remote': {
             'default': None,
             'type': str,
@@ -128,8 +140,8 @@ SECTIONS = {
         },
     'fbp': {
         'crop_width': {
-            'default': 2048,
-            'type': int,
+            'default': None,
+            'type': positive_int,
             'help': "Width of final slice"
             },
         'from_projections': {
@@ -140,44 +152,49 @@ SECTIONS = {
         },
     'dfi': {
         'oversampling': {
-            'default': 1,
-            'type': int,
+            'default': None,
+            'type': positive_int,
             'help': "Oversample factor"
             }
         },
     'lamino': {
         'bbox': {
-            'default': 0.0,
-            'type': float,
+            'default': None,
+            'type': int,
             'help': "Bounding box of reconstructed volume",
             'nargs': '+',
             'action': 'append'
             },
         'downsample': {
             'default': 1,
-            'type': int,
+            'type': positive_int,
             'help': "Downsampling factor"
             },
         'height': {
-            'default': 0,
-            'type': int,
+            'default': None,
+            'type': positive_int,
             'help': "Height of the input projection"  
             },
         'pad': {
-            'default': 0.0,
-            'type': float,
+            'default': None,
+            'type': int,
             'help': "Final padded size of input",
             'nargs': '+',
             'action': 'append'
             },
+        'tau': {
+            'default': None,
+            'type': float,
+            'help': "Pixel size in microns"
+            },
         'tilt': {
-            'default': 0.0,
+            'default': None,
             'type': float,
             'help': "Tilt angle of sample in radians"
             },
         'width': {
-            'default': 0,
-            'type': int,
+            'default': None,
+            'type': positive_int,
             'help': "Width of the input projection"
             }
         }
@@ -207,8 +224,8 @@ class RecoParams(object):
         self.include = self._config.value('general', 'include')
         self.input = self._config.value('general', 'input', '.')
         self.output = self._config.value('general', 'output', '.')
-        self.darks = self._config.value('general', 'darks', '.')
-        self.flats = self._config.value('general', 'flats', '.')
+        self.darks = self._config.value('general', 'darks')
+        self.flats = self._config.value('general', 'flats')
         self.angle = self._config.value('general', 'angle', target=float)
         self.angle_offset = self._config.value('general', 'angle_offset', 0)
         self.absorptivity = self._config.value('general', 'absorptivity')
@@ -299,16 +316,12 @@ class LaminoParams(RecoParams):
         return parser
 
 
-def write(axis=0.0, angle=0.0, disable='#',
-          input='path/to/input', output='path/to/output',
-          darks='path/to/darks', flats='path/to/flats',
-          deg0='path/to/deg0', deg180='path/to/deg180',
-          from_projections=True, absorptivity=True):
+def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',
+          region='from:to:step', output='path/to/output', from_projections=True):
     disable_fp = '#' if not from_projections else ''
-    out = TEMPLATE.format(axis=axis, angle=angle, input=input,
+    out = TEMPLATE.format(axis=axis, angle=angle, input=input, region=region,
                           output=output, from_projections=from_projections,
-                          disable=disable, disable_fp=disable_fp, absorptivity=absorptivity,
-                          deg0=deg0, deg180=deg180, darks=darks, flats=flats)
+                          disable=disable, disable_fp=disable_fp)
 
     with open(NAME, 'w') as f:
         f.write(out)
