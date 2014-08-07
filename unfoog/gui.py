@@ -94,14 +94,31 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin.setMaximum(8192.0)
         self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
 
-        self.angle_step = QtGui.QDoubleSpinBox()
-        self.angle_step.setDecimals(10)
-        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+        angle_step = QtGui.QDoubleSpinBox()
+        angle_step.setDecimals(10)
+        angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+
+        self.crop_box = QtGui.QCheckBox('Crop width (pixel):', self)
+        self.crop_width = QtGui.QDoubleSpinBox()
+        self.crop_width.setDecimals(0)
+        self.crop_width.setMinimum(0)
+        self.crop_width.setMaximum(2048)
+        self.crop_width.setValue(self.params.crop_width if self.params.crop_width else 0)
+
+        if self.params.enable_cropping == "True":
+            self.crop_box.setChecked(True)
+            self.params.enable_cropping = True
+        else:
+            self.crop_box.setChecked(False)
+            self.params.enable_cropping = False
+            self.crop_width.setEnabled(False)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
         param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
-        param_grid.addWidget(self.angle_step, 1, 1)
+        param_grid.addWidget(angle_step, 1, 1)
+        param_grid.addWidget(self.crop_box, 2, 0)
+        param_grid.addWidget(self.crop_width, 2, 1)
 
         # Output group
         output_grid = QtGui.QGridLayout()
@@ -129,10 +146,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         correction_group.setFlat(True)
 
         self.correct_box = QtGui.QCheckBox("Use Correction", self)
-        self.darks_path_line = QtGui.QLineEdit()
+        self.correct_box.setEnabled(self.proj_button.isChecked())
+        self.darks_path_line = _new_path_line_edit(self.params.darks)
         self.darks_path_button = QtGui.QPushButton("Browse...")
         self.darks_label = QtGui.QLabel("Dark-field:")
-        self.flats_path_line = QtGui.QLineEdit()
+        self.flats_path_line = _new_path_line_edit(self.params.flats)
         self.flats_path_button = QtGui.QPushButton("Browse...")
         self.flats_label = QtGui.QLabel("Flat-field:")
 
@@ -144,9 +162,24 @@ class ApplicationWindow(QtGui.QMainWindow):
         correction_grid.addWidget(self.flats_path_line, 2, 1)
         correction_grid.addWidget(self.flats_path_button, 2, 2)
 
-        self.correct_box.setEnabled(False)
-        self.status = False
-        self.change_status()
+        if self.params.from_projections == "True":
+            self.params.from_projections = True
+            self.proj_button.setChecked(True)
+            self.sino_button.setChecked(False)
+            self.correct_box.setEnabled(True)
+        else:
+            self.params.from_projections = False
+            self.proj_button.setChecked(False)
+            self.sino_button.setChecked(True)
+
+        if self.params.correction == "True" and self.proj_button.isChecked():
+            self.correct_box.setChecked(True)
+            self.params.correction = True
+        else:
+            self.correct_box.setChecked(False)
+            self.params.correction = False
+
+        self.on_correction()
 
         # Button group
         button_group = QtGui.QDialogButtonBox()
@@ -189,6 +222,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         save_button.clicked.connect(self.on_save)
         self.proj_button.clicked.connect(self.on_proj_button_clicked)
         self.sino_button.clicked.connect(self.on_sino_button_clicked)
+        self.crop_box.clicked.connect(self.on_crop_box_clicked)
         self.correct_box.clicked.connect(self.on_correct_box_clicked)
         self.connect(self, QtCore.SIGNAL('triggered()'), self.closeEvent)
         self.darks_path_button.clicked.connect(self.on_darks_path_clicked)
@@ -196,21 +230,15 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.currentChanged.connect(self.on_tab_changed)
 
         self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
-        self.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
-        input_path_button.clicked.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
-        output_path_button.clicked.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
-        self.darks_path_button.clicked.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
-        self.flats_path_button.clicked.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
+        angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
+        self.crop_width.valueChanged.connect(lambda value: self.change_value('crop_width', int(value)))
+        self.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
+        self.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
+        self.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
+        self.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
         self.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-
-        if self.params.from_projections == "True":
-            self.proj_button.setChecked(True)
-            self.sino_button.setChecked(False)
-            self.correct_box.setEnabled(True)
-        else:
-            self.proj_button.setChecked(False)
-            self.sino_button.setChecked(True)
+        self.crop_box.clicked.connect(lambda value: self.change_value('enable_cropping', self.crop_box.isChecked()))
 
         self.main_widget.insertTab(0, reconstruction_group, "Reconstruction")
         self.main_widget.insertTab(1, axis_group, "Rotation Axis")
@@ -234,8 +262,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.absorptivity_checkbox = QtGui.QCheckBox('is absorptivity')
         if self.params.absorptivity == "True":
             self.absorptivity_checkbox.setChecked(True)
+            self.params.absorptivity = True
         else:
             self.absorptivity_checkbox.setChecked(False)
+            self.params.absorptivity = False
 
         axis_input_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
         axis_input_grid.addWidget(self.path_line_0, 0, 1)
@@ -266,8 +296,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         run_button.clicked.connect(self.on_run)
         save_button.clicked.connect(self.on_save)
         close_button.clicked.connect(self.on_close)
-        path_button_0.clicked.connect(lambda value: self.change_value('deg0', str(self.path_line_0.text())))
-        path_button_180.clicked.connect(lambda value: self.change_value('deg180', str(self.path_line_180.text())))
+        self.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.path_line_0.text())))
+        self.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.path_line_180.text())))
         self.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.absorptivity_checkbox.isChecked()))
 
     def change_value(self, name, value):
@@ -281,27 +311,33 @@ class ApplicationWindow(QtGui.QMainWindow):
         elif current_tab == 1 and self.layout == True:
             self.setGeometry(self.geom)
 
-    def on_correct_box_clicked(self, checked):
-        self.status = self.correct_box.isChecked()
-        self.change_status()
+    def on_crop_box_clicked(self, checked):
+        self.crop_width.setEnabled(self.crop_box.isChecked())
 
-    def change_status(self):
-        self.darks_path_line.setEnabled(self.status)
-        self.darks_path_button.setEnabled(self.status)
-        self.darks_label.setEnabled(self.status)
-        self.flats_path_line.setEnabled(self.status)
-        self.flats_path_button.setEnabled(self.status)
-        self.flats_label.setEnabled(self.status)
+    def on_correct_box_clicked(self, checked):
+        self.params.correction = self.correct_box.isChecked()
+        self.on_correction()
+
+    def on_correction(self):
+        self.darks_path_line.setEnabled(self.params.correction)
+        self.darks_path_button.setEnabled(self.params.correction)
+        self.darks_label.setEnabled(self.params.correction)
+        self.flats_path_line.setEnabled(self.params.correction)
+        self.flats_path_button.setEnabled(self.params.correction)
+        self.flats_label.setEnabled(self.params.correction)
 
     def on_proj_button_clicked(self, checked):
         if self.proj_button.isChecked():
             self.correct_box.setEnabled(True)
+            if self.correct_box.isChecked() == True:
+                self.params.correction = True
+                self.on_correction()
 
     def on_sino_button_clicked(self, checked):
         if self.sino_button.isChecked():
             self.correct_box.setEnabled(False)
-            self.status = False
-            self.change_status()
+            self.params.correction = False
+            self.on_correction()
 
     def on_input_path_clicked(self, checked):
         _set_line_edit_to_path(self, self.input_path_line, self.params.input)
@@ -309,12 +345,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.sino_button.setChecked(True)
             self.proj_button.setChecked(False)
             self.correct_box.setEnabled(False)
-            self.status = False
-            self.change_status()
+            self.params.from_projections = False
+            self.params.correction = False
+            self.on_correction()
         elif "projection" in str(self.input_path_line.text()):
             self.sino_button.setChecked(False)
             self.proj_button.setChecked(True)
             self.correct_box.setEnabled(True)
+            self.params.from_projections = True
 
     def on_output_path_clicked(self, checked):
         _set_line_edit_to_path(self, self.output_path_line, self.params.output)
@@ -348,19 +386,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
-
-        self.params.axis = self.axis_spin.value()
-        self.params.angle = self.angle_step.value()
-        self.params.input = str(self.input_path_line.text())
-        self.params.output = str(self.output_path_line.text())
-        self.params.from_projections = self.proj_button.isChecked()
-
-        if self.correct_box.isChecked():
-           self.params.darks = str(self.darks_path_line.text())
-           self.params.flats = str(self.flats_path_line.text())
-        else:
-           self.params.darks = None
-           self.params.flats = None
 
         try:
             reco.tomo(self.params)

@@ -65,7 +65,7 @@ def tomo(params):
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
-        if params.darks and params.flats:
+        if params.darks and params.flats and params.correction == True:
             dark_reader = get_task('reader', path=params.flats)
             flat_reader = get_task('reader', path=params.darks)
             correction = get_task('flat-field-correction')
@@ -93,7 +93,7 @@ def tomo(params):
         if params.offset:
             bp.props.angle_offset = params.offset
 
-        if params.crop_width:
+        if params.crop_width and params.enable_cropping == True:
             ifft.props.crop_width = int(params.crop_width)
             LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
 

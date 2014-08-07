@@ -60,6 +60,11 @@ SECTIONS = {
             'help': "File name of configuration",
             'metavar': 'FILE'
             },
+        'correction': {
+            'default': False,
+            'help': "Enable darks or flats correction",
+            'action': 'store_true'
+            },
         'darks': {
             'default': '.',
             'type': str,
@@ -144,6 +149,11 @@ SECTIONS = {
             'type': positive_int,
             'help': "Width of final slice"
             },
+        'enable_cropping': {
+            'default': False,
+            'help': "Enable cropping width",
+            'action': 'store_true'
+            },
         'from_projections': {
             'default': False,
             'help': "Reconstruct from projections instead of sinograms",
@@ -224,8 +234,6 @@ class RecoParams(object):
         self.include = self._config.value('general', 'include')
         self.input = self._config.value('general', 'input', '.')
         self.output = self._config.value('general', 'output', '.')
-        self.darks = self._config.value('general', 'darks')
-        self.flats = self._config.value('general', 'flats')
         self.angle = self._config.value('general', 'angle', target=float)
         self.angle_offset = self._config.value('general', 'angle_offset', 0)
         self.absorptivity = self._config.value('general', 'absorptivity')
