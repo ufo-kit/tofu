@@ -20,7 +20,7 @@ def get_output_name(output_path):
 
 
 def tomo(params):
-    if params.region:
+    if params.region and params.enable_region == True:
         check_input(params.input, params.region)
         if not params.offset and params.from_projections:
             # Calculate the offset from the region
@@ -44,7 +44,10 @@ def tomo(params):
         return task
 
     reader = get_task('reader')
-    set_reader(reader, params.input, region=params.region)
+    if params.enable_region == True:
+        set_reader(reader, params.input, region=params.region)
+    else:
+        set_reader(reader, params.input)
 
     if params.dry_run:
         writer = get_task('null')
@@ -57,7 +60,7 @@ def tomo(params):
     g = Ufo.TaskGraph()
 
     if params.from_projections:
-        if params.region:
+        if params.region and params.enable_region == True:
             count = len(range(*range_from(params.region)))
         else:
             count = len(get_filenames(params.input))

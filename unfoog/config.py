@@ -4,7 +4,7 @@ from collections import defaultdict
 from unfoog.util import positive_int
 
 
-NAME = 'reco.conf'
+NAME = "reco.conf"
 TEMPLATE = """[general]
 {disable}axis =
 {disable}offset = 0.0
@@ -88,6 +88,11 @@ SECTIONS = {
             'help': "Reconstruct without writing data",
             'action': 'store_true'
             },
+        'enable_region': {
+            'default': False,
+            'help': "Enable from:to:step region",
+            'action': 'store_true',
+            },
         'enable_tracing': {
             'default': False,
             'help': "Enable tracing and store result in .PID.json",
@@ -112,6 +117,12 @@ SECTIONS = {
             'help': "Location with sinograms or projections",
             'metavar': 'PATH'
             },
+        'last_dir': {
+            'default': '.',
+            'type': str,
+            'help': "Path of the last used directory",
+            'metavar': 'PATH'
+            },
         'method': {
             'default': 'fbp',
             'type': str,
@@ -131,7 +142,7 @@ SECTIONS = {
             'metavar': 'PATH'
             },
         'region': {
-            'default': None,
+            'default': '0:1:1',
             'type': str,
             'help': "from:to:step sinograms to process"
             },
@@ -224,9 +235,9 @@ class DefaultConfigParser(configparser.ConfigParser):
 
 
 class RecoParams(object):
-    def __init__(self):
+    def __init__(self, config_name=NAME):
         self._config = DefaultConfigParser()
-        self._config.read([NAME])
+        self._config.read([config_name])
         self._params = defaultdict(dict)
 
         self.read_sections(['general'])
@@ -264,8 +275,8 @@ class RecoParams(object):
             if hasattr(self, k):
                 setattr(self, k, v)
 
-    def write(self, fname='reco.conf'):
-        with open(fname, 'w') as f:
+    def write(self, config_name=NAME):
+        with open(config_name, 'w') as f:
             for section, names in SECTIONS.items():
                 f.write('[{}]\n'.format(section))
                 for name in names:
@@ -276,8 +287,8 @@ class RecoParams(object):
 
 
 class TomoParams(RecoParams):
-    def __init__(self):
-        super(TomoParams, self).__init__()
+    def __init__(self, config_name=NAME):
+        super(TomoParams, self).__init__(config_name)
         self.read_sections(['fbp', 'dfi'])
 
         self.method = self._config.value('general', 'method', 'fbp')

@@ -24,20 +24,19 @@ logging.basicConfig(
 )
 
 
-def _set_line_edit_to_path(parent, line_edit, directory):
+def _set_line_edit_to_path(parent, line_edit, directory, last_dir):
+    if last_dir is not None:
+        directory = last_dir
     path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(path)
 
-def _set_line_edit_to_file(parent, line_edit, directory):
+def _set_line_edit_to_file(parent, line_edit, directory, last_dir):
+    if last_dir is not None:
+        directory = last_dir
     file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(file_name)
-
-def _new_path_line_edit(text):
-    line_edit = QtGui.QLineEdit()
-    line_edit.setText(text)
-    return line_edit
 
 def _enable_wait_cursor():
     QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
@@ -67,6 +66,27 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.main_widget.setExpanding = True
         self.main_widget.setTabPosition(QtGui.QTabWidget.North)
 
+        # File Menu
+        open_action = QtGui.QAction('Open ...', self)
+        open_action.triggered.connect(self.on_open_from)
+        save_action = QtGui.QAction('Save as ...', self)
+        save_action.setShortcut('Ctrl+S')
+        save_action.triggered.connect(self.on_save_as)
+        close_action = QtGui.QAction('Quit', self)
+        close_action.setShortcut('Ctrl+Q')
+        close_action.triggered.connect(self.close)
+        clear_action = QtGui.QAction('Clear', self)
+        clear_action.triggered.connect(self.on_clear)
+
+        file_menu = QtGui.QMenu('&File', self)
+        edit_menu = QtGui.QMenu('&Edit', self)
+        file_menu.addAction(open_action)
+        file_menu.addAction(save_action)
+        file_menu.addAction(close_action)
+        edit_menu.addAction(clear_action)
+        self.menuBar().addMenu(file_menu)
+        self.menuBar().addMenu(edit_menu)
+
         # Input group
         input_group = QtGui.QGroupBox("Input")
         input_grid = QtGui.QGridLayout()
@@ -76,12 +96,31 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.sino_button = QtGui.QRadioButton("Sinograms")
         self.proj_button = QtGui.QRadioButton("Projections")
         input_path_button = QtGui.QPushButton("Browse ...")
-        self.input_path_line = _new_path_line_edit(self.params.input)
+        self.input_path_line = QtGui.QLineEdit()
+
+        self.region_box = QtGui.QCheckBox('Region (from:to:step):')
+        self.from_region = QtGui.QDoubleSpinBox()
+        self.from_region.setDecimals(0)
+        self.from_region.setMinimum(0)
+        self.from_region.setMaximum(10000)
+        self.to_region = QtGui.QDoubleSpinBox()
+        self.to_region.setDecimals(0)
+        self.to_region.setMinimum(1)
+        self.to_region.setMaximum(10000)
+        self.step_region = QtGui.QDoubleSpinBox()
+        self.step_region.setDecimals(0)
+        self.step_region.setMinimum(1)
+        self.step_region.setMaximum(10000)
 
         input_grid.addWidget(self.sino_button, 0, 0)
+        input_grid.addWidget(self.region_box, 0, 1)
+        input_grid.addWidget(self.from_region, 0, 2)
+        input_grid.addWidget(self.to_region, 0, 3)
+        input_grid.addWidget(self.step_region, 0, 4)
         input_grid.addWidget(self.proj_button, 1, 0)
-        input_grid.addWidget(self.input_path_line, 2, 0)
-        input_grid.addWidget(input_path_button, 2, 1)
+        input_grid.addWidget(QtGui.QLabel("Path:"), 2, 0)
+        input_grid.addWidget(self.input_path_line, 2, 1, 1, 3)
+        input_grid.addWidget(input_path_button, 2, 4)
 
         # Parameters group
         param_grid = QtGui.QGridLayout()
@@ -92,33 +131,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin = QtGui.QDoubleSpinBox()
         self.axis_spin.setDecimals(2)
         self.axis_spin.setMaximum(8192.0)
-        self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
-
-        angle_step = QtGui.QDoubleSpinBox()
-        angle_step.setDecimals(10)
-        angle_step.setValue(self.params.angle if self.params.angle else 0.0)
-
-        self.crop_box = QtGui.QCheckBox('Crop width (pixel):', self)
-        self.crop_width = QtGui.QDoubleSpinBox()
-        self.crop_width.setDecimals(0)
-        self.crop_width.setMinimum(0)
-        self.crop_width.setMaximum(2048)
-        self.crop_width.setValue(self.params.crop_width if self.params.crop_width else 0)
-
-        if self.params.enable_cropping == "True":
-            self.crop_box.setChecked(True)
-            self.params.enable_cropping = True
-        else:
-            self.crop_box.setChecked(False)
-            self.params.enable_cropping = False
-            self.crop_width.setEnabled(False)
+        self.angle_step = QtGui.QDoubleSpinBox()
+        self.angle_step.setDecimals(10)
+        self.angle_offset = QtGui.QDoubleSpinBox()
+        self.angle_offset.setDecimals(10)
+        self.crop_box = QtGui.QCheckBox('Crop width', self)
 
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
         param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
-        param_grid.addWidget(angle_step, 1, 1)
-        param_grid.addWidget(self.crop_box, 2, 0)
-        param_grid.addWidget(self.crop_width, 2, 1)
+        param_grid.addWidget(self.angle_step, 1, 1)
+        param_grid.addWidget(QtGui.QLabel('Angle offset (rad):'), 2, 0)
+        param_grid.addWidget(self.angle_offset, 2, 1)
+        param_grid.addWidget(self.crop_box, 3, 0)
 
         # Output group
         output_grid = QtGui.QGridLayout()
@@ -126,7 +151,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_group.setLayout(output_grid)
         output_group.setFlat(True)
 
-        self.output_path_line = _new_path_line_edit(self.params.output)
+        self.output_path_line = QtGui.QLineEdit()
         output_path_button = QtGui.QPushButton("Browse ...")
         self.imagej_checkbox = QtGui.QCheckBox("Show Images after Reconstruction", self)
 
@@ -135,9 +160,9 @@ class ApplicationWindow(QtGui.QMainWindow):
             LOG.debug("ImageJ is not installed")
 
         output_grid.addWidget(QtGui.QLabel("Path:"), 0, 0)
-        output_grid.addWidget(self.output_path_line, 0, 1)
-        output_grid.addWidget(output_path_button, 0, 2)
-        output_grid.addWidget(self.imagej_checkbox, 1, 0)
+        output_grid.addWidget(self.output_path_line, 0, 1, 1, 3)
+        output_grid.addWidget(output_path_button, 0, 4)
+        output_grid.addWidget(self.imagej_checkbox, 1, 0, 1, 2)
 
         # Darks & Flats Group
         correction_grid = QtGui.QGridLayout()
@@ -147,10 +172,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.correct_box = QtGui.QCheckBox("Use Correction", self)
         self.correct_box.setEnabled(self.proj_button.isChecked())
-        self.darks_path_line = _new_path_line_edit(self.params.darks)
+        self.darks_path_line = QtGui.QLineEdit()
         self.darks_path_button = QtGui.QPushButton("Browse...")
         self.darks_label = QtGui.QLabel("Dark-field:")
-        self.flats_path_line = _new_path_line_edit(self.params.flats)
+        self.flats_path_line = QtGui.QLineEdit()
         self.flats_path_button = QtGui.QPushButton("Browse...")
         self.flats_label = QtGui.QLabel("Flat-field:")
 
@@ -162,32 +187,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         correction_grid.addWidget(self.flats_path_line, 2, 1)
         correction_grid.addWidget(self.flats_path_button, 2, 2)
 
-        if self.params.from_projections == "True":
-            self.params.from_projections = True
-            self.proj_button.setChecked(True)
-            self.sino_button.setChecked(False)
-            self.correct_box.setEnabled(True)
-        else:
-            self.params.from_projections = False
-            self.proj_button.setChecked(False)
-            self.sino_button.setChecked(True)
-
-        if self.params.correction == "True" and self.proj_button.isChecked():
-            self.correct_box.setChecked(True)
-            self.params.correction = True
-        else:
-            self.correct_box.setChecked(False)
-            self.params.correction = False
-
-        self.on_correction()
-
-        # Button group
-        button_group = QtGui.QDialogButtonBox()
-
-        close_button = button_group.addButton(QtGui.QDialogButtonBox.Close)
-        reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
-        save_button = button_group.addButton("Save", QtGui.QDialogButtonBox.AcceptRole)
-
         # Log widget
         self.textWidget = QtGui.QTextBrowser(self)
 
@@ -196,6 +195,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         reconstruction_group = QtGui.QGroupBox()
         reconstruction_group.setLayout(reconstruction_grid)
         reconstruction_group.setFlat(True)
+
+        button_group = QtGui.QDialogButtonBox()
+        reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
 
         reconstruction_grid.addWidget(input_group, 0, 0)
         reconstruction_grid.addWidget(param_group, 1, 0)
@@ -216,35 +218,37 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         # Connect things
         input_path_button.clicked.connect(self.on_input_path_clicked)
-        output_path_button.clicked.connect(self.on_output_path_clicked)
-        close_button.clicked.connect(self.on_close)
-        reco_button.clicked.connect(self.on_reconstruct)
-        save_button.clicked.connect(self.on_save)
-        self.proj_button.clicked.connect(self.on_proj_button_clicked)
         self.sino_button.clicked.connect(self.on_sino_button_clicked)
-        self.crop_box.clicked.connect(self.on_crop_box_clicked)
+        self.proj_button.clicked.connect(self.on_proj_button_clicked)
+        self.region_box.clicked.connect(self.on_region)
+        self.from_region.valueChanged.connect(self.concatenate_region)
+        self.to_region.valueChanged.connect(self.concatenate_region)
+        self.step_region.valueChanged.connect(self.concatenate_region)
+        self.crop_box.clicked.connect(self.on_crop_width)
+        output_path_button.clicked.connect(self.on_output_path_clicked)
         self.correct_box.clicked.connect(self.on_correct_box_clicked)
-        self.connect(self, QtCore.SIGNAL('triggered()'), self.closeEvent)
         self.darks_path_button.clicked.connect(self.on_darks_path_clicked)
         self.flats_path_button.clicked.connect(self.on_flats_path_clicked)
+        reco_button.clicked.connect(self.on_reconstruct)
         self.main_widget.currentChanged.connect(self.on_tab_changed)
+        self.connect(self, QtCore.SIGNAL('triggered()'), self.closeEvent)
 
-        self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
-        angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
-        self.crop_width.valueChanged.connect(lambda value: self.change_value('crop_width', int(value)))
         self.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
+        self.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
+        self.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
+        self.region_box.clicked.connect(lambda value: self.change_value('enable_region', self.region_box.isChecked()))
+        self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
+        self.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
+        self.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         self.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
         self.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
         self.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
-        self.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
-        self.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-        self.crop_box.clicked.connect(lambda value: self.change_value('enable_cropping', self.crop_box.isChecked()))
 
         self.main_widget.insertTab(0, reconstruction_group, "Reconstruction")
         self.main_widget.insertTab(1, axis_group, "Rotation Axis")
 
-        self.setGeometry(100, 100, 575, 689)
-        self.setMinimumSize(575, 689)
+        self.setGeometry(100, 100, 600, 800)
+        self.setMinimumSize(600, 800)
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
 
@@ -255,17 +259,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         axis_input_group.setLayout(axis_input_grid)
         axis_input_group.setFlat(True)
 
-        self.path_line_0 =  _new_path_line_edit(self.params.deg0)
+        self.path_line_0 =  QtGui.QLineEdit()
         path_button_0 = QtGui.QPushButton("Browse ...")
-        self.path_line_180 =  _new_path_line_edit(self.params.deg180)
+        self.path_line_180 =  QtGui.QLineEdit()
         path_button_180 = QtGui.QPushButton("Browse ...")
         self.absorptivity_checkbox = QtGui.QCheckBox('is absorptivity')
-        if self.params.absorptivity == "True":
-            self.absorptivity_checkbox.setChecked(True)
-            self.params.absorptivity = True
-        else:
-            self.absorptivity_checkbox.setChecked(False)
-            self.params.absorptivity = False
 
         axis_input_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
         axis_input_grid.addWidget(self.path_line_0, 0, 1)
@@ -275,17 +273,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         axis_input_grid.addWidget(path_button_180, 1, 2)
         axis_input_grid.addWidget(self.absorptivity_checkbox, 2, 2)
 
-        # Axis button group
-        button_group = QtGui.QDialogButtonBox()
-        close_button = button_group.addButton(QtGui.QDialogButtonBox.Close)
-        run_button = button_group.addButton("Run", QtGui.QDialogButtonBox.AcceptRole)
-        save_button = button_group.addButton("Save", QtGui.QDialogButtonBox.AcceptRole)
-
         # Axis opts group
         axis_opts_grid = QtGui.QGridLayout()
         self.axis_opts_group = QtGui.QGroupBox()
         self.axis_opts_group.setLayout(axis_opts_grid)
         self.axis_opts_group.setFlat(True)
+
+        button_group = QtGui.QDialogButtonBox()
+        run_button = button_group.addButton("Run", QtGui.QDialogButtonBox.AcceptRole)
 
         axis_opts_grid.addWidget(axis_input_group, 0, 0)
         axis_opts_grid.addWidget(button_group, 1, 0)
@@ -294,11 +289,70 @@ class ApplicationWindow(QtGui.QMainWindow):
         path_button_0.clicked.connect(self.on_path_0_clicked)
         path_button_180.clicked.connect(self.on_path_180_clicked)
         run_button.clicked.connect(self.on_run)
-        save_button.clicked.connect(self.on_save)
-        close_button.clicked.connect(self.on_close)
         self.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.path_line_0.text())))
         self.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.path_line_180.text())))
         self.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.absorptivity_checkbox.isChecked()))
+
+        self.get_values_from_params()
+
+    def get_values_from_params(self):
+        self.input_path_line.setText(self.params.input)
+        self.output_path_line.setText(self.params.output)
+        self.darks_path_line.setText(self.params.darks)
+        self.flats_path_line.setText(self.params.flats)
+        self.path_line_0.setText(self.params.deg0)
+        self.path_line_180.setText(self.params.deg180)
+
+        self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
+        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+        self.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
+
+        if self.params.enable_region == "True":
+            self.params.enable_region = True
+            self.region_box.setChecked(True)
+        else:
+            self.params.enable_region = False
+            self.region_box.setChecked(False)
+
+        region = [int(x) for x in self.params.region.split(':')]
+        self.from_region.setValue(region[0])
+        self.to_region.setValue(region[1])
+        self.step_region.setValue(region[2])
+        self.from_region.setEnabled(self.region_box.isChecked())
+        self.to_region.setEnabled(self.region_box.isChecked())
+        self.step_region.setEnabled(self.region_box.isChecked())
+
+        if self.params.enable_cropping == "True":
+            self.crop_box.setChecked(True)
+            self.params.enable_cropping = True
+        else:
+            self.crop_box.setChecked(False)
+            self.params.enable_cropping = False
+
+        if self.params.from_projections == "True":
+            self.params.from_projections = True
+            self.proj_button.setChecked(True)
+            self.sino_button.setChecked(False)
+            self.correct_box.setEnabled(True)
+        else:
+            self.params.from_projections = False
+            self.proj_button.setChecked(False)
+            self.sino_button.setChecked(True)
+
+        if self.params.correction == "True" and self.proj_button.isChecked():
+            self.correct_box.setChecked(True)
+            self.params.correction = True
+        else:
+            self.correct_box.setChecked(False)
+            self.params.correction = False
+        self.on_correction()
+
+        if self.params.absorptivity == "True":
+            self.absorptivity_checkbox.setChecked(True)
+            self.params.absorptivity = True
+        else:
+            self.absorptivity_checkbox.setChecked(False)
+            self.params.absorptivity = False
 
     def change_value(self, name, value):
         setattr(self.params, name, value)
@@ -307,24 +361,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         current_tab = self.main_widget.currentIndex()
         if current_tab == 0 and self.layout == True:
             self.geom = self.geometry()
-            self.resize(575, 689)
+            self.resize(600, 800)
         elif current_tab == 1 and self.layout == True:
             self.setGeometry(self.geom)
-
-    def on_crop_box_clicked(self, checked):
-        self.crop_width.setEnabled(self.crop_box.isChecked())
-
-    def on_correct_box_clicked(self, checked):
-        self.params.correction = self.correct_box.isChecked()
-        self.on_correction()
-
-    def on_correction(self):
-        self.darks_path_line.setEnabled(self.params.correction)
-        self.darks_path_button.setEnabled(self.params.correction)
-        self.darks_label.setEnabled(self.params.correction)
-        self.flats_path_line.setEnabled(self.params.correction)
-        self.flats_path_button.setEnabled(self.params.correction)
-        self.flats_label.setEnabled(self.params.correction)
 
     def on_proj_button_clicked(self, checked):
         if self.proj_button.isChecked():
@@ -340,7 +379,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.on_correction()
 
     def on_input_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.input_path_line, self.params.input)
+        _set_line_edit_to_path(self, self.input_path_line, self.params.input, self.params.last_dir)
+        if os.path.exists(str(self.input_path_line.text())):
+            self.params.last_dir = str(self.input_path_line.text())
+
         if "sinogram" in str(self.input_path_line.text()):
             self.sino_button.setChecked(True)
             self.proj_button.setChecked(False)
@@ -353,33 +395,130 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.proj_button.setChecked(True)
             self.correct_box.setEnabled(True)
             self.params.from_projections = True
+        if self.crop_box.isChecked() == True:
+            self.on_crop_width()
 
     def on_output_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.output_path_line, self.params.output)
+        _set_line_edit_to_path(self, self.output_path_line, self.params.output, self.params.last_dir)
+        if os.path.exists(str(self.output_path_line.text())):
+            self.params.last_dir = str(self.output_path_line.text())
 
     def on_darks_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.darks_path_line, self.params.darks)
+        _set_line_edit_to_path(self, self.darks_path_line, self.params.darks, self.params.last_dir)
+        if os.path.exists(str(self.darks_path_line.text())):
+            self.params.last_dir = str(self.darks_path_line.text())
 
     def on_flats_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.flats_path_line, self.params.flats)
+        _set_line_edit_to_path(self, self.flats_path_line, self.params.flats, self.params.last_dir)
+        if os.path.exists(str(self.flats_path_line.text())):
+            self.params.last_dir = str(self.flats_path_line.text())
 
     def on_path_0_clicked(self, checked):
-        _set_line_edit_to_file(self, self.path_line_0, str(self.path_line_0.text()))
+        _set_line_edit_to_file(self, self.path_line_0, str(self.path_line_0.text()), self.params.last_dir)
+        if os.path.exists(str(self.path_line_0.text())):
+            self.params.last_dir = str(self.path_line_0.text())
 
     def on_path_180_clicked(self, checked):
-        _set_line_edit_to_file(self, self.path_line_180, str(self.path_line_180.text()))
+        _set_line_edit_to_file(self, self.path_line_180, str(self.path_line_180.text()), self.params.last_dir)
+        if os.path.exists(str(self.path_line_180.text())):
+             self.params.last_dir = str(self.path_line_180.text())
 
-    def on_close(self):
-        self.close()
+    def on_region(self):
+        self.from_region.setEnabled(self.region_box.isChecked())
+        self.to_region.setEnabled(self.region_box.isChecked())
+        self.step_region.setEnabled(self.region_box.isChecked())
+        if self.region_box.isChecked() == False:
+            self.params.enable_region = False
+
+    def concatenate_region(self):
+        self.params.region = str(int(self.from_region.value())) + ":" + str(int(self.to_region.value())) + ":" + str(int(self.step_region.value()))
+
+    def on_crop_width(self):
+        if self.crop_box.isChecked() == True:
+            try:
+                find_file = os.path.join(str(self.input_path_line.text()), os.listdir(str(self.input_path_line.text()))[0])
+                crop_file = tifffile.TiffFile(find_file)
+                crop_arr = crop_file.asarray()
+                crop_width = crop_arr.shape[1]
+                self.params.crop_width = crop_width
+                self.params.enable_cropping = True
+            except Exception as e:
+                QtGui.QMessageBox.warning(self, "Warning", "Choose input path first \n" + str(e))
+                self.params.enable_cropping = False
+                self.crop_box.setChecked(False)
+        else:
+            self.params.enable_cropping = False
+
+    def on_correct_box_clicked(self, checked):
+        self.params.correction = self.correct_box.isChecked()
+        self.on_correction()
+
+    def on_correction(self):
+        self.darks_path_line.setEnabled(self.params.correction)
+        self.darks_path_button.setEnabled(self.params.correction)
+        self.darks_label.setEnabled(self.params.correction)
+        self.flats_path_line.setEnabled(self.params.correction)
+        self.flats_path_button.setEnabled(self.params.correction)
+        self.flats_label.setEnabled(self.params.correction)
+
+    def on_open_from(self):
+        config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
+        self.params = config.TomoParams(config_file)
+        self.get_values_from_params()
+
+    def on_save_as(self):
+        if os.path.exists(self.params.last_dir):
+            config_file = str(self.params.last_dir + "/reco.conf")
+        else:
+            config_file = str(os.getenv('HOME') + "reco.conf")
+        save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
+        if save_config:
+            self.params.config = save_config
+            self.params.write(self.params.config)
 
     def closeEvent(self, event):
+        self.params.config = "reco.conf"
+        self.params.write(self.params.config)
         try:
             os.remove(log.name)
         except OSError as e:
             pass
 
-    def on_save(self):
-        self.params.write()
+    def on_clear(self):
+        self.input_path_line.setText('.')
+        self.output_path_line.setText('.')
+        self.darks_path_line.setText('.')
+        self.flats_path_line.setText('.')
+        self.path_line_0.setText('.')
+        self.path_line_180.setText('.')
+
+        self.sino_button.setChecked(True)
+        self.proj_button.setChecked(False)
+        self.region_box.setChecked(False)
+        self.crop_box.setChecked(False)
+        self.correct_box.setChecked(False)
+        self.absorptivity_checkbox.setChecked(False)
+
+        self.from_region.setValue(0)
+        self.to_region.setValue(1)
+        self.step_region.setValue(1)
+        self.axis_spin.setValue(0)
+        self.angle_step.setValue(0)
+        self.angle_offset.setValue(0)
+
+        self.from_region.setEnabled(False)
+        self.to_region.setEnabled(False)
+        self.step_region.setEnabled(False)
+        self.correct_box.setEnabled(False)
+        self.on_correction()
+        self.textWidget.clear()
+
+        self.params.from_projections = False
+        self.params.enable_cropping = False
+        self.params.enable_region = False
+        self.params.absorptivity = False
+        self.params.correction = False
+        self.params.crop_width = None
 
     def on_reconstruct(self):
         _enable_wait_cursor()
@@ -531,7 +670,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.layout = False
         self.do_axis_opts()
         self.axis_grid.addWidget(self.axis_opts_group, 0, 0, QtCore.Qt.Alignment(QtCore.Qt.AlignTop))
-        self.resize(575, 689)
+        self.resize(600, 800)
 
     def do_axis_layout(self):
         self.layout = True
