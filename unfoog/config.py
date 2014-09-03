@@ -81,7 +81,9 @@ class RecoParams(object):
                            default=False,
                            help="Reconstruct from projections instead of sinograms")
         self._add_argument(parser, '--region', type=str, default=None,
-                           help='from:to:step sinograms to process')
+                           help='from:to:step sinograms to process, if --from-projections is '
+                           'used then the region acts on projections, i.e. constrains ' +
+                           'the processed angles')
         return parser
 
     def update(self, args):
