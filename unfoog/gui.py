@@ -7,14 +7,17 @@ import threading
 import subprocess
 import numpy as np
 import pyqtgraph as pg
+import pkg_resources
 
 from . import reco, config, tifffile
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui, QtCore, uic
 from scipy.signal import fftconvolve
 
 
 LOG = logging.getLogger(__name__)
 log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
+logging.getLogger('PyQt4.uic.uiparser').disabled = True
+logging.getLogger('PyQt4.uic.properties').disabled = True
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -55,334 +58,146 @@ class ApplicationWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self)
         self.params = params
         self.app = app
+        ui_file = pkg_resources.resource_filename(__name__, 'gui.ui')
+        self.ui = uic.loadUi(ui_file, self)
+        self.ui.show()
+        self.ui.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.ui.setGeometry(100, 100, 541, 761)
+        self.ui.tab_widget.setCurrentIndex(0)
+        self.ui.stacked_widget.setCurrentIndex(0)
+        self.axis_layout = False
+        self.get_values_from_params()
         self.imagej_available = any([os.path.exists(os.path.join(p,"imagej")) for p in os.environ["PATH"].split(os.pathsep)])
-        self.do_layout()
-
-    def do_layout(self):
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("Tomoviewer")
-
-        self.main_widget = QtGui.QTabWidget(self)
-        self.main_widget.setExpanding = True
-        self.main_widget.setTabPosition(QtGui.QTabWidget.North)
-
-        # File Menu
-        open_action = QtGui.QAction('Open ...', self)
-        open_action.triggered.connect(self.on_open_from)
-        save_action = QtGui.QAction('Save as ...', self)
-        save_action.setShortcut('Ctrl+S')
-        save_action.triggered.connect(self.on_save_as)
-        close_action = QtGui.QAction('Quit', self)
-        close_action.setShortcut('Ctrl+Q')
-        close_action.triggered.connect(self.close)
-        clear_action = QtGui.QAction('Clear', self)
-        clear_action.triggered.connect(self.on_clear)
-
-        file_menu = QtGui.QMenu('&File', self)
-        edit_menu = QtGui.QMenu('&Edit', self)
-        file_menu.addAction(open_action)
-        file_menu.addAction(save_action)
-        file_menu.addAction(close_action)
-        edit_menu.addAction(clear_action)
-        self.menuBar().addMenu(file_menu)
-        self.menuBar().addMenu(edit_menu)
-
-        # Input group
-        input_group = QtGui.QGroupBox("Input")
-        input_grid = QtGui.QGridLayout()
-        input_group.setLayout(input_grid)
-        input_group.setFlat(True)
-
-        self.sino_button = QtGui.QRadioButton("Sinograms")
-        self.proj_button = QtGui.QRadioButton("Projections")
-        input_path_button = QtGui.QPushButton("Browse ...")
-        self.input_path_line = QtGui.QLineEdit()
-
-        self.region_box = QtGui.QCheckBox('Region (from:to:step):')
-        self.from_region = QtGui.QDoubleSpinBox()
-        self.from_region.setDecimals(0)
-        self.from_region.setMinimum(0)
-        self.from_region.setMaximum(10000)
-        self.to_region = QtGui.QDoubleSpinBox()
-        self.to_region.setDecimals(0)
-        self.to_region.setMinimum(1)
-        self.to_region.setMaximum(10000)
-        self.step_region = QtGui.QDoubleSpinBox()
-        self.step_region.setDecimals(0)
-        self.step_region.setMinimum(1)
-        self.step_region.setMaximum(10000)
-
-        self.region_box.setToolTip(self.get_help('general', 'region'))
-        input_path_button.setToolTip(self.get_help('general', 'input'))
-        self.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
-
-        input_grid.addWidget(self.sino_button, 0, 0)
-        input_grid.addWidget(self.region_box, 0, 1)
-        input_grid.addWidget(self.from_region, 0, 2)
-        input_grid.addWidget(self.to_region, 0, 3)
-        input_grid.addWidget(self.step_region, 0, 4)
-        input_grid.addWidget(self.proj_button, 1, 0)
-        input_grid.addWidget(QtGui.QLabel("Path:"), 2, 0)
-        input_grid.addWidget(self.input_path_line, 2, 1, 1, 3)
-        input_grid.addWidget(input_path_button, 2, 4)
-
-        # Parameters group
-        param_grid = QtGui.QGridLayout()
-        param_group = QtGui.QGroupBox("Parameters")
-        param_group.setLayout(param_grid)
-        param_group.setFlat(True)
-
-        self.axis_spin = QtGui.QDoubleSpinBox()
-        self.axis_spin.setDecimals(2)
-        self.axis_spin.setMaximum(8192.0)
-        self.angle_step = QtGui.QDoubleSpinBox()
-        self.angle_step.setDecimals(10)
-        self.angle_offset = QtGui.QDoubleSpinBox()
-        self.angle_offset.setDecimals(10)
-        self.crop_box = QtGui.QCheckBox('Crop width', self)
-
-        self.axis_spin.setToolTip(self.get_help('general', 'axis'))
-        self.angle_step.setToolTip(self.get_help('general', 'angle'))
-        self.angle_offset.setToolTip(self.get_help('general', 'offset'))
-        self.crop_box.setToolTip("Crop width automatically")
-
-        param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
-        param_grid.addWidget(self.axis_spin, 0, 1)
-        param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
-        param_grid.addWidget(self.angle_step, 1, 1)
-        param_grid.addWidget(QtGui.QLabel('Angle offset (rad):'), 2, 0)
-        param_grid.addWidget(self.angle_offset, 2, 1)
-        param_grid.addWidget(self.crop_box, 3, 0)
-
-        # Output group
-        output_grid = QtGui.QGridLayout()
-        output_group = QtGui.QGroupBox("Output")
-        output_group.setLayout(output_grid)
-        output_group.setFlat(True)
-
-        self.output_path_line = QtGui.QLineEdit()
-        output_path_button = QtGui.QPushButton("Browse ...")
-        self.imagej_checkbox = QtGui.QCheckBox("Show Images after Reconstruction", self)
-        self.gpu_box = QtGui.QCheckBox("Use GPU exclusively", self)
-
-        output_path_button.setToolTip(self.get_help('general', 'output'))
-        self.gpu_box.setToolTip(self.get_help('general', 'use_gpu'))
 
         if self.imagej_available == False:
-            self.imagej_checkbox.setEnabled(False)
+            self.ui.imagej_checkbox.setEnabled(False)
             LOG.debug("ImageJ is not installed")
 
-        output_grid.addWidget(QtGui.QLabel("Path:"), 0, 0)
-        output_grid.addWidget(self.output_path_line, 0, 1, 1, 3)
-        output_grid.addWidget(output_path_button, 0, 4)
-        output_grid.addWidget(self.imagej_checkbox, 1, 0, 1, 2)
-        output_grid.addWidget(self.gpu_box, 1, 2, 1, 2)
+        self.ui.region_box.setToolTip(self.get_help('general', 'region'))
+        self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
+        self.ui.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
+        self.ui.axis_spin.setToolTip(self.get_help('general', 'axis'))
+        self.ui.angle_step.setToolTip(self.get_help('general', 'angle'))
+        self.ui.angle_offset.setToolTip(self.get_help('general', 'offset'))
+        self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
+        self.ui.correct_box.setToolTip(self.get_help('general', 'correction'))
+        self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
+        self.ui.flats_path_button.setToolTip(self.get_help('general', 'flats'))
+        self.ui.path_button_0.setToolTip(self.get_help('general', 'deg0'))
+        self.ui.path_button_180.setToolTip(self.get_help('general', 'deg180'))
+        self.ui.absorptivity_checkbox.setToolTip(self.get_help('general', 'absorptivity'))
+        self.ui.absorptivity_checkbox_2.setToolTip(self.get_help('general', 'absorptivity'))
 
-        # Darks & Flats Group
-        correction_grid = QtGui.QGridLayout()
-        correction_group = QtGui.QGroupBox("Correction for Projections")
-        correction_group.setLayout(correction_grid)
-        correction_group.setFlat(True)
+        self.ui.input_path_button.clicked.connect(self.on_input_path_clicked)
+        self.ui.sino_button.clicked.connect(self.on_sino_button_clicked)
+        self.ui.proj_button.clicked.connect(self.on_proj_button_clicked)
+        self.ui.region_box.clicked.connect(self.on_region)
+        self.ui.from_region.valueChanged.connect(self.concatenate_region)
+        self.ui.to_region.valueChanged.connect(self.concatenate_region)
+        self.ui.step_region.valueChanged.connect(self.concatenate_region)
+        self.ui.crop_box.clicked.connect(self.on_crop_width)
+        self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
+        self.ui.correct_box.clicked.connect(self.on_correct_box_clicked)
+        self.ui.darks_path_button.clicked.connect(self.on_darks_path_clicked)
+        self.ui.flats_path_button.clicked.connect(self.on_flats_path_clicked)
+        self.ui.reco_button.clicked.connect(self.on_reconstruct)
+        self.ui.tab_widget.currentChanged.connect(self.on_tab_changed)
+        self.ui.path_button_0.clicked.connect(self.on_path_0_clicked)
+        self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
+        self.ui.run_button.clicked.connect(self.on_run)
+        self.ui.save_action.triggered.connect(self.on_save_as)
+        self.ui.clear_action.triggered.connect(self.on_clear)
+        self.ui.open_action.triggered.connect(self.on_open_from)
+        self.ui.close_action.triggered.connect(self.close)
 
-        self.correct_box = QtGui.QCheckBox("Use Correction", self)
-        self.correct_box.setEnabled(self.proj_button.isChecked())
-        self.darks_path_line = QtGui.QLineEdit()
-        self.darks_path_button = QtGui.QPushButton("Browse...")
-        self.darks_label = QtGui.QLabel("Dark-field:")
-        self.flats_path_line = QtGui.QLineEdit()
-        self.flats_path_button = QtGui.QPushButton("Browse...")
-        self.flats_label = QtGui.QLabel("Flat-field:")
-
-        self.correct_box.setToolTip(self.get_help('general', 'correction'))
-        self.darks_path_button.setToolTip(self.get_help('general', 'darks'))
-        self.flats_path_button.setToolTip(self.get_help('general', 'flats'))
-
-        correction_grid.addWidget(self.correct_box, 0, 0)
-        correction_grid.addWidget(self.darks_label, 1, 0)
-        correction_grid.addWidget(self.darks_path_line, 1, 1)
-        correction_grid.addWidget(self.darks_path_button, 1, 2)
-        correction_grid.addWidget(self.flats_label, 2, 0)
-        correction_grid.addWidget(self.flats_path_line, 2, 1)
-        correction_grid.addWidget(self.flats_path_button, 2, 2)
-
-        # Log widget
-        self.textWidget = QtGui.QTextBrowser(self)
-
-        # Reconstruction group
-        reconstruction_grid = QtGui.QGridLayout()
-        reconstruction_group = QtGui.QGroupBox()
-        reconstruction_group.setLayout(reconstruction_grid)
-        reconstruction_group.setFlat(True)
-
-        button_group = QtGui.QDialogButtonBox()
-        reco_button = button_group.addButton("Reconstruct", QtGui.QDialogButtonBox.AcceptRole)
-
-        reconstruction_grid.addWidget(input_group, 0, 0)
-        reconstruction_grid.addWidget(param_group, 1, 0)
-        reconstruction_grid.addWidget(output_group, 2, 0)
-        reconstruction_grid.addWidget(correction_group, 3, 0)
-        reconstruction_grid.addWidget(button_group, 4, 0)
-        reconstruction_grid.addWidget(self.textWidget, 5, 0)
-
-        # Rotation axis options group
-        self.do_axis_opts()
-
-        # Rotation axis group
-        self.axis_grid = QtGui.QGridLayout()
-        axis_group = QtGui.QGroupBox()
-        axis_group.setLayout(self.axis_grid)
-        axis_group.setFlat(True)
-        self.axis_grid.addWidget(self.axis_opts_group, 0, 0, QtCore.Qt.Alignment(QtCore.Qt.AlignTop))
-
-        # Connect things
-        input_path_button.clicked.connect(self.on_input_path_clicked)
-        self.sino_button.clicked.connect(self.on_sino_button_clicked)
-        self.proj_button.clicked.connect(self.on_proj_button_clicked)
-        self.region_box.clicked.connect(self.on_region)
-        self.from_region.valueChanged.connect(self.concatenate_region)
-        self.to_region.valueChanged.connect(self.concatenate_region)
-        self.step_region.valueChanged.connect(self.concatenate_region)
-        self.crop_box.clicked.connect(self.on_crop_width)
-        output_path_button.clicked.connect(self.on_output_path_clicked)
-        self.correct_box.clicked.connect(self.on_correct_box_clicked)
-        self.darks_path_button.clicked.connect(self.on_darks_path_clicked)
-        self.flats_path_button.clicked.connect(self.on_flats_path_clicked)
-        reco_button.clicked.connect(self.on_reconstruct)
-        self.main_widget.currentChanged.connect(self.on_tab_changed)
-        self.connect(self, QtCore.SIGNAL('triggered()'), self.closeEvent)
-
-        self.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.input_path_line.text())))
-        self.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-        self.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
-        self.region_box.clicked.connect(lambda value: self.change_value('enable_region', self.region_box.isChecked()))
-        self.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
-        self.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
-        self.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
-        self.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
-        self.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.gpu_box.isChecked()))
-        self.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
-        self.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
-
-        self.main_widget.insertTab(0, reconstruction_group, "Reconstruction")
-        self.main_widget.insertTab(1, axis_group, "Rotation Axis")
-
-        self.setGeometry(100, 100, 600, 800)
-        self.setMinimumSize(600, 800)
-        self.main_widget.setFocus()
-        self.setCentralWidget(self.main_widget)
-
-    def do_axis_opts(self):
-        # Axis input group
-        axis_input_grid = QtGui.QGridLayout()
-        axis_input_group = QtGui.QGroupBox()
-        axis_input_group.setLayout(axis_input_grid)
-        axis_input_group.setFlat(True)
-
-        self.path_line_0 =  QtGui.QLineEdit()
-        path_button_0 = QtGui.QPushButton("Browse ...")
-        self.path_line_180 =  QtGui.QLineEdit()
-        path_button_180 = QtGui.QPushButton("Browse ...")
-        self.absorptivity_checkbox = QtGui.QCheckBox('absorptivity')
-
-        path_button_0.setToolTip(self.get_help('general', 'deg0'))
-        path_button_180.setToolTip(self.get_help('general', 'deg180'))
-        self.absorptivity_checkbox.setToolTip(self.get_help('general', 'absorptivity'))
-
-        axis_input_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
-        axis_input_grid.addWidget(self.path_line_0, 0, 1)
-        axis_input_grid.addWidget(path_button_0, 0, 2)
-        axis_input_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
-        axis_input_grid.addWidget(self.path_line_180, 1, 1)
-        axis_input_grid.addWidget(path_button_180, 1, 2)
-        axis_input_grid.addWidget(self.absorptivity_checkbox, 2, 2)
-
-        # Axis opts group
-        axis_opts_grid = QtGui.QGridLayout()
-        self.axis_opts_group = QtGui.QGroupBox()
-        self.axis_opts_group.setLayout(axis_opts_grid)
-        self.axis_opts_group.setFlat(True)
-
-        button_group = QtGui.QDialogButtonBox()
-        run_button = button_group.addButton("Run", QtGui.QDialogButtonBox.AcceptRole)
-
-        axis_opts_grid.addWidget(axis_input_group, 0, 0)
-        axis_opts_grid.addWidget(button_group, 1, 0)
-
-        # Connect things
-        path_button_0.clicked.connect(self.on_path_0_clicked)
-        path_button_180.clicked.connect(self.on_path_180_clicked)
-        run_button.clicked.connect(self.on_run)
-        self.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.path_line_0.text())))
-        self.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.path_line_180.text())))
-        self.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.absorptivity_checkbox.isChecked()))
-
-        self.get_values_from_params()
+        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
+        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
+        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
+        self.ui.region_box.clicked.connect(lambda value: self.change_value('enable_region', self.ui.region_box.isChecked()))
+        self.ui.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
+        self.ui.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
+        self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
+        self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
+        self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
+        self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
+        self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
+        self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
+        self.ui.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_checkbox.isChecked()))
+        self.ui.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.ui.gpu_box.isChecked()))
 
     def get_values_from_params(self):
-        self.input_path_line.setText(self.params.input)
-        self.output_path_line.setText(self.params.output)
-        self.darks_path_line.setText(self.params.darks)
-        self.flats_path_line.setText(self.params.flats)
-        self.path_line_0.setText(self.params.deg0)
-        self.path_line_180.setText(self.params.deg180)
+        self.ui.input_path_line.setText(self.params.input)
+        self.ui.output_path_line.setText(self.params.output)
+        self.ui.darks_path_line.setText(self.params.darks)
+        self.ui.flats_path_line.setText(self.params.flats)
+        self.ui.path_line_0.setText(self.params.deg0)
+        self.ui.path_line_180.setText(self.params.deg180)
 
-        self.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
-        self.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
-        self.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
+        self.ui.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
+        self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
+        self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
 
         if self.params.enable_region == "True":
             self.params.enable_region = True
-            self.region_box.setChecked(True)
+            self.ui.region_box.setChecked(True)
         else:
             self.params.enable_region = False
-            self.region_box.setChecked(False)
+            self.ui.region_box.setChecked(False)
 
         region = [int(x) for x in self.params.region.split(':')]
-        self.from_region.setValue(region[0])
-        self.to_region.setValue(region[1])
-        self.step_region.setValue(region[2])
-        self.from_region.setEnabled(self.region_box.isChecked())
-        self.to_region.setEnabled(self.region_box.isChecked())
-        self.step_region.setEnabled(self.region_box.isChecked())
+        self.ui.from_region.setValue(region[0])
+        self.ui.to_region.setValue(region[1])
+        self.ui.step_region.setValue(region[2])
+        self.ui.from_region.setEnabled(self.ui.region_box.isChecked())
+        self.ui.to_region.setEnabled(self.ui.region_box.isChecked())
+        self.ui.step_region.setEnabled(self.ui.region_box.isChecked())
 
         if self.params.enable_cropping == "True":
-            self.crop_box.setChecked(True)
+            self.ui.crop_box.setChecked(True)
             self.params.enable_cropping = True
         else:
-            self.crop_box.setChecked(False)
+            self.ui.crop_box.setChecked(False)
             self.params.enable_cropping = False
 
         if self.params.from_projections == "True":
             self.params.from_projections = True
-            self.proj_button.setChecked(True)
-            self.sino_button.setChecked(False)
-            self.correct_box.setEnabled(True)
+            self.ui.proj_button.setChecked(True)
+            self.ui.sino_button.setChecked(False)
+            self.ui.correct_box.setEnabled(True)
         else:
             self.params.from_projections = False
-            self.proj_button.setChecked(False)
-            self.sino_button.setChecked(True)
+            self.ui.proj_button.setChecked(False)
+            self.ui.sino_button.setChecked(True)
 
         if self.params.correction == "True" and self.proj_button.isChecked():
-            self.correct_box.setChecked(True)
+            self.ui.correct_box.setChecked(True)
             self.params.correction = True
         else:
-            self.correct_box.setChecked(False)
+            self.ui.correct_box.setChecked(False)
             self.params.correction = False
         self.on_correction()
 
         if self.params.use_gpu == "True":
-            self.gpu_box.setChecked(True)
+            self.ui.gpu_box.setChecked(True)
             self.params.use_gpu = True
         else:
-            self.gpu_box.setChecked(False)
+            self.ui.gpu_box.setChecked(False)
             self.params.use_gpu = False
 
         if self.params.absorptivity == "True":
-            self.absorptivity_checkbox.setChecked(True)
+            self.ui.absorptivity_checkbox.setChecked(True)
             self.params.absorptivity = True
         else:
-            self.absorptivity_checkbox.setChecked(False)
+            self.ui.absorptivity_checkbox.setChecked(False)
             self.params.absorptivity = False
+
+    def on_tab_changed(self):
+        current_tab = self.ui.tab_widget.currentIndex()
+        if current_tab == 0 and self.axis_layout == True:
+            self.geom = self.ui.geometry()
+            self.ui.resize(541, 761)
+        elif current_tab == 1 and self.axis_layout == True:
+            self.ui.setGeometry(self.geom)
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -391,84 +206,53 @@ class ApplicationWindow(QtGui.QMainWindow):
     def change_value(self, name, value):
         setattr(self.params, name, value)
 
-    def on_tab_changed(self):
-        current_tab = self.main_widget.currentIndex()
-        if current_tab == 0 and self.layout == True:
-            self.geom = self.geometry()
-            self.resize(600, 800)
-        elif current_tab == 1 and self.layout == True:
-            self.setGeometry(self.geom)
-
-    def on_proj_button_clicked(self, checked):
-        self.correct_box.setEnabled(True)
-        if self.correct_box.isChecked() == True:
-            self.params.correction = True
-            self.on_correction()
-
-    def on_sino_button_clicked(self, checked):
-        self.correct_box.setEnabled(False)
-        self.params.correction = False
-        self.on_correction()
-
-    def on_input_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.input_path_line, self.params.input, self.params.last_dir)
-        if os.path.exists(str(self.input_path_line.text())):
-            self.params.last_dir = str(self.input_path_line.text())
-
-        if "sinogram" in str(self.input_path_line.text()):
-            self.sino_button.setChecked(True)
-            self.proj_button.setChecked(False)
-            self.correct_box.setEnabled(False)
-            self.params.from_projections = False
+    def on_sino_button_clicked(self):
+        if self.ui.sino_button.isChecked():
+            self.ui.correct_box.setEnabled(False)
             self.params.correction = False
             self.on_correction()
-        elif "projection" in str(self.input_path_line.text()):
-            self.sino_button.setChecked(False)
-            self.proj_button.setChecked(True)
-            self.correct_box.setEnabled(True)
-            self.params.from_projections = True
-        if self.crop_box.isChecked() == True:
-            self.on_crop_width()
 
-    def on_output_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.output_path_line, self.params.output, self.params.last_dir)
-        if os.path.exists(str(self.output_path_line.text())):
-            self.params.last_dir = str(self.output_path_line.text())
-
-    def on_darks_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.darks_path_line, self.params.darks, self.params.last_dir)
-        if os.path.exists(str(self.darks_path_line.text())):
-            self.params.last_dir = str(self.darks_path_line.text())
-
-    def on_flats_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.flats_path_line, self.params.flats, self.params.last_dir)
-        if os.path.exists(str(self.flats_path_line.text())):
-            self.params.last_dir = str(self.flats_path_line.text())
-
-    def on_path_0_clicked(self, checked):
-        _set_line_edit_to_file(self, self.path_line_0, str(self.path_line_0.text()), self.params.last_dir)
-        if os.path.exists(str(self.path_line_0.text())):
-            self.params.last_dir = str(self.path_line_0.text())
-
-    def on_path_180_clicked(self, checked):
-        _set_line_edit_to_file(self, self.path_line_180, str(self.path_line_180.text()), self.params.last_dir)
-        if os.path.exists(str(self.path_line_180.text())):
-             self.params.last_dir = str(self.path_line_180.text())
+    def on_proj_button_clicked(self):
+        if self.ui.proj_button.isChecked():
+            self.ui.correct_box.setEnabled(True)
+            if self.ui.correct_box.isChecked() == True:
+                self.params.correction = True
+                self.on_correction()
 
     def on_region(self):
-        self.from_region.setEnabled(self.region_box.isChecked())
-        self.to_region.setEnabled(self.region_box.isChecked())
-        self.step_region.setEnabled(self.region_box.isChecked())
-        if self.region_box.isChecked() == False:
+        self.ui.from_region.setEnabled(self.ui.region_box.isChecked())
+        self.ui.to_region.setEnabled(self.ui.region_box.isChecked())
+        self.ui.step_region.setEnabled(self.ui.region_box.isChecked())
+        if self.ui.region_box.isChecked() == False:
             self.params.enable_region = False
 
     def concatenate_region(self):
-        self.params.region = str(int(self.from_region.value())) + ":" + str(int(self.to_region.value())) + ":" + str(int(self.step_region.value()))
+        self.params.region = str(int(self.ui.from_region.value())) + ":" + str(int(self.ui.to_region.value())) + ":" + str(int(self.ui.step_region.value()))
+
+    def on_input_path_clicked(self, checked):
+        _set_line_edit_to_path(self, self.ui.input_path_line, self.params.input, self.params.last_dir)
+        if os.path.exists(str(self.ui.input_path_line.text())):
+            self.params.last_dir = str(self.ui.input_path_line.text())
+
+        if "sinogram" in str(self.ui.input_path_line.text()):
+            self.ui.sino_button.setChecked(True)
+            self.ui.proj_button.setChecked(False)
+            self.ui.correct_box.setEnabled(False)
+            self.ui.params.from_projections = False
+            self.params.correction = False
+            self.on_correction()
+        elif "projection" in str(self.ui.input_path_line.text()):
+            self.ui.sino_button.setChecked(False)
+            self.ui.proj_button.setChecked(True)
+            self.ui.correct_box.setEnabled(True)
+            self.params.from_projections = True
+        if self.ui.crop_box.isChecked() == True:
+            self.on_crop_width()
 
     def on_crop_width(self):
-        if self.crop_box.isChecked() == True:
+        if self.ui.crop_box.isChecked() == True:
             try:
-                find_file = os.path.join(str(self.input_path_line.text()), os.listdir(str(self.input_path_line.text()))[0])
+                find_file = os.path.join(str(self.ui.input_path_line.text()), os.listdir(str(self.ui.input_path_line.text()))[0])
                 crop_file = tifffile.TiffFile(find_file)
                 crop_arr = crop_file.asarray()
                 crop_width = crop_arr.shape[1]
@@ -477,21 +261,46 @@ class ApplicationWindow(QtGui.QMainWindow):
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", "Choose input path first \n" + str(e))
                 self.params.enable_cropping = False
-                self.crop_box.setChecked(False)
+                self.ui.crop_box.setChecked(False)
         else:
             self.params.enable_cropping = False
 
-    def on_correct_box_clicked(self, checked):
-        self.params.correction = self.correct_box.isChecked()
+    def on_output_path_clicked(self, checked):
+        _set_line_edit_to_path(self, self.ui.output_path_line, self.params.output, self.params.last_dir)
+        if os.path.exists(str(self.ui.output_path_line.text())):
+            self.params.last_dir = str(self.ui.output_path_line.text())
+
+    def on_correct_box_clicked(self):
+        self.params.correction = self.ui.correct_box.isChecked()
         self.on_correction()
 
     def on_correction(self):
-        self.darks_path_line.setEnabled(self.params.correction)
-        self.darks_path_button.setEnabled(self.params.correction)
-        self.darks_label.setEnabled(self.params.correction)
-        self.flats_path_line.setEnabled(self.params.correction)
-        self.flats_path_button.setEnabled(self.params.correction)
-        self.flats_label.setEnabled(self.params.correction)
+        self.ui.darks_path_line.setEnabled(self.params.correction)
+        self.ui.darks_path_button.setEnabled(self.params.correction)
+        self.ui.darks_label.setEnabled(self.params.correction)
+        self.ui.flats_path_line.setEnabled(self.params.correction)
+        self.ui.flats_path_button.setEnabled(self.params.correction)
+        self.ui.flats_label.setEnabled(self.params.correction)
+
+    def on_darks_path_clicked(self, checked):
+        _set_line_edit_to_path(self, self.ui.darks_path_line, self.params.darks, self.params.last_dir)
+        if os.path.exists(str(self.ui.darks_path_line.text())):
+            self.params.last_dir = str(self.ui.darks_path_line.text())
+
+    def on_flats_path_clicked(self, checked):
+        _set_line_edit_to_path(self, self.ui.flats_path_line, self.params.flats, self.params.last_dir)
+        if os.path.exists(str(self.ui.flats_path_line.text())):
+            self.params.last_dir = str(self.ui.flats_path_line.text())
+
+    def on_path_0_clicked(self, checked):
+        _set_line_edit_to_file(self, self.ui.path_line_0, str(self.ui.path_line_0.text()), self.params.last_dir)
+        if os.path.exists(str(self.ui.path_line_0.text())):
+            self.params.last_dir = str(self.ui.path_line_0.text())
+
+    def on_path_180_clicked(self, checked):
+        _set_line_edit_to_file(self, self.ui.path_line_180, str(self.ui.path_line_180.text()), self.params.last_dir)
+        if os.path.exists(str(self.ui.path_line_180.text())):
+             self.params.last_dir = str(self.ui.path_line_180.text())
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
@@ -508,6 +317,42 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.config = save_config
             self.params.write(self.params.config)
 
+    def on_clear(self):
+        self.ui.input_path_line.setText('.')
+        self.ui.output_path_line.setText('.')
+        self.ui.darks_path_line.setText('.')
+        self.ui.flats_path_line.setText('.')
+        self.ui.path_line_0.setText('.')
+        self.ui.path_line_180.setText('.')
+
+        self.ui.sino_button.setChecked(True)
+        self.ui.proj_button.setChecked(False)
+        self.ui.region_box.setChecked(False)
+        self.ui.crop_box.setChecked(False)
+        self.ui.correct_box.setChecked(False)
+        self.ui.absorptivity_checkbox.setChecked(False)
+
+        self.ui.from_region.setValue(0)
+        self.ui.to_region.setValue(1)
+        self.ui.step_region.setValue(1)
+        self.ui.axis_spin.setValue(0)
+        self.ui.angle_step.setValue(0)
+        self.ui.angle_offset.setValue(0)
+
+        self.ui.from_region.setEnabled(False)
+        self.ui.to_region.setEnabled(False)
+        self.ui.step_region.setEnabled(False)
+        self.ui.correct_box.setEnabled(False)
+        self.on_correction()
+        self.ui.text_browser.clear()
+
+        self.params.from_projections = False
+        self.params.enable_cropping = False
+        self.params.enable_region = False
+        self.params.absorptivity = False
+        self.params.correction = False
+        self.params.crop_width = None
+
     def closeEvent(self, event):
         self.params.config = "reco.conf"
         try:
@@ -520,45 +365,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         except OSError as e:
             pass
 
-    def on_clear(self):
-        self.input_path_line.setText('.')
-        self.output_path_line.setText('.')
-        self.darks_path_line.setText('.')
-        self.flats_path_line.setText('.')
-        self.path_line_0.setText('.')
-        self.path_line_180.setText('.')
-
-        self.sino_button.setChecked(True)
-        self.proj_button.setChecked(False)
-        self.region_box.setChecked(False)
-        self.crop_box.setChecked(False)
-        self.correct_box.setChecked(False)
-        self.absorptivity_checkbox.setChecked(False)
-
-        self.from_region.setValue(0)
-        self.to_region.setValue(1)
-        self.step_region.setValue(1)
-        self.axis_spin.setValue(0)
-        self.angle_step.setValue(0)
-        self.angle_offset.setValue(0)
-
-        self.from_region.setEnabled(False)
-        self.to_region.setEnabled(False)
-        self.step_region.setEnabled(False)
-        self.correct_box.setEnabled(False)
-        self.on_correction()
-        self.textWidget.clear()
-
-        self.params.from_projections = False
-        self.params.enable_cropping = False
-        self.params.enable_region = False
-        self.params.absorptivity = False
-        self.params.correction = False
-        self.params.crop_width = None
-
     def on_reconstruct(self):
         _enable_wait_cursor()
-        self.main_widget.setEnabled(False)
+        self.ui.centralWidget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
 
@@ -568,9 +377,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         except Exception as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
 
-        if self.imagej_checkbox.isChecked():
+        if self.ui.imagej_checkbox.isChecked():
 
-            output_path = str(self.output_path_line.text())
+            output_path = str(self.ui.output_path_line.text())
             if output_path == ".":
                 output_path = str(os.getcwd())
 
@@ -587,10 +396,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             process.start()
 
         _disable_wait_cursor()
-        self.main_widget.setEnabled(True)
+        self.ui.centralWidget.setEnabled(True)
         log.seek(0)
         logtxt = open(log.name).read()
-        self.textWidget.setPlainText(logtxt)
+        self.ui.text_browser.setPlainText(logtxt)
 
     def on_run(self):
         _enable_wait_cursor()
@@ -599,31 +408,25 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.read_data()
             self.compute_axis()
             self.do_axis_layout()
+            self.ui.stacked_widget.setCurrentIndex(1)
+            self.ui.path_line_0_2.setText(self.params.deg0)
+            self.ui.path_line_180_2.setText(self.params.deg180)
+            self.ui.absorptivity_checkbox_2.setChecked(self.ui.absorptivity_checkbox.isChecked())
 
         except Exception as e:
             _disable_wait_cursor()
             QtGui.QMessageBox.warning(self, "Warning", str(e))
 
     def init_axis(self):
-        self.layout = False
-        self.axis_num = QtGui.QLabel()
-        font = QtGui.QFont()
-        font.setBold(True)
-        self.axis_num.setFont(font)
-        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setRange(0, 999)
+        self.axis_layout = False
         self.w_over = pg.GraphicsView()
         self.viewbox = pg.ViewBox()
         self.w_over.setCentralItem(self.viewbox)
         self.histogram = pg.HistogramLUTWidget()
-        self.overlap_opt = QtGui.QComboBox()
-        self.overlap_opt.addItem("Subtraction overlap")
-        self.overlap_opt.addItem("Addition overlap")
-        self.overlap_opt.currentIndexChanged.connect(self.update_image)
 
     def read_data(self):
-        tif_0 = tifffile.TiffFile(str(self.path_line_0.text()))
-        tif_180 = tifffile.TiffFile(str(self.path_line_180.text()))
+        tif_0 = tifffile.TiffFile(str(self.ui.path_line_0.text()))
+        tif_180 = tifffile.TiffFile(str(self.ui.path_line_180.text()))
 
         self.arr_0 = tif_0.asarray()
         self.arr_180 = tif_180.asarray()
@@ -641,43 +444,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         adj = (self.width / 2.0) - self.axis
         self.move = int(-adj)
         slider_val = int(adj) + 500
-        self.slider.setValue(slider_val)
+        self.ui.slider.setValue(slider_val)
 
         self.params.axis = self.axis
-        self.axis_spin.setValue(self.axis)
+        self.ui.axis_spin.setValue(self.axis)
         self.update_image()
-
-    def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Right:
-            self.slider.setValue(self.slider.value() + 1)
-        elif event.key() == QtCore.Qt.Key_Left:
-            self.slider.setValue(self.slider.value() - 1)
-        else:
-            QtGui.QMainWindow.keyPressEvent(self, event)
-
-    def on_move_slider(self):
-        pos = self.slider.value()
-        if pos > 500:
-            self.move = -1 * (pos - 500)
-        elif pos < 500:
-            self.move = 500 - pos
-        else:
-            self.move = 0
-
-        self.update_axis()
-        self.update_image()
-
-    def on_overlap_opt_changed(self):
-        current_overlap = self.overlap_opt.currentIndex()
-        if current_overlap == 0:
-            self.arr_over = self.arr_flip - arr_180
-        elif current_overlap == 1:
-            self.arr_over = self.arr_flip + arr_180
 
     def update_image(self):
         arr_180 = np.roll(self.arr_180, self.move, axis=1)
         self.arr_over = self.arr_flip - arr_180
-        current_overlap = self.overlap_opt.currentIndex()
+        current_overlap = self.ui.overlap_opt.currentIndex()
         if current_overlap == 0:
             self.arr_over = self.arr_flip - arr_180
         elif current_overlap == 1:
@@ -689,9 +465,53 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.viewbox.setAspectLocked(True)
         self.histogram.setImageItem(img)
 
+    def do_axis_layout(self):
+        self.ui.resize(925, 790)
+        self.ui.stacked_widget.resize(910, 750)
+        self.ui.axis_num.setText('center of rotation = %i px' % (self.axis))
+        self.ui.img_size.setText('width = %i | height = %i' % (self.img_width, self.img_height))
+        self.ui.w_over_layout.addWidget(self.w_over, 0, 0)
+        self.ui.w_over_layout.addWidget(self.histogram, 0, 1)
+
+        self.axis_layout = True
+        self.pos = 0
+        _disable_wait_cursor()
+
+        self.ui.slider.valueChanged.connect(self.on_move_slider)
+        self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
+        self.ui.choose_button.clicked.connect(self.on_choose_new)
+        self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Right:
+            self.ui.slider.setValue(self.ui.slider.value() + 1)
+        elif event.key() == QtCore.Qt.Key_Left:
+            self.ui.slider.setValue(self.ui.slider.value() - 1)
+        else:
+            QtGui.QMainWindow.keyPressEvent(self, event)
+
+    def on_move_slider(self):
+        pos = self.ui.slider.value()
+        if pos > 500:
+            self.move = -1 * (pos - 500)
+        elif pos < 500:
+            self.move = 500 - pos
+        else:
+            self.move = 0
+
+        self.update_axis()
+        self.update_image()
+
+    def on_overlap_opt_changed(self):
+        current_overlap = self.ui.overlap_opt.currentIndex()
+        if current_overlap == 0:
+            self.arr_over = self.arr_flip - arr_180
+        elif current_overlap == 1:
+            self.arr_over = self.arr_flip + arr_180
+
     def update_axis(self):
         self.axis = self.width / 2 + self.move
-        self.axis_num.setText('center of rotation = %i px' % (self.axis))
+        self.ui.axis_num.setText('center of rotation = %i px' % (self.axis))
 
     def on_remove_extrema(self):
         max_flip = np.percentile(self.arr_flip, 99)
@@ -707,66 +527,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.arr_180[self.arr_180 < min_180] = min_180
 
         self.update_image()
-        self.extrema_checkbox.setEnabled(False)
+        self.ui.extrema_checkbox.setEnabled(False)
 
     def on_choose_new(self):
-        for i in reversed(range(self.axis_grid.count())):
-            self.axis_grid.itemAt(i).widget().setParent(None)
-
-        self.layout = False
-        self.do_axis_opts()
-        self.axis_grid.addWidget(self.axis_opts_group, 0, 0, QtCore.Qt.Alignment(QtCore.Qt.AlignTop))
-        self.resize(600, 800)
-
-    def do_axis_layout(self):
-        self.layout = True
-        self.resize(900, 900)
-
-        # Axis view group
-        axis_view_grid = QtGui.QGridLayout()
-        axis_view_group = QtGui.QGroupBox()
-        axis_view_group.setLayout(axis_view_grid)
-        axis_view_group.setFlat(True)
-
-        self.axis_num.setText('center of rotation = %i px' % (self.axis))
-        self.extrema_checkbox = QtGui.QCheckBox('remove extrema', self)
-        img_size = QtGui.QLabel('width = %i | height = %i' % (self.img_width, self.img_height))
-        choose_button = QtGui.QPushButton("Choose new ...")
-        self.absorptivity_checkbox.setEnabled(False)
-
-        self.extrema_checkbox.setToolTip("Remove 1% of the extrema of images")
-        choose_button.setToolTip("Pick other images for axis view")
-        self.slider.setToolTip("Move one of the images. Left / Right key move it by 1px.")
-
-        axis_view_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
-        axis_view_grid.addWidget(self.path_line_0, 0, 1)
-        axis_view_grid.addWidget(self.extrema_checkbox, 0, 2)
-        axis_view_grid.addWidget(img_size, 0, 3)
-        axis_view_grid.addWidget(self.overlap_opt, 0, 4)
-        axis_view_grid.addWidget(QtGui.QLabel("180 deg projection:"), 1, 0)
-        axis_view_grid.addWidget(self.path_line_180, 1, 1)
-        axis_view_grid.addWidget(self.absorptivity_checkbox, 1, 2)
-        axis_view_grid.addWidget(self.axis_num, 1, 3)
-        axis_view_grid.addWidget(choose_button, 1, 4)
-
-        # Remove axis opts & show axis view
-        for i in reversed(range(self.axis_grid.count())):
-            self.axis_grid.itemAt(i).widget().setParent(None)
-
-        self.axis_grid.addWidget(axis_view_group, 0, 0, 1, 2)
-        self.axis_grid.addWidget(self.w_over, 1, 0)
-        self.axis_grid.addWidget(self.histogram, 1, 1)
-        self.axis_grid.addWidget(self.slider, 2, 0, 1, 2)
-        _disable_wait_cursor()
-
-        self.slider.valueChanged.connect(self.on_move_slider)
-        self.extrema_checkbox.clicked.connect(self.on_remove_extrema)
-        choose_button.clicked.connect(self.on_choose_new)
+        self.ui.stacked_widget.setCurrentIndex(0)
+        self.ui.extrema_checkbox.setEnabled(True)
+        self.ui.extrema_checkbox.setChecked(False)
+        self.axis_layout = False
+        self.ui.resize(541, 761)
 
 
 def main(params):
     app = QtGui.QApplication(sys.argv)
-
     window = ApplicationWindow(app, params)
-    window.show()
     sys.exit(app.exec_())

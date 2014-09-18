@@ -9,6 +9,7 @@ setup(
     author_email='matthias.vogelgesang@kit.edu',
     url='http://ufo.kit.edu',
     packages=find_packages(),
+    package_data={'':['gui.ui']},
     scripts=['bin/ufo-reconstruct',
              'bin/ufo-sinos',
              'bin/ufo-estimate-center',
