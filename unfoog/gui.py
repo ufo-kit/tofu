@@ -112,6 +112,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.step_region.setMinimum(1)
         self.step_region.setMaximum(10000)
 
+        self.region_box.setToolTip(self.get_help('general', 'region'))
+        input_path_button.setToolTip(self.get_help('general', 'input'))
+        self.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
+
         input_grid.addWidget(self.sino_button, 0, 0)
         input_grid.addWidget(self.region_box, 0, 1)
         input_grid.addWidget(self.from_region, 0, 2)
@@ -137,6 +141,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.angle_offset.setDecimals(10)
         self.crop_box = QtGui.QCheckBox('Crop width', self)
 
+        self.axis_spin.setToolTip(self.get_help('general', 'axis'))
+        self.angle_step.setToolTip(self.get_help('general', 'angle'))
+        self.angle_offset.setToolTip(self.get_help('general', 'offset'))
+        self.crop_box.setToolTip("Crop width automatically")
+
         param_grid.addWidget(QtGui.QLabel('Axis (pixel):'), 0, 0)
         param_grid.addWidget(self.axis_spin, 0, 1)
         param_grid.addWidget(QtGui.QLabel('Angle step (rad):'), 1, 0)
@@ -154,6 +163,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.output_path_line = QtGui.QLineEdit()
         output_path_button = QtGui.QPushButton("Browse ...")
         self.imagej_checkbox = QtGui.QCheckBox("Show Images after Reconstruction", self)
+        self.gpu_box = QtGui.QCheckBox("Use GPU exclusively", self)
+
+        output_path_button.setToolTip(self.get_help('general', 'output'))
+        self.gpu_box.setToolTip(self.get_help('general', 'use_gpu'))
 
         if self.imagej_available == False:
             self.imagej_checkbox.setEnabled(False)
@@ -163,6 +176,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_grid.addWidget(self.output_path_line, 0, 1, 1, 3)
         output_grid.addWidget(output_path_button, 0, 4)
         output_grid.addWidget(self.imagej_checkbox, 1, 0, 1, 2)
+        output_grid.addWidget(self.gpu_box, 1, 2, 1, 2)
 
         # Darks & Flats Group
         correction_grid = QtGui.QGridLayout()
@@ -178,6 +192,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.flats_path_line = QtGui.QLineEdit()
         self.flats_path_button = QtGui.QPushButton("Browse...")
         self.flats_label = QtGui.QLabel("Flat-field:")
+
+        self.correct_box.setToolTip(self.get_help('general', 'correction'))
+        self.darks_path_button.setToolTip(self.get_help('general', 'darks'))
+        self.flats_path_button.setToolTip(self.get_help('general', 'flats'))
 
         correction_grid.addWidget(self.correct_box, 0, 0)
         correction_grid.addWidget(self.darks_label, 1, 0)
@@ -241,6 +259,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
         self.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         self.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.output_path_line.text())))
+        self.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.gpu_box.isChecked()))
         self.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.darks_path_line.text())))
         self.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.flats_path_line.text())))
 
@@ -263,7 +282,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         path_button_0 = QtGui.QPushButton("Browse ...")
         self.path_line_180 =  QtGui.QLineEdit()
         path_button_180 = QtGui.QPushButton("Browse ...")
-        self.absorptivity_checkbox = QtGui.QCheckBox('is absorptivity')
+        self.absorptivity_checkbox = QtGui.QCheckBox('absorptivity')
+
+        path_button_0.setToolTip(self.get_help('general', 'deg0'))
+        path_button_180.setToolTip(self.get_help('general', 'deg180'))
+        self.absorptivity_checkbox.setToolTip(self.get_help('general', 'absorptivity'))
 
         axis_input_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
         axis_input_grid.addWidget(self.path_line_0, 0, 1)
@@ -347,12 +370,23 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.correction = False
         self.on_correction()
 
+        if self.params.use_gpu == "True":
+            self.gpu_box.setChecked(True)
+            self.params.use_gpu = True
+        else:
+            self.gpu_box.setChecked(False)
+            self.params.use_gpu = False
+
         if self.params.absorptivity == "True":
             self.absorptivity_checkbox.setChecked(True)
             self.params.absorptivity = True
         else:
             self.absorptivity_checkbox.setChecked(False)
             self.params.absorptivity = False
+
+    def get_help(self, section, name):
+        help = config.SECTIONS[section][name]['help']
+        return help
 
     def change_value(self, name, value):
         setattr(self.params, name, value)
@@ -366,17 +400,15 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.setGeometry(self.geom)
 
     def on_proj_button_clicked(self, checked):
-        if self.proj_button.isChecked():
-            self.correct_box.setEnabled(True)
-            if self.correct_box.isChecked() == True:
-                self.params.correction = True
-                self.on_correction()
+        self.correct_box.setEnabled(True)
+        if self.correct_box.isChecked() == True:
+            self.params.correction = True
+            self.on_correction()
 
     def on_sino_button_clicked(self, checked):
-        if self.sino_button.isChecked():
-            self.correct_box.setEnabled(False)
-            self.params.correction = False
-            self.on_correction()
+        self.correct_box.setEnabled(False)
+        self.params.correction = False
+        self.on_correction()
 
     def on_input_path_clicked(self, checked):
         _set_line_edit_to_path(self, self.input_path_line, self.params.input, self.params.last_dir)
@@ -478,7 +510,11 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         self.params.config = "reco.conf"
-        self.params.write(self.params.config)
+        try:
+            self.params.write(self.params.config)
+        except IOError as e:
+            QtGui.QMessageBox.warning(self, "Warning", str(e))
+            self.on_save_as()
         try:
             os.remove(log.name)
         except OSError as e:
@@ -576,9 +612,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_num.setFont(font)
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, 999)
-        self.w_over = pg.ImageView(self)
-        self.w_over.ui.roiBtn.hide()
-        self.w_over.ui.normBtn.hide()
+        self.w_over = pg.GraphicsView()
+        self.viewbox = pg.ViewBox()
+        self.w_over.setCentralItem(self.viewbox)
+        self.histogram = pg.HistogramLUTWidget()
         self.overlap_opt = QtGui.QComboBox()
         self.overlap_opt.addItem("Subtraction overlap")
         self.overlap_opt.addItem("Addition overlap")
@@ -610,6 +647,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_spin.setValue(self.axis)
         self.update_image()
 
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Right:
+            self.slider.setValue(self.slider.value() + 1)
+        elif event.key() == QtCore.Qt.Key_Left:
+            self.slider.setValue(self.slider.value() - 1)
+        else:
+            QtGui.QMainWindow.keyPressEvent(self, event)
+
     def on_move_slider(self):
         pos = self.slider.value()
         if pos > 500:
@@ -640,8 +685,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         img = pg.ImageItem(self.arr_over.T)
         self.img_width = self.arr_over.T.shape[0]
         self.img_height = self.arr_over.T.shape[1]
-        self.w_over.addItem(img)
-        self.w_over.ui.histogram.setImageItem(img)
+        self.viewbox.addItem(img)
+        self.viewbox.setAspectLocked(True)
+        self.histogram.setImageItem(img)
 
     def update_axis(self):
         self.axis = self.width / 2 + self.move
@@ -688,6 +734,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         choose_button = QtGui.QPushButton("Choose new ...")
         self.absorptivity_checkbox.setEnabled(False)
 
+        self.extrema_checkbox.setToolTip("Remove 1% of the extrema of images")
+        choose_button.setToolTip("Pick other images for axis view")
+        self.slider.setToolTip("Move one of the images. Left / Right key move it by 1px.")
+
         axis_view_grid.addWidget(QtGui.QLabel("0 deg projection:"), 0, 0)
         axis_view_grid.addWidget(self.path_line_0, 0, 1)
         axis_view_grid.addWidget(self.extrema_checkbox, 0, 2)
@@ -703,9 +753,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         for i in reversed(range(self.axis_grid.count())):
             self.axis_grid.itemAt(i).widget().setParent(None)
 
-        self.axis_grid.addWidget(axis_view_group, 0, 0)
+        self.axis_grid.addWidget(axis_view_group, 0, 0, 1, 2)
         self.axis_grid.addWidget(self.w_over, 1, 0)
-        self.axis_grid.addWidget(self.slider, 2, 0)
+        self.axis_grid.addWidget(self.histogram, 1, 1)
+        self.axis_grid.addWidget(self.slider, 2, 0, 1, 2)
         _disable_wait_cursor()
 
         self.slider.valueChanged.connect(self.on_move_slider)

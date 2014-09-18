@@ -44,7 +44,7 @@ SECTIONS = {
             },
         'absorptivity': {
             'default': False,
-            'help': "Absorptivity of projection",
+            'help': "Absorptivity of projections",
             'action': 'store_true'
             },
         'axis': {
@@ -144,7 +144,9 @@ SECTIONS = {
         'region': {
             'default': '0:1:1',
             'type': str,
-            'help': "from:to:step sinograms to process"
+            'help': "from:to:step sinograms to process, if --from-projections is "
+                    "used then the region acts on projections, i.e. constrains "
+                    "the processed angles",
             },
         'remote': {
             'default': None,
@@ -152,7 +154,12 @@ SECTIONS = {
             'help': "ZeroMQ addresses of machines on which `ufod' is running",
             'nargs': '*',
             'metavar': 'ADDR'
-            }
+            },
+        'use_gpu': {
+            'default': False,
+            'help': "Use GPU device exclusively",
+            'action': 'store_true'
+            },
         },
     'fbp': {
         'crop_width': {
