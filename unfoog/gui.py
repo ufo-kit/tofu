@@ -76,9 +76,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.region_box.setToolTip(self.get_help('general', 'region'))
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
         self.ui.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
+        self.ui.method_box.setToolTip(self.get_help('general', 'method'))
         self.ui.axis_spin.setToolTip(self.get_help('general', 'axis'))
         self.ui.angle_step.setToolTip(self.get_help('general', 'angle'))
         self.ui.angle_offset.setToolTip(self.get_help('general', 'offset'))
+        self.ui.oversampling.setToolTip(self.get_help('dfi', 'oversampling'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.correct_box.setToolTip(self.get_help('general', 'correction'))
         self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
@@ -95,6 +97,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.from_region.valueChanged.connect(self.concatenate_region)
         self.ui.to_region.valueChanged.connect(self.concatenate_region)
         self.ui.step_region.valueChanged.connect(self.concatenate_region)
+        self.ui.method_box.currentIndexChanged.connect(self.change_method)
         self.ui.crop_box.clicked.connect(self.on_crop_width)
         self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
         self.ui.correct_box.clicked.connect(self.on_correct_box_clicked)
@@ -117,6 +120,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
         self.ui.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
+        self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', "fbp" if self.ui.method_box.currentIndex() == 0 else "dfi"))
+        self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
         self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
         self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
         self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
@@ -136,6 +141,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
         self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
+        self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
+
+        if self.params.method == "fbp":
+            self.ui.method_box.setCurrentIndex(0)
+            self.ui.oversampling.setEnabled(False)
+            self.ui.oversampling_label.setEnabled(False)
+        elif self.params.method == "dfi":
+            self.ui.method_box.setCurrentIndex(1)
+            self.ui.oversampling.setEnabled(True)
+            self.ui.oversampling_label.setEnabled(True)
 
         if self.params.enable_region == "True":
             self.params.enable_region = True
@@ -198,6 +213,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.resize(541, 761)
         elif current_tab == 1 and self.axis_layout == True:
             self.ui.setGeometry(self.geom)
+
+    def change_method(self):
+        if self.ui.method_box.currentIndex() == 0:
+            self.ui.oversampling.setEnabled(False)
+            self.ui.oversampling_label.setEnabled(False)
+        else:
+            self.ui.oversampling.setEnabled(True)
+            self.ui.oversampling_label.setEnabled(True)
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -331,6 +354,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.crop_box.setChecked(False)
         self.ui.correct_box.setChecked(False)
         self.ui.absorptivity_checkbox.setChecked(False)
+        self.ui.gpu_box.setChecked(False)
 
         self.ui.from_region.setValue(0)
         self.ui.to_region.setValue(1)
@@ -338,6 +362,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_spin.setValue(0)
         self.ui.angle_step.setValue(0)
         self.ui.angle_offset.setValue(0)
+        self.ui.oversampling.setValue(0)
 
         self.ui.from_region.setEnabled(False)
         self.ui.to_region.setEnabled(False)
@@ -345,6 +370,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.correct_box.setEnabled(False)
         self.on_correction()
         self.ui.text_browser.clear()
+        self.ui.method_box.setCurrentIndex(0)
 
         self.params.from_projections = False
         self.params.enable_cropping = False
@@ -352,6 +378,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.absorptivity = False
         self.params.correction = False
         self.params.crop_width = None
+        self.params.use_gpu = False
 
     def closeEvent(self, event):
         self.params.config = "reco.conf"
