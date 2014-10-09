@@ -62,7 +62,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui = uic.loadUi(ui_file, self)
         self.ui.show()
         self.ui.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.ui.setGeometry(100, 100, 541, 761)
+        self.ui.setGeometry(100, 100, 541, 825)
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.stacked_widget.setCurrentIndex(0)
         self.axis_layout = False
@@ -98,6 +98,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.to_region.valueChanged.connect(self.concatenate_region)
         self.ui.step_region.valueChanged.connect(self.concatenate_region)
         self.ui.method_box.currentIndexChanged.connect(self.change_method)
+        self.ui.axis_spin.valueChanged.connect(self.change_axis_spin)
+        self.ui.angle_step.valueChanged.connect(self.change_angle_step)
         self.ui.crop_box.clicked.connect(self.on_crop_width)
         self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
         self.ui.correct_box.clicked.connect(self.on_correct_box_clicked)
@@ -112,15 +114,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.clear_action.triggered.connect(self.on_clear)
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
+        self.ui.add_params.clicked.connect(self.change_method)
+        self.ui.slider.valueChanged.connect(self.on_move_slider)
+        self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
+        self.ui.choose_button.clicked.connect(self.on_choose_new)
+        self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
 
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
         self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.ui.region_box.clicked.connect(lambda value: self.change_value('enable_region', self.ui.region_box.isChecked()))
-        self.ui.axis_spin.valueChanged.connect(lambda value: self.change_value('axis', value))
-        self.ui.angle_step.valueChanged.connect(lambda value: self.change_value('angle', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
-        self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', "fbp" if self.ui.method_box.currentIndex() == 0 else "dfi"))
+        if self.add_params.isChecked():
+            self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', self.method))
         self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
         self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
         self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
@@ -145,12 +151,9 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         if self.params.method == "fbp":
             self.ui.method_box.setCurrentIndex(0)
-            self.ui.oversampling.setEnabled(False)
-            self.ui.oversampling_label.setEnabled(False)
         elif self.params.method == "dfi":
             self.ui.method_box.setCurrentIndex(1)
-            self.ui.oversampling.setEnabled(True)
-            self.ui.oversampling_label.setEnabled(True)
+        self.change_method()
 
         if self.params.enable_region == "True":
             self.params.enable_region = True
@@ -209,18 +212,20 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
         if current_tab == 0 and self.axis_layout == True:
-            self.geom = self.ui.geometry()
-            self.ui.resize(541, 761)
+            self.ui.resize(541, 825)
         elif current_tab == 1 and self.axis_layout == True:
-            self.ui.setGeometry(self.geom)
+            self.ui.resize(925, 790)
 
     def change_method(self):
         if self.ui.method_box.currentIndex() == 0:
-            self.ui.oversampling.setEnabled(False)
-            self.ui.oversampling_label.setEnabled(False)
-        else:
-            self.ui.oversampling.setEnabled(True)
-            self.ui.oversampling_label.setEnabled(True)
+            self.ui.add_params.setVisible(False)
+            self.ui.dfi_params.setVisible(False)
+            self.params.method = "fbp"
+
+        elif self.ui.method_box.currentIndex() == 1:
+            self.ui.add_params.setVisible(True)
+            self.ui.dfi_params.setVisible(self.ui.add_params.isChecked())
+            self.params.method = "dfi"
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -272,6 +277,18 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.ui.crop_box.isChecked() == True:
             self.on_crop_width()
 
+    def change_axis_spin(self):
+        if self.ui.axis_spin.value() == 0:
+            self.params.axis = None
+        else:
+            self.params.axis = self.ui.axis_spin.value()
+
+    def change_angle_step(self):
+        if self.ui.angle_step.value() == 0:
+            self.params.angle = None
+        else:
+            self.params.angle = self.ui.angle_step.value()
+
     def on_crop_width(self):
         if self.ui.crop_box.isChecked() == True:
             try:
@@ -298,12 +315,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.on_correction()
 
     def on_correction(self):
-        self.ui.darks_path_line.setEnabled(self.params.correction)
-        self.ui.darks_path_button.setEnabled(self.params.correction)
-        self.ui.darks_label.setEnabled(self.params.correction)
-        self.ui.flats_path_line.setEnabled(self.params.correction)
-        self.ui.flats_path_button.setEnabled(self.params.correction)
-        self.ui.flats_label.setEnabled(self.params.correction)
+        self.ui.darks_path_line.setVisible(self.params.correction)
+        self.ui.darks_path_button.setVisible(self.params.correction)
+        self.ui.darks_label.setVisible(self.params.correction)
+        self.ui.flats_path_line.setVisible(self.params.correction)
+        self.ui.flats_path_button.setVisible(self.params.correction)
+        self.ui.flats_label.setVisible(self.params.correction)
 
     def on_darks_path_clicked(self, checked):
         _set_line_edit_to_path(self, self.ui.darks_path_line, self.params.darks, self.params.last_dir)
@@ -424,6 +441,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
+
         log.seek(0)
         logtxt = open(log.name).read()
         self.ui.text_browser.setPlainText(logtxt)
@@ -503,11 +521,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.axis_layout = True
         self.pos = 0
         _disable_wait_cursor()
-
-        self.ui.slider.valueChanged.connect(self.on_move_slider)
-        self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
-        self.ui.choose_button.clicked.connect(self.on_choose_new)
-        self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Right:

@@ -51,8 +51,6 @@ SECTIONS = {
             'default': None,
             'type': float,
             'help': "Axis position",
-            'nargs': '+',
-            'action': 'append'
             },
         'config': {
             'default': NAME,
@@ -147,13 +145,6 @@ SECTIONS = {
             'help': "from:to:step sinograms to process, if --from-projections is "
                     "used then the region acts on projections, i.e. constrains "
                     "the processed angles",
-            },
-        'remote': {
-            'default': None,
-            'type': str,
-            'help': "ZeroMQ addresses of machines on which `ufod' is running",
-            'nargs': '*',
-            'metavar': 'ADDR'
             },
         'use_gpu': {
             'default': False,
@@ -303,11 +294,6 @@ class TomoParams(RecoParams):
         self.crop_width = self._config.value('fbp', 'crop_width', target=int)
         self.oversampling = self._config.value('dfi', 'oversampling', target=int)
         self.axis = self._config.value('general', 'axis', target=float)
-
-        def list_split(arg):
-            return re.split(' |, |,', arg)
-
-        self.remote = self._config.value('general', 'remotes', [], target=list_split)
 
     def add_arguments(self, parser):
         parser = super(TomoParams, self).add_arguments(parser)
