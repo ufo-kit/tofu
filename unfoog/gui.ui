@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>541</width>
+    <width>984</width>
     <height>907</height>
    </rect>
   </property>
@@ -66,7 +66,7 @@
        <enum>Qt::LeftToRight</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="Reconstruction">
        <property name="enabled">
@@ -117,6 +117,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="toolTip">
+             <string notr="true">Show images after reconstruction with ImageJ</string>
+            </property>
             <property name="text">
              <string>Show images after reconstruction</string>
             </property>
@@ -125,7 +128,7 @@
           <item row="11" column="4">
            <widget class="QPushButton" name="flats_path_button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -341,7 +344,7 @@
           <item row="10" column="4">
            <widget class="QPushButton" name="darks_path_button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -465,7 +468,7 @@
           <item row="11" column="1" colspan="3">
            <widget class="QLineEdit" name="flats_path_line">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -481,7 +484,7 @@
           <item row="11" column="0">
            <widget class="QLabel" name="flats_label">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -512,14 +515,14 @@
              <string notr="true"/>
             </property>
             <property name="text">
-             <string>Use Correction</string>
+             <string>Use correction</string>
             </property>
            </widget>
           </item>
           <item row="10" column="0">
            <widget class="QLabel" name="darks_label">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -538,7 +541,7 @@
           <item row="10" column="1" colspan="3">
            <widget class="QLineEdit" name="darks_path_line">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -616,6 +619,9 @@
                <property name="enabled">
                 <bool>true</bool>
                </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
                <property name="text">
                 <string>  Oversampling:</string>
                </property>
@@ -632,6 +638,9 @@
               <widget class="QSpinBox" name="oversampling">
                <property name="enabled">
                 <bool>true</bool>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
                </property>
                <property name="maximum">
                 <number>99</number>
@@ -788,7 +797,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Additional Parameters</string>
+               <string>Additional parameters</string>
               </property>
              </widget>
             </item>
@@ -811,6 +820,9 @@
             <property name="focusPolicy">
              <enum>Qt::ClickFocus</enum>
             </property>
+            <property name="toolTip">
+             <string notr="true"/>
+            </property>
             <property name="text">
              <string> Parameters</string>
             </property>
@@ -831,7 +843,7 @@
              </font>
             </property>
             <property name="text">
-             <string> Correction for Projections</string>
+             <string> Correction for projections</string>
             </property>
            </widget>
           </item>
@@ -956,7 +968,7 @@
                  <string notr="true"/>
                 </property>
                 <property name="text">
-                 <string>absorptivity</string>
+                 <string>Absorptivity</string>
                 </property>
                </widget>
               </item>
@@ -1049,6 +1061,19 @@
                  <property name="spacing">
                   <number>6</number>
                  </property>
+                 <item row="1" column="3">
+                  <widget class="QLabel" name="axis_num">
+                   <property name="font">
+                    <font>
+                     <weight>75</weight>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
                  <item row="0" column="0">
                   <widget class="QLabel" name="label_0_2">
                    <property name="text">
@@ -1070,26 +1095,16 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="2">
-                  <widget class="QCheckBox" name="extrema_checkbox">
-                   <property name="toolTip">
-                    <string>Remove 1% of the extrema of images</string>
-                   </property>
-                   <property name="text">
-                    <string>remove extrema</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="4">
                   <widget class="QComboBox" name="overlap_opt">
                    <item>
                     <property name="text">
-                     <string>Subtraction Overlap</string>
+                     <string>Subtraction overlap</string>
                     </property>
                    </item>
                    <item>
                     <property name="text">
-                     <string>Addition Overlap</string>
+                     <string>Addition overlap</string>
                     </property>
                    </item>
                   </widget>
@@ -1117,7 +1132,7 @@
                     <string/>
                    </property>
                    <property name="text">
-                    <string>absorptivity</string>
+                    <string>Absorptivity</string>
                    </property>
                   </widget>
                  </item>
@@ -1128,19 +1143,6 @@
                    </property>
                    <property name="text">
                     <string>Choose new</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="3">
-                  <widget class="QLabel" name="axis_num">
-                   <property name="font">
-                    <font>
-                     <weight>75</weight>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -1175,6 +1177,16 @@
                    </layout>
                   </widget>
                  </item>
+                 <item row="0" column="2">
+                  <widget class="QCheckBox" name="extrema_checkbox">
+                   <property name="toolTip">
+                    <string notr="true">Remove 1% of the extrema of images</string>
+                   </property>
+                   <property name="text">
+                    <string>Remove extrema</string>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
                </item>
               </layout>
@@ -1182,6 +1194,185 @@
             </item>
            </layout>
           </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="phgen">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>300</height>
+        </size>
+       </property>
+       <attribute name="title">
+        <string>Phantom Generator</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QWidget" name="widget" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>270</height>
+           </size>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <property name="topMargin">
+            <number>9</number>
+           </property>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_7">
+             <item row="7" column="0">
+              <widget class="QPushButton" name="show_phgen">
+               <property name="toolTip">
+                <string notr="true">Show images with ImageJ</string>
+               </property>
+               <property name="text">
+                <string>Show images?</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0" colspan="2">
+              <widget class="QCheckBox" name="reco_sino_phgen">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>Reconstruct generated sinogram</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0" colspan="2">
+              <widget class="QLabel" name="sum_abs_diff_label">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string> Sum of absolute differences:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="2">
+              <widget class="QLabel" name="sum_abs_diff">
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QCheckBox" name="generate_phantom">
+               <property name="text">
+                <string>Phantom</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0" colspan="2">
+              <widget class="QLabel" name="label_7">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string> Generate</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QCheckBox" name="generate_sinogram">
+               <property name="text">
+                <string>Sinogram</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLabel" name="label_11">
+               <property name="text">
+                <string> Width:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QSpinBox" name="phgen_width">
+               <property name="maximum">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLabel" name="label_10">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string> Height:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QSpinBox" name="phgen_height">
+               <property name="maximum">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="2">
+              <widget class="QPushButton" name="generate_button">
+               <property name="text">
+                <string>Generate</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
@@ -1195,7 +1386,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>541</width>
+     <width>984</width>
      <height>27</height>
     </rect>
    </property>

@@ -119,6 +119,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
         self.ui.choose_button.clicked.connect(self.on_choose_new)
         self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
+        self.ui.generate_button.clicked.connect(self.on_generate)
+        self.ui.phgen_width.valueChanged.connect(self.on_phgen_width_changed)
+        self.ui.phgen_height.valueChanged.connect(self.on_phgen_height_changed)
+        self.ui.show_phgen.clicked.connect(self.on_show_phgen)
+        self.ui.reco_sino_phgen.clicked.connect(self.on_reco_sino)
 
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
@@ -215,6 +220,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.resize(541, 825)
         elif current_tab == 1 and self.axis_layout == True:
             self.ui.resize(925, 790)
+        elif current_tab == 2:
+            if self.axis_layout == True:
+                self.ui.resize(541, 825)
+            self.on_phantom_generator()
 
     def change_method(self):
         if self.ui.method_box.currentIndex() == 0:
@@ -385,7 +394,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.to_region.setEnabled(False)
         self.ui.step_region.setEnabled(False)
         self.ui.correct_box.setEnabled(False)
-        self.on_correction()
         self.ui.text_browser.clear()
         self.ui.method_box.setCurrentIndex(0)
 
@@ -396,6 +404,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.correction = False
         self.params.crop_width = None
         self.params.use_gpu = False
+        self.params.angle = None
+        self.params.axis = None
+        self.on_correction()
 
     def closeEvent(self, event):
         self.params.config = "reco.conf"
@@ -430,7 +441,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             tif = tempfile.NamedTemporaryFile(delete = False, suffix = '.ijm')
             tif.write('run("Image Sequence...", "open=')
             tif.write(output_path)
-            tif.write(' number=-1 starting=1 increment=1 scale=100 file=[] sort use");')
+            tif.write(' number=-1 starting=1 increment=1 scale=100 file=tif sort use");')
             tif.seek(0)
 
             def call_imagej():
@@ -441,6 +452,11 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
+
+        if self.ui.reco_sino_phgen.isChecked():
+            self.ui.reco_sino_phgen.setChecked(False)
+            self.on_sum_absolute_differences()
+            self.ui.tab_widget.setCurrentIndex(2)
 
         log.seek(0)
         logtxt = open(log.name).read()
@@ -575,6 +591,89 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.extrema_checkbox.setChecked(False)
         self.axis_layout = False
         self.ui.resize(541, 761)
+
+    def on_phantom_generator(self):
+        self.phantom = False
+        self.sino = False
+        if self.ui.generate_phantom.isChecked():
+            self.phantom = '-p '
+        if self.ui.generate_sinogram.isChecked():
+            self.sino = '-s '
+
+    def on_phgen_width_changed(self):
+        self.width = ' -w ' + str(self.ui.phgen_width.value())
+
+    def on_phgen_height_changed(self):
+        self.height = ' -h ' + str(self.ui.phgen_height.value())
+
+    def on_generate(self):
+        _enable_wait_cursor()
+        run_phgen = "generate " + str(self.sino) + str(self.phantom) + str(self.width) + str(self.height)
+        subprocess.call([run_phgen], shell = True)
+        for sino in os.listdir(os.getcwd()):
+            if os.path.isfile(os.path.join(os.getcwd(), sino)) and 'sinogram' in sino:
+                self.generated_sinogram = sino
+        _disable_wait_cursor()
+
+    def on_reco_sino(self):
+        if self.ui.reco_sino_phgen.isChecked():
+            self.on_clear()
+            self.ui.input_path_line.setText(self.generated_sinogram)
+            self.ui.output_path_line.setText(os.getcwd())
+            if self.ui.phgen_width.value() == self.ui.phgen_height.value() and self.params.method == 'fbp':
+                self.params.enable_cropping = True
+                self.ui.crop_box.setChecked(True)
+                self.params.crop_width = self.ui.phgen_width.value()
+            self.ui.tab_widget.setCurrentIndex(0)
+
+    def on_show_phgen(self):
+        phgen_macro = tempfile.NamedTemporaryFile(delete = False, suffix = '.ijm')
+        phgen_macro.write('run("Image Sequence...", "open=')
+        phgen_macro.write(str(os.getcwd()))
+        phgen_macro.write(' number=[] starting=[] increment=[] file=tif sort use");')
+        phgen_macro.seek(0)
+
+        def call_imagej_phgen():
+            subprocess.call(["imagej -macro " + phgen_macro.name], shell = True)
+
+        process = threading.Thread(target = call_imagej_phgen)
+        process.start()
+
+    def on_sum_absolute_differences(self):
+        _enable_wait_cursor()
+        for slice_file in os.listdir(os.getcwd()):
+            if os.path.isfile(os.path.join(os.getcwd(), slice_file)) and 'slice' in slice_file:
+                slice = slice_file
+        for phantom_file in os.listdir(os.getcwd()):
+            if os.path.isfile(os.path.join(os.getcwd(), phantom_file)) and 'phantom' in phantom_file:
+                phantom = phantom_file
+
+        slice_tif = tifffile.TiffFile(slice)
+        phantom_tif = tifffile.TiffFile(phantom)
+        slice_array = slice_tif.asarray()
+        phantom_array = phantom_tif.asarray()
+        slice_shape = slice_array.shape
+        phantom_shape = phantom_array.shape
+
+        if slice_shape[0] > phantom_shape[0]:
+            height = phantom_shape[0] - 1
+        else:
+            height = slice_shape[0] - 1
+        if slice_shape[1] > phantom_shape[1]:
+            width = phantom_shape[1] - 1
+        else:
+            width = slice_shape[1] - 1
+
+        sum_abs_diff = 0
+        try:
+            for x in range (0, height):
+                for y in range(0, width):
+                    sum_abs_diff += abs(slice_array[x][y] - phantom_array[x][y])
+
+            self.ui.sum_abs_diff.setText(str(sum_abs_diff))
+        except Exception as e:
+            QtGui.QMessageBox.warning(self, "Warning", str(e))
+        _disable_wait_cursor()
 
 
 def main(params):
