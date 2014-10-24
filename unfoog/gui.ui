@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>984</width>
+    <width>802</width>
     <height>907</height>
    </rect>
   </property>
@@ -15,12 +15,6 @@
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>541</width>
-    <height>825</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Tomoviewer</string>
@@ -50,6 +44,12 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>530</width>
+        <height>0</height>
+       </size>
+      </property>
       <property name="font">
        <font>
         <stylestrategy>PreferDefault</stylestrategy>
@@ -66,14 +66,14 @@
        <enum>Qt::LeftToRight</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="Reconstruction">
        <property name="enabled">
         <bool>true</bool>
        </property>
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -89,765 +89,821 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <layout class="QGridLayout" name="reco_grid">
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <item row="24" column="2" colspan="3">
-           <widget class="QCheckBox" name="gpu_box">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Use GPU exclusively</string>
-            </property>
-           </widget>
-          </item>
-          <item row="24" column="0" colspan="2">
-           <widget class="QCheckBox" name="imagej_checkbox">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true">Show images after reconstruction with ImageJ</string>
-            </property>
-            <property name="text">
-             <string>Show images after reconstruction</string>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="4">
-           <widget class="QPushButton" name="flats_path_button">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Browse ...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="input_path_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>  Path:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="input_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="mouseTracking">
-             <bool>false</bool>
-            </property>
-            <property name="toolTip">
-             <string/>
-            </property>
-            <property name="text">
-             <string> Input</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QCheckBox" name="region_box">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="mouseTracking">
-             <bool>false</bool>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="statusTip">
-             <string/>
-            </property>
-            <property name="whatsThis">
-             <string/>
-            </property>
-            <property name="autoFillBackground">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>Region (from:to:step):</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QRadioButton" name="proj_button">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Projections</string>
-            </property>
-            <property name="autoExclusive">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="23" column="0">
-           <widget class="QLabel" name="output_path_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string/>
-            </property>
-            <property name="text">
-             <string>  Path:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1" colspan="3">
-           <widget class="QLineEdit" name="input_path_line">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item row="30" column="3" colspan="2">
-           <widget class="QPushButton" name="reco_button">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Reconstruct</string>
-            </property>
-           </widget>
-          </item>
-          <item row="23" column="1" colspan="3">
-           <widget class="QLineEdit" name="output_path_line">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="4">
-           <widget class="QPushButton" name="input_path_button">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Browse ...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QRadioButton" name="sino_button">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Sinograms</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="autoExclusive">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="31" column="0" colspan="5">
-           <widget class="QTextBrowser" name="text_browser">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Sunken</enum>
-            </property>
-            <property name="midLineWidth">
-             <number>0</number>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="4">
-           <widget class="QPushButton" name="darks_path_button">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Browse ...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="22" column="0">
-           <widget class="QLabel" name="output_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string> Output</string>
-            </property>
-           </widget>
-          </item>
-          <item row="23" column="4">
-           <widget class="QPushButton" name="output_path_button">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Browse ...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2" colspan="3">
-           <layout class="QGridLayout" name="gridLayout">
-            <item row="0" column="1">
-             <widget class="QSpinBox" name="to_region">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="maximum">
-               <number>10000</number>
-              </property>
-              <property name="value">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QSpinBox" name="from_region">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="maximum">
-               <number>10000</number>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QSpinBox" name="step_region">
-              <property name="enabled">
-               <bool>false</bool>
-              </property>
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="maximum">
-               <number>10000</number>
-              </property>
-              <property name="value">
-               <number>1</number>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="11" column="1" colspan="3">
-           <widget class="QLineEdit" name="flats_path_line">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="0">
-           <widget class="QLabel" name="flats_label">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="lineWidth">
-             <number>0</number>
-            </property>
-            <property name="text">
-             <string>  Flat-field:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="9" column="0">
-           <widget class="QCheckBox" name="correct_box">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>Use correction</string>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="0">
-           <widget class="QLabel" name="darks_label">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string>  Dark-field:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="1" colspan="3">
-           <widget class="QLineEdit" name="darks_path_line">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-           </widget>
-          </item>
-          <item row="13" column="2" colspan="3">
-           <layout class="QGridLayout" name="gridLayout_3">
-            <item row="0" column="0">
-             <widget class="QLabel" name="label">
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>  Method:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="method_box">
-              <property name="font">
-               <font>
-                <weight>50</weight>
-                <bold>false</bold>
-               </font>
-              </property>
-              <item>
-               <property name="text">
-                <string>FBP</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>DFI</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>SART</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>ASD-Pocs</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="18" column="0" colspan="5">
-           <widget class="QWidget" name="dfi_params" native="true">
-            <layout class="QGridLayout" name="gridLayout_6">
+         <widget class="QWidget" name="reconstruction_widget" native="true">
+          <layout class="QGridLayout" name="gridLayout_15">
+           <item row="0" column="0">
+            <layout class="QGridLayout" name="reco_grid">
+             <property name="sizeConstraint">
+              <enum>QLayout::SetDefaultConstraint</enum>
+             </property>
              <property name="margin">
               <number>0</number>
              </property>
-             <item row="1" column="3">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="oversampling_label">
-               <property name="enabled">
-                <bool>true</bool>
+             <property name="spacing">
+              <number>6</number>
+             </property>
+             <item row="15" column="4">
+              <widget class="QPushButton" name="output_path_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
                <property name="toolTip">
                 <string notr="true"/>
                </property>
                <property name="text">
-                <string>  Oversampling:</string>
+                <string>Browse ...</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="2">
-              <widget class="QLabel" name="label_3">
+             <item row="16" column="2" colspan="3">
+              <widget class="QCheckBox" name="gpu_box">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="text">
+                <string>Use GPU exclusively</string>
+               </property>
+              </widget>
+             </item>
+             <item row="16" column="0" colspan="2">
+              <widget class="QCheckBox" name="show_reco_images_box">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Show images after reconstruction</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="4">
+              <widget class="QPushButton" name="flats_path_button">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Browse ...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="input_path_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  Path:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="input_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="mouseTracking">
+                <bool>false</bool>
+               </property>
+               <property name="toolTip">
                 <string/>
+               </property>
+               <property name="text">
+                <string> Input</string>
                </property>
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QSpinBox" name="oversampling">
-               <property name="enabled">
-                <bool>true</bool>
+              <widget class="QCheckBox" name="region_box">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="mouseTracking">
+                <bool>false</bool>
                </property>
                <property name="toolTip">
                 <string notr="true"/>
                </property>
-               <property name="maximum">
-                <number>99</number>
+               <property name="statusTip">
+                <string/>
                </property>
-               <property name="value">
+               <property name="whatsThis">
+                <string/>
+               </property>
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <property name="text">
+                <string>Region (from:to:step):</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QRadioButton" name="proj_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Projections</string>
+               </property>
+               <property name="autoExclusive">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="15" column="0">
+              <widget class="QLabel" name="output_path_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string/>
+               </property>
+               <property name="text">
+                <string>  Path:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1" colspan="3">
+              <widget class="QLineEdit" name="input_path_line">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="17" column="3" colspan="2">
+              <widget class="QPushButton" name="reco_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Reconstruct</string>
+               </property>
+              </widget>
+             </item>
+             <item row="15" column="1" colspan="3">
+              <widget class="QLineEdit" name="output_path_line">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="4">
+              <widget class="QPushButton" name="input_path_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Browse ...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="18" column="0" colspan="5">
+              <widget class="QTextBrowser" name="text_browser">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Sunken</enum>
+               </property>
+               <property name="midLineWidth">
                 <number>0</number>
                </property>
               </widget>
              </item>
+             <item row="1" column="0">
+              <widget class="QRadioButton" name="sino_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Sinograms</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <property name="autoExclusive">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="4">
+              <widget class="QPushButton" name="darks_path_button">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Browse ...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="14" column="0">
+              <widget class="QLabel" name="output_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string> Output</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2" colspan="3">
+              <layout class="QGridLayout" name="region_layout">
+               <item row="0" column="1">
+                <widget class="QSpinBox" name="to_region">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="maximum">
+                  <number>10000</number>
+                 </property>
+                 <property name="value">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QSpinBox" name="from_region">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="maximum">
+                  <number>10000</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QSpinBox" name="step_region">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="maximum">
+                  <number>10000</number>
+                 </property>
+                 <property name="value">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="8" column="1" colspan="3">
+              <widget class="QLineEdit" name="flats_path_line">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="0">
+              <widget class="QLabel" name="flats_label">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="lineWidth">
+                <number>0</number>
+               </property>
+               <property name="text">
+                <string>  Flat-field:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0">
+              <widget class="QCheckBox" name="correct_box">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Use Correction</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="darks_label">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  Dark-field:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1" colspan="3">
+              <widget class="QLineEdit" name="darks_path_line">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="10" column="2" colspan="3">
+              <layout class="QGridLayout" name="method_layout">
+               <item row="0" column="0">
+                <widget class="QLabel" name="method_label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>  Method:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="method_box">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>FBP</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>DFI</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SART</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>ASD-Pocs</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="12" column="0" colspan="5">
+              <widget class="QWidget" name="dfi_params" native="true">
+               <layout class="QGridLayout" name="gridLayout_6">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="3">
+                 <widget class="QLabel" name="label_4">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="oversampling_label">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>  Oversampling:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="label_3">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QSpinBox" name="oversampling">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="maximum">
+                   <number>99</number>
+                  </property>
+                  <property name="value">
+                   <number>0</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="13" column="0" colspan="5">
+              <widget class="Line" name="line_2">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0" colspan="5">
+              <widget class="Line" name="line">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="0" colspan="5">
+              <widget class="Line" name="line_3">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="11" column="0" colspan="5">
+              <layout class="QGridLayout" name="params_layout">
+               <item row="1" column="0">
+                <widget class="QLabel" name="angle_label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>  Angle step (rad):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="offset_label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>  Angle offset (rad):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="axis_label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>  Axis (pixel):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QDoubleSpinBox" name="angle_offset">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="decimals">
+                  <number>10</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1" colspan="2">
+                <widget class="QDoubleSpinBox" name="axis_spin">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="maximum">
+                  <double>8192.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1" colspan="2">
+                <widget class="QDoubleSpinBox" name="angle_step">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true"/>
+                 </property>
+                 <property name="decimals">
+                  <number>10</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="3">
+                <widget class="QCheckBox" name="crop_box">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="toolTip">
+                  <string notr="true">Crop width automatically</string>
+                 </property>
+                 <property name="text">
+                  <string>Crop width</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0" colspan="4">
+                <widget class="QCheckBox" name="add_params">
+                 <property name="font">
+                  <font>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Additional Parameters</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="10" column="0" colspan="2">
+              <widget class="QLabel" name="parameters_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="focusPolicy">
+                <enum>Qt::ClickFocus</enum>
+               </property>
+               <property name="text">
+                <string> Parameters</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0" colspan="4">
+              <widget class="QLabel" name="correction_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string> Correction for Projections</string>
+               </property>
+              </widget>
+             </item>
             </layout>
-           </widget>
-          </item>
-          <item row="21" column="0" colspan="5">
-           <widget class="Line" name="line_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0" colspan="5">
-           <widget class="Line" name="line">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="0" colspan="5">
-           <widget class="Line" name="line_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="17" column="0" colspan="5">
-           <layout class="QGridLayout" name="gridLayout_2">
-            <item row="1" column="0">
-             <widget class="QLabel" name="angle_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
+           </item>
+           <item row="0" column="1">
+            <widget class="QGroupBox" name="reco_images_widget">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="title">
+              <string/>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_9">
+              <property name="margin">
+               <number>0</number>
               </property>
-              <property name="toolTip">
-               <string notr="true"/>
+              <property name="spacing">
+               <number>6</number>
               </property>
-              <property name="text">
-               <string>  Angle step (rad):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="3">
-             <widget class="QLabel" name="offset_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="text">
-               <string>  Angle offset (rad):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="axis_label">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="text">
-               <string>  Axis (pixel):</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="4">
-             <widget class="QDoubleSpinBox" name="angle_offset">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="decimals">
-               <number>10</number>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1" colspan="2">
-             <widget class="QDoubleSpinBox" name="axis_spin">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="maximum">
-               <double>8192.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1" colspan="2">
-             <widget class="QDoubleSpinBox" name="angle_step">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true"/>
-              </property>
-              <property name="decimals">
-               <number>10</number>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="3">
-             <widget class="QCheckBox" name="crop_box">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string notr="true">Crop width automatically</string>
-              </property>
-              <property name="text">
-               <string>Crop width</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0" colspan="4">
-             <widget class="QCheckBox" name="add_params">
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Additional parameters</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="13" column="0" colspan="2">
-           <widget class="QLabel" name="params_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::ClickFocus</enum>
-            </property>
-            <property name="toolTip">
-             <string notr="true"/>
-            </property>
-            <property name="text">
-             <string> Parameters</string>
-            </property>
-           </widget>
-          </item>
-          <item row="8" column="0" colspan="4">
-           <widget class="QLabel" name="correction_label">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string> Correction for projections</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
+              <item row="0" column="0">
+               <layout class="QGridLayout" name="reco_images">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+               </layout>
+              </item>
+              <item row="1" column="0">
+               <widget class="QSlider" name="reco_slider">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -863,344 +919,288 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
-         <widget class="QStackedWidget" name="stacked_widget">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="lineWidth">
-           <number>0</number>
-          </property>
-          <property name="midLineWidth">
-           <number>0</number>
-          </property>
-          <property name="currentIndex">
-           <number>1</number>
-          </property>
-          <widget class="QWidget" name="axis_opts">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>200</height>
-            </size>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
-            <item>
-             <layout class="QGridLayout" name="axis_opts_grid">
-              <property name="margin">
-               <number>0</number>
-              </property>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="path_line_180">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+         <widget class="QWidget" name="widget_2" native="true">
+          <layout class="QGridLayout" name="gridLayout_8">
+           <item row="0" column="1">
+            <layout class="QGridLayout" name="axis_opts_grid">
+             <property name="margin">
+              <number>0</number>
+             </property>
+             <item row="4" column="0" rowspan="3" colspan="3">
+              <widget class="QWidget" name="axis_options" native="true">
+               <layout class="QGridLayout" name="gridLayout_14">
+                <property name="margin">
+                 <number>0</number>
                 </property>
-                <property name="toolTip">
-                 <string notr="true"/>
+                <property name="spacing">
+                 <number>0</number>
                 </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QPushButton" name="path_button_180">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>Browse ...</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_180">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>  180 deg projection</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLineEdit" name="path_line_0">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="2">
-               <widget class="QCheckBox" name="absorptivity_checkbox">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>Absorptivity</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="2">
-               <widget class="QPushButton" name="run_button">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Run</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_0">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>  0 deg projection:</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QPushButton" name="path_button_0">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="toolTip">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>Browse ...</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="axis_view">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>800</width>
-             <height>600</height>
-            </size>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_3">
-            <item>
-             <widget class="QGroupBox" name="groupBox">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="title">
-               <string/>
-              </property>
-              <property name="flat">
-               <bool>true</bool>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_4">
-               <item>
-                <layout class="QGridLayout" name="axis_grid">
-                 <property name="spacing">
-                  <number>6</number>
-                 </property>
-                 <item row="1" column="3">
-                  <widget class="QLabel" name="axis_num">
-                   <property name="font">
-                    <font>
-                     <weight>75</weight>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="label_0_2">
-                   <property name="text">
-                    <string>  0 deg projection:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="3">
-                  <widget class="QLabel" name="img_size">
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="1">
-                  <widget class="QLineEdit" name="path_line_0_2">
-                   <property name="toolTip">
-                    <string notr="true"/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="4">
-                  <widget class="QComboBox" name="overlap_opt">
-                   <item>
+                <item row="1" column="0">
+                 <layout class="QGridLayout" name="gridLayout_13">
+                  <property name="topMargin">
+                   <number>5</number>
+                  </property>
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <item row="3" column="1">
+                   <widget class="QCheckBox" name="extrema_checkbox">
                     <property name="text">
-                     <string>Subtraction overlap</string>
+                     <string>Remove extrema</string>
                     </property>
-                   </item>
-                   <item>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="axis_num">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="font">
+                     <font>
+                      <weight>75</weight>
+                      <bold>true</bold>
+                     </font>
+                    </property>
                     <property name="text">
-                     <string>Addition overlap</string>
+                     <string/>
                     </property>
-                   </item>
-                  </widget>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QLabel" name="label_180_2">
-                   <property name="text">
-                    <string>  180 deg projection:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <widget class="QLineEdit" name="path_line_180_2">
-                   <property name="toolTip">
-                    <string notr="true"/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="2">
-                  <widget class="QCheckBox" name="absorptivity_checkbox_2">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="toolTip">
-                    <string/>
-                   </property>
-                   <property name="text">
-                    <string>Absorptivity</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="4">
-                  <widget class="QPushButton" name="choose_button">
-                   <property name="toolTip">
-                    <string>Pick other images for axis view</string>
-                   </property>
-                   <property name="text">
-                    <string>Choose new</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="3" column="0" colspan="5">
-                  <widget class="QSlider" name="slider">
-                   <property name="toolTip">
-                    <string>Move one of the images. Left / Right key move it by 1px.</string>
-                   </property>
-                   <property name="maximum">
-                    <number>999</number>
-                   </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="0" colspan="5">
-                  <widget class="QGroupBox" name="groupBox_2">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="title">
-                    <string/>
-                   </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_5">
+                   </widget>
+                  </item>
+                  <item row="2" column="0" colspan="2">
+                   <widget class="Line" name="line_4">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>510</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="lineWidth">
+                     <number>1</number>
+                    </property>
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_9">
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QComboBox" name="overlap_opt">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
                     <item>
-                     <layout class="QGridLayout" name="w_over_layout"/>
+                     <property name="text">
+                      <string>Subtraction overlap</string>
+                     </property>
                     </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QCheckBox" name="extrema_checkbox">
-                   <property name="toolTip">
-                    <string notr="true">Remove 1% of the extrema of images</string>
-                   </property>
-                   <property name="text">
-                    <string>Remove extrema</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </item>
-           </layout>
-          </widget>
+                    <item>
+                     <property name="text">
+                      <string>Addition overlap</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="img_size">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QCheckBox" name="absorptivity_checkbox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>absorptivity</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="2">
+              <widget class="QLabel" name="label_12">
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_0">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  0 deg projection:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="path_line_180">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QPushButton" name="path_button_180">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Browse ...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_180">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  180 deg projection</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="path_line_0">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="2">
+              <widget class="QPushButton" name="run_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Run</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QPushButton" name="path_button_0">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>Browse ...</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="3" rowspan="8">
+              <widget class="QWidget" name="axis_view_widget" native="true">
+               <layout class="QGridLayout" name="gridLayout_11">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="axis_view_layout">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                 </layout>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QSlider" name="axis_slider">
+                  <property name="maximum">
+                   <number>999</number>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>
       </widget>
       <widget class="QWidget" name="phgen">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -1208,7 +1208,7 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>300</height>
+         <height>16777215</height>
         </size>
        </property>
        <attribute name="title">
@@ -1218,7 +1218,7 @@
         <item>
          <widget class="QWidget" name="widget" native="true">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -1226,8 +1226,14 @@
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>270</height>
+            <height>16777215</height>
            </size>
+          </property>
+          <property name="contextMenuPolicy">
+           <enum>Qt::DefaultContextMenu</enum>
+          </property>
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <property name="topMargin">
@@ -1235,33 +1241,13 @@
            </property>
            <item>
             <layout class="QGridLayout" name="gridLayout_7">
-             <item row="7" column="0">
-              <widget class="QPushButton" name="show_phgen">
-               <property name="toolTip">
-                <string notr="true">Show images with ImageJ</string>
-               </property>
-               <property name="text">
-                <string>Show images?</string>
-               </property>
-              </widget>
-             </item>
              <item row="5" column="0" colspan="2">
-              <widget class="QCheckBox" name="reco_sino_phgen">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="text">
-                <string>Reconstruct generated sinogram</string>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="0" colspan="2">
               <widget class="QLabel" name="sum_abs_diff_label">
                <property name="enabled">
                 <bool>true</bool>
                </property>
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -1273,11 +1259,11 @@
                 </font>
                </property>
                <property name="text">
-                <string> Sum of absolute differences:</string>
+                <string> Sum of absolute Differences:</string>
                </property>
               </widget>
              </item>
-             <item row="6" column="2">
+             <item row="5" column="2">
               <widget class="QLabel" name="sum_abs_diff">
                <property name="font">
                 <font>
@@ -1290,7 +1276,7 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="0">
+             <item row="0" column="0">
               <widget class="QCheckBox" name="generate_phantom">
                <property name="text">
                 <string>Phantom</string>
@@ -1300,26 +1286,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="0" colspan="2">
-              <widget class="QLabel" name="label_7">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="font">
-                <font>
-                 <weight>75</weight>
-                 <bold>true</bold>
-                </font>
-               </property>
-               <property name="text">
-                <string> Generate</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="0">
+             <item row="1" column="0">
               <widget class="QCheckBox" name="generate_sinogram">
                <property name="text">
                 <string>Sinogram</string>
@@ -1329,24 +1296,36 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
-              <widget class="QLabel" name="label_11">
+             <item row="0" column="1">
+              <widget class="QLabel" name="width_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="text">
                 <string> Width:</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="2">
+             <item row="0" column="2">
               <widget class="QSpinBox" name="phgen_width">
+               <property name="minimum">
+                <number>1</number>
+               </property>
                <property name="maximum">
                 <number>10000</number>
                </property>
+               <property name="value">
+                <number>512</number>
+               </property>
               </widget>
              </item>
-             <item row="2" column="1">
-              <widget class="QLabel" name="label_10">
+             <item row="1" column="1">
+              <widget class="QLabel" name="height_label">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -1356,17 +1335,94 @@
                </property>
               </widget>
              </item>
-             <item row="2" column="2">
+             <item row="1" column="2">
               <widget class="QSpinBox" name="phgen_height">
+               <property name="minimum">
+                <number>1</number>
+               </property>
                <property name="maximum">
                 <number>10000</number>
                </property>
+               <property name="value">
+                <number>512</number>
+               </property>
               </widget>
              </item>
-             <item row="4" column="2">
+             <item row="2" column="2">
               <widget class="QPushButton" name="generate_button">
                <property name="text">
                 <string>Generate</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_8">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0" colspan="3">
+              <widget class="Line" name="line_5">
+               <property name="minimumSize">
+                <size>
+                 <width>510</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="3" rowspan="7">
+              <widget class="QGroupBox" name="phgen_images_widget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="title">
+                <string/>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_10">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="phgen_images_layout">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                 </layout>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QSlider" name="phgen_slider">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="4" column="0" colspan="2">
+              <widget class="QCheckBox" name="reco_sino_phgen">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="text">
+                <string>Reconstruct generated sinogram</string>
                </property>
               </widget>
              </item>
@@ -1386,7 +1442,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>984</width>
+     <width>802</width>
      <height>27</height>
     </rect>
    </property>
