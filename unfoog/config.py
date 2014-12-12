@@ -176,6 +176,23 @@ SECTIONS = {
             'help': "Oversample factor"
             }
         },
+    'sart': {
+        'max_iterations': {
+            'default': 0,
+            'type': int,
+            'help': "Maximum number of iterations"
+            },
+        'relaxation_factor': {
+            'default': 0.0,
+            'type': float,
+            'help': "Relaxation factor"
+            },
+        'num_angles': {
+            'default': None,
+            'type': positive_int,
+            'help': "Sinogram height"
+            },
+        },
     'lamino': {
         'bbox': {
             'default': None,
@@ -287,7 +304,7 @@ class RecoParams(object):
 class TomoParams(RecoParams):
     def __init__(self, config_name=NAME):
         super(TomoParams, self).__init__(config_name)
-        self.read_sections(['fbp', 'dfi'])
+        self.read_sections(['fbp', 'dfi', 'sart'])
 
         self.method = self._config.value('general', 'method', 'fbp')
         self.from_projections = self._config.value('fbp', 'from_projections', False)

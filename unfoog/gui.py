@@ -80,6 +80,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setToolTip(self.get_help('general', 'angle'))
         self.ui.angle_offset.setToolTip(self.get_help('general', 'offset'))
         self.ui.oversampling.setToolTip(self.get_help('dfi', 'oversampling'))
+        self.ui.iterations_sart.setToolTip(self.get_help('sart', 'max_iterations'))
+        self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation_factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.correct_box.setToolTip(self.get_help('general', 'correction'))
         self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
@@ -134,6 +136,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.add_params.isChecked():
             self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', self.method))
         self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
+        self.ui.iterations_sart.valueChanged.connect(lambda value: self.change_value('max_iterations', value))
+        self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor', value))
         self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
         self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
         self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
@@ -154,6 +158,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
+        self.ui.iterations_sart.setValue(self.params.max_iterations if self.params.max_iterations else 0)
+        self.ui.relaxation.setValue(self.params.relaxation_factor if self.params.relaxation_factor else 0.0)
 
         if self.params.enable_region == "True":
             self.params.enable_region = True
@@ -191,6 +197,11 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.method_box.setCurrentIndex(0)
         elif self.params.method == "dfi":
             self.ui.method_box.setCurrentIndex(1)
+        elif self.params.method == "sart":
+            self.ui.method_box.setCurrentIndex(2)
+            self.ui.sino_button.setChecked(True)
+            self.params.from_projections = False
+
         self.change_method()
 
         if self.params.correction == "True" and self.proj_button.isChecked():
@@ -235,12 +246,24 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.ui.method_box.currentIndex() == 0:
             self.ui.add_params.setVisible(False)
             self.ui.dfi_params.setVisible(False)
+            self.ui.sart_params.setVisible(False)
             self.params.method = "fbp"
 
         elif self.ui.method_box.currentIndex() == 1:
             self.ui.add_params.setVisible(True)
+            self.ui.sart_params.setVisible(False)
             self.ui.dfi_params.setVisible(self.ui.add_params.isChecked())
             self.params.method = "dfi"
+
+        elif self.ui.method_box.currentIndex() == 2:
+            self.ui.add_params.setVisible(True)
+            self.ui.dfi_params.setVisible(False)
+            self.ui.sart_params.setVisible(self.ui.add_params.isChecked())
+            self.params.method = "sart"
+            self.ui.sino_button.setChecked(True)
+            self.params.from_projections = False
+            self.ui.gpu_box.setChecked(False)
+            self.params.use_gpu = False
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -445,26 +468,37 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
-        try:
-            reco.tomo(self.params)
+        if self.params.method == "sart":
+            input_sinos = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith('.tif')]
+            abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_sinos[0])
+            tif = tifffile.TiffFile(abs_sino)
+            array = tif.asarray()
+            self.params.num_angles = array.shape[0]
 
-            if self.ui.show_reco_images_box.isChecked():
-                if self.ui.reco_sino_phgen.isChecked() == False:
-                    output_path = str(self.ui.output_path_line.text())
-                    if output_path == ".":
-                        output_path = str(os.getcwd())
-                    if self.reco_images_layout == False:
-                        self.make_reco_layout()
-                    else:
-                        self.show_reco_images()
-                else:
-                    if self.phgen_graphics_view == False:
-                        self.show_phgen_images()
-                    else:
-                        self.update_phgen_images()
+        if self.params.method == "sart" and self.params.angle == None:
+            QtGui.QMessageBox.warning(self,"Warning", "Missing argument for Angle step (rad)")
 
-        except Exception as e:
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
+        else:
+            try:
+                reco.tomo(self.params)
+
+                if self.ui.show_reco_images_box.isChecked():
+                    if self.ui.reco_sino_phgen.isChecked() == False:
+                        output_path = str(self.ui.output_path_line.text())
+                        if output_path == ".":
+                            output_path = str(os.getcwd())
+                        if self.reco_images_layout == False:
+                            self.make_reco_layout()
+                        else:
+                            self.show_reco_images()
+                    else:
+                        if self.phgen_graphics_view == False:
+                            self.show_phgen_images()
+                        else:
+                            self.update_phgen_images()
+
+            except Exception as e:
+                QtGui.QMessageBox.warning(self, "Warning", str(e))
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)

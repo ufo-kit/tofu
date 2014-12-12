@@ -107,19 +107,29 @@ def tomo(params):
         g.connect_nodes(bp, writer)
 
     if params.method == 'sart':
-        art = get_task('art',
-                       method='sart',
-                       projector='joseph',
-                       regularizer='tv',
-                       max_iterations=5,
-                       max_regularizer_iterations=20,
-                       posc=False)
+        degree_angle = params.angle * 360 / (2 * 3.141592653589793)
 
-        if params.angle:
-            art.props.angle_step = params.angle
+        proj = pm.get_plugin ("ufo_ir_cl_projector_new",
+                              "libufoir_cl_projector.so")
+        proj.set_properties (model = "Joseph")
 
-        g.connect_nodes(sino_output, art)
-        g.connect_nodes(art, writer)
+        geometry = pm.get_plugin ("ufo_ir_parallel_geometry_new",
+                                  "libufoir_parallel_geometry.so")
+        geometry.set_properties (angle_step = degree_angle,
+                                 num_angles = params.num_angles)
+
+        method = pm.get_plugin ("ufo_ir_sart_method_new",
+                                "libufoir_sart_method.so")
+        method.set_properties (relaxation_factor = params.relaxation_factor,
+                               max_iterations = params.max_iterations)
+
+        ir = get_task('ir',
+                       method=method,
+                       projector=proj,
+                       geometry=geometry)
+
+        g.connect_nodes(sino_output, ir)
+        g.connect_nodes(ir, writer)
 
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
