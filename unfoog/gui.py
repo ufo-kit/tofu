@@ -828,11 +828,11 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.histogram = pg.HistogramLUTWidget()
             self.w_over = pg.GraphicsView()
             self.w_over.setCentralItem(self.viewbox)
-            self.extrema_checkbox.setChecked(False)
-            self.extrema_checkbox.setEnabled(True)
             self.ui.axis_view_layout.addWidget(self.w_over, 0, 0)
             self.ui.axis_view_layout.addWidget(self.histogram, 0, 1)
 
+        self.extrema_checkbox.setChecked(False)
+        self.extrema_checkbox.setEnabled(True)
         try:
             self.read_data()
             self.compute_axis()
@@ -956,20 +956,28 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_num.setText('center of rotation = %s px' % str(self.axis))
 
     def on_remove_extrema(self):
-        max_flip = np.percentile(self.arr_flip, 99)
-        min_flip = np.percentile(self.arr_flip, 1)
-        self.arr_flip = np.copy(self.arr_flip)
-        self.arr_flip[self.arr_flip > max_flip] = max_flip
-        self.arr_flip[self.arr_flip < min_flip] = min_flip
+        if self.ui.extrema_checkbox.isChecked():
+            self.original_flip = np.copy(self.arr_flip)
+            self.original_arr_180 = np.copy(self.arr_180)
 
-        max_180 = np.percentile(self.arr_180, 99)
-        min_180 = np.percentile(self.arr_180, 1)
-        self.arr_180 = np.copy(self.arr_180)
-        self.arr_180[self.arr_180 > max_180] = max_180
-        self.arr_180[self.arr_180 < min_180] = min_180
+            max_flip = np.percentile(self.arr_flip, 99)
+            min_flip = np.percentile(self.arr_flip, 1)
+            self.arr_flip = np.copy(self.arr_flip)
+            self.arr_flip[self.arr_flip > max_flip] = max_flip
+            self.arr_flip[self.arr_flip < min_flip] = min_flip
 
-        self.update_image()
-        self.ui.extrema_checkbox.setEnabled(False)
+            max_180 = np.percentile(self.arr_180, 99)
+            min_180 = np.percentile(self.arr_180, 1)
+            self.arr_180 = np.copy(self.arr_180)
+            self.arr_180[self.arr_180 > max_180] = max_180
+            self.arr_180[self.arr_180 < min_180] = min_180
+
+            self.update_image()
+
+        else:
+            self.arr_flip = self.original_flip
+            self.arr_180 = self.original_arr_180
+            self.update_image()
 
     def on_phantom_generator(self):
         self.phantom = ''

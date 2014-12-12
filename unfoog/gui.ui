@@ -153,7 +153,7 @@
                      </sizepolicy>
                     </property>
                     <property name="toolTip">
-                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;opaque&lt;/span&gt;: Enables depth testing and disables blending&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                     </property>
                     <item>
                      <property name="text">
@@ -233,7 +233,7 @@
              <item row="17" column="2" colspan="3">
               <widget class="QCheckBox" name="gpu_box">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -984,7 +984,7 @@
                 <enum>Qt::ClickFocus</enum>
                </property>
                <property name="text">
-                <string> Parameters</string>
+                <string> Reconstruction parameters</string>
                </property>
               </widget>
              </item>
@@ -1003,7 +1003,7 @@
                 </font>
                </property>
                <property name="text">
-                <string> Correction for Projections</string>
+                <string>Preprocessing</string>
                </property>
               </widget>
              </item>
@@ -1110,6 +1110,9 @@
                          <verstretch>0</verstretch>
                         </sizepolicy>
                        </property>
+                       <property name="toolTip">
+                        <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
                        <item>
                         <property name="text">
                          <string>translucent</string>
@@ -1130,6 +1133,9 @@
                          <verstretch>0</verstretch>
                         </sizepolicy>
                        </property>
+                       <property name="toolTip">
+                        <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
                        <property name="text">
                         <string>Scale down images? (in %)</string>
                        </property>
@@ -1142,6 +1148,9 @@
                          <horstretch>0</horstretch>
                          <verstretch>0</verstretch>
                         </sizepolicy>
+                       </property>
+                       <property name="toolTip">
+                        <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                        </property>
                        <property name="minimum">
                         <number>10</number>
@@ -1165,6 +1174,9 @@
                          <verstretch>0</verstretch>
                         </sizepolicy>
                        </property>
+                       <property name="toolTip">
+                        <string>Update already generated slices from output path as 3D volume</string>
+                       </property>
                        <property name="text">
                         <string>Update</string>
                        </property>
@@ -1187,6 +1199,9 @@
                       <widget class="QToolButton" name="crop_more_button">
                        <property name="enabled">
                         <bool>false</bool>
+                       </property>
+                       <property name="toolTip">
+                        <string/>
                        </property>
                        <property name="text">
                         <string>+</string>
