@@ -14,10 +14,10 @@ from PyQt4 import QtGui, QtCore, uic
 from scipy.signal import fftconvolve
 
 
-LOG = logging.getLogger(__name__)
-log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
+logging.getLogger('').handlers = []
 logging.getLogger('PyQt4.uic.uiparser').disabled = True
 logging.getLogger('PyQt4.uic.properties').disabled = True
+log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -25,7 +25,6 @@ logging.basicConfig(
     filename=log.name,
     filemode='a'
 )
-
 
 def _set_line_edit_to_path(parent, line_edit, directory, last_dir):
     if last_dir is not None:
@@ -68,6 +67,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
+        self.phgen_graphics_view = False
+        self.reco_images_layout = False
+        self.viewbox = False
         self.get_values_from_params()
 
         self.ui.region_box.setToolTip(self.get_help('general', 'region'))
@@ -153,12 +155,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
 
-        if self.params.method == "fbp":
-            self.ui.method_box.setCurrentIndex(0)
-        elif self.params.method == "dfi":
-            self.ui.method_box.setCurrentIndex(1)
-        self.change_method()
-
         if self.params.enable_region == "True":
             self.params.enable_region = True
             self.ui.region_box.setChecked(True)
@@ -190,6 +186,12 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.from_projections = False
             self.ui.proj_button.setChecked(False)
             self.ui.sino_button.setChecked(True)
+
+        if self.params.method == "fbp":
+            self.ui.method_box.setCurrentIndex(0)
+        elif self.params.method == "dfi":
+            self.ui.method_box.setCurrentIndex(1)
+        self.change_method()
 
         if self.params.correction == "True" and self.proj_button.isChecked():
             self.ui.correct_box.setChecked(True)
@@ -256,7 +258,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_proj_button_clicked(self):
         if self.ui.proj_button.isChecked():
             self.ui.correct_box.setEnabled(True)
-            if self.ui.correct_box.isChecked() == True:
+            if self.ui.correct_box.isChecked():
                 self.params.correction = True
                 self.on_correction()
 
@@ -287,7 +289,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.proj_button.setChecked(True)
             self.ui.correct_box.setEnabled(True)
             self.params.from_projections = True
-        if self.ui.crop_box.isChecked() == True:
+        if self.ui.crop_box.isChecked():
             self.on_crop_width()
 
     def change_axis_spin(self):
@@ -303,7 +305,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.angle = self.ui.angle_step.value()
 
     def on_crop_width(self):
-        if self.ui.crop_box.isChecked() == True:
+        if self.ui.crop_box.isChecked():
             try:
                 find_file = os.path.join(str(self.ui.input_path_line.text()), os.listdir(str(self.ui.input_path_line.text()))[0])
                 crop_file = tifffile.TiffFile(find_file)
@@ -446,21 +448,23 @@ class ApplicationWindow(QtGui.QMainWindow):
         try:
             reco.tomo(self.params)
 
-        except Exception as e:
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
-
-        if self.ui.show_reco_images_box.isChecked() :
-            try:
+            if self.ui.show_reco_images_box.isChecked():
                 if self.ui.reco_sino_phgen.isChecked() == False:
                     output_path = str(self.ui.output_path_line.text())
                     if output_path == ".":
                         output_path = str(os.getcwd())
-                    self.show_reco_images()
+                    if self.reco_images_layout == False:
+                        self.make_reco_layout()
+                    else:
+                        self.show_reco_images()
                 else:
-                    self.show_phgen_images()
+                    if self.phgen_graphics_view == False:
+                        self.show_phgen_images()
+                    else:
+                        self.update_phgen_images()
 
-            except Exception as e:
-                QtGui.QMessageBox.warning(self, "Warning", str(e))
+        except Exception as e:
+            QtGui.QMessageBox.warning(self, "Warning", str(e))
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
@@ -472,24 +476,34 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.crop_box.setChecked(False)
             self.ui.tab_widget.setCurrentIndex(2)
 
+            if self.ui.phgen_images_widget.isVisible() == False:
+                self.ui.phgen_images_widget.setVisible(True)
+                self.ui.resize(1500, 900)
+
         log.seek(0)
         logtxt = open(log.name).read()
         self.ui.text_browser.setPlainText(logtxt)
 
-    def show_reco_images(self):
+    def make_reco_layout(self):
+        self.reco_images_layout = True
         self.reco_graphics_view = pg.GraphicsView()
-        self.reco_viewbox = pg.ViewBox(invertY=True)
-        self.reco_viewbox.setAspectLocked(True)
+        self.reco_viewbox = pg.ViewBox(lockAspect=True, invertY=True)
         self.reco_histogram = pg.HistogramLUTWidget()
         self.reco_graphics_view.setCentralItem(self.reco_viewbox)
+        self.show_reco_images()
+        self.ui.reco_images.addWidget(self.reco_graphics_view, 0, 0)
+        self.ui.reco_images.addWidget(self.reco_histogram, 0, 1)
+
+    def show_reco_images(self):
+        self.levels = None
         reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith('.tif')]
         self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
         self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
         self.move_reco_slider()
-        self.ui.reco_images.addWidget(self.reco_graphics_view, 0, 0)
-        self.ui.reco_images.addWidget(self.reco_histogram, 0, 1)
-        self.ui.reco_images_widget.setVisible(True)
-        self.ui.resize(1500, 900)
+        self.levels = self.reco_histogram.getLevels()
+        if self.ui.reco_images_widget.isVisible() == False:
+            self.ui.reco_images_widget.setVisible(True)
+            self.ui.resize(1500, 900)
 
     def move_reco_slider(self):
         pos = self.ui.reco_slider.value()
@@ -497,6 +511,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.reco_viewbox.clear()
         self.reco_viewbox.addItem(img)
         self.reco_histogram.setImageItem(img)
+        if self.levels is not None:
+            self.reco_histogram.setLevels(self.levels[0], self.levels[1])
 
     def convert_tif_to_img(self, tif_file):
         tif = tifffile.TiffFile(tif_file)
@@ -510,21 +526,27 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_run(self):
         _enable_wait_cursor()
+        if self.viewbox == False:
+            self.viewbox = pg.ViewBox()
+            self.histogram = pg.HistogramLUTWidget()
+            self.w_over = pg.GraphicsView()
+            self.w_over.setCentralItem(self.viewbox)
+            self.extrema_checkbox.setChecked(False)
+            self.extrema_checkbox.setEnabled(True)
+            self.ui.axis_view_layout.addWidget(self.w_over, 0, 0)
+            self.ui.axis_view_layout.addWidget(self.histogram, 0, 1)
+
         try:
-            self.init_axis()
             self.read_data()
             self.compute_axis()
-            self.do_axis_layout()
+            if self.axis_view_widget.isVisible() == False:
+                self.axis_view_widget.setVisible(True)
+                self.axis_options.setVisible(True)
+                self.ui.resize(1500, 900)
 
         except Exception as e:
             _disable_wait_cursor()
             QtGui.QMessageBox.warning(self, "Warning", str(e))
-
-    def init_axis(self):
-        self.w_over = pg.GraphicsView()
-        self.viewbox = pg.ViewBox()
-        self.w_over.setCentralItem(self.viewbox)
-        self.histogram = pg.HistogramLUTWidget()
 
     def read_data(self):
         tif_0 = tifffile.TiffFile(str(self.ui.path_line_0.text()))
@@ -567,17 +589,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.viewbox.addItem(img)
         self.viewbox.setAspectLocked(True)
         self.histogram.setImageItem(img)
-
-    def do_axis_layout(self):
-        self.extrema_checkbox.setChecked(False)
-        self.extrema_checkbox.setEnabled(True)
         self.ui.axis_num.setText('center of rotation = %i px' % (self.axis))
         self.ui.img_size.setText('width = %i | height = %i' % (self.img_width, self.img_height))
-        self.ui.axis_view_layout.addWidget(self.w_over, 0, 0)
-        self.ui.axis_view_layout.addWidget(self.histogram, 0, 1)
-        self.axis_view_widget.setVisible(True)
-        self.axis_options.setVisible(True)
-        self.ui.resize(1500, 900)
         _disable_wait_cursor()
 
     def keyPressEvent(self, event):
@@ -612,12 +625,12 @@ class ApplicationWindow(QtGui.QMainWindow):
             wheel += (delta and delta // abs(delta))
             self.ui.reco_slider.setValue(self.ui.reco_slider.value() - wheel)
 
-        if self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible() == True:
+        elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible() == True:
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
             self.ui.axis_slider.setValue(self.ui.axis_slider.value() - wheel)
 
-        if self.ui.tab_widget.currentIndex() == 2 and self.ui.phgen_images_widget.isVisible() == True:
+        elif self.ui.tab_widget.currentIndex() == 2 and self.ui.phgen_images_widget.isVisible() == True:
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
             self.ui.phgen_slider.setValue(self.ui.phgen_slider.value() - wheel)
@@ -668,11 +681,11 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.phantom = '-p '
         if self.ui.generate_sinogram.isChecked():
             self.sino = '-s '
-        self.width = '-w ' + str(self.ui.phgen_width.value())
+        self.ph_width = '-w ' + str(self.ui.phgen_width.value())
         self.height = ' -h ' + str(self.ui.phgen_height.value())
 
     def on_generate_phantom(self):
-        if self.ui.generate_phantom.isChecked() == True:
+        if self.ui.generate_phantom.isChecked():
             self.phantom = '-p '
         else:
             self.phantom = ''
@@ -680,7 +693,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.generate_sinogram.setChecked(True)
 
     def on_generate_sinogram(self):
-        if self.ui.generate_sinogram.isChecked() == True:
+        if self.ui.generate_sinogram.isChecked():
             self.sino = '-s '
         else:
             self.sino = ''
@@ -688,14 +701,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.generate_phantom.setChecked(True)
 
     def on_phgen_width_changed(self):
-        self.width = '-w ' + str(self.ui.phgen_width.value())
+        self.ph_width = '-w ' + str(self.ui.phgen_width.value())
 
     def on_phgen_height_changed(self):
         self.height = ' -h ' + str(self.ui.phgen_height.value())
 
     def on_generate(self):
         _enable_wait_cursor()
-        run_phgen = "generate " + str(self.sino) + str(self.phantom) + str(self.width) + str(self.height)
+        run_phgen = "generate " + str(self.sino) + str(self.phantom) + str(self.ph_width) + str(self.height)
         subprocess.call([run_phgen], shell = True)
         for sino in os.listdir(os.getcwd()):
             if os.path.isfile(os.path.join(os.getcwd(), sino)) and 'sinogram' in sino:
@@ -727,16 +740,15 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.phgen_viewbox.setAspectLocked(True)
         self.phgen_histogram = pg.HistogramLUTWidget()
         self.phgen_graphics_view.setCentralItem(self.phgen_viewbox)
+        self.ui.phgen_images_layout.addWidget(self.phgen_graphics_view, 0, 0)
+        self.ui.phgen_images_layout.addWidget(self.phgen_histogram, 0, 1)
+        self.update_phgen_images()
 
+    def update_phgen_images(self):
         try:
             self.phgen_files = [f for f in sorted(os.listdir(os.getcwd())) if f.endswith('.tif')]
             self.ui.phgen_slider.setMaximum(len(self.phgen_files) - 1)
             self.move_phgen_slider()
-            self.ui.phgen_images_layout.addWidget(self.phgen_graphics_view, 0, 0)
-            self.ui.phgen_images_layout.addWidget(self.phgen_histogram, 0, 1)
-            self.ui.phgen_images_widget.setVisible(True)
-            if self.ui.tab_widget.currentIndex() == 2:
-                self.ui.resize(1500, 900)
 
         except Exception as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))

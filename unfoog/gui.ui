@@ -6,18 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>802</width>
-    <height>907</height>
+    <width>1657</width>
+    <height>1067</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Tomoviewer</string>
+  </property>
+  <property name="toolTip">
+   <string notr="true"/>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="enabled">
@@ -91,18 +94,15 @@
         <item>
          <widget class="QWidget" name="reconstruction_widget" native="true">
           <layout class="QGridLayout" name="gridLayout_15">
-           <item row="0" column="0">
+           <item row="0" column="2">
             <layout class="QGridLayout" name="reco_grid">
-             <property name="sizeConstraint">
-              <enum>QLayout::SetDefaultConstraint</enum>
-             </property>
              <property name="margin">
               <number>0</number>
              </property>
              <property name="spacing">
               <number>6</number>
              </property>
-             <item row="15" column="4">
+             <item row="16" column="4">
               <widget class="QPushButton" name="output_path_button">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -118,8 +118,11 @@
                </property>
               </widget>
              </item>
-             <item row="16" column="2" colspan="3">
+             <item row="17" column="2" colspan="3">
               <widget class="QCheckBox" name="gpu_box">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -128,19 +131,6 @@
                </property>
                <property name="text">
                 <string>Use GPU exclusively</string>
-               </property>
-              </widget>
-             </item>
-             <item row="16" column="0" colspan="2">
-              <widget class="QCheckBox" name="show_reco_images_box">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Show images after reconstruction</string>
                </property>
               </widget>
              </item>
@@ -232,6 +222,25 @@
                </property>
               </widget>
              </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="darks_label">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  Dark-field:</string>
+               </property>
+              </widget>
+             </item>
              <item row="2" column="0">
               <widget class="QRadioButton" name="proj_button">
                <property name="sizePolicy">
@@ -251,7 +260,7 @@
                </property>
               </widget>
              </item>
-             <item row="15" column="0">
+             <item row="16" column="0">
               <widget class="QLabel" name="output_path_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -280,20 +289,7 @@
                </property>
               </widget>
              </item>
-             <item row="17" column="3" colspan="2">
-              <widget class="QPushButton" name="reco_button">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Reconstruct</string>
-               </property>
-              </widget>
-             </item>
-             <item row="15" column="1" colspan="3">
+             <item row="16" column="1" colspan="3">
               <widget class="QLineEdit" name="output_path_line">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -322,22 +318,6 @@
                </property>
               </widget>
              </item>
-             <item row="18" column="0" colspan="5">
-              <widget class="QTextBrowser" name="text_browser">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Sunken</enum>
-               </property>
-               <property name="midLineWidth">
-                <number>0</number>
-               </property>
-              </widget>
-             </item>
              <item row="1" column="0">
               <widget class="QRadioButton" name="sino_button">
                <property name="sizePolicy">
@@ -360,6 +340,22 @@
                </property>
               </widget>
              </item>
+             <item row="19" column="0" colspan="5">
+              <widget class="QTextBrowser" name="text_browser">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Sunken</enum>
+               </property>
+               <property name="midLineWidth">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
              <item row="7" column="4">
               <widget class="QPushButton" name="darks_path_button">
                <property name="enabled">
@@ -379,7 +375,7 @@
                </property>
               </widget>
              </item>
-             <item row="14" column="0">
+             <item row="15" column="0">
               <widget class="QLabel" name="output_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -522,25 +518,6 @@
                </property>
               </widget>
              </item>
-             <item row="7" column="0">
-              <widget class="QLabel" name="darks_label">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="toolTip">
-                <string notr="true"/>
-               </property>
-               <property name="text">
-                <string>  Dark-field:</string>
-               </property>
-              </widget>
-             </item>
              <item row="7" column="1" colspan="3">
               <widget class="QLineEdit" name="darks_path_line">
                <property name="enabled">
@@ -602,16 +579,6 @@
                    <string>DFI</string>
                   </property>
                  </item>
-                 <item>
-                  <property name="text">
-                   <string>SART</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>ASD-Pocs</string>
-                  </property>
-                 </item>
                 </widget>
                </item>
               </layout>
@@ -668,11 +635,23 @@
                </layout>
               </widget>
              </item>
-             <item row="13" column="0" colspan="5">
+             <item row="14" column="0" colspan="5">
               <widget class="Line" name="line_2">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
+              </widget>
+             </item>
+             <item row="13" column="0" colspan="5">
+              <widget class="QWidget" name="asd_params" native="true">
+               <layout class="QGridLayout" name="gridLayout_4">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+               </layout>
               </widget>
              </item>
              <item row="4" column="0" colspan="5">
@@ -813,8 +792,8 @@
                 <widget class="QCheckBox" name="add_params">
                  <property name="font">
                   <font>
-                   <weight>75</weight>
-                   <bold>true</bold>
+                   <weight>50</weight>
+                   <bold>false</bold>
                   </font>
                  </property>
                  <property name="text">
@@ -865,42 +844,74 @@
                </property>
               </widget>
              </item>
-            </layout>
-           </item>
-           <item row="0" column="1">
-            <widget class="QGroupBox" name="reco_images_widget">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="title">
-              <string/>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_9">
-              <property name="margin">
-               <number>0</number>
-              </property>
-              <property name="spacing">
-               <number>6</number>
-              </property>
-              <item row="0" column="0">
-               <layout class="QGridLayout" name="reco_images">
+             <item row="0" column="5" rowspan="20">
+              <widget class="QGroupBox" name="reco_images_widget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="title">
+                <string/>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_9">
+                <property name="margin">
+                 <number>0</number>
+                </property>
                 <property name="spacing">
                  <number>6</number>
                 </property>
+                <item row="1" column="0">
+                 <layout class="QGridLayout" name="reco_images">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                 </layout>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QSlider" name="reco_slider">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
                </layout>
-              </item>
-              <item row="1" column="0">
-               <widget class="QSlider" name="reco_slider">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
+              </widget>
+             </item>
+             <item row="17" column="0">
+              <widget class="QCheckBox" name="show_reco_images_box">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>Show images after reconstruction</string>
+               </property>
+               <property name="text">
+                <string>Show 2D</string>
+               </property>
+               <property name="autoExclusive">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="18" column="3" colspan="2">
+              <widget class="QPushButton" name="reco_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Reconstruct</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -1263,6 +1274,13 @@
                </property>
               </widget>
              </item>
+             <item row="6" column="0">
+              <widget class="QPushButton" name="show_phgen">
+               <property name="text">
+                <string>Show Images?</string>
+               </property>
+              </widget>
+             </item>
              <item row="5" column="2">
               <widget class="QLabel" name="sum_abs_diff">
                <property name="font">
@@ -1355,7 +1373,7 @@
                </property>
               </widget>
              </item>
-             <item row="6" column="0">
+             <item row="7" column="0">
               <widget class="QLabel" name="label_8">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
@@ -1381,7 +1399,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="3" rowspan="7">
+             <item row="0" column="3" rowspan="8">
               <widget class="QGroupBox" name="phgen_images_widget">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -1442,7 +1460,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>802</width>
+     <width>1657</width>
      <height>27</height>
     </rect>
    </property>
