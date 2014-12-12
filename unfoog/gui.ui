@@ -102,6 +102,118 @@
              <property name="spacing">
               <number>6</number>
              </property>
+             <item row="18" column="0" colspan="3">
+              <widget class="QWidget" name="volume_params" native="true">
+               <property name="mouseTracking">
+                <bool>false</bool>
+               </property>
+               <property name="focusPolicy">
+                <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="contextMenuPolicy">
+                <enum>Qt::DefaultContextMenu</enum>
+               </property>
+               <property name="acceptDrops">
+                <bool>false</bool>
+               </property>
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_3">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="volume_layout">
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
+                  <item row="1" column="1">
+                   <widget class="QLabel" name="label">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="text">
+                     <string>Scale down images? (in %)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QComboBox" name="gloptions">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;opaque&lt;/span&gt;: Enables depth testing and disables blending&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>translucent</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>additive</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QSpinBox" name="percent_box">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="minimum">
+                     <number>10</number>
+                    </property>
+                    <property name="maximum">
+                     <number>100</number>
+                    </property>
+                    <property name="singleStep">
+                     <number>5</number>
+                    </property>
+                    <property name="value">
+                     <number>50</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QPushButton" name="update_volume_button2">
+                    <property name="toolTip">
+                     <string notr="true">Show already generated slices from output path as 3D volume</string>
+                    </property>
+                    <property name="text">
+                     <string>Show slices</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0" colspan="3">
+                   <widget class="Line" name="line_6">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
              <item row="16" column="4">
               <widget class="QPushButton" name="output_path_button">
                <property name="sizePolicy">
@@ -895,7 +1007,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="5" rowspan="20">
+             <item row="0" column="6" rowspan="20">
               <widget class="QGroupBox" name="reco_images_widget">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -949,6 +1061,236 @@
                </property>
               </widget>
              </item>
+             <item row="0" column="5" rowspan="20">
+              <widget class="QGroupBox" name="reco_volume_widget">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="title">
+                <string/>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_12">
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <property name="horizontalSpacing">
+                 <number>6</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="volume_image"/>
+                </item>
+                <item row="5" column="0">
+                 <widget class="QWidget" name="widget_3" native="true">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_2">
+                   <property name="margin">
+                    <number>0</number>
+                   </property>
+                   <item row="0" column="0">
+                    <layout class="QGridLayout" name="gridLayout">
+                     <item row="1" column="0">
+                      <widget class="QComboBox" name="gloptions2">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <item>
+                        <property name="text">
+                         <string>translucent</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>additive</string>
+                        </property>
+                       </item>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QLabel" name="label_5">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="text">
+                        <string>Scale down images? (in %)</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="2">
+                      <widget class="QSpinBox" name="percent_box2">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="minimum">
+                        <number>10</number>
+                       </property>
+                       <property name="maximum">
+                        <number>100</number>
+                       </property>
+                       <property name="singleStep">
+                        <number>5</number>
+                       </property>
+                       <property name="value">
+                        <number>50</number>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="9">
+                      <widget class="QPushButton" name="update_volume_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="text">
+                        <string>Update</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="4">
+                      <widget class="QCheckBox" name="crop_circle_box">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="text">
+                        <string>Crop circle</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="6">
+                      <widget class="QToolButton" name="crop_more_button">
+                       <property name="enabled">
+                        <bool>false</bool>
+                       </property>
+                       <property name="text">
+                        <string>+</string>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>20</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="5">
+                      <widget class="QToolButton" name="crop_less_button">
+                       <property name="enabled">
+                        <bool>false</bool>
+                       </property>
+                       <property name="text">
+                        <string>-</string>
+                       </property>
+                       <property name="iconSize">
+                        <size>
+                         <width>20</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="3">
+                      <widget class="QCheckBox" name="make_contrast_button">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
+                       <property name="text">
+                        <string>Contrast</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="7">
+                      <widget class="QLabel" name="label_7">
+                       <property name="text">
+                        <string/>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QWidget" name="volume_slider_widget" native="true">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_17">
+                   <property name="margin">
+                    <number>0</number>
+                   </property>
+                   <item row="0" column="0">
+                    <layout class="QGridLayout" name="volume_slider_layout">
+                     <item row="0" column="0">
+                      <widget class="QSlider" name="volume_min_slider">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="invertedAppearance">
+                        <bool>false</bool>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QSlider" name="volume_max_slider">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="invertedAppearance">
+                        <bool>false</bool>
+                       </property>
+                       <property name="invertedControls">
+                        <bool>false</bool>
+                       </property>
+                       <property name="tickPosition">
+                        <enum>QSlider::NoTicks</enum>
+                       </property>
+                       <property name="tickInterval">
+                        <number>10</number>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
              <item row="18" column="3" colspan="2">
               <widget class="QPushButton" name="reco_button">
                <property name="sizePolicy">
@@ -959,6 +1301,19 @@
                </property>
                <property name="text">
                 <string>Reconstruct</string>
+               </property>
+              </widget>
+             </item>
+             <item row="17" column="1">
+              <widget class="QCheckBox" name="show_volume_box">
+               <property name="toolTip">
+                <string>Show 3D volume image after reconstruction</string>
+               </property>
+               <property name="text">
+                <string>Show 3D</string>
+               </property>
+               <property name="autoExclusive">
+                <bool>false</bool>
                </property>
               </widget>
              </item>

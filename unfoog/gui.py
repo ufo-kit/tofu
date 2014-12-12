@@ -7,6 +7,7 @@ import threading
 import subprocess
 import numpy as np
 import pyqtgraph as pg
+import pyqtgraph.opengl as gl
 import pkg_resources
 
 from . import reco, config, tifffile
@@ -64,11 +65,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.setGeometry(100, 100, 585, 825)
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.reco_images_widget.setVisible(False)
+        self.ui.reco_volume_widget.setVisible(False)
         self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
+        self.ui.volume_params.setVisible(False)
         self.phgen_graphics_view = False
         self.reco_images_layout = False
+        self.volume_layout = False
         self.viewbox = False
         self.get_values_from_params()
 
@@ -111,6 +115,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_button_0.clicked.connect(self.on_path_0_clicked)
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
         self.ui.show_reco_images_box.clicked.connect(self.on_hide_reco_images)
+        self.ui.show_volume_box.clicked.connect(self.on_hide_volume)
+        self.ui.gloptions.currentIndexChanged.connect(self.change_gloptions)
+        self.ui.gloptions2.currentIndexChanged.connect(self.change_gloptions)
+        self.ui.percent_box.valueChanged.connect(self.on_percent_box)
+        self.ui.percent_box2.valueChanged.connect(self.on_percent_box2)
+        self.ui.volume_min_slider.sliderReleased.connect(self.on_volume_sliders)
+        self.ui.volume_max_slider.sliderReleased.connect(self.on_volume_sliders)
+        self.ui.crop_circle_box.clicked.connect(self.on_crop_circle)
+        self.ui.crop_more_button.clicked.connect(self.on_crop_more_circle)
+        self.ui.crop_less_button.clicked.connect(self.on_crop_less_circle)
+        self.ui.make_contrast_button.clicked.connect(self.on_make_contrast)
+        self.ui.update_volume_button.clicked.connect(self.update_volume)
+        self.ui.update_volume_button2.clicked.connect(self.make_volume_layout)
         self.ui.run_button.clicked.connect(self.on_run)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
@@ -228,9 +245,9 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
-        if current_tab == 0 and self.ui.reco_images_widget.isVisible() == False:
+        if current_tab == 0 and self.ui.reco_images_widget.isVisible() == False and self.ui.reco_volume_widget.isVisible() == False:
             self.ui.resize(585, 825)
-        elif current_tab == 0 and self.ui.reco_images_widget.isVisible() == True:
+        elif current_tab == 0 and (self.ui.reco_images_widget.isVisible() == True or self.ui.reco_volume_widget.isVisible() == True):
             self.ui.resize(1500, 900)
         elif current_tab == 1 and self.ui.axis_view_widget.isVisible() == False:
             self.ui.resize(585, 825)
@@ -347,6 +364,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         _set_line_edit_to_path(self, self.ui.output_path_line, self.params.output, self.params.last_dir)
         if os.path.exists(str(self.ui.output_path_line.text())):
             self.params.last_dir = str(self.ui.output_path_line.text())
+            self.output = "new"
 
     def on_correct_box_clicked(self):
         self.params.correction = self.ui.correct_box.isChecked()
@@ -397,6 +415,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_clear(self):
         self.ui.reco_images_widget.setVisible(False)
+        self.ui.reco_volume_widget.setVisible(False)
         self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
@@ -487,15 +506,26 @@ class ApplicationWindow(QtGui.QMainWindow):
                         output_path = str(self.ui.output_path_line.text())
                         if output_path == ".":
                             output_path = str(os.getcwd())
+
                         if self.reco_images_layout == False:
                             self.make_reco_layout()
                         else:
                             self.show_reco_images()
+
                     else:
                         if self.phgen_graphics_view == False:
                             self.show_phgen_images()
                         else:
                             self.update_phgen_images()
+
+                if self.ui.show_volume_box.isChecked():
+                    if self.volume_layout == False:
+                        self.make_volume_layout()
+                    else:
+                        self.undo_translation()
+                        self.get_slices()
+                        self.show_volume()
+                        self.set_volume_to_center()
 
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", str(e))
@@ -554,9 +584,242 @@ class ApplicationWindow(QtGui.QMainWindow):
         image = pg.ImageItem(array.T)
         return image
 
+    def make_volume_layout(self):
+        _enable_wait_cursor()
+        self.ui.centralWidget.setEnabled(False)
+        self.repaint()
+        self.app.processEvents()
+        self.volume_layout = True
+        self.scale_percent = self.ui.percent_box.value()
+        self.reco_volume_view = gl.GLViewWidget()
+        self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
+        self.volume_img = gl.GLVolumeItem(None)
+        self.reco_volume_view.addItem(self.volume_img)
+        self.get_slices()
+        self.show_volume()
+        self.set_volume_to_center()
+        self.on_volume_sliders()
+        _disable_wait_cursor()
+        self.ui.centralWidget.setEnabled(True)
+
+    def undo_translation(self):
+        self.volume_img.translate(self.volume.shape[0]/2, self.volume.shape[1]/2, self.volume.shape[2]/2)
+
+    def set_volume_to_center(self):
+        self.volume_img.translate(-self.volume.shape[0]/2, -self.volume.shape[1]/2, -self.volume.shape[2]/2)
+
+    def get_slices(self):
+        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith('.tif')]
+        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
+        self.changed_data = None
+
+    def show_volume(self):
+        self.step = 1
+        self.percent = 1.0
+
+        if self.scale_percent < 100:
+            self.percent = self.scale_percent / 100.0
+            self.calculate_image_step()
+
+        test_arr = self.convert_tif_to_smaller_img(self.reco_absfiles[0])
+        tif_width = test_arr.shape[1]
+        tif_height = test_arr.shape[0]
+        length = len(self.reco_absfiles) / self.step
+        data = np.empty((tif_width, tif_height, length), dtype=np.float32)
+
+        for i in range(0, len(self.reco_absfiles)-1, self.step):
+            data[0:tif_width, 0:tif_height, (length-1) - i/self.step] = self.convert_tif_to_smaller_img(self.reco_absfiles[i])
+
+        self.data_for_contrast = np.copy(data)
+        self.change_gloptions()
+
+        if self.ui.make_contrast_button.isChecked() == False:
+            data += np.abs(data.min())
+            data = data / data.max() * 255
+            self.data = np.copy(data)
+            self.volume = self.get_volume(data)
+
+            self.change_gloptions()
+            self.volume_img.setData(self.volume)
+            self.volume_img.setGLOptions(self.options)
+            self.volume_img.update()
+            self.data_max = int(data.max())
+            self.data_min = int(data.min())
+            self.ui.volume_min_slider.setMinimum(self.data_min)
+            self.ui.volume_min_slider.setMinimum(self.data_min)
+            self.ui.volume_max_slider.setMaximum(self.data_max)
+            self.ui.volume_max_slider.setMaximum(self.data_max)
+
+            if self.ui.crop_circle_box.isChecked():
+                self.ui.volume_min_slider.setValue(self.volume_min_slider_pos)
+                self.ui.volume_max_slider.setValue(self.volume_max_slider_pos)
+                self.on_volume_sliders()
+            else:
+                self.ui.volume_min_slider.setValue(self.data_min)
+                self.ui.volume_max_slider.setValue(self.data_max)
+        else:
+            self.on_make_contrast(self.data_for_contrast)
+
+        if self.ui.reco_volume_widget.isVisible() == False:
+            self.ui.reco_volume_widget.setVisible(True)
+            self.ui.volume_params.setVisible(False)
+            self.ui.resize(1500, 900)
+
+        self.output = "old"
+
+    def get_volume(self, data):
+        volume = np.empty(data.shape + (4, ), dtype=np.ubyte)
+        volume[..., 0] = data
+        volume[..., 1] = data
+        volume[..., 2] = data
+        volume[..., 3] = ((volume[..., 0]*0.3 + volume[..., 1]*0.3).astype(float)/255.) **2 *255
+        return volume
+
+    def on_make_contrast(self, data):
+        _enable_wait_cursor()
+        if self.ui.make_contrast_button.isChecked():
+            np.seterr(divide='ignore')
+            negative = np.log(np.clip(-self.data_for_contrast, 0, -self.data_for_contrast.min())**2)
+            np.seterr(divide='warn')
+            volume = np.empty(self.data_for_contrast.shape + (4, ), dtype=np.ubyte)
+            volume[..., 0] = negative * (255./negative.max())
+            volume[..., 1] = negative * (255./negative.max())
+            volume[..., 2] = negative * (255./negative.max())
+            volume[..., 3] = ((volume[..., 0]*0.3 + volume[..., 1]*0.3).astype(float)/255.) **2 *255
+            self.volume_img.setData(volume)
+            self.volume_img.update()
+            self.ui.volume_slider_widget.setVisible(False)
+        else:
+            self.volume_img.setData(self.volume)
+            self.volume_img.update()
+            self.ui.volume_slider_widget.setVisible(True)
+        _disable_wait_cursor()
+
+    def update_volume(self):
+        _enable_wait_cursor()
+        self.ui.centralWidget.setEnabled(False)
+        self.repaint()
+        self.app.processEvents()
+        if self.output == "new":
+            self.undo_translation()
+            self.get_slices()
+            self.show_volume()
+            self.set_volume_to_center()
+        else:
+            if (int(self.percent * 100)) is not self.ui.percent_box2.value():
+                self.undo_translation()
+                self.ui.crop_circle_box.setChecked(False)
+                self.ui.make_contrast_button.setChecked(False)
+                self.show_volume()
+                self.set_volume_to_center()
+            elif self.ui.volume_min_slider.value() is not self.data_min or self.ui.volume_max_slider.value() is not self.data_max:
+                self.show_volume()
+        _disable_wait_cursor()
+        self.ui.centralWidget.setEnabled(True)
+
+    def calculate_image_step(self):
+        images = len(self.reco_absfiles)
+        self.step = float(images) / (self.scale_percent * images / 100.0)
+        self.step = int(np.round(self.step))
+
+    def convert_tif_to_smaller_img(self, tif_file):
+        tif = tifffile.TiffFile(tif_file)
+        array = tif.asarray()
+
+        if self.scale_percent < 100:
+            array = array[::self.step, ::self.step]
+
+        if self.ui.crop_circle_box.isChecked():
+            lx, ly = array.shape
+            X, Y = np.ogrid[0:lx, 0:ly]
+            mask = (X - lx / 2) ** 2 + (Y - ly / 2) ** 2 > lx * ly / self.radius
+            circle_array = np.copy(array)
+            circle_array[mask] = 0.0
+            array = circle_array
+
+        return array
+
+    def on_crop_circle(self):
+        if self.ui.crop_circle_box.isChecked():
+            _enable_wait_cursor()
+            self.radius = 4
+            self.show_volume()
+            self.ui.crop_more_button.setEnabled(True)
+            self.ui.crop_less_button.setEnabled(True)
+            _disable_wait_cursor()
+        else:
+            _enable_wait_cursor()
+            self.show_volume()
+            self.ui.crop_more_button.setEnabled(False)
+            self.ui.crop_less_button.setEnabled(False)
+            self.ui.volume_min_slider.setValue(self.volume_min_slider_pos)
+            self.ui.volume_max_slider.setValue(self.volume_max_slider_pos)
+            self.on_volume_sliders()
+            _disable_wait_cursor()
+
+    def on_crop_more_circle(self):
+        _enable_wait_cursor()
+        self.radius += 1
+        self.show_volume()
+        _disable_wait_cursor()
+
+    def on_crop_less_circle(self):
+        if self.radius > 4:
+            _enable_wait_cursor()
+            self.radius -= 1
+            self.show_volume()
+            _disable_wait_cursor()
+
+    def change_gloptions(self):
+        if self.ui.volume_params.isVisible() == True:
+            self.options = str(self.ui.gloptions.currentText())
+        else:
+            self.options = str(self.ui.gloptions2.currentText())
+            self.volume_img.setGLOptions(self.options)
+            self.volume_img.update()
+
+    def on_volume_sliders(self):
+        _enable_wait_cursor()
+        self.changed_data = np.copy(self.data)
+        self.changed_data[self.changed_data < self.ui.volume_min_slider.value()] = 0
+        self.changed_data[self.changed_data > self.ui.volume_max_slider.value()] = 0
+        volume = self.get_volume(self.changed_data)
+        self.volume_img.setData(volume)
+        self.volume_img.update()
+        _disable_wait_cursor()
+        self.volume_min_slider_pos = self.ui.volume_min_slider.value()
+        self.volume_max_slider_pos = self.ui.volume_max_slider.value()
+
+    def on_percent_box(self):
+        self.ui.percent_box2.setValue(self.ui.percent_box.value())
+        self.scale_percent = self.ui.percent_box.value()
+
+    def on_percent_box2(self):
+        self.ui.percent_box.setValue(self.ui.percent_box.value())
+        self.scale_percent = self.ui.percent_box2.value()
+
     def on_hide_reco_images(self):
         if self.ui.show_reco_images_box.isChecked() == False:
             self.ui.reco_images_widget.setVisible(False)
+        else:
+            self.ui.show_volume_box.setChecked(False)
+            self.ui.volume_params.setVisible(False)
+            self.ui.reco_volume_widget.setVisible(False)
+
+        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_volume_widget.isVisible() == False and self.ui.reco_images_widget.isVisible() == False:
+            self.ui.resize(585, 825)
+
+    def on_hide_volume(self):
+        if self.ui.show_volume_box.isChecked() == False:
+            self.ui.reco_volume_widget.setVisible(False)
+            self.ui.volume_params.setVisible(False)
+        else:
+            self.ui.show_reco_images_box.setChecked(False)
+            self.ui.reco_images_widget.setVisible(False)
+            self.ui.volume_params.setVisible(True)
+
+        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_volume_widget.isVisible() == False and self.ui.reco_images_widget.isVisible() == False:
+            self.ui.resize(585, 825)
 
     def on_run(self):
         _enable_wait_cursor()
