@@ -1,9 +1,7 @@
 import sys
 import os
-import time
 import logging
 import tempfile
-import threading
 import subprocess
 import numpy as np
 import pyqtgraph as pg
@@ -16,6 +14,7 @@ from scipy.signal import fftconvolve
 
 
 logging.getLogger('').handlers = []
+LOG = logging.getLogger(__name__)
 logging.getLogger('PyQt4.uic.uiparser').disabled = True
 logging.getLogger('PyQt4.uic.properties').disabled = True
 log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
@@ -33,6 +32,9 @@ def _set_line_edit_to_path(parent, line_edit, directory, last_dir):
     path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(path)
+    if os.path.exists(str(line_edit.text())):
+        last_dir = str(line_edit.text())
+        return last_dir
 
 def _set_line_edit_to_file(parent, line_edit, directory, last_dir):
     if last_dir is not None:
@@ -40,6 +42,9 @@ def _set_line_edit_to_file(parent, line_edit, directory, last_dir):
     file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
     line_edit.clear()
     line_edit.setText(file_name)
+    if os.path.exists(str(line_edit.text())):
+        last_dir = str(line_edit.text())
+        return last_dir
 
 def _enable_wait_cursor():
     QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
@@ -92,7 +97,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats_path_button.setToolTip(self.get_help('general', 'flats'))
         self.ui.path_button_0.setToolTip(self.get_help('general', 'deg0'))
         self.ui.path_button_180.setToolTip(self.get_help('general', 'deg180'))
-        self.ui.absorptivity_checkbox.setToolTip(self.get_help('general', 'absorptivity'))
 
         self.ui.input_path_button.clicked.connect(self.on_input_path_clicked)
         self.ui.sino_button.clicked.connect(self.on_sino_button_clicked)
@@ -160,7 +164,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
-        self.ui.absorptivity_checkbox.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_checkbox.isChecked()))
         self.ui.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.ui.gpu_box.isChecked()))
 
     def get_values_from_params(self):
@@ -236,13 +239,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.gpu_box.setChecked(False)
             self.params.use_gpu = False
 
-        if self.params.absorptivity == "True":
-            self.ui.absorptivity_checkbox.setChecked(True)
-            self.params.absorptivity = True
-        else:
-            self.ui.absorptivity_checkbox.setChecked(False)
-            self.params.absorptivity = False
-
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
         if current_tab == 0 and self.ui.reco_images_widget.isVisible() == False and self.ui.reco_volume_widget.isVisible() == False:
@@ -279,8 +275,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.method = "sart"
             self.ui.sino_button.setChecked(True)
             self.params.from_projections = False
-            self.ui.gpu_box.setChecked(False)
-            self.params.use_gpu = False
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -313,15 +307,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.region = str(int(self.ui.from_region.value())) + ":" + str(int(self.ui.to_region.value())) + ":" + str(int(self.ui.step_region.value()))
 
     def on_input_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.ui.input_path_line, self.params.input, self.params.last_dir)
-        if os.path.exists(str(self.ui.input_path_line.text())):
-            self.params.last_dir = str(self.ui.input_path_line.text())
+        self.params.last_dir = _set_line_edit_to_path(self, self.ui.input_path_line, self.params.input, self.params.last_dir)
 
         if "sinogram" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(True)
             self.ui.proj_button.setChecked(False)
             self.ui.correct_box.setEnabled(False)
-            self.ui.params.from_projections = False
+            self.params.from_projections = False
             self.params.correction = False
             self.on_correction()
         elif "projection" in str(self.ui.input_path_line.text()):
@@ -361,10 +353,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.enable_cropping = False
 
     def on_output_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.ui.output_path_line, self.params.output, self.params.last_dir)
-        if os.path.exists(str(self.ui.output_path_line.text())):
-            self.params.last_dir = str(self.ui.output_path_line.text())
-            self.output = "new"
+        self.params.last_dir = _set_line_edit_to_path(self, self.ui.output_path_line, self.params.output, self.params.last_dir)
+        self.output = "new"
 
     def on_correct_box_clicked(self):
         self.params.correction = self.ui.correct_box.isChecked()
@@ -379,24 +369,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats_label.setVisible(self.params.correction)
 
     def on_darks_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.ui.darks_path_line, self.params.darks, self.params.last_dir)
-        if os.path.exists(str(self.ui.darks_path_line.text())):
-            self.params.last_dir = str(self.ui.darks_path_line.text())
+        self.params.last_dir = _set_line_edit_to_path(self, self.ui.darks_path_line, self.params.darks, self.params.last_dir)
 
     def on_flats_path_clicked(self, checked):
-        _set_line_edit_to_path(self, self.ui.flats_path_line, self.params.flats, self.params.last_dir)
-        if os.path.exists(str(self.ui.flats_path_line.text())):
-            self.params.last_dir = str(self.ui.flats_path_line.text())
+        self.params.last_dir = _set_line_edit_to_path(self, self.ui.flats_path_line, self.params.flats, self.params.last_dir)
 
     def on_path_0_clicked(self, checked):
-        _set_line_edit_to_file(self, self.ui.path_line_0, str(self.ui.path_line_0.text()), self.params.last_dir)
-        if os.path.exists(str(self.ui.path_line_0.text())):
-            self.params.last_dir = str(self.ui.path_line_0.text())
+        self.params.last_dir = _set_line_edit_to_file(self, self.ui.path_line_0, str(self.ui.path_line_0.text()), self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
-        _set_line_edit_to_file(self, self.ui.path_line_180, str(self.ui.path_line_180.text()), self.params.last_dir)
-        if os.path.exists(str(self.ui.path_line_180.text())):
-             self.params.last_dir = str(self.ui.path_line_180.text())
+        self.params.last_dir = _set_line_edit_to_file(self, self.ui.path_line_180, str(self.ui.path_line_180.text()), self.params.last_dir)
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
@@ -433,7 +415,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.region_box.setChecked(False)
         self.ui.crop_box.setChecked(False)
         self.ui.correct_box.setChecked(False)
-        self.ui.absorptivity_checkbox.setChecked(False)
         self.ui.gpu_box.setChecked(False)
 
         self.ui.from_region.setValue(0)
@@ -454,7 +435,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.from_projections = False
         self.params.enable_cropping = False
         self.params.enable_region = False
-        self.params.absorptivity = False
         self.params.correction = False
         self.params.crop_width = None
         self.params.use_gpu = False
@@ -487,12 +467,24 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
+        if self.ui.add_params.isChecked() == False and self.params.method == "dfi":
+            self.params.oversampling = None
+        elif self.ui.add_params.isChecked() and self.params.method == "dfi":
+            self.params.oversampling = self.ui.oversampling.value()
+
         if self.params.method == "sart":
             input_sinos = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith('.tif')]
             abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_sinos[0])
             tif = tifffile.TiffFile(abs_sino)
             array = tif.asarray()
             self.params.num_angles = array.shape[0]
+
+            if self.ui.add_params.isChecked():
+                self.params.max_iterations = self.ui.iterations_sart.value()
+                self.params.relaxation_factor = self.ui.relaxation.value()
+            else:
+                self.params.max_iterations = 0
+                self.params.relaxation_factor = 0.0
 
         if self.params.method == "sart" and self.params.angle == None:
             QtGui.QMessageBox.warning(self,"Warning", "Missing argument for Angle step (rad)")
@@ -522,10 +514,8 @@ class ApplicationWindow(QtGui.QMainWindow):
                     if self.volume_layout == False:
                         self.make_volume_layout()
                     else:
-                        self.undo_translation()
-                        self.get_slices()
-                        self.show_volume()
-                        self.set_volume_to_center()
+                        self.output = "new"
+                        self.update_volume()
 
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", str(e))
@@ -596,9 +586,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.volume_img = gl.GLVolumeItem(None)
         self.reco_volume_view.addItem(self.volume_img)
         self.get_slices()
-        self.show_volume()
-        self.set_volume_to_center()
-        self.on_volume_sliders()
+        try:
+            self.show_volume()
+            self.set_volume_to_center()
+            self.on_volume_sliders()
+        except ValueError as verror:
+            LOG.debug(str(verror))
+            log.seek(0)
+            logtxt = open(log.name).read()
+            self.ui.text_browser.setPlainText(logtxt)
+
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
 
@@ -703,17 +700,35 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.output == "new":
             self.undo_translation()
             self.get_slices()
-            self.show_volume()
-            self.set_volume_to_center()
-        else:
-            if (int(self.percent * 100)) is not self.ui.percent_box2.value():
-                self.undo_translation()
-                self.ui.crop_circle_box.setChecked(False)
-                self.ui.make_contrast_button.setChecked(False)
+            try:
                 self.show_volume()
                 self.set_volume_to_center()
-            elif self.ui.volume_min_slider.value() is not self.data_min or self.ui.volume_max_slider.value() is not self.data_max:
-                self.show_volume()
+            except ValueError as verror:
+                LOG.debug(str(verror))
+                log.seek(0)
+                logtxt = open(log.name).read()
+                self.ui.text_browser.setPlainText(logtxt)
+
+        else:
+            pos_min = self.ui.volume_min_slider.value()
+            pos_max = self.ui.volume_max_slider.value()
+            if (int(self.percent * 100)) is not self.ui.percent_box2.value():
+                if self.ui.make_contrast_button.isChecked():
+                    self.ui.make_contrast_button.setChecked(False)
+                    self.on_make_contrast(None)
+                    self.undo_translation()
+                    self.show_volume()
+                    self.set_volume_to_center()
+                    self.ui.make_contrast_button.setChecked(True)
+                    self.on_make_contrast(self.data_for_contrast)
+                else:
+                    self.undo_translation()
+                    self.show_volume()
+                    self.set_volume_to_center()
+            self.ui.volume_min_slider.setValue(pos_min)
+            self.ui.volume_max_slider.setValue(pos_max)
+            self.on_volume_sliders()
+
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
 
@@ -755,6 +770,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.volume_min_slider.setValue(self.volume_min_slider_pos)
             self.ui.volume_max_slider.setValue(self.volume_max_slider_pos)
             self.on_volume_sliders()
+            if self.ui.make_contrast_button.isChecked():
+                self.on_make_contrast(self.data_for_contrast)
             _disable_wait_cursor()
 
     def on_crop_more_circle(self):

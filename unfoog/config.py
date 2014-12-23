@@ -42,11 +42,6 @@ SECTIONS = {
             'type': float,
             'help': "Angle step between projections in radians"
             },
-        'absorptivity': {
-            'default': False,
-            'help': "Absorptivity of projections",
-            'action': 'store_true'
-            },
         'axis': {
             'default': None,
             'type': float,
