@@ -1900,6 +1900,7 @@
      <string>Edit</string>
     </property>
     <addaction name="clear_action"/>
+    <addaction name="clear_output_dir_action"/>
    </widget>
    <addaction name="file_menu"/>
    <addaction name="edit_menu"/>
@@ -1938,6 +1939,14 @@
   <action name="clear_action">
    <property name="text">
     <string>Clear</string>
+   </property>
+  </action>
+  <action name="clear_output_dir_action">
+   <property name="text">
+    <string>Clear output directory</string>
+   </property>
+   <property name="toolTip">
+    <string notr="true">Clear output directory</string>
    </property>
   </action>
  </widget>

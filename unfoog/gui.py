@@ -134,6 +134,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.run_button.clicked.connect(self.on_run)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
+        self.ui.clear_output_dir_action.triggered.connect(self.on_clear_output_dir_clicked)
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
         self.ui.add_params.clicked.connect(self.change_method)
@@ -356,6 +357,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         path = _set_line_edit_to_path(self, self.params.output, self.params.last_dir)
         self.params.last_dir = _set_last_dir(self, path, self.ui.output_path_line, self.params.last_dir)
         self.output = "new"
+
+    def on_clear_output_dir_clicked(self):
+        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith('.tif')]
+        output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in output_files]
+        for f in output_absfiles:
+            os.remove(f)
 
     def on_correct_box_clicked(self):
         self.params.correction = self.ui.correct_box.isChecked()
