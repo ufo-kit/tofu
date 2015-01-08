@@ -80,9 +80,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.viewbox = False
         self.get_values_from_params()
 
-        self.ui.region_box.setToolTip(self.get_help('general', 'region'))
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
         self.ui.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
+        self.ui.y_step.setToolTip(self.get_help('general', 'y_step'))
         self.ui.method_box.setToolTip(self.get_help('general', 'method'))
         self.ui.axis_spin.setToolTip(self.get_help('general', 'axis'))
         self.ui.angle_step.setToolTip(self.get_help('general', 'angle'))
@@ -100,10 +100,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.input_path_button.clicked.connect(self.on_input_path_clicked)
         self.ui.sino_button.clicked.connect(self.on_sino_button_clicked)
         self.ui.proj_button.clicked.connect(self.on_proj_button_clicked)
-        self.ui.region_box.clicked.connect(self.on_region)
-        self.ui.from_region.valueChanged.connect(self.concatenate_region)
-        self.ui.to_region.valueChanged.connect(self.concatenate_region)
-        self.ui.step_region.valueChanged.connect(self.concatenate_region)
+        self.ui.region_box.clicked.connect(self.on_region_box_clicked)
         self.ui.method_box.currentIndexChanged.connect(self.change_method)
         self.ui.axis_spin.valueChanged.connect(self.change_axis_spin)
         self.ui.angle_step.valueChanged.connect(self.change_angle_step)
@@ -152,7 +149,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
         self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
-        self.ui.region_box.clicked.connect(lambda value: self.change_value('enable_region', self.ui.region_box.isChecked()))
+        self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         if self.add_params.isChecked():
             self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', self.method))
@@ -174,27 +171,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_line_0.setText(self.params.deg0)
         self.ui.path_line_180.setText(self.params.deg180)
 
+        self.ui.y_step.setValue(self.params.y_step if self.params.y_step else 1)
         self.ui.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
         self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
         self.ui.iterations_sart.setValue(self.params.max_iterations if self.params.max_iterations else 0)
         self.ui.relaxation.setValue(self.params.relaxation_factor if self.params.relaxation_factor else 0.0)
-
-        if self.params.enable_region == "True":
-            self.params.enable_region = True
-            self.ui.region_box.setChecked(True)
-        else:
-            self.params.enable_region = False
-            self.ui.region_box.setChecked(False)
-
-        region = [int(x) for x in self.params.region.split(':')]
-        self.ui.from_region.setValue(region[0])
-        self.ui.to_region.setValue(region[1])
-        self.ui.step_region.setValue(region[2])
-        self.ui.from_region.setEnabled(self.ui.region_box.isChecked())
-        self.ui.to_region.setEnabled(self.ui.region_box.isChecked())
-        self.ui.step_region.setEnabled(self.ui.region_box.isChecked())
 
         if self.params.enable_cropping == "True":
             self.ui.crop_box.setChecked(True)
@@ -208,10 +191,12 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.proj_button.setChecked(True)
             self.ui.sino_button.setChecked(False)
             self.ui.correct_box.setEnabled(True)
+            self.on_proj_button_clicked()
         else:
             self.params.from_projections = False
             self.ui.proj_button.setChecked(False)
             self.ui.sino_button.setChecked(True)
+            self.on_sino_button_clicked()
 
         if self.params.method == "fbp":
             self.ui.method_box.setCurrentIndex(0)
@@ -231,6 +216,12 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.correct_box.setChecked(False)
             self.params.correction = False
         self.on_correction()
+
+        if self.params.y_step > 1 and self.sino_button.isChecked():
+            self.ui.region_box.setChecked(True)
+        else:
+            self.ui.region_box.setChecked(False)
+        self.ui.on_region_box_clicked()
 
         if self.params.use_gpu == "True":
             self.ui.gpu_box.setChecked(True)
@@ -274,6 +265,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.sart_params.setVisible(self.ui.add_params.isChecked())
             self.params.method = "sart"
             self.ui.sino_button.setChecked(True)
+            self.on_sino_button_clicked()
             self.params.from_projections = False
 
     def get_help(self, section, name):
@@ -288,6 +280,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.correct_box.setEnabled(False)
             self.params.correction = False
             self.on_correction()
+            self.ui.region_box.setEnabled(True)
 
     def on_proj_button_clicked(self):
         if self.ui.proj_button.isChecked():
@@ -295,16 +288,16 @@ class ApplicationWindow(QtGui.QMainWindow):
             if self.ui.correct_box.isChecked():
                 self.params.correction = True
                 self.on_correction()
+            self.ui.region_box.setEnabled(False)
+            self.ui.region_box.setChecked(False)
+            self.on_region_box_clicked()
 
-    def on_region(self):
-        self.ui.from_region.setEnabled(self.ui.region_box.isChecked())
-        self.ui.to_region.setEnabled(self.ui.region_box.isChecked())
-        self.ui.step_region.setEnabled(self.ui.region_box.isChecked())
-        if self.ui.region_box.isChecked() == False:
-            self.params.enable_region = False
-
-    def concatenate_region(self):
-        self.params.region = str(int(self.ui.from_region.value())) + ":" + str(int(self.ui.to_region.value())) + ":" + str(int(self.ui.step_region.value()))
+    def on_region_box_clicked(self):
+        self.ui.y_step.setEnabled(self.ui.region_box.isChecked())
+        if self.ui.region_box.isChecked():
+            self.params.y_step = self.ui.y_step.value()
+        else:
+            self.params.y_step = 1
 
     def on_input_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.input, self.params.last_dir)
@@ -317,11 +310,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.from_projections = False
             self.params.correction = False
             self.on_correction()
+            self.on_sino_button_clicked()
         elif "projection" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(False)
             self.ui.proj_button.setChecked(True)
             self.ui.correct_box.setEnabled(True)
             self.params.from_projections = True
+            self.on_proj_button_clicked()
         if self.ui.crop_box.isChecked():
             self.on_crop_width()
 
@@ -429,30 +424,25 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.correct_box.setChecked(False)
         self.ui.gpu_box.setChecked(False)
 
-        self.ui.from_region.setValue(0)
-        self.ui.to_region.setValue(1)
-        self.ui.step_region.setValue(1)
+        self.ui.y_step.setValue(1)
         self.ui.axis_spin.setValue(0)
         self.ui.angle_step.setValue(0)
         self.ui.angle_offset.setValue(0)
         self.ui.oversampling.setValue(0)
 
-        self.ui.from_region.setEnabled(False)
-        self.ui.to_region.setEnabled(False)
-        self.ui.step_region.setEnabled(False)
         self.ui.correct_box.setEnabled(False)
         self.ui.text_browser.clear()
         self.ui.method_box.setCurrentIndex(0)
 
         self.params.from_projections = False
         self.params.enable_cropping = False
-        self.params.enable_region = False
         self.params.correction = False
         self.params.crop_width = None
         self.params.use_gpu = False
         self.params.angle = None
         self.params.axis = None
         self.on_correction()
+        self.on_region_box_clicked()
 
         self.ui.phgen_width.setValue(512)
         self.ui.phgen_height.setValue(512)
@@ -478,6 +468,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.centralWidget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
+
+        if self.params.y_step > 1:
+            self.params.angle *= self.params.y_step
 
         if self.ui.add_params.isChecked() == False and self.params.method == "dfi":
             self.params.oversampling = None
@@ -534,6 +527,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
+        self.params.angle = self.ui.angle_step.value()
 
         if self.ui.reco_sino_phgen.isChecked():
             self.ui.reco_sino_phgen.setChecked(False)

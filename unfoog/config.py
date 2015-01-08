@@ -81,11 +81,6 @@ SECTIONS = {
             'help': "Reconstruct without writing data",
             'action': 'store_true'
             },
-        'enable_region': {
-            'default': False,
-            'help': "Enable from:to:step region",
-            'action': 'store_true',
-            },
         'enable_tracing': {
             'default': False,
             'help': "Enable tracing and store result in .PID.json",
@@ -134,17 +129,15 @@ SECTIONS = {
                     "for storing reconstructed slices",
             'metavar': 'PATH'
             },
-        'region': {
-            'default': '0:1:1',
-            'type': str,
-            'help': "from:to:step sinograms to process, if --from-projections is "
-                    "used then the region acts on projections, i.e. constrains "
-                    "the processed angles",
-            },
         'use_gpu': {
             'default': False,
             'help': "Use GPU device exclusively",
             'action': 'store_true'
+            },
+        'y_step': {
+            'default': 1,
+            'type': int,
+            'help': "Read every \"step\" row",
             },
         },
     'fbp': {
@@ -341,7 +334,7 @@ class LaminoParams(RecoParams):
 
 
 def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',
-          region='from:to:step', output='path/to/output', from_projections=True):
+          region='y_step', output='path/to/output', from_projections=True):
     disable_fp = '#' if not from_projections else ''
     out = TEMPLATE.format(axis=axis, angle=angle, input=input, region=region,
                           output=output, from_projections=from_projections,

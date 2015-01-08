@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
-from unfoog.util import range_from, check_input, set_reader, get_filenames
+from unfoog.util import check_input, set_reader, get_filenames
 
 
 LOG = logging.getLogger(__name__)
@@ -20,20 +20,11 @@ def get_output_name(output_path):
 
 
 def tomo(params):
-    if params.region and params.enable_region == True:
-        check_input(params.input, params.region)
-        if not params.offset and params.from_projections:
-            # Calculate the offset from the region
-            LOG.debug('Offset not given, calculating from region')
-            region = range_from(params.region)
-            num_projs = region[1] - region[0]
-            file_offset = region[0] % (2 * num_projs)
-            params.offset = file_offset / float(num_projs) * np.pi
     cargs = {}
 
-    if params.include:
-        config = Ufo.Config(paths=params.include)
-        cargs['config'] = config
+    #if params.include:
+    #    config = Ufo.Config(paths=params.include)
+    #    cargs['config'] = config
 
     # Create reader and writer
     pm = Ufo.PluginManager(**cargs)
@@ -44,10 +35,8 @@ def tomo(params):
         return task
 
     reader = get_task('reader')
-    if params.enable_region == True:
-        set_reader(reader, params.input, region=params.region)
-    else:
-        set_reader(reader, params.input)
+    reader.props.path = params.input
+    reader.props.y_step = params.y_step
 
     if params.dry_run:
         writer = get_task('null')
@@ -60,10 +49,7 @@ def tomo(params):
     g = Ufo.TaskGraph()
 
     if params.from_projections:
-        if params.region and params.enable_region == True:
-            count = len(range(*range_from(params.region)))
-        else:
-            count = len(get_filenames(params.input))
+        count = len(get_filenames(params.input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
@@ -107,15 +93,13 @@ def tomo(params):
         g.connect_nodes(bp, writer)
 
     if params.method == 'sart':
-        degree_angle = params.angle * 360 / (2 * 3.141592653589793)
-
         proj = pm.get_plugin ("ufo_ir_cl_projector_new",
                               "libufoir_cl_projector.so")
         proj.set_properties (model = "Joseph")
 
         geometry = pm.get_plugin ("ufo_ir_parallel_geometry_new",
                                   "libufoir_parallel_geometry.so")
-        geometry.set_properties (angle_step = degree_angle,
+        geometry.set_properties (angle_step = params.angle * 180.0 / np.pi,
                                  num_angles = params.num_angles)
 
         method = pm.get_plugin ("ufo_ir_sart_method_new",

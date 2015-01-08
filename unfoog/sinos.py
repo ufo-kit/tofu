@@ -54,14 +54,8 @@ def make_sino_graph(args, sino_region=None):
     pm = Ufo.PluginManager()
     g = Ufo.TaskGraph()
 
-    proj_reader = pm.get_task('reader')
+    proj_reader = pm.get_task('reader', y_step=sino_region[-1])
     set_reader(proj_reader, args.input, region=args.region)
-    # Setup projection downsampling
-    if sino_region and sino_region[-1] > 1:
-        proj_down = pm.get_task('downsample')
-        # Do not assume anything about the downsampler
-        proj_down.props.x_factor = 1
-        proj_down.props.y_factor = sino_region[-1]
 
     writer = pm.get_task('writer')
     writer.set_properties(filename='{0}'.format(args.output), append=bool(args.chunk))
@@ -89,26 +83,6 @@ def make_sino_graph(args, sino_region=None):
         # Setup flat-field correction
         ffc = pm.get_task('flat-field-correction')
 
-        # Setup projection downsampling
-        if sino_region and sino_region[-1] > 1:
-            flat_down = pm.get_task('downsample')
-            dark_down = pm.get_task('downsample')
-            flat_down.props.x_factor = 1
-            flat_down.props.y_factor = sino_region[-1]
-            dark_down.props.x_factor = 1
-            dark_down.props.y_factor = sino_region[-1]
-
-            g.connect_nodes(proj_reader, proj_down)
-            g.connect_nodes(flat_reader, flat_down)
-            g.connect_nodes(flat_down, flat_avg)
-            g.connect_nodes(dark_reader, dark_down)
-            g.connect_nodes(dark_down, dark_avg)
-            g.connect_nodes_full(proj_down, ffc, 0)
-        else:
-            g.connect_nodes(dark_reader, dark_avg)
-            g.connect_nodes(flat_reader, flat_avg)
-            g.connect_nodes_full(proj_reader, ffc, 0)
-
         g.connect_nodes_full(dark_avg, ffc, 1)
         g.connect_nodes_full(flat_avg, ffc, 2)
 
@@ -121,11 +95,7 @@ def make_sino_graph(args, sino_region=None):
         else:
             g.connect_nodes(ffc, sinogen)
     else:
-        if sino_region and sino_region[-1] > 1:
-            g.connect_nodes(proj_reader, proj_down)
-            g.connect_nodes(proj_down, sinogen)
-        else:
-            g.connect_nodes(proj_reader, sinogen)
+        g.connect_nodes(proj_reader, sinogen)
 
     g.connect_nodes(sinogen, writer)
 
