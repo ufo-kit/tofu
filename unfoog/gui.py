@@ -26,25 +26,24 @@ logging.basicConfig(
     filemode='a'
 )
 
-def _set_line_edit_to_path(parent, line_edit, directory, last_dir):
+def _set_line_edit_to_path(parent, directory, last_dir):
     if last_dir is not None:
         directory = last_dir
     path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
-    line_edit.clear()
-    line_edit.setText(path)
-    if os.path.exists(str(line_edit.text())):
-        last_dir = str(line_edit.text())
-        return last_dir
+    return path
 
-def _set_line_edit_to_file(parent, line_edit, directory, last_dir):
+def _set_line_edit_to_file(parent, directory, last_dir):
     if last_dir is not None:
         directory = last_dir
     file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
-    line_edit.clear()
-    line_edit.setText(file_name)
-    if os.path.exists(str(line_edit.text())):
+    return file_name
+
+def _set_last_dir(parent, path, line_edit, last_dir):
+    if os.path.exists(str(path)):
+        line_edit.clear()
+        line_edit.setText(path)
         last_dir = str(line_edit.text())
-        return last_dir
+    return last_dir
 
 def _enable_wait_cursor():
     QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
@@ -307,7 +306,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.region = str(int(self.ui.from_region.value())) + ":" + str(int(self.ui.to_region.value())) + ":" + str(int(self.ui.step_region.value()))
 
     def on_input_path_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_path(self, self.ui.input_path_line, self.params.input, self.params.last_dir)
+        path = _set_line_edit_to_path(self, self.params.input, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.input_path_line, self.params.last_dir)
 
         if "sinogram" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(True)
@@ -353,7 +353,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.enable_cropping = False
 
     def on_output_path_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_path(self, self.ui.output_path_line, self.params.output, self.params.last_dir)
+        path = _set_line_edit_to_path(self, self.params.output, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.output_path_line, self.params.last_dir)
         self.output = "new"
 
     def on_correct_box_clicked(self):
@@ -369,16 +370,20 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats_label.setVisible(self.params.correction)
 
     def on_darks_path_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_path(self, self.ui.darks_path_line, self.params.darks, self.params.last_dir)
+        path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.darks_path_line, self.params.last_dir)
 
     def on_flats_path_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_path(self, self.ui.flats_path_line, self.params.flats, self.params.last_dir)
+        path = _set_line_edit_to_path(self, self.params.flats, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.flats_path_line, self.params.last_dir)
 
     def on_path_0_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_file(self, self.ui.path_line_0, str(self.ui.path_line_0.text()), self.params.last_dir)
+        path = _set_line_edit_to_file(self, self.params.deg0, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_0, self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
-        self.params.last_dir = _set_line_edit_to_file(self, self.ui.path_line_180, str(self.ui.path_line_180.text()), self.params.last_dir)
+        path = _set_line_edit_to_file(self, self.params.deg180, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_180, self.params.last_dir)
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
