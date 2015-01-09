@@ -53,16 +53,16 @@ SECTIONS = {
             'help': "File name of configuration",
             'metavar': 'FILE'
             },
-        'correction': {
-            'default': False,
-            'help': "Enable darks or flats correction",
-            'action': 'store_true'
-            },
         'darks': {
             'default': '.',
             'type': str,
             'help': "Location with darks",
             'metavar': 'PATH'
+            },
+        'dark_scale': {
+            'default': 1,
+            'type': float,
+            'help': "Scaling dark",
             },
         'deg0': {
             'default': '.',
@@ -86,10 +86,26 @@ SECTIONS = {
             'help': "Enable tracing and store result in .PID.json",
             'action': 'store_true'
             },
+        'ffc_correction': {
+            'default': False,
+            'help': "Enable darks or flats correction",
+            'action': 'store_true'
+            },
+        'ffc_options': {
+            'default': "Average",
+            'type': str,
+            'help': "Flat-field correction options: Average (darks) or median (flats)"
+            },
         'flats': {
             'default': '.',
             'type': str,
             'help': "Location with flats",
+            'metavar': 'PATH'
+            },
+        'flats2': {
+            'default': '.',
+            'type': str,
+            'help': "Location with flats 2 for interpolation correction",
             'metavar': 'PATH'
             },
         'include': {
@@ -105,6 +121,11 @@ SECTIONS = {
             'help': "Location with sinograms or projections",
             'metavar': 'PATH'
             },
+        'ip_correction': {
+            'default': False,
+            'help': "Enable interpolation correction",
+            'action': 'store_true'
+            },
         'last_dir': {
             'default': '.',
             'type': str,
@@ -116,6 +137,11 @@ SECTIONS = {
             'type': str,
             'help': "Reconstruction method",
             'choices': ['fbp', 'sart', 'dfi']
+            },
+        'num_flats': {
+            'default': 0,
+            'type': int,
+            'help': "Number of flats for ffc correction."
             },
         'offset': {
             'default': 0.0,

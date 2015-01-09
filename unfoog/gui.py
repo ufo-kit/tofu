@@ -91,9 +91,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.iterations_sart.setToolTip(self.get_help('sart', 'max_iterations'))
         self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation_factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
-        self.ui.correct_box.setToolTip(self.get_help('general', 'correction'))
+        self.ui.ffc_box.setToolTip(self.get_help('general', 'ffc_correction'))
+        self.ui.ip_box.setToolTip(self.get_help('general', 'ip_correction'))
         self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
         self.ui.flats_path_button.setToolTip(self.get_help('general', 'flats'))
+        self.ui.flats2_path_button.setToolTip(self.get_help('general', 'flats2'))
         self.ui.path_button_0.setToolTip(self.get_help('general', 'deg0'))
         self.ui.path_button_180.setToolTip(self.get_help('general', 'deg180'))
 
@@ -106,9 +108,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.valueChanged.connect(self.change_angle_step)
         self.ui.crop_box.clicked.connect(self.on_crop_width)
         self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
-        self.ui.correct_box.clicked.connect(self.on_correct_box_clicked)
+        self.ui.ffc_box.clicked.connect(self.on_ffc_box_clicked)
+        self.ui.ip_box.clicked.connect(self.on_ip_box_clicked)
         self.ui.darks_path_button.clicked.connect(self.on_darks_path_clicked)
         self.ui.flats_path_button.clicked.connect(self.on_flats_path_clicked)
+        self.ui.flats2_path_button.clicked.connect(self.on_flats2_path_clicked)
+        self.ui.ffc_options.currentIndexChanged.connect(self.change_ffc_options)
         self.ui.reco_button.clicked.connect(self.on_reconstruct)
         self.ui.reco_slider.valueChanged.connect(self.move_reco_slider)
         self.ui.tab_widget.currentChanged.connect(self.on_tab_changed)
@@ -159,6 +164,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
         self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
         self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
+        self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2', str(self.ui.flats2_path_line.text())))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
         self.ui.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.ui.gpu_box.isChecked()))
@@ -168,6 +174,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.output_path_line.setText(self.params.output)
         self.ui.darks_path_line.setText(self.params.darks)
         self.ui.flats_path_line.setText(self.params.flats)
+        self.ui.flats2_path_line.setText(self.params.flats2)
         self.ui.path_line_0.setText(self.params.deg0)
         self.ui.path_line_180.setText(self.params.deg180)
 
@@ -190,7 +197,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.from_projections = True
             self.ui.proj_button.setChecked(True)
             self.ui.sino_button.setChecked(False)
-            self.ui.correct_box.setEnabled(True)
             self.on_proj_button_clicked()
         else:
             self.params.from_projections = False
@@ -209,19 +215,28 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.change_method()
 
-        if self.params.correction == "True" and self.proj_button.isChecked():
-            self.ui.correct_box.setChecked(True)
-            self.params.correction = True
-        else:
-            self.ui.correct_box.setChecked(False)
-            self.params.correction = False
-        self.on_correction()
-
         if self.params.y_step > 1 and self.sino_button.isChecked():
             self.ui.region_box.setChecked(True)
         else:
             self.ui.region_box.setChecked(False)
         self.ui.on_region_box_clicked()
+
+        if self.params.ffc_correction == "True" and self.proj_button.isChecked():
+            self.ui.ffc_box.setChecked(True)
+        else:
+            self.ui.ffc_box.setChecked(False)
+        self.on_ffc_box_clicked()
+
+        if self.params.ip_correction == "True" and self.proj_button.isChecked():
+            self.ui.ip_box.setChecked(True)
+        else:
+            self.ui.ip_box.setChecked(False)
+        self.on_ip_box_clicked()
+
+        if self.params.ffc_options == "Average":
+            self.ui.ffc_options.setCurrentIndex(0)
+        else:
+            self.ui.ffc_options.setCurrentIndex(1)
 
         if self.params.use_gpu == "True":
             self.ui.gpu_box.setChecked(True)
@@ -277,17 +292,18 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_sino_button_clicked(self):
         if self.ui.sino_button.isChecked():
-            self.ui.correct_box.setEnabled(False)
-            self.params.correction = False
-            self.on_correction()
+            self.ui.ffc_box.setEnabled(False)
+            self.ui.ffc_box.setChecked(False)
+            self.ui.ip_box.setEnabled(False)
+            self.ui.ip_box.setChecked(False)
+            self.on_ffc_box_clicked()
+            self.on_ip_box_clicked()
             self.ui.region_box.setEnabled(True)
 
     def on_proj_button_clicked(self):
         if self.ui.proj_button.isChecked():
-            self.ui.correct_box.setEnabled(True)
-            if self.ui.correct_box.isChecked():
-                self.params.correction = True
-                self.on_correction()
+            self.ui.ffc_box.setEnabled(True)
+            self.ui.ip_box.setEnabled(True)
             self.ui.region_box.setEnabled(False)
             self.ui.region_box.setChecked(False)
             self.on_region_box_clicked()
@@ -306,15 +322,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         if "sinogram" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(True)
             self.ui.proj_button.setChecked(False)
-            self.ui.correct_box.setEnabled(False)
             self.params.from_projections = False
-            self.params.correction = False
-            self.on_correction()
             self.on_sino_button_clicked()
         elif "projection" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(False)
             self.ui.proj_button.setChecked(True)
-            self.ui.correct_box.setEnabled(True)
             self.params.from_projections = True
             self.on_proj_button_clicked()
         if self.ui.crop_box.isChecked():
@@ -359,17 +371,24 @@ class ApplicationWindow(QtGui.QMainWindow):
         for f in output_absfiles:
             os.remove(f)
 
-    def on_correct_box_clicked(self):
-        self.params.correction = self.ui.correct_box.isChecked()
-        self.on_correction()
+    def on_ffc_box_clicked(self):
+        self.params.ffc_correction = self.ui.ffc_box.isChecked()
+        self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
+        if self.ui.ffc_box.isChecked() == False:
+            self.ip_box.setChecked(False)
+            self.params.ip_correction = False
+            self.ui.ip_correction.setVisible(False)
 
-    def on_correction(self):
-        self.ui.darks_path_line.setVisible(self.params.correction)
-        self.ui.darks_path_button.setVisible(self.params.correction)
-        self.ui.darks_label.setVisible(self.params.correction)
-        self.ui.flats_path_line.setVisible(self.params.correction)
-        self.ui.flats_path_button.setVisible(self.params.correction)
-        self.ui.flats_label.setVisible(self.params.correction)
+    def on_ip_box_clicked(self):
+        self.params.ip_correction = self.ui.ip_box.isChecked()
+        self.ui.ip_correction.setVisible(self.ui.ip_box.isChecked())
+        if self.ui.ip_box.isChecked():
+            self.ui.ffc_box.setChecked(True)
+            self.params.ffc_correction = True
+            self.ui.ffc_correction.setVisible(True)
+
+    def change_ffc_options(self):
+        self.params.ffc_options = str(self.ui.ffc_options.currentText())
 
     def on_darks_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
@@ -378,6 +397,10 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_flats_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.flats, self.params.last_dir)
         self.params.last_dir = _set_last_dir(self, path, self.ui.flats_path_line, self.params.last_dir)
+
+    def on_flats2_path_clicked(self, checked):
+        path = _set_line_edit_to_path(self, self.params.flats2, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.flats2_path_line, self.params.last_dir)
 
     def on_path_0_clicked(self, checked):
         path = _set_line_edit_to_file(self, self.params.deg0, self.params.last_dir)
@@ -414,6 +437,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.output_path_line.setText('.')
         self.ui.darks_path_line.setText('.')
         self.ui.flats_path_line.setText('.')
+        self.ui.flats2_path_line.setText('.')
         self.ui.path_line_0.setText('.')
         self.ui.path_line_180.setText('.')
 
@@ -421,7 +445,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.proj_button.setChecked(False)
         self.ui.region_box.setChecked(False)
         self.ui.crop_box.setChecked(False)
-        self.ui.correct_box.setChecked(False)
+        self.ui.ffc_box.setChecked(False)
+        self.ui.ip_box.setChecked(False)
         self.ui.gpu_box.setChecked(False)
 
         self.ui.y_step.setValue(1)
@@ -429,20 +454,21 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setValue(0)
         self.ui.angle_offset.setValue(0)
         self.ui.oversampling.setValue(0)
+        self.ui.ffc_options.setCurrentIndex(0)
 
-        self.ui.correct_box.setEnabled(False)
         self.ui.text_browser.clear()
         self.ui.method_box.setCurrentIndex(0)
 
         self.params.from_projections = False
         self.params.enable_cropping = False
-        self.params.correction = False
+        self.params.ffc_options = "Average"
         self.params.crop_width = None
         self.params.use_gpu = False
         self.params.angle = None
         self.params.axis = None
-        self.on_correction()
         self.on_region_box_clicked()
+        self.on_ffc_box_clicked()
+        self.on_ip_box_clicked()
 
         self.ui.phgen_width.setValue(512)
         self.ui.phgen_height.setValue(512)
@@ -471,6 +497,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
+
+        if self.params.ffc_correction:
+           flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith('.tif')]
+           self.params.num_flats = len(flats_files)
+        else:
+           self.params.num_flats = 0
 
         if self.ui.add_params.isChecked() == False and self.params.method == "dfi":
             self.params.oversampling = None

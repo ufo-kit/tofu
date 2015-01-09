@@ -54,14 +54,54 @@ def tomo(params):
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
-        if params.darks and params.flats and params.correction == True:
-            dark_reader = get_task('reader', path=params.flats)
-            flat_reader = get_task('reader', path=params.darks)
-            correction = get_task('flat-field-correction')
-            g.connect_nodes_full(reader, correction, 0)
-            g.connect_nodes_full(dark_reader, correction, 1)
-            g.connect_nodes_full(flat_reader, correction, 2)
-            g.connect_nodes(correction, sino_output)
+        if params.darks and params.flats and params.ffc_correction == True:
+            flat_before_reader = get_task('reader', path=params.flats)
+            flat_before_stack = get_task('stack', num_items=params.num_flats)
+            flat_before_median = get_task('flatten')
+            flat_before_averager = get_task('averager')
+            dark_reader = get_task('reader', path=params.darks)
+            ffc = get_task('flat-field-correction')
+
+            ffc.set_properties(dark_scale=params.dark_scale,
+                               absorption_correction=True)
+
+            if params.ffc_options == "Median":
+                g.connect_nodes(flat_before_reader, flat_before_stack)
+                g.connect_nodes(flat_before_stack, flat_before_median)
+                g.connect_nodes_full(reader, ffc, 0)
+                g.connect_nodes_full(dark_reader, ffc, 1)
+                g.connect_nodes(ffc, sino_output)
+
+                if params.flats2 and params.ip_correction == True:
+                    flat_after_reader = get_task('reader', path=params.flats2)
+                    flat_after_stack = get_task('stack', num_items=params.num_flats)
+                    flat_after_median = get_task('flatten')
+                    flat_interpolate = get_task('interpolate')
+
+                    g.connect_nodes(flat_after_reader, flat_after_stack)
+                    g.connect_nodes(flat_after_stack, flat_after_median)
+                    g.connect_nodes_full(flat_before_median, flat_interpolate, 0)
+                    g.connect_nodes_full(flat_after_median, flat_interpolate, 1)
+                    g.connect_nodes_full(flat_interpolate, ffc, 2)
+                else:
+                    g.connect_nodes_full(flat_before_median, ffc, 2)
+            else:
+                g.connect_nodes(flat_before_reader, flat_before_averager)
+                g.connect_nodes_full(reader, ffc, 0)
+                g.connect_nodes_full(dark_reader, ffc, 1)
+                g.connect_nodes(ffc, sino_output)
+
+                if params.flats2 and params.ip_correction == True:
+                    flat_after_reader = get_task('reader', path=params.flats2)
+                    flat_after_averager = get_task('averager')
+                    flat_interpolate = get_task('interpolate')
+
+                    g.connect_nodes(flat_after_reader, flat_after_averager)
+                    g.connect_nodes_full(flat_before_averager, flat_interpolate, 0)
+                    g.connect_nodes_full(flat_after_averager, flat_interpolate, 1)
+                    g.connect_nodes_full(flat_interpolate, ffc, 2)
+                else:
+                    g.connect_nodes_full(flat_before_averager, ffc, 2)
         else:
             g.connect_nodes(reader, sino_output)
     else:
