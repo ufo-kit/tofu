@@ -70,6 +70,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.reco_images_widget.setVisible(False)
         self.ui.reco_volume_widget.setVisible(False)
+        self.ui.volume_min_slider.setTracking(False)
+        self.ui.volume_max_slider.setTracking(False)
         self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
@@ -125,8 +127,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.gloptions2.currentIndexChanged.connect(self.change_gloptions)
         self.ui.percent_box.valueChanged.connect(self.on_percent_box)
         self.ui.percent_box2.valueChanged.connect(self.on_percent_box2)
-        self.ui.volume_min_slider.sliderReleased.connect(self.on_volume_sliders)
-        self.ui.volume_max_slider.sliderReleased.connect(self.on_volume_sliders)
+        self.ui.volume_min_slider.valueChanged.connect(self.on_volume_sliders)
+        self.ui.volume_max_slider.valueChanged.connect(self.on_volume_sliders)
         self.ui.crop_circle_box.clicked.connect(self.on_crop_circle)
         self.ui.crop_more_button.clicked.connect(self.on_crop_more_circle)
         self.ui.crop_less_button.clicked.connect(self.on_crop_less_circle)
@@ -370,6 +372,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in output_files]
         for f in output_absfiles:
             os.remove(f)
+        self.ui.reco_slider.setEnabled(False)
 
     def on_ffc_box_clicked(self):
         self.params.ffc_correction = self.ui.ffc_box.isChecked()
@@ -591,6 +594,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith('.tif')]
         self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
         self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
+        self.ui.reco_slider.setEnabled(True)
         self.move_reco_slider()
         self.levels = self.reco_histogram.getLevels()
         if self.ui.reco_images_widget.isVisible() == False:
@@ -598,13 +602,17 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.resize(1500, 900)
 
     def move_reco_slider(self):
+        new_levels = self.reco_histogram.getLevels()
         pos = self.ui.reco_slider.value()
         img = self.convert_tif_to_img(self.reco_absfiles[pos])
         self.reco_viewbox.clear()
         self.reco_viewbox.addItem(img)
         self.reco_histogram.setImageItem(img)
         if self.levels is not None:
-            self.reco_histogram.setLevels(self.levels[0], self.levels[1])
+            if new_levels == self.levels:
+                self.reco_histogram.setLevels(self.levels[0], self.levels[1])
+            else:
+                self.reco_histogram.setLevels(new_levels[0], new_levels[1])
 
     def convert_tif_to_img(self, tif_file):
         tif = tifffile.TiffFile(tif_file)

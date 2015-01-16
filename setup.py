@@ -3,9 +3,6 @@ import subprocess
 
 VERSION='0.7'
 
-make_file = 'cc -Wall -std=c99 -fopenmp -O3 -o bin/generate "generate.c" -lm -ltiff'
-subprocess.call([make_file], shell = True)
-
 setup(
     name='ufo-scripts',
     version=VERSION,
