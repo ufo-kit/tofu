@@ -216,8 +216,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.method_box.setCurrentIndex(1)
         elif self.params.method == "sart":
             self.ui.method_box.setCurrentIndex(2)
-            self.ui.sino_button.setChecked(True)
-            self.params.from_projections = False
 
         self.change_method()
 
@@ -285,9 +283,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.dfi_params.setVisible(False)
             self.ui.sart_params.setVisible(self.ui.add_params.isChecked())
             self.params.method = "sart"
-            self.ui.sino_button.setChecked(True)
-            self.on_sino_button_clicked()
-            self.params.from_projections = False
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -521,16 +516,19 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.oversampling = self.ui.oversampling.value()
 
         if self.params.method == "sart":
-            input_sinos = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
-            abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_sinos[0])
-            if abs_sino.endswith('.tif'):
-                tif = tifffile.TiffFile(abs_sino)
-                array = tif.asarray()
-                self.params.num_angles = array.shape[0]
+            input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
+            if self.params.from_projections:
+                self.params.num_angles = len(input_images)
             else:
-                edf = fabio.edfimage.edfimage()
-                edf_sino = edf.read(abs_sino)
-                self.params.num_angles = int(edf_sino.header['Dim_2'])
+                abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
+                if abs_sino.endswith('.tif'):
+                    tif = tifffile.TiffFile(abs_sino)
+                    array = tif.asarray()
+                    self.params.num_angles = array.shape[0]
+                else:
+                    edf = fabio.edfimage.edfimage()
+                    edf_sino = edf.read(abs_sino)
+                    self.params.num_angles = int(edf_sino.header['Dim_2'])
 
             if self.ui.add_params.isChecked():
                 self.params.max_iterations = self.ui.iterations_sart.value()
