@@ -1,5 +1,6 @@
 import sys
 import os
+import fabio
 import logging
 import tempfile
 import subprocess
@@ -17,6 +18,8 @@ logging.getLogger('').handlers = []
 LOG = logging.getLogger(__name__)
 logging.getLogger('PyQt4.uic.uiparser').disabled = True
 logging.getLogger('PyQt4.uic.properties').disabled = True
+logging.getLogger('fabioutils').disabled = True
+logging.getLogger('edfimage').disabled = True
 log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
 
 logging.basicConfig(
@@ -80,6 +83,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.reco_images_layout = False
         self.volume_layout = False
         self.viewbox = False
+        self.ext = tuple([".tif", ".edf"])
         self.get_values_from_params()
 
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
@@ -350,10 +354,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.ui.crop_box.isChecked():
             try:
                 find_file = os.path.join(str(self.ui.input_path_line.text()), os.listdir(str(self.ui.input_path_line.text()))[0])
-                crop_file = tifffile.TiffFile(find_file)
-                crop_arr = crop_file.asarray()
-                crop_width = crop_arr.shape[1]
-                self.params.crop_width = crop_width
+                if find_file.endswith('.tif'):
+                    crop_file = tifffile.TiffFile(find_file)
+                    crop_arr = crop_file.asarray()
+                    self.params.crop_width = crop_width = crop_arr.shape[1]
+                else:
+                    edf = fabio.edfimage.edfimage()
+                    edf_cropfile = edf.read(find_file)
+                    self.params.crop_width = int(edf_cropfile.header['Dim_1'])
                 self.params.enable_cropping = True
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", "Choose input path first \n" + str(e))
@@ -368,7 +376,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.output = "new"
 
     def on_clear_output_dir_clicked(self):
-        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith('.tif')]
+        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith(self.ext)]
         output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in output_files]
         for f in output_absfiles:
             os.remove(f)
@@ -502,7 +510,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.angle *= self.params.y_step
 
         if self.params.ffc_correction:
-           flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith('.tif')]
+           flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith(self.ext)]
            self.params.num_flats = len(flats_files)
         else:
            self.params.num_flats = 0
@@ -513,11 +521,16 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.oversampling = self.ui.oversampling.value()
 
         if self.params.method == "sart":
-            input_sinos = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith('.tif')]
+            input_sinos = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
             abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_sinos[0])
-            tif = tifffile.TiffFile(abs_sino)
-            array = tif.asarray()
-            self.params.num_angles = array.shape[0]
+            if abs_sino.endswith('.tif'):
+                tif = tifffile.TiffFile(abs_sino)
+                array = tif.asarray()
+                self.params.num_angles = array.shape[0]
+            else:
+                edf = fabio.edfimage.edfimage()
+                edf_sino = edf.read(abs_sino)
+                self.params.num_angles = int(edf_sino.header['Dim_2'])
 
             if self.ui.add_params.isChecked():
                 self.params.max_iterations = self.ui.iterations_sart.value()
@@ -591,7 +604,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def show_reco_images(self):
         self.levels = None
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith('.tif')]
+        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith(self.ext)]
         self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
         self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
         self.ui.reco_slider.setEnabled(True)
@@ -652,7 +665,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.volume_img.translate(-self.volume.shape[0]/2, -self.volume.shape[1]/2, -self.volume.shape[2]/2)
 
     def get_slices(self):
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith('.tif')]
+        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith(self.ext)]
         self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
         self.changed_data = None
 
@@ -1114,7 +1127,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def update_phgen_images(self):
         try:
-            self.phgen_files = [f for f in sorted(os.listdir(os.getcwd())) if f.endswith('.tif')]
+            self.phgen_files = [f for f in sorted(os.listdir(os.getcwd())) if f.endswith(self.ext)]
             self.ui.phgen_slider.setMaximum(len(self.phgen_files) - 1)
             self.move_phgen_slider()
 
