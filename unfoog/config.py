@@ -155,6 +155,16 @@ SECTIONS = {
                     "for storing reconstructed slices",
             'metavar': 'PATH'
             },
+        'show_2d': {
+            'default': False,
+            'help': "Show 2D slices with pyqtgraph, GUI only",
+            'action': 'store_true'
+            },
+        'show_3d': {
+            'default': False,
+            'help': "Show 3D slices with pyqtgraph, GUI only",
+            'action': 'store_true'
+            },
         'use_gpu': {
             'default': False,
             'help': "Use GPU device exclusively",

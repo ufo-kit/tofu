@@ -102,6 +102,114 @@
              <property name="spacing">
               <number>6</number>
              </property>
+             <item row="17" column="0" colspan="3">
+              <widget class="QWidget" name="volume_params" native="true">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="mouseTracking">
+                <bool>false</bool>
+               </property>
+               <property name="focusPolicy">
+                <enum>Qt::NoFocus</enum>
+               </property>
+               <property name="contextMenuPolicy">
+                <enum>Qt::DefaultContextMenu</enum>
+               </property>
+               <property name="acceptDrops">
+                <bool>false</bool>
+               </property>
+               <property name="autoFillBackground">
+                <bool>false</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_3">
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="volume_layout">
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
+                  <item row="1" column="1">
+                   <widget class="QLabel" name="label">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="text">
+                     <string>Scale down images? (in %)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QComboBox" name="gloptions">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>translucent</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>additive</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QSpinBox" name="percent_box">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="toolTip">
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="minimum">
+                     <number>10</number>
+                    </property>
+                    <property name="maximum">
+                     <number>100</number>
+                    </property>
+                    <property name="singleStep">
+                     <number>5</number>
+                    </property>
+                    <property name="value">
+                     <number>50</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0" colspan="3">
+                   <widget class="Line" name="line_6">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
              <item row="6" column="0" colspan="5">
               <layout class="QGridLayout" name="gridLayout_18">
                <item row="0" column="2">
@@ -285,123 +393,59 @@
                </item>
               </layout>
              </item>
-             <item row="17" column="0" colspan="3">
-              <widget class="QWidget" name="volume_params" native="true">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="mouseTracking">
-                <bool>false</bool>
-               </property>
-               <property name="focusPolicy">
-                <enum>Qt::NoFocus</enum>
-               </property>
-               <property name="contextMenuPolicy">
-                <enum>Qt::DefaultContextMenu</enum>
-               </property>
-               <property name="acceptDrops">
-                <bool>false</bool>
-               </property>
-               <property name="autoFillBackground">
-                <bool>false</bool>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_3">
-                <property name="margin">
-                 <number>0</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QGridLayout" name="volume_layout">
-                  <property name="margin">
-                   <number>0</number>
+             <item row="9" column="2" colspan="3">
+              <layout class="QGridLayout" name="method_layout">
+               <item row="0" column="0">
+                <widget class="QLabel" name="method_label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>  Method:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="method_box">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>FBP</string>
                   </property>
-                  <item row="1" column="1">
-                   <widget class="QLabel" name="label">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="toolTip">
-                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                    </property>
-                    <property name="text">
-                     <string>Scale down images? (in %)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="0">
-                   <widget class="QComboBox" name="gloptions">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="toolTip">
-                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;translucent&lt;/span&gt;: Enables depth testing and blending.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;additive&lt;/span&gt;: Disables depth testing, enables blending.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                    </property>
-                    <item>
-                     <property name="text">
-                      <string>translucent</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>additive</string>
-                     </property>
-                    </item>
-                   </widget>
-                  </item>
-                  <item row="1" column="2">
-                   <widget class="QSpinBox" name="percent_box">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="toolTip">
-                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Scale down for a faster output.&lt;br/&gt;Total number of slices will be reduced automatically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                    </property>
-                    <property name="minimum">
-                     <number>10</number>
-                    </property>
-                    <property name="maximum">
-                     <number>100</number>
-                    </property>
-                    <property name="singleStep">
-                     <number>5</number>
-                    </property>
-                    <property name="value">
-                     <number>50</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="2" column="2">
-                   <widget class="QPushButton" name="update_volume_button2">
-                    <property name="toolTip">
-                     <string notr="true">Show already generated slices from output path as 3D volume</string>
-                    </property>
-                    <property name="text">
-                     <string>Show slices</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="0" colspan="3">
-                   <widget class="Line" name="line_6">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </widget>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>DFI</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SART</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
              </item>
              <item row="15" column="4">
               <widget class="QPushButton" name="output_path_button">
@@ -699,60 +743,6 @@
                </layout>
               </widget>
              </item>
-             <item row="9" column="2" colspan="3">
-              <layout class="QGridLayout" name="method_layout">
-               <item row="0" column="0">
-                <widget class="QLabel" name="method_label">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <weight>75</weight>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>  Method:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="method_box">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>FBP</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>DFI</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>SART</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-              </layout>
-             </item>
              <item row="11" column="0" colspan="5">
               <widget class="QWidget" name="dfi_params" native="true">
                <layout class="QGridLayout" name="gridLayout_6">
@@ -1038,7 +1028,7 @@
               </widget>
              </item>
              <item row="16" column="0">
-              <widget class="QCheckBox" name="show_reco_images_box">
+              <widget class="QCheckBox" name="show_2d_box">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -1301,21 +1291,8 @@
                </layout>
               </widget>
              </item>
-             <item row="17" column="3" colspan="2">
-              <widget class="QPushButton" name="reco_button">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Reconstruct</string>
-               </property>
-              </widget>
-             </item>
              <item row="16" column="1">
-              <widget class="QCheckBox" name="show_volume_box">
+              <widget class="QCheckBox" name="show_3d_box">
                <property name="toolTip">
                 <string>Show 3D volume image after reconstruction</string>
                </property>
@@ -1369,6 +1346,29 @@
                </property>
                <property name="maximum">
                 <number>500</number>
+               </property>
+              </widget>
+             </item>
+             <item row="17" column="4">
+              <widget class="QPushButton" name="reco_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Reconstruct</string>
+               </property>
+              </widget>
+             </item>
+             <item row="17" column="3">
+              <widget class="QPushButton" name="show_slices_button">
+               <property name="toolTip">
+                <string notr="true">Show already generated slices from output path</string>
+               </property>
+               <property name="text">
+                <string>Show slices</string>
                </property>
               </widget>
              </item>
