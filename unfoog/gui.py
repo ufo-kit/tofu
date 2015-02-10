@@ -654,11 +654,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.volume_layout = True
         self.new_output = False
         self.scale_percent = self.ui.percent_box.value()
-        reco_volume_view = gl.GLViewWidget()
-        self.ui.volume_image.addWidget(reco_volume_view, 0, 0)
-        self.volume_img = gl.GLVolumeItem(None)
-        self.volume_img.setGLOptions("translucent")
-        reco_volume_view.addItem(self.volume_img)
+        self.reco_volume_view = gl.GLViewWidget()
+        self.volume_img = None
+
+        self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
         self.get_slices()
         try:
             self.scale_data()
@@ -751,8 +750,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             if self.ui.volume_min_slider.value() is not 0 or self.ui.volume_max_slider.value() is not 255:
                 self.on_volume_sliders()
 
-        self.volume_img.setData(self.volume)
-        self.volume_img.update()
+        if self.volume_img:
+            self.volume_img.data[...] = self.volume
+            self.volume_img.update()
+        else:
+            self.volume_img = gl.GLVolumeItem(self.volume)
+            self.volume_img.setGLOptions("translucent")
+            self.reco_volume_view.addItem(self.volume_img)
 
         if self.set_volume:
             self.set_volume_to_center()
@@ -808,7 +812,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         data[data < self.ui.volume_min_slider.value()] = 0
         data[data > self.ui.volume_max_slider.value()] = 0
         self.volume = self.get_volume(data)
-        self.volume_img.setData(self.volume)
+        self.volume_img.data[...] = self.volume
         self.volume_img.update()
         _disable_wait_cursor()
 
