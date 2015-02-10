@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
-from unfoog.util import check_input, set_reader, get_filenames
+from unfoog.util import check_input, set_reader, get_filenames, next_power_of_two
 
 
 LOG = logging.getLogger(__name__)
@@ -122,14 +122,30 @@ def tomo(params):
         if params.offset:
             bp.props.angle_offset = params.offset
 
-        if params.crop_width and params.enable_cropping == True:
-            ifft.props.crop_width = int(params.crop_width)
-            LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
+        if params.width and params.height:
+            # Pad the image with its extent to prevent reconstuction ring
+            pad = get_task('pad')
+            crop = get_task('region-of-interest')
+            setup_padding(pad, crop, params.width, params.height)
 
-        g.connect_nodes(sino_output, fft)
-        g.connect_nodes(fft, fltr)
-        g.connect_nodes(fltr, ifft)
-        g.connect_nodes(ifft, bp)
+            LOG.debug("Padding to {}x{} pixels".format(pad.props.width, pad.props.height))
+
+            g.connect_nodes(sino_output, pad)
+            g.connect_nodes(pad, fft)
+            g.connect_nodes(fft, fltr)
+            g.connect_nodes(fltr, ifft)
+            g.connect_nodes(ifft, crop)
+            g.connect_nodes(crop, bp)
+        else:
+            if params.crop_width and params.enable_cropping == True:
+                ifft.props.crop_width = int(params.crop_width)
+                LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
+
+            g.connect_nodes(sino_output, fft)
+            g.connect_nodes(fft, fltr)
+            g.connect_nodes(fltr, ifft)
+            g.connect_nodes(ifft, bp)
+
         g.connect_nodes(bp, writer)
 
     if params.method == 'sart':
@@ -309,3 +325,18 @@ def estimate_center(cfg_parser, filename, n_iterations=10):
         width /= 2.0
 
     return new_center
+
+
+def setup_padding(pad, crop, width, height):
+    padding = next_power_of_two(width + 32) - width
+    pad.props.width = width + padding
+    pad.props.height = height
+    pad.props.x = padding / 2
+    pad.props.y = 0
+    pad.props.addressing_mode = 'clamp_to_edge'
+
+    # crop to original width after filtering
+    crop.props.width = width
+    crop.props.height = height
+    crop.props.x = padding / 2
+    crop.props.y = 0

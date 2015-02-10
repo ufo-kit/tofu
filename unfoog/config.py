@@ -175,6 +175,16 @@ SECTIONS = {
             'type': int,
             'help': "Read every \"step\" row",
             },
+        'width': {
+            'default': None,
+            'type': positive_int,
+            'help': "Input width"
+            },
+        'height': {
+            'default': None,
+            'type': positive_int,
+            'help': "Input height"
+            },
         },
     'fbp': {
         'crop_width': {
@@ -230,11 +240,6 @@ SECTIONS = {
             'type': positive_int,
             'help': "Downsampling factor"
             },
-        'height': {
-            'default': None,
-            'type': positive_int,
-            'help': "Height of the input projection"  
-            },
         'pad': {
             'default': None,
             'type': int,
@@ -252,11 +257,6 @@ SECTIONS = {
             'type': float,
             'help': "Tilt angle of sample in radians"
             },
-        'width': {
-            'default': None,
-            'type': positive_int,
-            'help': "Width of the input projection"
-            }
         }
     }
 
