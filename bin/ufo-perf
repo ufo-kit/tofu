@@ -6,6 +6,7 @@ import argparse
 import time
 import math
 from gi.repository import Ufo, GLib
+from unfoog.reco import setup_padding
 from unfoog.util import range_from
 
 
@@ -32,11 +33,25 @@ def reco(width, height, num_projections, args):
 
         fft.set_properties(dimensions=1)
         ifft.set_properties(dimensions=1)
-        g.connect_nodes(generate, fft)
-        g.connect_nodes(fft, fltr)
-        g.connect_nodes(fltr, ifft)
-        g.connect_nodes(ifft, bp)
-        g.connect_nodes(bp, null)
+
+        if args.enable_padding:
+            pad = pm.get_task('pad')
+            crop = pm.get_task('region-of-interest')
+            setup_padding(pad, crop, width, num_projections)
+
+            g.connect_nodes(generate, pad)
+            g.connect_nodes(pad, fft)
+            g.connect_nodes(fft, fltr)
+            g.connect_nodes(fltr, ifft)
+            g.connect_nodes(ifft, crop)
+            g.connect_nodes(crop, bp)
+            g.connect_nodes(bp, null)
+        else:
+            g.connect_nodes(generate, fft)
+            g.connect_nodes(fft, fltr)
+            g.connect_nodes(fltr, ifft)
+            g.connect_nodes(ifft, bp)
+            g.connect_nodes(bp, null)
     else:
         g.connect_nodes(generate, bp)
         g.connect_nodes(bp, null)
@@ -118,6 +133,9 @@ def main():
 
     parser.add_argument('--backproject-mode', choices=['nearest', 'texture'],
                         help="Backproject mode")
+
+    parser.add_argument('--enable-padding', action='store_true', default=False,
+                        help="Enable padding to prevent reconstruction ring")
 
     args = parser.parse_args()
     output = sys.stdout if not args.output else open(args.output, 'w')
