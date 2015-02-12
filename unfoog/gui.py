@@ -490,6 +490,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
 
+        # TODO: Make this an option
+        self.params.fix_nan_and_inf = True
+
         if self.ui.ip_box.isChecked():
             self.params.flats2 = self.ui.flats2_path_line.text()
         else:
