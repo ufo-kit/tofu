@@ -72,7 +72,7 @@ def tomo(params):
                 g.connect_nodes_full(dark_reader, ffc, 1)
                 g.connect_nodes(ffc, sino_output)
 
-                if params.flats2 and params.ip_correction == True:
+                if params.flats2:
                     flat_after_reader = get_task('reader', path=params.flats2)
                     flat_after_stack = get_task('stack', num_items=params.num_flats)
                     flat_after_median = get_task('flatten')
@@ -91,7 +91,7 @@ def tomo(params):
                 g.connect_nodes_full(dark_reader, ffc, 1)
                 g.connect_nodes(ffc, sino_output)
 
-                if params.flats2 and params.ip_correction == True:
+                if params.flats2:
                     flat_after_reader = get_task('reader', path=params.flats2)
                     flat_after_averager = get_task('averager')
                     flat_interpolate = get_task('interpolate')

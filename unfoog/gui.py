@@ -220,7 +220,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_box.setChecked(False)
         self.on_ffc_box_clicked()
 
-        if self.params.ip_correction == "True" and self.proj_button.isChecked():
+        if self.params.flats2 and self.proj_button.isChecked():
             self.ui.ip_box.setChecked(True)
         else:
             self.ui.ip_box.setChecked(False)
@@ -374,11 +374,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
         if self.ui.ffc_box.isChecked() == False:
             self.ip_box.setChecked(False)
-            self.params.ip_correction = False
             self.ui.ip_correction.setVisible(False)
 
     def on_ip_box_clicked(self):
-        self.params.ip_correction = self.ui.ip_box.isChecked()
         self.ui.ip_correction.setVisible(self.ui.ip_box.isChecked())
         if self.ui.ip_box.isChecked():
             self.ui.ffc_box.setChecked(True)
@@ -491,6 +489,11 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
+
+        if self.ui.ip_box.isChecked():
+            self.params.flats2 = self.ui.flats2_path_line.text()
+        else:
+            self.params.flats2 = ''
 
         if self.params.ffc_correction:
            flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith(self.ext)]

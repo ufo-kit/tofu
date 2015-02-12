@@ -121,11 +121,6 @@ SECTIONS = {
             'help': "Location with sinograms or projections",
             'metavar': 'PATH'
             },
-        'ip_correction': {
-            'default': False,
-            'help': "Enable interpolation correction",
-            'action': 'store_true'
-            },
         'last_dir': {
             'default': '.',
             'type': str,
