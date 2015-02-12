@@ -170,7 +170,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2', str(self.ui.flats2_path_line.text())))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
-        self.ui.gpu_box.clicked.connect(lambda value: self.change_value('use_gpu', self.ui.gpu_box.isChecked()))
         self.ui.show_2d_box.clicked.connect(lambda value: self.change_value('show_2d', self.ui.show_2d_box.isChecked()))
         self.ui.show_3d_box.clicked.connect(lambda value: self.change_value('show_3d', self.ui.show_3d_box.isChecked()))
 
@@ -240,13 +239,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
-
-        if self.params.use_gpu == "True":
-            self.ui.gpu_box.setChecked(True)
-            self.params.use_gpu = True
-        else:
-            self.ui.gpu_box.setChecked(False)
-            self.params.use_gpu = False
 
         if self.params.show_2d == "True":
             self.ui.show_2d_box.setChecked(True)
@@ -486,7 +478,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.enable_cropping = False
         self.params.ffc_options = "Average"
         self.params.crop_width = None
-        self.params.use_gpu = False
         self.params.show_2d = False
         self.params.show_3d = False
         self.params.angle = None

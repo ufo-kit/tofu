@@ -165,11 +165,6 @@ SECTIONS = {
             'help': "Show 3D slices with pyqtgraph, GUI only",
             'action': 'store_true'
             },
-        'use_gpu': {
-            'default': False,
-            'help': "Use GPU device exclusively",
-            'action': 'store_true'
-            },
         'y_step': {
             'default': 1,
             'type': int,
