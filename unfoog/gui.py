@@ -662,7 +662,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         try:
             self.scale_data()
             self.show_volume()
-            self.set_volume_to_center()
         except ValueError as verror:
             LOG.debug(str(verror))
             log.seek(0)
@@ -673,11 +672,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
 
-    def undo_translation(self):
-        self.volume_img.translate(self.volume.shape[0]/2, self.volume.shape[1]/2, self.volume.shape[2]/2)
-
-    def set_volume_to_center(self):
-        self.volume_img.translate(-self.volume.shape[0]/2, -self.volume.shape[1]/2, -self.volume.shape[2]/2)
+    def set_volume_to_center(self, volume_img, volume):
+        volume_img.translate(-volume.shape[0]/2, -volume.shape[1]/2, -volume.shape[2]/2)
 
     def get_slices(self):
         reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith(self.ext)]
@@ -703,13 +699,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.centralWidget.setEnabled(False)
         self.repaint()
         self.app.processEvents()
-        self.set_volume = False
 
         if self.new_output:
-            self.undo_translation()
             self.get_slices()
             self.scale_data()
-            self.set_volume = True
 
         if self.ui.volume_params.isVisible():
             self.scale_percent = self.ui.percent_box.value()
@@ -718,9 +711,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.scale_percent = self.ui.percent_box2.value()
 
         if (int(self.percent * 100)) is not self.scale_percent:
-            self.undo_translation()
             self.scale_data()
-            self.set_volume = True
 
         data = np.copy(self.scaled_data)
 
@@ -751,15 +742,11 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.on_volume_sliders()
 
         if self.volume_img:
-            self.volume_img.data[...] = self.volume
-            self.volume_img.update()
+            self.volume_img = self.update_volume_img(self.volume_img, self.volume)
         else:
             self.volume_img = gl.GLVolumeItem(self.volume)
-            self.volume_img.setGLOptions("translucent")
             self.reco_volume_view.addItem(self.volume_img)
-
-        if self.set_volume:
-            self.set_volume_to_center()
+            self.set_volume_to_center(self.volume_img, self.volume)
 
         if self.ui.reco_volume_widget.isVisible() == False:
             self.ui.reco_volume_widget.setVisible(True)
@@ -769,6 +756,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.new_output = False
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
+
+    def update_volume_img(self, old_volume_img, volume):
+        new_volume_img = gl.GLVolumeItem(volume)
+        self.reco_volume_view.removeItem(old_volume_img)
+        self.reco_volume_view.addItem(new_volume_img)
+        self.set_volume_to_center(new_volume_img, volume)
+        return new_volume_img
 
     def calculate_image_step(self):
         images = len(self.reco_absfiles)
@@ -812,8 +806,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         data[data < self.ui.volume_min_slider.value()] = 0
         data[data > self.ui.volume_max_slider.value()] = 0
         self.volume = self.get_volume(data)
-        self.volume_img.data[...] = self.volume
-        self.volume_img.update()
+        self.volume_img = self.update_volume_img(self.volume_img, self.volume)
         _disable_wait_cursor()
 
     def on_percent_box(self):
