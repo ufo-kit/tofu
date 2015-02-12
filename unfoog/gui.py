@@ -96,7 +96,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation_factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.ffc_box.setToolTip(self.get_help('general', 'ffc_correction'))
-        self.ui.ip_box.setToolTip(self.get_help('general', 'ip_correction'))
+        self.ui.ip_box.setToolTip('Interpolate between two sets of flat fields')
         self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
         self.ui.flats_path_button.setToolTip(self.get_help('general', 'flats'))
         self.ui.flats2_path_button.setToolTip(self.get_help('general', 'flats2'))
