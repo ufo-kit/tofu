@@ -75,11 +75,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.reco_volume_widget.setVisible(False)
         self.ui.volume_min_slider.setTracking(False)
         self.ui.volume_max_slider.setTracking(False)
-        self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
         self.ui.volume_params.setVisible(False)
-        self.phgen_graphics_view = False
         self.reco_images_layout = False
         self.volume_layout = False
         self.viewbox = False
@@ -146,13 +144,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_slider.valueChanged.connect(self.move_axis_slider)
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
         self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
-        self.ui.generate_button.clicked.connect(self.on_generate)
-        self.ui.generate_phantom.clicked.connect(self.on_generate_phantom)
-        self.ui.generate_sinogram.clicked.connect(self.on_generate_sinogram)
-        self.ui.phgen_width.valueChanged.connect(self.on_phgen_width_changed)
-        self.ui.phgen_height.valueChanged.connect(self.on_phgen_height_changed)
-        self.ui.phgen_slider.valueChanged.connect(self.move_phgen_slider)
-        self.ui.reco_sino_phgen.clicked.connect(self.on_reco_sino)
 
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
@@ -264,11 +255,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         elif current_tab == 1 and self.ui.axis_view_widget.isVisible() == False:
             self.ui.resize(585, 825)
         elif current_tab == 1 and self.ui.axis_view_widget.isVisible() == True:
-            self.ui.resize(1500, 900)
-        elif current_tab == 2 and self.ui.phgen_images_widget.isVisible() == False:
-            self.on_phantom_generator()
-            self.ui.resize(585, 825)
-        elif current_tab == 2 and self.ui.phgen_images_widget.isVisible() == True:
             self.ui.resize(1500, 900)
 
     def change_method(self):
@@ -440,7 +426,6 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_clear(self):
         self.ui.reco_images_widget.setVisible(False)
         self.ui.reco_volume_widget.setVisible(False)
-        self.ui.phgen_images_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.volume_params.setVisible(False)
         self.ui.axis_options.setVisible(False)
@@ -485,13 +470,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.on_region_box_clicked()
         self.on_ffc_box_clicked()
         self.on_ip_box_clicked()
-
-        self.ui.phgen_width.setValue(512)
-        self.ui.phgen_height.setValue(512)
-        self.ui.sum_abs_diff.setText('')
-        self.ui.reco_sino_phgen.setChecked(False)
-        self.ui.generate_phantom.setChecked(True)
-        self.ui.generate_sinogram.setChecked(True)
 
     def closeEvent(self, event):
         self.params.config = "reco.conf"
@@ -562,17 +540,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.centralWidget.setEnabled(True)
         self.params.angle = self.ui.angle_step.value()
 
-        if self.ui.reco_sino_phgen.isChecked():
-            self.ui.reco_sino_phgen.setChecked(False)
-            self.on_sum_absolute_differences()
-            self.params.enable_cropping = False
-            self.ui.crop_box.setChecked(False)
-            self.ui.tab_widget.setCurrentIndex(2)
-
-            if self.ui.phgen_images_widget.isVisible() == False:
-                self.ui.phgen_images_widget.setVisible(True)
-                self.ui.resize(1500, 900)
-
         log.seek(0)
         logtxt = open(log.name).read()
         self.ui.text_browser.setPlainText(logtxt)
@@ -580,11 +547,6 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def show_slices(self):
         if self.ui.show_2d_box.isChecked():
-            if self.ui.reco_sino_phgen.isChecked() == False:
-                output_path = str(self.ui.output_path_line.text())
-                if output_path == ".":
-                    output_path = str(os.getcwd())
-
             if self.reco_images_layout == False:
                 self.make_reco_layout()
             else:
@@ -919,14 +881,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             else:
                 QtGui.QMainWindow.keyPressEvent(self, event)
 
-        elif self.ui.tab_widget.currentIndex() == 2 and self.ui.phgen_images_widget.isVisible() == True:
-            if event.key() == QtCore.Qt.Key_Right:
-                self.ui.phgen_slider.setValue(self.ui.phgen_slider.value() + 1)
-            elif event.key() == QtCore.Qt.Key_Left:
-                self.ui.phgen_slider.setValue(self.ui.phgen_slider.value() - 1)
-            else:
-                QtGui.QMainWindow.keyPressEvent(self.event)
-
     def wheelEvent(self, event):
         wheel = 0
         if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible() == True:
@@ -938,11 +892,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
             self.ui.axis_slider.setValue(self.ui.axis_slider.value() - wheel)
-
-        elif self.ui.tab_widget.currentIndex() == 2 and self.ui.phgen_images_widget.isVisible() == True:
-            delta = event.delta()
-            wheel += (delta and delta // abs(delta))
-            self.ui.phgen_slider.setValue(self.ui.phgen_slider.value() - wheel)
 
     def move_axis_slider(self):
         pos = self.ui.axis_slider.value()
@@ -990,129 +939,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.arr_flip = self.original_flip
             self.arr_180 = self.original_arr_180
             self.update_image()
-
-    def on_phantom_generator(self):
-        self.phantom = ''
-        self.sino = ''
-        if self.ui.generate_phantom.isChecked():
-            self.phantom = '-p '
-        if self.ui.generate_sinogram.isChecked():
-            self.sino = '-s '
-        self.ph_width = '-w ' + str(self.ui.phgen_width.value())
-        self.height = ' -h ' + str(self.ui.phgen_height.value())
-
-    def on_generate_phantom(self):
-        if self.ui.generate_phantom.isChecked():
-            self.phantom = '-p '
-        else:
-            self.phantom = ''
-            self.sino = '-s '
-            self.ui.generate_sinogram.setChecked(True)
-
-    def on_generate_sinogram(self):
-        if self.ui.generate_sinogram.isChecked():
-            self.sino = '-s '
-        else:
-            self.sino = ''
-            self.phantom = '-p '
-            self.ui.generate_phantom.setChecked(True)
-
-    def on_phgen_width_changed(self):
-        self.ph_width = '-w ' + str(self.ui.phgen_width.value())
-
-    def on_phgen_height_changed(self):
-        self.height = ' -h ' + str(self.ui.phgen_height.value())
-
-    def on_generate(self):
-        _enable_wait_cursor()
-        run_phgen = "generate " + str(self.sino) + str(self.phantom) + str(self.ph_width) + str(self.height)
-        subprocess.call([run_phgen], shell = True)
-        for sino in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(), sino)) and 'sinogram' in sino:
-                self.generated_sinogram = sino
-        _disable_wait_cursor()
-
-    def on_reco_sino(self):
-        if self.ui.reco_sino_phgen.isChecked():
-            self.ui.sino_button.setChecked(True)
-            self.params.from_projections = False
-
-            try:
-                self.ui.input_path_line.setText(self.generated_sinogram)
-                self.ui.output_path_line.setText(os.getcwd())
-                if self.ui.phgen_width.value() == self.ui.phgen_height.value() and self.params.method == 'fbp':
-                    self.params.enable_cropping = True
-                    self.ui.crop_box.setChecked(True)
-                    self.params.crop_width = self.ui.phgen_width.value()
-                    self.axis_spin.setValue(0)
-                self.ui.tab_widget.setCurrentIndex(0)
-
-            except Exception as e:
-                self.ui.reco_sino_phgen.setChecked(False)
-                QtGui.QMessageBox.warning(self, "Warning", str(e))
-
-    def show_phgen_images(self):
-        self.phgen_graphics_view = pg.GraphicsView()
-        self.phgen_viewbox = pg.ViewBox(invertY=True)
-        self.phgen_viewbox.setAspectLocked(True)
-        self.phgen_histogram = pg.HistogramLUTWidget()
-        self.phgen_graphics_view.setCentralItem(self.phgen_viewbox)
-        self.ui.phgen_images_layout.addWidget(self.phgen_graphics_view, 0, 0)
-        self.ui.phgen_images_layout.addWidget(self.phgen_histogram, 0, 1)
-        self.update_phgen_images()
-
-    def update_phgen_images(self):
-        try:
-            self.phgen_files = [f for f in sorted(os.listdir(os.getcwd())) if f.endswith(self.ext)]
-            self.ui.phgen_slider.setMaximum(len(self.phgen_files) - 1)
-            self.move_phgen_slider()
-
-        except Exception as e:
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
-
-    def move_phgen_slider(self):
-        pos = self.ui.phgen_slider.value()
-        img = self.convert_tif_to_img(self.phgen_files[pos])
-        self.phgen_viewbox.clear()
-        self.phgen_viewbox.addItem(img)
-        self.phgen_histogram.setImageItem(img)
-
-    def on_sum_absolute_differences(self):
-        _enable_wait_cursor()
-        for slice_file in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(), slice_file)) and 'slice' in slice_file:
-                reco_slice = slice_file
-        for phantom_file in os.listdir(os.getcwd()):
-            if os.path.isfile(os.path.join(os.getcwd(), phantom_file)) and 'phantom' in phantom_file:
-                phantom = phantom_file
-
-        slice_tif = tifffile.TiffFile(reco_slice)
-        phantom_tif = tifffile.TiffFile(phantom)
-        slice_array = slice_tif.asarray()
-        phantom_array = phantom_tif.asarray()
-        slice_shape = slice_array.shape
-        phantom_shape = phantom_array.shape
-
-        if slice_shape[0] > phantom_shape[0]:
-            height = phantom_shape[0] - 1
-        else:
-            height = slice_shape[0] - 1
-        if slice_shape[1] > phantom_shape[1]:
-            width = phantom_shape[1] - 1
-        else:
-            width = slice_shape[1] - 1
-
-        sum_abs_diff = 0
-        try:
-            for x in range (0, height):
-                for y in range(0, width):
-                    sum_abs_diff += abs(slice_array[x][y] - phantom_array[x][y])
-
-            self.ui.sum_abs_diff.setText(str(sum_abs_diff))
-        except Exception as e:
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
-        _disable_wait_cursor()
-
 
 def main(params):
     app = QtGui.QApplication(sys.argv)
