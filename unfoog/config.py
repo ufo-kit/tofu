@@ -91,7 +91,7 @@ SECTIONS = {
             'help': "Enable darks or flats correction",
             'action': 'store_true'
             },
-        'ffc_options': {
+        'reduction_mode': {
             'default': "Average",
             'type': str,
             'help': "Flat-field correction options: Average (darks) or median (flats)"

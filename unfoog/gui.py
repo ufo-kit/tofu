@@ -226,7 +226,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ip_box.setChecked(False)
         self.on_ip_box_clicked()
 
-        if self.params.ffc_options == "Average":
+        if self.params.reduction_mode.lower() == "average":
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
@@ -384,7 +384,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_correction.setVisible(True)
 
     def change_ffc_options(self):
-        self.params.ffc_options = str(self.ui.ffc_options.currentText())
+        self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
 
     def on_darks_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
@@ -459,7 +459,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.params.from_projections = False
         self.params.enable_cropping = False
-        self.params.ffc_options = "Average"
+        self.params.reduction_mode = "average"
         self.params.crop_width = None
         self.params.show_2d = False
         self.params.show_3d = False
