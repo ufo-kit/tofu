@@ -489,6 +489,19 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
+        input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
+        img = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
+        if img.endswith('.tif'):
+            tif = tifffile.TiffFile(img)
+            array = tif.asarray()
+            self.params.width = array.shape[1]
+            self.params.height = array.shape[0]
+        else:
+            edf = fabio.edfimage.edfimage()
+            edf_sino = edf.read(img)
+            self.params.width = int(edf_sino.header['Dim_1'])
+            self.params.height = int(edf_sino.header['Dim_2'])
+
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
 
@@ -504,19 +517,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.oversampling = self.ui.oversampling.value()
 
         if self.params.method == "sart":
-            input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
             if self.params.from_projections:
                 self.params.num_angles = len(input_images)
             else:
-                abs_sino = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
-                if abs_sino.endswith('.tif'):
-                    tif = tifffile.TiffFile(abs_sino)
-                    array = tif.asarray()
-                    self.params.num_angles = array.shape[0]
-                else:
-                    edf = fabio.edfimage.edfimage()
-                    edf_sino = edf.read(abs_sino)
-                    self.params.num_angles = int(edf_sino.header['Dim_2'])
+                self.params.num_angles = self.params.height
 
             if self.ui.add_params.isChecked():
                 self.params.max_iterations = self.ui.iterations_sart.value()
