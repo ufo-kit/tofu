@@ -2,7 +2,7 @@
 """Flat field correction executable script."""
 import argparse
 from gi.repository import Ufo
-from unfoog.flatcorrect import create_pipeline
+from tofu.flatcorrect import create_pipeline
 
 
 def parse_arguments():

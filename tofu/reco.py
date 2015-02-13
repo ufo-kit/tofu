@@ -4,8 +4,8 @@ import logging
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
-from unfoog.flatcorrect import create_pipeline
-from unfoog.util import check_input, set_reader, get_filenames, next_power_of_two
+from tofu.flatcorrect import create_pipeline
+from tofu.util import check_input, set_reader, get_filenames, next_power_of_two
 
 
 LOG = logging.getLogger(__name__)

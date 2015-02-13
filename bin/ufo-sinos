@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
-from unfoog.sinos import make_sinos
-from unfoog.util import positive_int
+from tofu.sinos import make_sinos
+from tofu.util import positive_int
 
 
 def main():

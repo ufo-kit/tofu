@@ -6,8 +6,8 @@ import argparse
 import time
 import math
 from gi.repository import Ufo, GLib
-from unfoog.reco import setup_padding
-from unfoog.util import range_from
+from tofu.reco import setup_padding
+from tofu.util import range_from
 
 
 def reco(width, height, num_projections, args):

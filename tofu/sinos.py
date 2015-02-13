@@ -1,6 +1,6 @@
 """Sinogram generation module."""
 from gi.repository import Ufo
-from unfoog.util import range_from, set_reader, check_input, get_filenames
+from tofu.util import range_from, set_reader, check_input, get_filenames
 
 
 NEG_LOG_SOURCE = """
