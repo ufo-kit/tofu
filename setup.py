@@ -15,6 +15,7 @@ setup(
              'bin/ufo-sinos',
              'bin/ufo-estimate-center',
              'bin/ufo-perf',
+             'bin/ufo-flat-correct',
              ],
     long_description=open('README.md').read(),
 )

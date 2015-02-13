@@ -91,7 +91,7 @@ SECTIONS = {
             'help': "Enable darks or flats correction",
             'action': 'store_true'
             },
-        'ffc_options': {
+        'reduction_mode': {
             'default': "Average",
             'type': str,
             'help': "Flat-field correction options: Average (darks) or median (flats)"
@@ -120,11 +120,6 @@ SECTIONS = {
             'type': str,
             'help': "Location with sinograms or projections",
             'metavar': 'PATH'
-            },
-        'ip_correction': {
-            'default': False,
-            'help': "Enable interpolation correction",
-            'action': 'store_true'
             },
         'last_dir': {
             'default': '.',

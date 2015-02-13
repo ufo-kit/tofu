@@ -96,7 +96,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation_factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.ffc_box.setToolTip(self.get_help('general', 'ffc_correction'))
-        self.ui.ip_box.setToolTip(self.get_help('general', 'ip_correction'))
+        self.ui.ip_box.setToolTip('Interpolate between two sets of flat fields')
         self.ui.darks_path_button.setToolTip(self.get_help('general', 'darks'))
         self.ui.flats_path_button.setToolTip(self.get_help('general', 'flats'))
         self.ui.flats2_path_button.setToolTip(self.get_help('general', 'flats2'))
@@ -220,13 +220,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_box.setChecked(False)
         self.on_ffc_box_clicked()
 
-        if self.params.ip_correction == "True" and self.proj_button.isChecked():
+        if self.params.flats2 and self.proj_button.isChecked():
             self.ui.ip_box.setChecked(True)
         else:
             self.ui.ip_box.setChecked(False)
         self.on_ip_box_clicked()
 
-        if self.params.ffc_options == "Average":
+        if self.params.reduction_mode.lower() == "average":
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
@@ -368,11 +368,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
         if self.ui.ffc_box.isChecked() == False:
             self.ip_box.setChecked(False)
-            self.params.ip_correction = False
             self.ui.ip_correction.setVisible(False)
 
     def on_ip_box_clicked(self):
-        self.params.ip_correction = self.ui.ip_box.isChecked()
         self.ui.ip_correction.setVisible(self.ui.ip_box.isChecked())
         if self.ui.ip_box.isChecked():
             self.ui.ffc_box.setChecked(True)
@@ -380,7 +378,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_correction.setVisible(True)
 
     def change_ffc_options(self):
-        self.params.ffc_options = str(self.ui.ffc_options.currentText())
+        self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
 
     def on_darks_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
@@ -455,7 +453,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.params.from_projections = False
         self.params.enable_cropping = False
-        self.params.ffc_options = "Average"
+        self.params.reduction_mode = "average"
         self.params.crop_width = None
         self.params.show_2d = False
         self.params.show_3d = False
@@ -500,6 +498,14 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
+
+        # TODO: Make this an option
+        self.params.fix_nan_and_inf = True
+
+        if self.ui.ip_box.isChecked():
+            self.params.flats2 = self.ui.flats2_path_line.text()
+        else:
+            self.params.flats2 = ''
 
         if self.params.ffc_correction:
            flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith(self.ext)]
