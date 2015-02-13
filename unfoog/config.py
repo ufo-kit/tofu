@@ -96,6 +96,11 @@ SECTIONS = {
             'type': str,
             'help': "Flat-field correction options: Average (darks) or median (flats)"
             },
+        'fix_nan_and_inf': {
+            'default': True,
+            'help': "Fix nan and inf",
+            'action': 'store_true'
+            },
         'flats': {
             'default': '.',
             'type': str,
