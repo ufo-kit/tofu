@@ -207,12 +207,12 @@ SECTIONS = {
         },
     'sart': {
         'max_iterations': {
-            'default': 0,
+            'default': 2,
             'type': int,
             'help': "Maximum number of iterations"
             },
         'relaxation_factor': {
-            'default': 0.0,
+            'default': 0.25,
             'type': float,
             'help': "Relaxation factor"
             },

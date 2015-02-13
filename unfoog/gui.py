@@ -340,15 +340,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_crop_width(self):
         if self.ui.crop_box.isChecked():
             try:
-                find_file = os.path.join(str(self.ui.input_path_line.text()), os.listdir(str(self.ui.input_path_line.text()))[0])
-                if find_file.endswith('.tif'):
-                    crop_file = tifffile.TiffFile(find_file)
-                    crop_arr = crop_file.asarray()
-                    self.params.crop_width = crop_width = crop_arr.shape[1]
-                else:
-                    edf = fabio.edfimage.edfimage()
-                    edf_cropfile = edf.read(find_file)
-                    self.params.crop_width = int(edf_cropfile.header['Dim_1'])
+                self.params.crop_width = self.params.width
                 self.params.enable_cropping = True
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", "Choose input path first \n" + str(e))
@@ -363,11 +355,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.new_output = True
 
     def on_clear_output_dir_clicked(self):
+        _enable_wait_cursor()
         output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith(self.ext)]
         output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in output_files]
         for f in output_absfiles:
             os.remove(f)
         self.ui.reco_slider.setEnabled(False)
+        _disable_wait_cursor()
 
     def on_ffc_box_clicked(self):
         self.params.ffc_correction = self.ui.ffc_box.isChecked()
@@ -502,6 +496,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.width = int(edf_sino.header['Dim_1'])
             self.params.height = int(edf_sino.header['Dim_2'])
 
+        self.on_crop_width()
+
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
 
@@ -526,8 +522,8 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.params.max_iterations = self.ui.iterations_sart.value()
                 self.params.relaxation_factor = self.ui.relaxation.value()
             else:
-                self.params.max_iterations = 0
-                self.params.relaxation_factor = 0.0
+                self.params.max_iterations = 2
+                self.params.relaxation_factor = 0.25
 
         if self.params.method == "sart" and self.params.angle == None:
             QtGui.QMessageBox.warning(self,"Warning", "Missing argument for Angle step (rad)")
