@@ -445,14 +445,13 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.ui.fix_naninf_box.setChecked(True)
         self.ui.show_2d_box.setChecked(False)
-        self.ui.show_3d_box.setchecked(False)
+        self.ui.show_3d_box.setChecked(False)
         self.ui.sino_button.setChecked(True)
         self.ui.proj_button.setChecked(False)
         self.ui.region_box.setChecked(False)
         self.ui.crop_box.setChecked(False)
         self.ui.ffc_box.setChecked(False)
         self.ui.ip_box.setChecked(False)
-        self.ui.gpu_box.setChecked(False)
 
         self.ui.y_step.setValue(1)
         self.ui.axis_spin.setValue(0)
