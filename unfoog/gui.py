@@ -133,7 +133,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.crop_more_button.clicked.connect(self.on_crop_more_circle)
         self.ui.crop_less_button.clicked.connect(self.on_crop_less_circle)
         self.ui.make_contrast_button.clicked.connect(self.show_volume)
-        self.ui.show_slices_button.clicked.connect(self.show_slices)
+        self.ui.show_slices_button.clicked.connect(self.check_output_dir)
         self.ui.run_button.clicked.connect(self.on_run)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
@@ -574,6 +574,19 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.make_volume_layout()
             else:
                 self.show_volume()
+
+    def check_output_dir(self):
+        if os.listdir(str(self.ui.output_path_line.text())) == []:
+            QtGui.QMessageBox.warning(self, "Warning", "Empty output directory")
+        else:
+            output_images = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith(self.ext)]
+            if output_images == []:
+                QtGui.QMessageBox.warning(self, "Warning", "No tif or edf files in output path")
+            else:
+                try:
+                    self.show_slices()
+                except Exception as e:
+                    QtGui.QMessageBox.warning(self, "Warning", str(e))
 
     def make_reco_layout(self):
         self.reco_images_layout = True
