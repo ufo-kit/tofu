@@ -1,7 +1,7 @@
 import re
 import ConfigParser as configparser
 from collections import defaultdict
-from unfoog.util import positive_int
+from tofu.util import positive_int
 
 
 NAME = "reco.conf"

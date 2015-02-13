@@ -1,6 +1,6 @@
 ## About
 
-This repository contains data processing scripts to be used with the UFO
+This repository contains Python data processing scripts to be used with the UFO
 framework. At the moment they are targeted at high-performance reconstruction of
 tomographic data sets.
 

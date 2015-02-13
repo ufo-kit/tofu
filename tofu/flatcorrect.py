@@ -1,6 +1,6 @@
 """Flat field correction."""
 from gi.repository import Ufo
-from unfoog.util import get_filenames
+from tofu.util import get_filenames
 
 
 def create_pipeline(args, graph):

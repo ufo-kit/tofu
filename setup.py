@@ -4,7 +4,7 @@ import subprocess
 VERSION='0.7'
 
 setup(
-    name='ufo-scripts',
+    name='tofu',
     version=VERSION,
     author='Matthias Vogelgesang',
     author_email='matthias.vogelgesang@kit.edu',

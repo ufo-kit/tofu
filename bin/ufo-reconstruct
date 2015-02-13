@@ -8,7 +8,7 @@ import argparse
 import logging
 import numpy as np
 from gi.repository import Ufo
-from unfoog import config
+from tofu import config
 
 
 LOG = logging.getLogger(__name__)
@@ -23,25 +23,25 @@ def init(args, params):
 
 
 def run_tomo(args, params):
-    from unfoog import reco
+    from tofu import reco
     params.update(args)
     reco.tomo(params)
 
 
 def run_lamino(args, params):
-    from unfoog import reco
+    from tofu import reco
     params.update(args)
     reco.lamino(params)
 
 
 def gui(args, params):
-    from unfoog import gui
+    from tofu import gui
     params.update(args)
     gui.main(params)
 
 
 def estimate(args, cfg_parser):
-    from unfoog import reco
+    from tofu import reco
     sinos = sorted(glob.glob(os.path.join(args.input, '*.tif')))
 
     if not sinos:
