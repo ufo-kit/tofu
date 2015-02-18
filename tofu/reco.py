@@ -55,7 +55,7 @@ def tomo(params):
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
 
-        if params.darks and params.flats and params.ffc_correction == True:
+        if params.darks and params.flats:
             g.connect_nodes(create_pipeline(params, g), sino_output)
         else:
             g.connect_nodes(reader, sino_output)
@@ -92,7 +92,7 @@ def tomo(params):
             g.connect_nodes(ifft, crop)
             g.connect_nodes(crop, bp)
         else:
-            if params.crop_width and params.enable_cropping == True:
+            if params.crop_width:
                 ifft.props.crop_width = int(params.crop_width)
                 LOG.debug("Cropping to {} pixels".format(ifft.props.crop_width))
 
