@@ -5,7 +5,7 @@ import numpy as np
 from gi.repository import Ufo
 from . import tifffile
 from tofu.flatcorrect import create_pipeline
-from tofu.util import check_input, set_node_props, get_filenames, next_power_of_two
+from tofu.util import set_node_props, get_filenames, next_power_of_two
 
 
 LOG = logging.getLogger(__name__)
@@ -168,8 +168,6 @@ def tomo(params):
 
 
 def lamino(params):
-    if params.region:
-        check_input(params.input, params.region)
     cargs = {}
 
     if params.include:

@@ -50,14 +50,6 @@ def set_node_props(node, args):
                 node.set_property(name, getattr(args, name))
 
 
-def check_input(input_prefix, region):
-    """Check if there are enough file from *input_prefix* to satisfy *region*."""
-    total = len(get_filenames(input_prefix))
-    region = range_from(region)
-    if total - region[0] < len(range(*region)):
-        raise ValueError('Not enough files to satisfy region')
-
-
 def positive_int(value):
     """Convert *value* to an integer and make sure it is positive."""
     result = int(value)
