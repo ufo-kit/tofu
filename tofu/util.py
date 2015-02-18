@@ -31,6 +31,16 @@ def range_from(s):
     raise ValueError("Cannot parse {}".format(s))
 
 
+def make_subargs(args, subargs):
+    """Return an argparse.Namespace consisting of arguments from *args* which are listed in the
+    *subargs* list."""
+    namespace = argparse.Namespace()
+    for subarg in subargs:
+        setattr(namespace, subarg, getattr(args, subarg))
+
+    return namespace
+
+
 def set_node_props(node, args):
     """Set up *node*'s properties to *args* which is a dictionary of values."""
     for name in dir(node.props):
