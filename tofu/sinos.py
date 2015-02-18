@@ -1,129 +1,58 @@
 """Sinogram generation module."""
 from gi.repository import Ufo
-from tofu.util import range_from, set_reader, check_input, get_filenames
-
-
-NEG_LOG_SOURCE = """
-__kernel void neg_log (global float *input,
-                       global float *output)
-{
-    int idx = get_global_id (1) * get_global_size (0) + get_global_id (0);
-    output[idx] = - log (input[idx]);
-}"""
-
-
-def _set_pass(region, proj_reader, flat_reader=None, dark_reader=None):
-    """Set pass in a multipass execution. We need to set the *region* (y_0, height, step) which tell
-    us which row do we start and end with in this pass. *proj_reader* is the projection reader,
-    *flat_reader* and *dark_reader* are optional dark and flat field readers.
-    """
-
-    def set_reader_roi(reader):
-        if reader:
-            reader.props.y = region[0]
-            reader.props.height = region[1] - region[0]
-
-    set_reader_roi(proj_reader)
-    set_reader_roi(flat_reader)
-    set_reader_roi(dark_reader)
-
-
-def _execute(args, sino_region=None):
-    """Execute one pass with *sino_region* (from, to, step) which specifies which sinograms
-    will be generated.
-    """
-    sched = Ufo.Scheduler()
-    sched.set_properties(expand=False)
-    g, reader = make_sino_graph(args, sino_region=sino_region)
-    sched.run(g)
-
-    return reader.props.total_height
-
-
-def make_sino_graph(args, sino_region=None):
-    """Create a graph for sinograms generation. *args* are static arguments and *region* is used to
-    determine the number of sinograms in terms of (from, to, step) in this pass.
-    """
-    if args.region:
-        check_input(args.input, args.region)
-        region = range_from(args.region)
-        proj_count = len(range(*region))
-    else:
-        proj_count = len(get_filenames(args.input))
-
-    pm = Ufo.PluginManager()
-    g = Ufo.TaskGraph()
-
-    proj_reader = pm.get_task('reader', y_step=sino_region[-1])
-    set_reader(proj_reader, args.input, region=args.region)
-
-    writer = pm.get_task('writer')
-    writer.set_properties(filename='{0}'.format(args.output), append=bool(args.chunk))
-
-    sinogen = pm.get_task('sino-generator')
-    sinogen.set_properties(num_projections=proj_count)
-
-    flat_reader = None
-    dark_reader = None
-    if args.flats and args.darks:
-        # Read flat fields
-        flat_reader = pm.get_task('reader')
-        flat_reader.set_properties(path=args.flats)
-
-        flat_avg = pm.get_task('averager')
-        flat_avg.set_properties(num_generate=len(get_filenames(args.flats)))
-
-        # Read dark fields
-        dark_reader = pm.get_task('reader')
-        dark_reader.set_properties(path=args.darks)
-
-        dark_avg = pm.get_task('averager')
-        dark_avg.set_properties(num_generate=len(get_filenames(args.darks)))
-
-        # Setup flat-field correction
-        ffc = pm.get_task('flat-field-correction')
-
-        g.connect_nodes_full(dark_avg, ffc, 1)
-        g.connect_nodes_full(flat_avg, ffc, 2)
-
-        if not args.disable_absorption_correction:
-            neglog = pm.get_task('opencl')
-            neglog.props.source = NEG_LOG_SOURCE
-            neglog.props.kernel = 'neg_log'
-            g.connect_nodes(ffc, neglog)
-            g.connect_nodes(neglog, sinogen)
-        else:
-            g.connect_nodes(ffc, sinogen)
-    else:
-        g.connect_nodes(proj_reader, sinogen)
-
-    g.connect_nodes(sinogen, writer)
-
-    if sino_region:
-        _set_pass(sino_region, proj_reader, flat_reader=flat_reader, dark_reader=dark_reader)
-
-    return g, proj_reader
+from tofu.flatcorrect import create_pipeline as create_flat_corr_pipeline
+from tofu.util import set_node_props, get_filenames
 
 
 def make_sinos(args):
     """Make the sinograms with arguments provided by *args*."""
-    if args.sino_region:
-        sino_region = range_from(args.sino_region)
-        if not args.chunk:
-            _execute(args, sino_region=sino_region)
-    elif args.chunk:
-        # No range specified, we have to ask the graph itself for image height
-        height = _execute(args, sino_region=(0, args.chunk, 1))
-        sino_region = (args.chunk, height, 1)
-    else:
-        _execute(args)
+    if args.pass_size and not args.height:
+        raise ValueError('`height` must be specified if `pass_size` is specified')
 
-    if args.chunk:
-        # Chunk is stretched in order to point to correct absolute positions
-        # when step in the range is specified
-        chunk = args.chunk * sino_region[2]
-        # Starts are indices specifying the row at which to start
-        starts = range(*(sino_region[0], sino_region[1], chunk)) + [sino_region[1]]
-        for i in range(len(starts) - 1):
-            subregion = (starts[i], starts[i + 1], sino_region[2])
-            _execute(args, sino_region=subregion)
+    if args.height:
+        step = args.y_step * args.pass_size if args.pass_size else args.height
+        starts = range(args.y, args.y + args.height, step)
+        args.height = step
+        for start in starts:
+            args.y = start
+            _execute(args, append=start != starts[0])
+    else:
+        _execute(args, append=False)
+
+
+def _execute(args, append=False):
+    pm = Ufo.PluginManager()
+    graph = Ufo.TaskGraph()
+    sched = Ufo.Scheduler()
+
+    writer = pm.get_task('writer')
+    writer.props.filename = args.output
+    writer.props.append = append
+
+    sinos = create_pipeline(args, graph)
+    graph.connect_nodes(sinos, writer)
+    sched.run(graph)
+
+
+def create_pipeline(args, graph):
+    """Create sinogram generating pipeline based on arguments from *args*."""
+    pm = Ufo.PluginManager()
+    sinos = pm.get_task('sino-generator')
+
+    if args.end:
+        region = (args.start, args.end, args.step)
+        num_projections = len(range(*region))
+    else:
+        num_projections = len(get_filenames(args.input))
+    sinos.props.num_projections = num_projections
+
+    if args.darks and args.flats:
+        start = create_flat_corr_pipeline(args, graph)
+    else:
+        start = pm.get_task('reader')
+        start.props.path = args.input
+        set_node_props(start, args)
+
+    graph.connect_nodes(start, sinos)
+
+    return sinos
