@@ -31,9 +31,13 @@ def range_from(s):
     raise ValueError("Cannot parse {}".format(s))
 
 
-def set_reader(reader, input_prefix, region=None):
-    """Set up a *reader* to read from *input_prefix* and use *region*."""
-    reader.props.path = input_prefix
+def set_node_props(node, args):
+    """Set up *node*'s properties to *args* which is a dictionary of values."""
+    for name in dir(node.props):
+        if not name.startswith('_') and hasattr(args, name):
+            value = getattr(args, name)
+            if value is not None:
+                node.set_property(name, getattr(args, name))
 
 
 def check_input(input_prefix, region):

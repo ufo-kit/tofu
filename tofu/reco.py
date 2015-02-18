@@ -5,7 +5,7 @@ import numpy as np
 from gi.repository import Ufo
 from . import tifffile
 from tofu.flatcorrect import create_pipeline
-from tofu.util import check_input, set_reader, get_filenames, next_power_of_two
+from tofu.util import check_input, set_node_props, get_filenames, next_power_of_two
 
 
 LOG = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ def lamino(params):
     pm = Ufo.PluginManager(**cargs)
 
     radios = pm.get_task('reader')
-    set_reader(radios, params.input, region=params.region)
+    set_node_props(radios, params)
     pad = pm.get_task('padding-2d')
     rec = pm.get_task('lamino-bp')
     ramp = pm.get_task('lamino-ramp')
