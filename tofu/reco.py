@@ -37,7 +37,7 @@ def tomo(params):
 
     reader = get_task('reader')
     reader.props.path = params.input
-    reader.props.y_step = params.y_step
+    set_node_props(reader, params)
 
     if params.dry_run:
         writer = get_task('null')
@@ -50,7 +50,10 @@ def tomo(params):
     g = Ufo.TaskGraph()
 
     if params.from_projections:
-        count = len(get_filenames(params.input))
+        if params.end:
+            count = len(range(params.start, params.end, params.step))
+        else:
+            count = len(get_filenames(params.input))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('sino-generator', num_projections=count)
@@ -59,6 +62,10 @@ def tomo(params):
             g.connect_nodes(create_pipeline(params, g), sino_output)
         else:
             g.connect_nodes(reader, sino_output)
+
+        if params.height:
+            # Sinogram height is the one needed for further padding
+            params.height = count
     else:
         sino_output = reader
 
