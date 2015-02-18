@@ -1,6 +1,6 @@
 """Flat field correction."""
 from gi.repository import Ufo
-from tofu.util import get_filenames
+from tofu.util import get_filenames, set_node_props, make_subargs
 
 
 def create_pipeline(args, graph):
@@ -23,9 +23,14 @@ def create_pipeline(args, graph):
                    absorption_correction=args.absorptivity,
                    fix_nan_and_inf=args.fix_nan_and_inf)
     mode = args.reduction_mode.lower()
+    roi_args = make_subargs(args, ['y', 'height', 'y_step'])
+    set_node_props(reader, args)
+    set_node_props(dark_reader, roi_args)
+    set_node_props(flat_before_reader, roi_args)
 
     if args.flats2:
         flat_after_reader = get_task('reader', path=args.flats2)
+        set_node_props(flat_after_reader, roi_args)
         flat_interpolate = get_task('interpolate', number=len(get_filenames(args.input)))
 
     if mode == 'median':
