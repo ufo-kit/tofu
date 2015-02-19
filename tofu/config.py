@@ -299,6 +299,13 @@ SECTIONS = {
             'type': int,
             'help': "Number of flats for ffc correction."
             },
+        },
+    'estimate' : {
+        'num_iterations': {
+            'default': 10,
+            'type': int,
+            'help': "Number of reconstruction iterations"
+            }
         }
     }
 
@@ -394,6 +401,12 @@ class LaminoParams(Params):
 
         self.pad = self._config.value('lamino', 'pad')
         self.pad = [int(x) for x in self.pad.split(' ')] if self.pad else None
+
+
+# class EstimateParams(TomoParams):
+#     def __init__(self):
+#         super(EstimateParams, self).__init__(sections=('estimate', ))
+#         self.num_iterations = self._config.value('estimate', 'num_iterations', target=int)
 
 
 def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',

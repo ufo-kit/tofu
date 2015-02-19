@@ -1,6 +1,8 @@
 import os
 import re
 import logging
+import glob
+import tempfile
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
@@ -246,14 +248,40 @@ def read_tiff(filename):
     return arr
 
 
-def estimate_center(cfg_parser, filename, n_iterations=10):
+def estimate_center(params):
+    if params.from_projections:
+        sys.exit("Cannot estimate axis from projections")
+
+    sinos = sorted(glob.glob(os.path.join(params.input, '*.tif')))
+
+    if not sinos:
+        sys.exit("No sinograms found in {}".format(params.input))
+
+    # Use a sinogram that probably has some interesting data
+    filename = sinos[len(sinos) / 2]
+    sinogram = read_tiff(filename)
+    initial_width = sinogram.shape[1]
+    m0 = np.mean(np.sum(sinogram, axis=1))
+
+    center = initial_width / 2.0
+    width = initial_width / 2.0
+    new_center = center
+    tmp_dir = tempfile.mkdtemp()
+    tmp_output = os.path.join(tmp_dir, 'slice-0.tif')
+
+    params.input = filename
+    params.output = os.path.join(tmp_dir, 'slice-%i.tif')
+
     def heaviside(A):
         return (A >= 0.0) * 1.0
 
     def get_score(guess, m0):
-        outname_template = '/tmp/foobarfoo-%05i.tif'
-        run(cfg_parser, filename, outname_template, axis=guess)
-        result = read_tiff('/tmp/foobarfoo-00000.tif')
+        # Run reconstruction with new guess
+        params.axis = guess
+        tomo(params)
+
+        # Analyse reconstructed slice
+        result = read_tiff(tmp_output)
         Q_IA = float(np.sum(np.abs(result)) / m0)
         Q_IN = float(-np.sum(result * heaviside(-result)) / m0)
         LOG.info("Q_IA={}, Q_IN={}".format(Q_IA, Q_IN))
@@ -266,20 +294,17 @@ def estimate_center(cfg_parser, filename, n_iterations=10):
         best = sorted(scores, cmp=lambda x, y: cmp(x[1], y[1]))
         return best[0][0]
 
-    # Use a sinogram that probably has some interesting data
-    sinogram = read_tiff(filename)
-    initial_width = sinogram.shape[1]
-    m0 = np.mean(np.sum(sinogram, axis=1))
-
-    center = initial_width / 2.0
-    width = initial_width / 2.0
-    new_center = center
-
-    for i in range(n_iterations):
+    for i in range(params.num_iterations):
         LOG.info("Estimate iteration: {}".format(i))
         new_center = best_center(new_center, width)
         LOG.info("Currently best center: {}".format(new_center))
         width /= 2.0
+
+    try:
+        os.remove(tmp_output)
+        os.removedirs(tmp_dir)
+    except OSError:
+        LOG.info("Could not remove {} or {}".format(tmp_output, tmp_dir))
 
     return new_center
 
