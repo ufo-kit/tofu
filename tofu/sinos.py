@@ -25,7 +25,7 @@ def _execute(args, append=False):
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
 
-    writer = pm.get_task('writer')
+    writer = pm.get_task('write')
     writer.props.filename = args.output
     writer.props.append = append
 
@@ -37,19 +37,19 @@ def _execute(args, append=False):
 def create_pipeline(args, graph):
     """Create sinogram generating pipeline based on arguments from *args*."""
     pm = Ufo.PluginManager()
-    sinos = pm.get_task('sino-generator')
+    sinos = pm.get_task('transpose-projections')
 
     if args.end:
         region = (args.start, args.end, args.step)
         num_projections = len(range(*region))
     else:
         num_projections = len(get_filenames(args.input))
-    sinos.props.num_projections = num_projections
+    sinos.props.number = num_projections
 
     if args.darks and args.flats:
         start = create_flat_corr_pipeline(args, graph)
     else:
-        start = pm.get_task('reader')
+        start = pm.get_task('read')
         start.props.path = args.input
         set_node_props(start, args)
 

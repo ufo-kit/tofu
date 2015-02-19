@@ -35,7 +35,7 @@ def tomo(params):
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('reader')
+    reader = get_task('read')
     reader.props.path = params.input
     set_node_props(reader, params)
 
@@ -43,7 +43,7 @@ def tomo(params):
         writer = get_task('null')
     else:
         outname = get_output_name(params.output)
-        writer = get_task('writer', filename=outname)
+        writer = get_task('write', filename=outname)
         LOG.debug("Write to {}".format(outname))
 
     # Setup graph depending on the chosen method and input data
@@ -56,7 +56,7 @@ def tomo(params):
             count = len(get_filenames(params.input))
 
         LOG.debug("num_projections = {}".format(count))
-        sino_output = get_task('sino-generator', num_projections=count)
+        sino_output = get_task('transpose-projections', number=count)
 
         if params.darks and params.flats:
             g.connect_nodes(create_pipeline(params, g), sino_output)
@@ -87,7 +87,7 @@ def tomo(params):
         if params.width and params.height:
             # Pad the image with its extent to prevent reconstuction ring
             pad = get_task('pad')
-            crop = get_task('region-of-interest')
+            crop = get_task('cut-roi')
             setup_padding(pad, crop, params.width, params.height)
 
             LOG.debug("Padding to {}x{} pixels".format(pad.props.width, pad.props.height))
@@ -136,7 +136,7 @@ def tomo(params):
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
 
-        pad = get_task('zeropadding', oversampling=oversampling)
+        pad = get_task('zeropad', oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')
         ifft = get_task('ifft', dimensions=2)
@@ -177,7 +177,7 @@ def lamino(params):
     # Create reader and writer
     pm = Ufo.PluginManager(**cargs)
 
-    radios = pm.get_task('reader')
+    radios = pm.get_task('read')
     set_node_props(radios, params)
     pad = pm.get_task('padding-2d')
     rec = pm.get_task('lamino-bp')
@@ -186,7 +186,7 @@ def lamino(params):
     fft1 = pm.get_task('fft')
     fft2 = pm.get_task('fft')
     ifft = pm.get_task('ifft')
-    writer = pm.get_task('writer')
+    writer = pm.get_task('write')
 
     if params.downsample > 1:
         downsample = pm.get_task('downsample')

@@ -24,7 +24,7 @@ def main():
     sched = Ufo.Scheduler()
     pm = Ufo.PluginManager()
 
-    out_task = pm.get_task('writer')
+    out_task = pm.get_task('write')
     out_task.props.filename = args.output
     flat_task = create_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)
