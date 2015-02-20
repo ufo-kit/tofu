@@ -424,8 +424,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             config_file = str(os.getenv('HOME') + "reco.conf")
         save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
         if save_config:
-            self.params.config = save_config
-            self.params.write(self.params.config)
+            config.write(save_config, args=self.params)
 
     def on_clear(self):
         self.ui.reco_images_widget.setVisible(False)
@@ -477,9 +476,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.on_ip_box_clicked()
 
     def closeEvent(self, event):
-        self.params.config = "reco.conf"
         try:
-            self.params.write(self.params.config)
+            config.write('reco.conf', args=self.params)
         except IOError as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
             self.on_save_as()

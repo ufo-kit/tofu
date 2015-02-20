@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-from tofu.config import Params
+from tofu.config import parse_known_args, Params
 from tofu.sinos import make_sinos
 from tofu.util import positive_int
 
@@ -10,9 +10,8 @@ def main():
     parser = argparse.ArgumentParser()
     params = Params(sections=('flat-correction', 'sinos'))
     parser = params.add_arguments(parser)
-    parser.set_defaults(**params.file_params)
-    args = parser.parse_args()
-    make_sinos(args)
+
+    make_sinos(parse_known_args(parser))
 
 
 if __name__ == '__main__':

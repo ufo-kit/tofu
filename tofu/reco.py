@@ -207,7 +207,7 @@ def lamino(params):
                         height=params.pad[1] / params.downsample,
                         fwidth=vx, theta=params.tilt, tau=params.tau)
 
-    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.offset,
+    rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.psi,
                        proj_ox=params.axis[0] / params.downsample,
                        proj_oy=params.axis[1] / params.downsample,
                        vol_sx=vx, vol_sy=vy, vol_sz=vz,

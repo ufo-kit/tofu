@@ -2,7 +2,7 @@
 """Flat field correction executable script."""
 import argparse
 from gi.repository import Ufo
-from tofu.config import Params
+from tofu.config import parse_known_args, Params
 from tofu.flatcorrect import create_pipeline
 
 
@@ -11,10 +11,8 @@ def make_args():
     parser = argparse.ArgumentParser()
     params = Params(sections=('flat-correction',))
     parser = params.add_arguments(parser)
-    parser.set_defaults(**params.file_params)
-    args = parser.parse_args()
 
-    return args
+    return parse_known_args(parser)
 
 
 def main():
