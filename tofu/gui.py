@@ -1,9 +1,9 @@
 import sys
 import os
-import fabio
 import logging
 import tempfile
 import subprocess
+from argparse import ArgumentParser
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
@@ -85,17 +85,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.get_values_from_params()
 
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
-        self.ui.proj_button.setToolTip(self.get_help('fbp', 'from_projections'))
-        self.ui.y_step.setToolTip(self.get_help('reading', 'y_step'))
-        self.ui.method_box.setToolTip(self.get_help('reconstruction', 'method'))
-        self.ui.axis_spin.setToolTip(self.get_help('reconstruction', 'axis'))
+        self.ui.proj_button.setToolTip(self.get_help('fbp', 'from-projections'))
+        self.ui.y_step.setToolTip(self.get_help('reading', 'y-step'))
+        self.ui.method_box.setToolTip(self.get_help('tomographic-reconstruction', 'method'))
+        self.ui.axis_spin.setToolTip(self.get_help('tomographic-reconstruction', 'axis'))
         self.ui.angle_step.setToolTip(self.get_help('reconstruction', 'angle'))
-        self.ui.angle_offset.setToolTip(self.get_help('reconstruction', 'offset'))
+        self.ui.angle_offset.setToolTip(self.get_help('tomographic-reconstruction', 'offset'))
         self.ui.oversampling.setToolTip(self.get_help('dfi', 'oversampling'))
-        self.ui.iterations_sart.setToolTip(self.get_help('sart', 'max_iterations'))
-        self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation_factor'))
+        self.ui.iterations_sart.setToolTip(self.get_help('sart', 'max-iterations'))
+        self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation-factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
-        self.ui.ffc_box.setToolTip(self.get_help('gui', 'ffc_correction'))
+        self.ui.ffc_box.setToolTip(self.get_help('gui', 'ffc-correction'))
         self.ui.ip_box.setToolTip('Interpolate between two sets of flat fields')
         self.ui.darks_path_button.setToolTip(self.get_help('flat-correction', 'darks'))
         self.ui.flats_path_button.setToolTip(self.get_help('flat-correction', 'flats'))
@@ -182,20 +182,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.iterations_sart.setValue(self.params.max_iterations if self.params.max_iterations else 0)
         self.ui.relaxation.setValue(self.params.relaxation_factor if self.params.relaxation_factor else 0.0)
 
-        if self.params.enable_cropping == "True":
+        if self.params.enable_cropping:
             self.ui.crop_box.setChecked(True)
-            self.params.enable_cropping = True
         else:
             self.ui.crop_box.setChecked(False)
-            self.params.enable_cropping = False
 
-        if self.params.from_projections == "True":
-            self.params.from_projections = True
+        if self.params.from_projections:
             self.ui.proj_button.setChecked(True)
             self.ui.sino_button.setChecked(False)
             self.on_proj_button_clicked()
         else:
-            self.params.from_projections = False
             self.ui.proj_button.setChecked(False)
             self.ui.sino_button.setChecked(True)
             self.on_sino_button_clicked()
@@ -215,7 +211,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.region_box.setChecked(False)
         self.ui.on_region_box_clicked()
 
-        if self.params.ffc_correction == "True" and self.proj_button.isChecked():
+        if self.params.ffc_correction and self.proj_button.isChecked():
             self.ui.ffc_box.setChecked(True)
         else:
             self.ui.ffc_box.setChecked(False)
@@ -227,32 +223,20 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ip_box.setChecked(False)
         self.on_ip_box_clicked()
 
-        if self.params.fix_nan_and_inf == "True":
-            self.ui.fix_naninf_box.setChecked(True)
-            self.params.fix_nan_and_inf = True
-        else:
-            self.ui.fix_naninf_box.setChecked(False)
-            self.params.fix_nan_and_inf = False
+        self.ui.fix_naninf_box.setChecked(self.params.fix_nan_and_inf)
 
         if self.params.reduction_mode.lower() == "average":
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
 
-        if self.params.show_2d == "True":
-            self.ui.show_2d_box.setChecked(True)
-            self.params.show_2d = True
-        else:
-            self.ui.show_2d_box.setChecked(False)
-            self.params.show_2d = False
+        self.ui.show_2d_box.setChecked(self.params.show_2d)
 
-        if self.params.show_3d == "True":
+        if self.params.show_3d:
             self.ui.show_3d_box.setChecked(True)
-            self.params.show_3d = True
             self.ui.volume_params.setVisible(True)
         else:
             self.ui.show_3d_box.setChecked(False)
-            self.params.show_3d = False
 
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
@@ -414,7 +398,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
-        self.params = config.TomoParams(config_file)
+        parser = ArgumentParser()
+        params = config.TomoParams(sections=('gui',))
+        parser = params.add_arguments(parser)
+        self.params = parser.parse_known_args(config.config_to_list(config_name=config_file))[0]
         self.get_values_from_params()
 
     def on_save_as(self):
@@ -424,7 +411,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             config_file = str(os.getenv('HOME') + "reco.conf")
         save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
         if save_config:
-            config.write(save_config, args=self.params)
+            sections = config.TomoParams().sections + ('gui',)
+            config.write(save_config, args=self.params, sections=sections)
 
     def on_clear(self):
         self.ui.reco_images_widget.setVisible(False)
@@ -477,7 +465,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         try:
-            config.write('reco.conf', args=self.params)
+            sections = config.TomoParams().sections + ('gui',)
+            config.write('reco.conf', args=self.params, sections=sections)
         except IOError as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
             self.on_save_as()
@@ -500,6 +489,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.width = array.shape[1]
             self.params.height = array.shape[0]
         else:
+            import fabio
             edf = fabio.edfimage.edfimage()
             edf_sino = edf.read(img)
             self.params.width = int(edf_sino.header['Dim_1'])
