@@ -110,7 +110,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.method_box.currentIndexChanged.connect(self.change_method)
         self.ui.axis_spin.valueChanged.connect(self.change_axis_spin)
         self.ui.angle_step.valueChanged.connect(self.change_angle_step)
-        self.ui.crop_box.clicked.connect(self.on_crop_width)
         self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
         self.ui.ffc_box.clicked.connect(self.on_ffc_box_clicked)
         self.ui.ip_box.clicked.connect(self.on_ip_box_clicked)
@@ -181,11 +180,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
         self.ui.iterations_sart.setValue(self.params.max_iterations if self.params.max_iterations else 0)
         self.ui.relaxation.setValue(self.params.relaxation_factor if self.params.relaxation_factor else 0.0)
-
-        if self.params.enable_cropping:
-            self.ui.crop_box.setChecked(True)
-        else:
-            self.ui.crop_box.setChecked(False)
 
         if self.params.from_projections:
             self.ui.proj_button.setChecked(True)
@@ -314,8 +308,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.proj_button.setChecked(True)
             self.params.from_projections = True
             self.on_proj_button_clicked()
-        if self.ui.crop_box.isChecked():
-            self.on_crop_width()
 
     def change_axis_spin(self):
         if self.ui.axis_spin.value() == 0:
@@ -328,18 +320,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.angle = None
         else:
             self.params.angle = self.ui.angle_step.value()
-
-    def on_crop_width(self):
-        if self.ui.crop_box.isChecked():
-            try:
-                self.params.crop_width = self.params.width
-                self.params.enable_cropping = True
-            except Exception as e:
-                QtGui.QMessageBox.warning(self, "Warning", "Choose input path first \n" + str(e))
-                self.params.enable_cropping = False
-                self.ui.crop_box.setChecked(False)
-        else:
-            self.params.enable_cropping = False
 
     def on_output_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.output, self.params.last_dir)
@@ -436,7 +416,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.sino_button.setChecked(True)
         self.ui.proj_button.setChecked(False)
         self.ui.region_box.setChecked(False)
-        self.ui.crop_box.setChecked(False)
         self.ui.ffc_box.setChecked(False)
         self.ui.ip_box.setChecked(False)
 
@@ -454,7 +433,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.enable_cropping = False
         self.params.reduction_mode = "average"
         self.params.fix_nan_and_inf = True
-        self.params.crop_width = None
         self.params.show_2d = False
         self.params.show_3d = False
         self.params.angle = None
@@ -494,8 +472,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             edf_sino = edf.read(img)
             self.params.width = int(edf_sino.header['Dim_1'])
             self.params.height = int(edf_sino.header['Dim_2'])
-
-        self.on_crop_width()
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
