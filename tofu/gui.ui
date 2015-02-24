@@ -1301,6 +1301,13 @@
                </property>
               </widget>
              </item>
+             <item row="8" column="2">
+              <widget class="QCheckBox" name="absorptivity_box">
+               <property name="text">
+                <string>Absorptivity</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
           </layout>

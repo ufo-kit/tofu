@@ -159,6 +159,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
         self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2', str(self.ui.flats2_path_line.text())))
         self.ui.fix_naninf_box.clicked.connect(lambda value: self.change_value('fix_nan_and_inf', self.ui.fix_naninf_box.isChecked()))
+        self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_box.isChecked()))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
         self.ui.show_2d_box.clicked.connect(lambda value: self.change_value('show_2d', self.ui.show_2d_box.isChecked()))
@@ -218,6 +219,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.on_ip_box_clicked()
 
         self.ui.fix_naninf_box.setChecked(self.params.fix_nan_and_inf)
+        self.ui.absorptivity_box.setChecked(self.params.absorptivity)
 
         if self.params.reduction_mode.lower() == "average":
             self.ui.ffc_options.setCurrentIndex(0)
@@ -339,6 +341,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.ffc_correction = self.ui.ffc_box.isChecked()
         self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
         self.ui.fix_naninf_box.setVisible(self.ui.ffc_box.isChecked())
+        self.ui.absorptivity_box.setVisible(self.ui.ffc_box.isChecked())
         if self.ui.ffc_box.isChecked() == False:
             self.ip_box.setChecked(False)
             self.ui.ip_correction.setVisible(False)
@@ -350,8 +353,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.ffc_correction = True
             self.ui.ffc_correction.setVisible(True)
             self.ui.fix_naninf_box.setVisible(False)
+            self.ui.absorptivity_box.setVisible(False)
         elif self.ui.ip_box.isChecked() == False and self.ui.ffc_box.isChecked():
             self.ui.fix_naninf_box.setVisible(True)
+            self.ui.absorptivity_box.setVisible(True)
 
     def change_ffc_options(self):
         self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
@@ -411,6 +416,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_line_180.setText('.')
 
         self.ui.fix_naninf_box.setChecked(True)
+        self.ui.absorptivity_box.setChecked(True)
         self.ui.show_2d_box.setChecked(False)
         self.ui.show_3d_box.setChecked(False)
         self.ui.sino_button.setChecked(True)
@@ -433,6 +439,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.enable_cropping = False
         self.params.reduction_mode = "average"
         self.params.fix_nan_and_inf = True
+        self.params.absorptivity = True
         self.params.show_2d = False
         self.params.show_3d = False
         self.params.angle = None
