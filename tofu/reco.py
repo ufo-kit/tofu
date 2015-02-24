@@ -169,8 +169,6 @@ def lamino(params):
     # Create reader and writer
     pm = Ufo.PluginManager()
 
-    radios = pm.get_task('read')
-    set_node_props(radios, params)
     pad = pm.get_task('padding-2d')
     rec = pm.get_task('lamino-bp')
     ramp = pm.get_task('lamino-ramp')
@@ -184,7 +182,6 @@ def lamino(params):
         downsample = pm.get_task('downsample')
         downsample.set_properties(factor=params.downsample)
 
-    radios.set_properties(path=params.input)
     writer.set_properties(filename=params.output)
 
     vx, vy, vz = params.bbox
@@ -211,12 +208,20 @@ def lamino(params):
 
     g = Ufo.TaskGraph()
 
+    if params.darks and params.flats:
+        first = create_pipeline(params, g)
+    else:
+        radios = pm.get_task('read')
+        set_node_props(radios, params)
+        radios.set_properties(path=params.input)
+        first = radios
+
     # Padding and filtering
     if params.downsample > 1:
-        g.connect_nodes(radios, downsample)
+        g.connect_nodes(first, downsample)
         g.connect_nodes(downsample, pad)
     else:
-        g.connect_nodes(radios, pad)
+        g.connect_nodes(first, pad)
 
     g.connect_nodes(pad, fft1)
     g.connect_nodes(ramp, fft2)
