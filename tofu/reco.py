@@ -4,6 +4,7 @@ import logging
 import glob
 import tempfile
 import argparse
+import sys
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
