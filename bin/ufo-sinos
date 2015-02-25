@@ -2,7 +2,6 @@
 import argparse
 from tofu.config import parse_known_args, Params
 from tofu.sinos import make_sinos
-from tofu.util import positive_int
 
 
 def main():

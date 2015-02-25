@@ -2,7 +2,6 @@ import sys
 import os
 import logging
 import tempfile
-import subprocess
 from argparse import ArgumentParser
 import numpy as np
 import pyqtgraph as pg
@@ -20,7 +19,7 @@ logging.getLogger('PyQt4.uic.uiparser').disabled = True
 logging.getLogger('PyQt4.uic.properties').disabled = True
 logging.getLogger('fabioutils').disabled = True
 logging.getLogger('edfimage').disabled = True
-log = tempfile.NamedTemporaryFile(delete = False, suffix = '.txt')
+log = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -29,17 +28,20 @@ logging.basicConfig(
     filemode='a'
 )
 
+
 def _set_line_edit_to_path(parent, directory, last_dir):
     if last_dir is not None:
         directory = last_dir
     path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
     return path
 
+
 def _set_line_edit_to_file(parent, directory, last_dir):
     if last_dir is not None:
         directory = last_dir
     file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
     return file_name
+
 
 def _set_last_dir(parent, path, line_edit, last_dir):
     if os.path.exists(str(path)):
@@ -48,16 +50,18 @@ def _set_last_dir(parent, path, line_edit, last_dir):
         last_dir = str(line_edit.text())
     return last_dir
 
+
 def _enable_wait_cursor():
     QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+
 
 def _disable_wait_cursor():
     QtGui.QApplication.restoreOverrideCursor()
 
 
 class Bunch(object):
-  def __init__(self, adict):
-      self.__dict__.update(adict)
+    def __init__(self, adict):
+        self.__dict__.update(adict)
 
 
 class ApplicationWindow(QtGui.QMainWindow):
@@ -144,26 +148,43 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
         self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
 
-        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
-        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
+        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input',
+                                                    str(self.ui.input_path_line.text())))
+        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections',
+                                            False))
+        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections',
+                                            True))
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         if self.add_params.isChecked():
-            self.ui.method_box.currentIndexChanged.connect(lambda value: self.change_value('method', self.method))
-        self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
-        self.ui.iterations_sart.valueChanged.connect(lambda value: self.change_value('max_iterations', value))
-        self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor', value))
-        self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
-        self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
-        self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
-        self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2', str(self.ui.flats2_path_line.text())))
-        self.ui.fix_naninf_box.clicked.connect(lambda value: self.change_value('fix_nan_and_inf', self.ui.fix_naninf_box.isChecked()))
-        self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_box.isChecked()))
-        self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
-        self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
-        self.ui.show_2d_box.clicked.connect(lambda value: self.change_value('show_2d', self.ui.show_2d_box.isChecked()))
-        self.ui.show_3d_box.clicked.connect(lambda value: self.change_value('show_3d', self.ui.show_3d_box.isChecked()))
+            self.ui.method_box.currentIndexChanged.connect(lambda value:
+                                                           self.change_value('method', self.method))
+        self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling',
+                                                  value))
+        self.ui.iterations_sart.valueChanged.connect(lambda value:
+                                                     self.change_value('max_iterations', value))
+        self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor',
+                                                value))
+        self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output',
+                                                     str(self.ui.output_path_line.text())))
+        self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks',
+                                                    str(self.ui.darks_path_line.text())))
+        self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats',
+                                                    str(self.ui.flats_path_line.text())))
+        self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2',
+                                                     str(self.ui.flats2_path_line.text())))
+        self.ui.fix_naninf_box.clicked.connect(lambda value: self.change_value('fix_nan_and_inf',
+                                               self.ui.fix_naninf_box.isChecked()))
+        self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity',
+                                                 self.ui.absorptivity_box.isChecked()))
+        self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0',
+                                                str(self.ui.path_line_0.text())))
+        self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180',
+                                                  str(self.ui.path_line_180.text())))
+        self.ui.show_2d_box.clicked.connect(lambda value: self.change_value('show_2d',
+                                            self.ui.show_2d_box.isChecked()))
+        self.ui.show_3d_box.clicked.connect(lambda value: self.change_value('show_3d',
+                                            self.ui.show_3d_box.isChecked()))
 
     def get_values_from_params(self):
         self.ui.input_path_line.setText(self.params.input)
@@ -179,8 +200,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
-        self.ui.iterations_sart.setValue(self.params.max_iterations if self.params.max_iterations else 0)
-        self.ui.relaxation.setValue(self.params.relaxation_factor if self.params.relaxation_factor else 0.0)
+        self.ui.iterations_sart.setValue(self.params.max_iterations if
+                                         self.params.max_iterations else 0)
+        self.ui.relaxation.setValue(self.params.relaxation_factor if
+                                    self.params.relaxation_factor else 0.0)
 
         if self.params.from_projections:
             self.ui.proj_button.setChecked(True)
@@ -236,13 +259,15 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
-        if current_tab == 0 and self.ui.reco_images_widget.isVisible() == False and self.ui.reco_volume_widget.isVisible() == False:
+        if (current_tab == 0 and not self.ui.reco_images_widget.isVisible() and
+                not self.ui.reco_volume_widget.isVisible()):
             self.ui.resize(585, 825)
-        elif current_tab == 0 and (self.ui.reco_images_widget.isVisible() == True or self.ui.reco_volume_widget.isVisible() == True):
+        elif current_tab == 0 and (self.ui.reco_images_widget.isVisible() or
+                                   self.ui.reco_volume_widget.isVisible()):
             self.ui.resize(1500, 900)
-        elif current_tab == 1 and self.ui.axis_view_widget.isVisible() == False:
+        elif current_tab == 1 and not self.ui.axis_view_widget.isVisible():
             self.ui.resize(585, 825)
-        elif current_tab == 1 and self.ui.axis_view_widget.isVisible() == True:
+        elif current_tab == 1 and self.ui.axis_view_widget.isVisible():
             self.ui.resize(1500, 900)
 
     def change_method(self):
@@ -298,7 +323,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_input_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.input, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.input_path_line, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.input_path_line,
+                                             self.params.last_dir)
 
         if "sinogram" in str(self.ui.input_path_line.text()):
             self.ui.sino_button.setChecked(True)
@@ -325,13 +351,16 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_output_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.output, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.output_path_line, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.output_path_line,
+                                             self.params.last_dir)
         self.new_output = True
 
     def on_clear_output_dir_clicked(self):
         _enable_wait_cursor()
-        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith(self.ext)]
-        output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in output_files]
+        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if
+                        f.endswith(self.ext)]
+        output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
+                           for name in output_files]
         for f in output_absfiles:
             os.remove(f)
         self.ui.reco_slider.setEnabled(False)
@@ -342,7 +371,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
         self.ui.fix_naninf_box.setVisible(self.ui.ffc_box.isChecked())
         self.ui.absorptivity_box.setVisible(self.ui.ffc_box.isChecked())
-        if self.ui.ffc_box.isChecked() == False:
+        if not self.ui.ffc_box.isChecked():
             self.ip_box.setChecked(False)
             self.ui.ip_correction.setVisible(False)
 
@@ -354,7 +383,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_correction.setVisible(True)
             self.ui.fix_naninf_box.setVisible(False)
             self.ui.absorptivity_box.setVisible(False)
-        elif self.ui.ip_box.isChecked() == False and self.ui.ffc_box.isChecked():
+        elif not self.ui.ip_box.isChecked() and self.ui.ffc_box.isChecked():
             self.ui.fix_naninf_box.setVisible(True)
             self.ui.absorptivity_box.setVisible(True)
 
@@ -363,23 +392,28 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_darks_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.darks_path_line, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.darks_path_line,
+                                             self.params.last_dir)
 
     def on_flats_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.flats, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.flats_path_line, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.flats_path_line,
+                                             self.params.last_dir)
 
     def on_flats2_path_clicked(self, checked):
         path = _set_line_edit_to_path(self, self.params.flats2, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.flats2_path_line, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.flats2_path_line,
+                                             self.params.last_dir)
 
     def on_path_0_clicked(self, checked):
         path = _set_line_edit_to_file(self, self.params.deg0, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_0, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_0,
+                                             self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
         path = _set_line_edit_to_file(self, self.params.deg180, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_180, self.params.last_dir)
+        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_180,
+                                             self.params.last_dir)
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
@@ -466,7 +500,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
-        input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
+        input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if
+                        f.endswith(self.ext)]
         img = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
         im = util.read_image(img)
         self.params.width = im.shape[1]
@@ -481,12 +516,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.flats2 = ''
 
         if self.params.ffc_correction:
-           flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if f.endswith(self.ext)]
-           self.params.num_flats = len(flats_files)
+            flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if
+                           f.endswith(self.ext)]
+            self.params.num_flats = len(flats_files)
         else:
-           self.params.num_flats = 0
+            self.params.num_flats = 0
 
-        if self.ui.add_params.isChecked() == False and self.params.method == "dfi":
+        if not self.ui.add_params.isChecked() and self.params.method == "dfi":
             self.params.oversampling = None
         elif self.ui.add_params.isChecked() and self.params.method == "dfi":
             self.params.oversampling = self.ui.oversampling.value()
@@ -504,8 +540,8 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.params.max_iterations = 2
                 self.params.relaxation_factor = 0.25
 
-        if self.params.method == "sart" and self.params.angle == None:
-            QtGui.QMessageBox.warning(self,"Warning", "Missing argument for Angle step (rad)")
+        if self.params.method == "sart" and self.params.angle is None:
+            QtGui.QMessageBox.warning(self, "Warning", "Missing argument for Angle step (rad)")
 
         else:
             try:
@@ -526,13 +562,13 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def show_slices(self):
         if self.ui.show_2d_box.isChecked():
-            if self.reco_images_layout == False:
+            if not self.reco_images_layout:
                 self.make_reco_layout()
             else:
                 self.show_reco_images()
 
         elif self.ui.show_3d_box.isChecked():
-            if self.volume_layout == False:
+            if not self.volume_layout:
                 self.make_volume_layout()
             else:
                 self.show_volume()
@@ -541,7 +577,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         if os.listdir(str(self.ui.output_path_line.text())) == []:
             QtGui.QMessageBox.warning(self, "Warning", "Empty output directory")
         else:
-            output_images = [f for f in os.listdir(str(self.ui.output_path_line.text())) if f.endswith(self.ext)]
+            output_images = [f for f in os.listdir(str(self.ui.output_path_line.text())) if
+                             f.endswith(self.ext)]
             if output_images == []:
                 QtGui.QMessageBox.warning(self, "Warning", "No tif or edf files in output path")
             else:
@@ -562,13 +599,15 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def show_reco_images(self):
         self.levels = None
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith(self.ext)]
-        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
+        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if
+                      f.endswith(self.ext)]
+        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
+                              for name in reco_files]
         self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
         self.ui.reco_slider.setEnabled(True)
         self.move_reco_slider()
         self.levels = self.reco_histogram.getLevels()
-        if self.ui.reco_images_widget.isVisible() == False:
+        if not self.ui.reco_images_widget.isVisible():
             self.ui.reco_images_widget.setVisible(True)
             self.ui.resize(1500, 900)
 
@@ -621,8 +660,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         volume_img.translate(-volume.shape[0]/2, -volume.shape[1]/2, -volume.shape[2]/2)
 
     def get_slices(self):
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if f.endswith(self.ext)]
-        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name for name in reco_files]
+        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if
+                      f.endswith(self.ext)]
+        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
+                              for name in reco_files]
 
     def scale_data(self):
         self.step = 1
@@ -637,7 +678,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.scaled_data = np.empty((arr.shape[0], arr.shape[1], self.len), dtype=np.float32)
 
         for i in range(0, len(self.reco_absfiles)-1, self.step):
-            self.scaled_data[0:arr.shape[0], 0:arr.shape[1], (self.len-1) - i/self.step] = self.convert_tif_to_smaller_img(self.reco_absfiles[i])
+            self.scaled_data[0:arr.shape[0], 0:arr.shape[1],
+                             (self.len-1) - i/self.step] = \
+                self.convert_tif_to_smaller_img(self.reco_absfiles[i])
 
     def show_volume(self):
         _enable_wait_cursor()
@@ -683,7 +726,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.data_for_slider = np.copy(data)
             self.volume = self.get_volume(data)
             self.ui.volume_slider_widget.setVisible(True)
-            if self.ui.volume_min_slider.value() is not 0 or self.ui.volume_max_slider.value() is not 255:
+            if (self.ui.volume_min_slider.value() is not 0 or
+                    self.ui.volume_max_slider.value() is not 255):
                 self.on_volume_sliders()
 
         if self.volume_img:
@@ -693,7 +737,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.reco_volume_view.addItem(self.volume_img)
             self.set_volume_to_center(self.volume_img, self.volume)
 
-        if self.ui.reco_volume_widget.isVisible() == False:
+        if not self.ui.reco_volume_widget.isVisible():
             self.ui.reco_volume_widget.setVisible(True)
             self.ui.volume_params.setVisible(False)
             self.ui.resize(1500, 900)
@@ -726,7 +770,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         volume[..., 0] = data
         volume[..., 1] = data
         volume[..., 2] = data
-        volume[..., 3] = ((volume[..., 0]*0.3 + volume[..., 1]*0.3).astype(float)/255.) **2 *255
+        volume[..., 3] = ((volume[..., 0] * 0.3 +
+                           volume[..., 1] * 0.3).astype(float) / 255.) ** 2 * 255
         return volume
 
     def on_crop_circle(self):
@@ -763,7 +808,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.scale_percent = self.ui.percent_box2.value()
 
     def on_hide_reco_images(self):
-        if self.ui.show_2d_box.isChecked() == False:
+        if not self.ui.show_2d_box.isChecked():
             self.ui.reco_images_widget.setVisible(False)
         else:
             self.ui.show_3d_box.setChecked(False)
@@ -771,11 +816,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.reco_volume_widget.setVisible(False)
             self.params.show_3d = False
 
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_volume_widget.isVisible() == False and self.ui.reco_images_widget.isVisible() == False:
+        if (self.ui.tab_widget.currentIndex() == 0 and not
+                self.ui.reco_volume_widget.isVisible() and not
+                self.ui.reco_images_widget.isVisible()):
             self.ui.resize(585, 825)
 
     def on_hide_volume(self):
-        if self.ui.show_3d_box.isChecked() == False:
+        if not self.ui.show_3d_box.isChecked():
             self.ui.reco_volume_widget.setVisible(False)
             self.ui.volume_params.setVisible(False)
         else:
@@ -784,12 +831,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.volume_params.setVisible(True)
             self.params.show_2d = False
 
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_volume_widget.isVisible() == False and self.ui.reco_images_widget.isVisible() == False:
+        if (self.ui.tab_widget.currentIndex() == 0 and not
+                self.ui.reco_volume_widget.isVisible() and not
+                self.ui.reco_images_widget.isVisible()):
             self.ui.resize(585, 825)
 
     def on_run(self):
         _enable_wait_cursor()
-        if self.viewbox == False:
+        if not self.viewbox:
             self.viewbox = pg.ViewBox()
             self.histogram = pg.HistogramLUTWidget()
             self.w_over = pg.GraphicsView()
@@ -802,7 +851,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         try:
             self.read_data()
             self.compute_axis()
-            if self.axis_view_widget.isVisible() == False:
+            if not self.axis_view_widget.isVisible():
                 self.axis_view_widget.setVisible(True)
                 self.axis_options.setVisible(True)
                 self.ui.resize(1500, 900)
@@ -857,7 +906,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         _disable_wait_cursor()
 
     def keyPressEvent(self, event):
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible() == True:
+        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible():
             if event.key() == QtCore.Qt.Key_Right:
                 self.ui.reco_slider.setValue(self.ui.reco_slider.value() + 1)
             elif event.key() == QtCore.Qt.Key_Left:
@@ -865,7 +914,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             else:
                 QtGui.QMainWindow.keyPressEvent(self, event)
 
-        elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible() == True:
+        elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible():
             if event.key() == QtCore.Qt.Key_Right:
                 self.ui.axis_slider.setValue(self.ui.axis_slider.value() + 1)
             elif event.key() == QtCore.Qt.Key_Left:
@@ -875,12 +924,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def wheelEvent(self, event):
         wheel = 0
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible() == True:
+        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible():
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
             self.ui.reco_slider.setValue(self.ui.reco_slider.value() - wheel)
 
-        elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible() == True:
+        elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible():
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
             self.ui.axis_slider.setValue(self.ui.axis_slider.value() - wheel)
@@ -900,9 +949,9 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_overlap_opt_changed(self):
         current_overlap = self.ui.overlap_opt.currentIndex()
         if current_overlap == 0:
-            self.arr_over = self.arr_flip - arr_180
+            self.arr_over = self.arr_flip - self.arr_180
         elif current_overlap == 1:
-            self.arr_over = self.arr_flip + arr_180
+            self.arr_over = self.arr_flip + self.arr_180
 
     def update_axis(self):
         self.axis = self.width / 2 + self.move
@@ -932,7 +981,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.arr_180 = self.original_arr_180
             self.update_image()
 
+
 def main(params):
     app = QtGui.QApplication(sys.argv)
-    window = ApplicationWindow(app, params)
+    ApplicationWindow(app, params)
     sys.exit(app.exec_())

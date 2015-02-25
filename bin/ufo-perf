@@ -5,7 +5,7 @@ import sys
 import argparse
 import time
 import math
-from gi.repository import Ufo, GLib
+from gi.repository import Ufo
 from tofu.reco import setup_padding
 from tofu.util import range_from
 

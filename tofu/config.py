@@ -35,8 +35,7 @@ SECTIONS['general'] = {
     'width': {
         'default': None,
         'type': positive_int,
-        'help': "Input width"},
-    }
+        'help': "Input width"}}
 SECTIONS['reading'] = {
     'y': {
         'type': positive_int,

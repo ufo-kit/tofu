@@ -3,7 +3,6 @@ import re
 import logging
 import glob
 import tempfile
-import argparse
 import sys
 import numpy as np
 from gi.repository import Ufo
@@ -109,24 +108,18 @@ def tomo(params):
         g.connect_nodes(bp, writer)
 
     if params.method == 'sart':
-        proj = pm.get_plugin ("ufo_ir_cl_projector_new",
-                              "libufoir_cl_projector.so")
-        proj.set_properties (model = "Joseph")
+        proj = pm.get_plugin("ufo_ir_cl_projector_new", "libufoir_cl_projector.so")
+        proj.set_properties(model="Joseph")
 
-        geometry = pm.get_plugin ("ufo_ir_parallel_geometry_new",
-                                  "libufoir_parallel_geometry.so")
-        geometry.set_properties (angle_step = params.angle * 180.0 / np.pi,
-                                 num_angles = params.num_angles)
+        geometry = pm.get_plugin("ufo_ir_parallel_geometry_new", "libufoir_parallel_geometry.so")
+        geometry.set_properties(angle_step=params.angle * 180.0 / np.pi,
+                                num_angles=params.num_angles)
 
-        method = pm.get_plugin ("ufo_ir_sart_method_new",
-                                "libufoir_sart_method.so")
-        method.set_properties (relaxation_factor = params.relaxation_factor,
-                               max_iterations = params.max_iterations)
+        method = pm.get_plugin("ufo_ir_sart_method_new", "libufoir_sart_method.so")
+        method.set_properties(relaxation_factor=params.relaxation_factor,
+                              max_iterations=params.max_iterations)
 
-        ir = get_task('ir',
-                       method=method,
-                       projector=proj,
-                       geometry=geometry)
+        ir = get_task('ir', method=method, projector=proj, geometry=geometry)
 
         g.connect_nodes(sino_output, ir)
         g.connect_nodes(ir, writer)
