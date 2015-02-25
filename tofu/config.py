@@ -1,375 +1,345 @@
-import re
 import ConfigParser as configparser
-from collections import defaultdict
-from tofu.util import positive_int
+import sys
+from collections import OrderedDict
+from tofu.util import positive_int, tupleize
 
 
 NAME = "reco.conf"
-TEMPLATE = """[general]
-{disable}axis =
-{disable}offset = 0.0
-{disable}input = {input}
-{disable}region = {region}
-{disable}output = {output}
+SECTIONS = OrderedDict()
 
-## Reconstruct from projections instead of sinograms
-{disable_fp}from_projections = {from_projections}
-## Flat-field correction will not be performed if these are missing
-#darks = path/to/darks
-#flats = path/to/flats
-
-[tomo]
-{disable}axis = {axis}
-{disable}angle = {angle}
-# crop_width = 128
-# method = 'fbp'        # or 'sart' or 'dfi'
-# oversampling = 2
-
-[lamino]
-# tilt = 0.1            # Tilt angle
-# tau = 10              # Pixel size in microns
-# width = 2048          # Width of input
-# height = 2048         # Height of input
-# downsample = 2        # Downsampling factor
-# bbox = 256 256 256    # Reconstruction box
-# pad = 0 0             # Padding added around input
-"""
-
-SECTIONS = {
-    'general': {
-        'angle': {
-            'default': None,
-            'type': float,
-            'help': "Angle step between projections in radians"
-            },
-        'axis': {
-            'default': None,
-            'type': float,
-            'help': "Axis position",
-            },
-        'config': {
-            'default': NAME,
-            'type': str,
-            'help': "File name of configuration",
-            'metavar': 'FILE'
-            },
-        'darks': {
-            'default': '.',
-            'type': str,
-            'help': "Location with darks",
-            'metavar': 'PATH'
-            },
-        'dark_scale': {
-            'default': 1,
-            'type': float,
-            'help': "Scaling dark",
-            },
-        'deg0': {
-            'default': '.',
-            'type': str,
-            'help': "Location with 0 deg projection",
-            'metavar': 'PATH'
-            },
-        'deg180': {
-            'default': '.',
-            'type': str,
-            'help': "Location with 180 deg projection",
-            'metavar': 'PATH'
-            },
-        'dry_run': {
-            'default': False,
-            'help': "Reconstruct without writing data",
-            'action': 'store_true'
-            },
-        'enable_tracing': {
-            'default': False,
-            'help': "Enable tracing and store result in .PID.json",
-            'action': 'store_true'
-            },
-        'ffc_correction': {
-            'default': False,
-            'help': "Enable darks or flats correction",
-            'action': 'store_true'
-            },
-        'reduction_mode': {
-            'default': "Average",
-            'type': str,
-            'help': "Flat-field correction options: Average (darks) or median (flats)"
-            },
-        'fix_nan_and_inf': {
-            'default': True,
-            'help': "Fix nan and inf",
-            'action': 'store_true'
-            },
-        'flats': {
-            'default': '.',
-            'type': str,
-            'help': "Location with flats",
-            'metavar': 'PATH'
-            },
-        'flats2': {
-            'default': '.',
-            'type': str,
-            'help': "Location with flats 2 for interpolation correction",
-            'metavar': 'PATH'
-            },
-        'include': {
-            'default': '.',
-            'type': str,
-            'help': "Paths to search for plugins and kernel files",
-            'nargs': '*',
-            'metavar': 'PATH'
-            },
-        'input': {
-            'default': '.',
-            'type': str,
-            'help': "Location with sinograms or projections",
-            'metavar': 'PATH'
-            },
-        'last_dir': {
-            'default': '.',
-            'type': str,
-            'help': "Path of the last used directory",
-            'metavar': 'PATH'
-            },
-        'method': {
-            'default': 'fbp',
-            'type': str,
-            'help': "Reconstruction method",
-            'choices': ['fbp', 'sart', 'dfi']
-            },
-        'num_flats': {
-            'default': 0,
-            'type': int,
-            'help': "Number of flats for ffc correction."
-            },
-        'offset': {
-            'default': 0.0,
-            'type': float,
-            'help': "Angle offset of first projection in radians"
-            },
-        'output': {
-            'default': '.',
-            'type': str,
-            'help': "Path to location or format-specified file path "
-                    "for storing reconstructed slices",
-            'metavar': 'PATH'
-            },
-        'show_2d': {
-            'default': False,
-            'help': "Show 2D slices with pyqtgraph, GUI only",
-            'action': 'store_true'
-            },
-        'show_3d': {
-            'default': False,
-            'help': "Show 3D slices with pyqtgraph, GUI only",
-            'action': 'store_true'
-            },
-        'y_step': {
-            'default': 1,
-            'type': int,
-            'help': "Read every \"step\" row",
-            },
-        'width': {
-            'default': None,
-            'type': positive_int,
-            'help': "Input width"
-            },
-        'height': {
-            'default': None,
-            'type': positive_int,
-            'help': "Input height"
-            },
-        },
-    'fbp': {
-        'crop_width': {
-            'default': None,
-            'type': positive_int,
-            'help': "Width of final slice"
-            },
-        'enable_cropping': {
-            'default': False,
-            'help': "Enable cropping width",
-            'action': 'store_true'
-            },
-        'from_projections': {
-            'default': False,
-            'help': "Reconstruct from projections instead of sinograms",
-            'action': 'store_true'
-            }
-        },
-    'dfi': {
-        'oversampling': {
-            'default': None,
-            'type': positive_int,
-            'help': "Oversample factor"
-            }
-        },
-    'sart': {
-        'max_iterations': {
-            'default': 2,
-            'type': int,
-            'help': "Maximum number of iterations"
-            },
-        'relaxation_factor': {
-            'default': 0.25,
-            'type': float,
-            'help': "Relaxation factor"
-            },
-        'num_angles': {
-            'default': None,
-            'type': positive_int,
-            'help': "Sinogram height"
-            },
-        },
-    'lamino': {
-        'bbox': {
-            'default': None,
-            'type': int,
-            'help': "Bounding box of reconstructed volume",
-            'nargs': '+',
-            'action': 'append'
-            },
-        'downsample': {
-            'default': 1,
-            'type': positive_int,
-            'help': "Downsampling factor"
-            },
-        'pad': {
-            'default': None,
-            'type': int,
-            'help': "Final padded size of input",
-            'nargs': '+',
-            'action': 'append'
-            },
-        'tau': {
-            'default': None,
-            'type': float,
-            'help': "Pixel size in microns"
-            },
-        'tilt': {
-            'default': None,
-            'type': float,
-            'help': "Tilt angle of sample in radians"
-            },
-        }
-    }
+SECTIONS['general'] = {
+    'config': {
+        'default': NAME,
+        'type': str,
+        'help': "File name of configuration",
+        'metavar': 'FILE'},
+    'verbose': {
+        'default': False,
+        'help': 'Verbose output',
+        'action': 'store_true'},
+    'enable-tracing': {
+        'default': False,
+        'help': "Enable tracing and store result in .PID.json",
+        'action': 'store_true'},
+    'input': {
+        'default': '.',
+        'type': str,
+        'help': "Location with sinograms or projections",
+        'metavar': 'PATH'},
+    'output': {
+        'default': '.',
+        'type': str,
+        'help': "Path to location or format-specified file path "
+                "for storing reconstructed slices",
+        'metavar': 'PATH'},
+    'width': {
+        'default': None,
+        'type': positive_int,
+        'help': "Input width"}}
+SECTIONS['reading'] = {
+    'y': {
+        'type': positive_int,
+        'default': 0,
+        'help': 'Vertical coordinate from where to start reading the input image'},
+    'height': {
+        'default': None,
+        'type': positive_int,
+        'help': "Number of rows which will be read"},
+    'y-step': {
+        'type': positive_int,
+        'default': 1,
+        'help': "Read every \"step\" row from the input"},
+    'start': {
+        'type': positive_int,
+        'default': 0,
+        'help': 'Offset to the first read file'},
+    'end': {
+        'type': positive_int,
+        'default': None,
+        'help': 'The files will be read until \"end\" - 1 index'},
+    'step': {
+        'type': positive_int,
+        'default': 1,
+        'help': 'Read every \"step\" file'}}
+SECTIONS['flat-correction'] = {
+    'darks': {
+        'default': '',
+        'type': str,
+        'help': "Location with darks",
+        'metavar': 'PATH'},
+    'dark-scale': {
+        'default': 1,
+        'type': float,
+        'help': "Scaling dark"},
+    'reduction-mode': {
+        'default': "Average",
+        'type': str,
+        'help': "Flat-field correction options: Average (darks) or median (flats)"},
+    'fix-nan-and-inf': {
+        'default': False,
+        'help': "Fix nan and inf",
+        'action': 'store_true'},
+    'flats': {
+        'default': '',
+        'type': str,
+        'help': "Location with flats",
+        'metavar': 'PATH'},
+    'flats2': {
+        'default': '',
+        'type': str,
+        'help': "Location with flats 2 for interpolation correction",
+        'metavar': 'PATH'},
+    'absorptivity': {
+        'default': False,
+        'action': 'store_true',
+        'help': 'Do absorption correction'}}
+SECTIONS['sinos'] = {
+    'pass-size': {
+        'type': positive_int,
+        'default': 0,
+        'help': 'Number of sinograms to process per pass'}}
+SECTIONS['reconstruction'] = {
+    'angle': {
+        'default': None,
+        'type': float,
+        'help': "Angle step between projections in radians"}}
+SECTIONS['tomographic-reconstruction'] = {
+    'axis': {
+        'default': None,
+        'type': float,
+        'help': "Axis position"},
+    'dry-run': {
+        'default': False,
+        'help': "Reconstruct without writing data",
+        'action': 'store_true'},
+    'offset': {
+        'default': 0.0,
+        'type': float,
+        'help': "Angle offset of first projection in radians"},
+    'method': {
+        'default': 'fbp',
+        'type': str,
+        'help': "Reconstruction method",
+        'choices': ['fbp', 'sart', 'dfi']}}
+SECTIONS['laminographic-reconstruction'] = {
+    'axis': {
+        'default': None,
+        'required': True,
+        'type': tupleize(2, float),
+        'help': "Axis position"},
+    'bbox': {
+        'default': None,
+        'required': True,
+        'type': tupleize(3, int),
+        'help': "Bounding box of reconstructed volume"},
+    'downsample': {
+        'default': 1,
+        'type': positive_int,
+        'help': "Downsampling factor"},
+    'pad': {
+        'default': None,
+        'required': True,
+        'type': tupleize(2, int),
+        'help': "Final padded size of input"},
+    'tau': {
+        'default': 1,
+        'type': float,
+        'help': "Pixel size in microns"},
+    'tilt': {
+        'default': None,
+        'required': True,
+        'type': float,
+        'help': "Tilt angle of sample in radians"},
+    'psi': {
+        'default': 0.0,
+        'type': float,
+        'help': "Axis misalignment angle in radians"}}
+SECTIONS['fbp'] = {
+    'crop-width': {
+        'default': None,
+        'type': positive_int,
+        'help': "Width of final slice"},
+    'from-projections': {
+        'default': False,
+        'help': "Reconstruct from projections instead of sinograms",
+        'action': 'store_true'}}
+SECTIONS['dfi'] = {
+    'oversampling': {
+        'default': None,
+        'type': positive_int,
+        'help': "Oversample factor"}}
+SECTIONS['sart'] = {
+    'max-iterations': {
+        'default': 2,
+        'type': int,
+        'help': "Maximum number of iterations"},
+    'relaxation-factor': {
+        'default': 0.25,
+        'type': float,
+        'help': "Relaxation factor"},
+    'num-angles': {
+        'default': None,
+        'type': positive_int,
+        'help': "Sinogram height"}}
+SECTIONS['gui'] = {
+    'enable-cropping': {
+        'default': False,
+        'help': "Enable cropping width",
+        'action': 'store_true'},
+    'show-2d': {
+        'default': False,
+        'help': "Show 2D slices with pyqtgraph",
+        'action': 'store_true'},
+    'show-3d': {
+        'default': False,
+        'help': "Show 3D slices with pyqtgraph",
+        'action': 'store_true'},
+    'last-dir': {
+        'default': '.',
+        'type': str,
+        'help': "Path of the last used directory",
+        'metavar': 'PATH'},
+    'deg0': {
+        'default': '.',
+        'type': str,
+        'help': "Location with 0 deg projection",
+        'metavar': 'PATH'},
+    'deg180': {
+        'default': '.',
+        'type': str,
+        'help': "Location with 180 deg projection",
+        'metavar': 'PATH'},
+    'ffc-correction': {
+        'default': False,
+        'help': "Enable darks or flats correction",
+        'action': 'store_true'},
+    'num-flats': {
+        'default': 0,
+        'type': int,
+        'help': "Number of flats for ffc correction."}}
+SECTIONS['estimate'] = {
+    'num-iterations': {
+        'default': 10,
+        'type': int,
+        'help': "Number of reconstruction iterations"},
+    'estimate-method': {
+        'type': str,
+        'default': 'reconstruction',
+        'help': 'Rotation axis estimation algorithm',
+        'choices': ['reconstruction', 'correlation']}}
 
 
-class DefaultConfigParser(configparser.ConfigParser):
-    def value(self, section, option, default=None, target=None):
-        try:
-            v = self.get(section, option)
-            if target and v:
-                return target(v)
-            return v
+def get_config_name():
+    """Get the command line --config option."""
+    name = NAME
+    for i, arg in enumerate(sys.argv):
+        if arg.startswith('--config'):
+            if arg == '--config':
+                return sys.argv[i + 1]
+            else:
+                name = sys.argv[i].split('--config')[1]
+                if name[0] == '=':
+                    name = name[1:]
+                return name
 
-        except (configparser.NoOptionError, configparser.NoSectionError):
-            return default
+    return name
 
 
-class RecoParams(object):
-    def __init__(self, config_name=NAME):
-        self._config = DefaultConfigParser()
-        self._config.read([config_name])
-        self._params = defaultdict(dict)
+def parse_known_args(parser, subparser=False):
+    """Parse arguments from file and then override by the ones specified on the command line. Use
+    *parser* for parsing and is *subparser* is True take into account that there is a value on the
+    command line specifying the subparser.
+    """
+    subparser_value = [sys.argv[1]] if subparser else []
+    config_values = config_to_list(config_name=get_config_name())
+    values = subparser_value + config_values + sys.argv[1:]
+    args = parser.parse_known_args(values)[0]
 
-        self.read_sections(['general'])
+    return args
 
-        self.include = self._config.value('general', 'include')
-        self.input = self._config.value('general', 'input', '.')
-        self.output = self._config.value('general', 'output', '.')
-        self.angle = self._config.value('general', 'angle', target=float)
-        self.angle_offset = self._config.value('general', 'angle_offset', 0)
-        self.absorptivity = self._config.value('general', 'absorptivity')
-        self.dry_run = False
-        self.enable_tracing = False
 
-    def read_sections(self, sections):
-        for section in sections:
+def config_to_list(config_name=NAME):
+    """Read arguments from config file and convert them to a list of keys and values as sys.argv
+    does when they are specified on the command line. *config_name* is the file name of the config
+    file.
+    """
+    result = []
+    config = configparser.ConfigParser()
+    if config.read([config_name]):
+        for section in SECTIONS:
             for name, opts in SECTIONS[section].items():
-                default = opts.get('default', None)
-                vtype = opts.get('type', None)
-                value = self._config.value(section, name, default, vtype)
-                setattr(self, name, value)
-                self._params[section][name] = value
+                if config.has_option(section, name):
+                    value = config.get(section, name)
+                    if value is not '' and value != 'None':
+                        action = SECTIONS[section][name].get('action', None)
+                        if action == 'store_true':
+                            # Only the key is on the command line for this action
+                            if value == 'True':
+                                result.append('--{}'.format(name))
+                        else:
+                            result.append('--{}'.format(name))
+                            result.append(value)
 
-    def add_parser_args(self, parser, sections):
-        for section in sections:
+    return result
+
+
+class Params(object):
+    def __init__(self, sections=()):
+        self.sections = sections + ('general', 'reading')
+
+    def add_parser_args(self, parser):
+        for section in self.sections:
             for name in sorted(SECTIONS[section]):
                 opts = SECTIONS[section][name]
                 parser.add_argument('--{}'.format(name), **opts)
 
     def add_arguments(self, parser):
-        self.add_parser_args(parser, ['general'])
-        return parser
-        
-    def update(self, args):
-        for k, v in args.__dict__.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-
-    def write(self, config_name=NAME):
-        with open(config_name, 'w') as f:
-            for section, names in SECTIONS.items():
-                f.write('[{}]\n'.format(section))
-                for name in names:
-                    if hasattr(self, name):
-                        value = getattr(self, name)
-                        if value is not None:
-                            f.write('{} = {}\n'.format(name, value))
-
-
-class TomoParams(RecoParams):
-    def __init__(self, config_name=NAME):
-        super(TomoParams, self).__init__(config_name)
-        self.read_sections(['fbp', 'dfi', 'sart'])
-
-        self.method = self._config.value('general', 'method', 'fbp')
-        self.from_projections = self._config.value('fbp', 'from_projections', False)
-        self.crop_width = self._config.value('fbp', 'crop_width', target=int)
-        self.oversampling = self._config.value('dfi', 'oversampling', target=int)
-        self.axis = self._config.value('general', 'axis', target=float)
-
-    def add_arguments(self, parser):
-        parser = super(TomoParams, self).add_arguments(parser)
-        self.add_parser_args(parser, ['fbp', 'dfi'])
+        self.add_parser_args(parser)
         return parser
 
 
-class LaminoParams(RecoParams):
+class TomoParams(Params):
+    def __init__(self, sections=()):
+        sections = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi',
+                    'sart') + sections
+        super(TomoParams, self).__init__(sections=sections)
+
+
+class LaminoParams(Params):
     def __init__(self):
-        super(LaminoParams, self).__init__()
-        self.read_sections(['lamino'])
-
-        self.axis = self._config.value('general', 'axis')
-        self.axis = [float(x) for x in self.axis.split(' ')] if self.axis else None
-
-        self.tau = 0.3
-        self.tilt = self._config.value('lamino', 'tilt')
-        self.width = self._config.value('lamino', 'width')
-        self.height = self._config.value('lamino', 'height')
-        self.downsample = self._config.value('lamino', 'downsample', 1)
-
-        self.bbox = self._config.value('lamino', 'bbox')
-        self.bbox = [int(x) for x in self.bbox.split(' ')] if self.bbox else None
-
-        self.pad = self._config.value('lamino', 'pad')
-        self.pad = [int(x) for x in self.pad.split(' ')] if self.pad else None
-
-    def add_arguments(self, parser):
-        parser = super(LaminoParams, self).add_arguments(parser)
-        self.add_parser_args(parser, ['lamino'])
-
-        return parser
+        sections = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
+        super(LaminoParams, self).__init__(sections=sections)
 
 
-def write(axis=0.0, angle=0.0, disable='#', input='path/to/input',
-          region='y_step', output='path/to/output', from_projections=True):
-    disable_fp = '#' if not from_projections else ''
-    out = TEMPLATE.format(axis=axis, angle=angle, input=input, region=region,
-                          output=output, from_projections=from_projections,
-                          disable=disable, disable_fp=disable_fp)
+def write(config_file, args=None, sections=None):
+    """Write *config_file* with values from *args* if they are specified, otherwise use the
+    defaults. If *sections* are specified, write values from *args* only to those sections, use the
+    defaults on the remaining ones.
+    """
+    cfg = configparser.ConfigParser()
+    for section in SECTIONS:
+        cfg.add_section(section)
+        for name, opts in SECTIONS[section].items():
+            if args and sections and section in sections and hasattr(args, name.replace('-', '_')):
+                value = getattr(args, name.replace('-', '_'))
+            else:
+                value = opts['default'] if opts['default'] is not None else ''
+            prefix = '# ' if value is '' else ''
+            if name != 'config':
+                cfg.set(section, prefix + name, value)
 
-    with open(NAME, 'w') as f:
-        f.write(out)
+    with open(config_file, 'wb') as config_file:
+        cfg.write(config_file)
+
+
+def _str_to_bool(value):
+    """Convert a string *value* into a boolean."""
+    result = None
+    if value == 'True':
+        result = True
+    elif value == 'False':
+        result = False
+    else:
+        raise ValueError("'{}' not recognized, must be 'True' or 'False'".format(value))
+
+    return result

@@ -5,7 +5,7 @@ import sys
 import argparse
 import time
 import math
-from gi.repository import Ufo, GLib
+from gi.repository import Ufo
 from tofu.reco import setup_padding
 from tofu.util import range_from
 
@@ -13,7 +13,7 @@ from tofu.util import range_from
 def reco(width, height, num_projections, args):
     pm = Ufo.PluginManager()
 
-    generate = pm.get_task('generate')
+    generate = pm.get_task('dummy-data')
     bp = pm.get_task('backproject')
     null = pm.get_task('null')
 
@@ -36,7 +36,7 @@ def reco(width, height, num_projections, args):
 
         if args.enable_padding:
             pad = pm.get_task('pad')
-            crop = pm.get_task('region-of-interest')
+            crop = pm.get_task('cut-roi')
             setup_padding(pad, crop, width, num_projections)
 
             g.connect_nodes(generate, pad)

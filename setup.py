@@ -13,7 +13,6 @@ setup(
     package_data={'':['gui.ui']},
     scripts=['bin/ufo-reconstruct',
              'bin/ufo-sinos',
-             'bin/ufo-estimate-center',
              'bin/ufo-perf',
              'bin/ufo-flat-correct',
              ],

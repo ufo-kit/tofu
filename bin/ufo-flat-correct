@@ -2,38 +2,27 @@
 """Flat field correction executable script."""
 import argparse
 from gi.repository import Ufo
+from tofu.config import parse_known_args, Params
 from tofu.flatcorrect import create_pipeline
 
 
-def parse_arguments():
-    """Execute sinogram generation with arguments from command line."""
+def make_args():
+    """Make command line parameters and parse them."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', metavar='PATH', type=str,
-                        default='.', required=True)
-    parser.add_argument('-o', '--output', metavar='PATH', type=str,
-                        default='.')
-    parser.add_argument('--flats', metavar='PATH', type=str)
-    parser.add_argument('--flats2', metavar='PATH', type=str)
-    parser.add_argument('--darks', metavar='PATH', type=str)
-    parser.add_argument('--absorptivity', action='store_true', help='Do absorption correction')
-    parser.add_argument('--reduction-mode', type=str, default='average',
-                        help="How to reduce flat fields, either 'average' or 'median'")
-    parser.add_argument('--dark-scale', type=float, default=1.0,
-                        help='Multiply dark field with the given value')
-    parser.add_argument('--fix-nan-and-inf', action='store_true',
-                        help='Fix NaN and Infinity values by making them 0')
+    params = Params(sections=('flat-correction',))
+    parser = params.add_arguments(parser)
 
-    return parser.parse_args()
+    return parse_known_args(parser)
 
 
 def main():
     """Flat field correction main function."""
-    args = parse_arguments()
+    args = make_args()
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
     pm = Ufo.PluginManager()
 
-    out_task = pm.get_task('writer')
+    out_task = pm.get_task('write')
     out_task.props.filename = args.output
     flat_task = create_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)

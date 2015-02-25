@@ -1,29 +1,16 @@
 #!/usr/bin/env python
 import argparse
+from tofu.config import parse_known_args, Params
 from tofu.sinos import make_sinos
-from tofu.util import positive_int
 
 
 def main():
     """Execute sinogram generation with arguments from command line."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', metavar='PATH', type=str,
-                        default='.', required=True)
-    parser.add_argument('-o', '--output', metavar='PATH', type=str,
-                        default='.')
-    parser.add_argument('--flats', metavar='PATH', type=str)
-    parser.add_argument('--darks', metavar='PATH', type=str)
-    parser.add_argument('--disable-absorption-correction', action='store_true')
-    parser.add_argument('--pass-size', dest='chunk', type=positive_int, default=0,
-                        help='Number of sinograms to process per pass')
-    parser.add_argument('--region', type=str, default='',
-                        help='from:to:step projections to process')
-    parser.add_argument('--sino-region', type=str, default='',
-                        help='from:to:step sinograms to process')
+    params = Params(sections=('flat-correction', 'sinos'))
+    parser = params.add_arguments(parser)
 
-    args = parser.parse_args()
-
-    make_sinos(args)
+    make_sinos(parse_known_args(parser))
 
 
 if __name__ == '__main__':

@@ -2,99 +2,87 @@
 
 import os
 import sys
-import re
-import glob
 import argparse
 import logging
-import numpy as np
-from gi.repository import Ufo
 from tofu import config
 
 
 LOG = logging.getLogger(__name__)
 
 
-
-def init(args, params):
+def init(args):
     if not os.path.exists(config.NAME):
-        config.write()
+        config.write(args.config)
     else:
         sys.exit("{0} already exists".format(config.NAME))
 
 
-def run_tomo(args, params):
+def run_tomo(args):
     from tofu import reco
-    params.update(args)
-    reco.tomo(params)
+    reco.tomo(args)
 
 
-def run_lamino(args, params):
+def run_lamino(args):
     from tofu import reco
-    params.update(args)
-    reco.lamino(params)
+    reco.lamino(args)
 
 
-def gui(args, params):
+def gui(args):
     from tofu import gui
-    params.update(args)
-    gui.main(params)
+    gui.main(args)
 
 
-def estimate(args, cfg_parser):
+def estimate(params):
     from tofu import reco
-    sinos = sorted(glob.glob(os.path.join(args.input, '*.tif')))
+    center = reco.estimate_center(params)
+    if params.verbose:
+        out = '>>> Best axis of rotation: {}'.format(center)
+    else:
+        out = center
 
-    if not sinos:
-        sys.exit("No valid input")
-
-    middle = sinos[len(sinos) / 2]
-    center = reco.estimate_center(cfg_parser, middle, args.num_iterations)
-    print(">>> Best axis of rotation: {}".format(center))
+    print(out)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help="Verbose output")
-
+    parser.add_argument('--config', **config.SECTIONS['general']['config'])
     subparsers = parser.add_subparsers(title="Commands", metavar='')
 
     # init parser
     cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
-    cmd_parser.set_defaults(func=init, params=None)
+    cmd_parser.add_argument('--verbose', **config.SECTIONS['general']['verbose'])
+    cmd_parser.set_defaults(_func=init)
 
     # tomo parser
     tomo_params = config.TomoParams()
-    cmd_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
-    cmd_parser = tomo_params.add_arguments(cmd_parser)
-    cmd_parser.set_defaults(func=run_tomo, params=tomo_params)
+    tomo_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
+    tomo_parser = tomo_params.add_arguments(tomo_parser)
+    tomo_parser.set_defaults(_func=run_tomo)
 
     # gui parser
-    cmd_parser = subparsers.add_parser('gui', help="GUI for tomographic reconstruction")
-    cmd_parser.set_defaults(func=gui, params=tomo_params)
+    gui_params = config.TomoParams(sections=('gui',))
+    gui_parser = subparsers.add_parser('gui', help="GUI for tomographic reconstruction")
+    gui_parser = gui_params.add_arguments(gui_parser)
+    gui_parser.set_defaults(_func=gui)
 
     # lamino parser
     lamino_params = config.LaminoParams()
-    cmd_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
-    cmd_parser = lamino_params.add_arguments(cmd_parser)
-    cmd_parser.set_defaults(func=run_lamino, params=lamino_params)
+    lamino_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
+    lamino_parser = lamino_params.add_arguments(lamino_parser)
+    lamino_parser.set_defaults(_func=run_lamino)
 
     # estimate parser
-    cmd_parser = subparsers.add_parser('estimate',
-                                       help="Estimate center of rotation")
+    estimate_params = config.TomoParams(sections=('estimate',))
+    estimate_parser = subparsers.add_parser('estimate', help="Estimate center of rotation")
+    estimate_parser = estimate_params.add_arguments(estimate_parser)
+    estimate_parser.set_defaults(_func=estimate)
 
-    cmd_parser.set_defaults(func=estimate, params=None)
-
-    cmd_parser.add_argument('--num-iterations', type=int, default=10, metavar='N',
-                            help="Number of iterations")
-
-    # parse args and update parameter structures
-    args = parser.parse_args()
+    args = config.parse_known_args(parser, subparser=True)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    args.func(args, args.params)
+    args._func(args)
 
 
 if __name__ == '__main__':
