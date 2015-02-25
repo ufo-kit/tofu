@@ -49,13 +49,12 @@ def estimate(params):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help="Verbose output")
     parser.add_argument('--config', **config.SECTIONS['general']['config'])
     subparsers = parser.add_subparsers(title="Commands", metavar='')
 
     # init parser
     cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
+    cmd_parser.add_argument('--verbose', **config.SECTIONS['general']['verbose'])
     cmd_parser.set_defaults(_func=init)
 
     # tomo parser

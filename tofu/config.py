@@ -13,6 +13,10 @@ SECTIONS['general'] = {
         'type': str,
         'help': "File name of configuration",
         'metavar': 'FILE'},
+    'verbose': {
+        'default': False,
+        'help': 'Verbose output',
+        'action': 'store_true'},
     'enable-tracing': {
         'default': False,
         'help': "Enable tracing and store result in .PID.json",
