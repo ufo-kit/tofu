@@ -88,7 +88,7 @@ def get_filenames(path):
     if os.path.isdir(path):
         path = os.path.join(path, '*')
 
-    return glob.glob(path)
+    return sorted(glob.glob(path))
 
 
 def config_log_handler(handler, log, msg_format=None):
