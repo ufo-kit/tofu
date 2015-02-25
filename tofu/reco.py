@@ -331,6 +331,11 @@ def estimate_center_by_correlation(params):
         first = flat_correct(flat, first - dark)
         last = flat_correct(flat, last - dark)
 
+    height = params.height if params.height else -1
+    y_region = slice(params.y, min(params.y + height, first.shape[0]), params.y_step)
+    first = first[y_region, :]
+    last = last[y_region, :]
+
     return compute_rotation_axis(first, last)
 
 
