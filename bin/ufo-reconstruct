@@ -39,7 +39,12 @@ def gui(args):
 def estimate(params):
     from tofu import reco
     center = reco.estimate_center(params)
-    print(">>> Best axis of rotation: {}".format(center))
+    if params.verbose:
+        out = '>>> Best axis of rotation: {}'.format(center)
+    else:
+        out = center
+
+    print(out)
 
 
 def main():
