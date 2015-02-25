@@ -7,9 +7,8 @@ import argparse
 import sys
 import numpy as np
 from gi.repository import Ufo
-from . import tifffile
 from tofu.flatcorrect import create_pipeline
-from tofu.util import set_node_props, get_filenames, next_power_of_two
+from tofu.util import set_node_props, get_filenames, next_power_of_two, read_image, determine_shape
 
 
 LOG = logging.getLogger(__name__)
@@ -36,6 +35,7 @@ def tomo(params):
     reader = get_task('read')
     reader.props.path = params.input
     set_node_props(reader, params)
+    width, height = determine_shape(params)
 
     if params.dry_run:
         writer = get_task('null')
@@ -61,9 +61,9 @@ def tomo(params):
         else:
             g.connect_nodes(reader, sino_output)
 
-        if params.height:
+        if height:
             # Sinogram height is the one needed for further padding
-            params.height = count
+            height = count
     else:
         sino_output = reader
 
@@ -82,11 +82,11 @@ def tomo(params):
         if params.offset:
             bp.props.angle_offset = params.offset
 
-        if params.width and params.height:
+        if width and height:
             # Pad the image with its extent to prevent reconstuction ring
             pad = get_task('pad')
             crop = get_task('cut-roi')
-            setup_padding(pad, crop, params.width, params.height)
+            setup_padding(pad, crop, width, height)
 
             LOG.debug("Padding to {}x{} pixels".format(pad.props.width, pad.props.height))
 
@@ -185,7 +185,9 @@ def lamino(params):
     writer.set_properties(filename=params.output)
 
     vx, vy, vz = params.bbox
-    width, height = params.size
+    width, height = determine_shape(params)
+    if not (width and height):
+        raise ValueError('Both width and height must be specified')
     pad_width, pad_height = params.pad
 
     xpad = (pad_width - width) / 2 / params.downsample
@@ -238,13 +240,6 @@ def lamino(params):
     sched.run(g)
 
 
-def read_tiff(filename):
-    tif = tifffile.TiffFile(filename)
-    arr = np.copy(tif.asarray())
-    tif.close()
-    return arr
-
-
 def estimate_center(params):
     if params.from_projections:
         sys.exit("Cannot estimate axis from projections")
@@ -256,7 +251,7 @@ def estimate_center(params):
 
     # Use a sinogram that probably has some interesting data
     filename = sinos[len(sinos) / 2]
-    sinogram = read_tiff(filename)
+    sinogram = read_image(filename)
     initial_width = sinogram.shape[1]
     m0 = np.mean(np.sum(sinogram, axis=1))
 
@@ -278,7 +273,7 @@ def estimate_center(params):
         tomo(params)
 
         # Analyse reconstructed slice
-        result = read_tiff(tmp_output)
+        result = read_image(tmp_output)
         Q_IA = float(np.sum(np.abs(result)) / m0)
         Q_IN = float(-np.sum(result * heaviside(-result)) / m0)
         LOG.info("Q_IA={}, Q_IN={}".format(Q_IA, Q_IN))

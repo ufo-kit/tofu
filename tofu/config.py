@@ -124,11 +124,6 @@ SECTIONS['laminographic-reconstruction'] = {
         'required': True,
         'type': tupleize(2, float),
         'help': "Axis position"},
-    'size': {
-        'default': None,
-        'type': tupleize(2, int),
-        'required': True,
-        'help': "Input size"},
     'bbox': {
         'default': None,
         'required': True,

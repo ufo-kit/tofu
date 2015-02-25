@@ -6,6 +6,9 @@ import math
 import os
 
 
+LOG = logging.getLogger(__name__)
+
+
 def range_from(s):
     """
     Split *s* separated by ':' into int triple, filling missing values with 1s.
@@ -107,3 +110,43 @@ def log_dictionary(dictionary, log, level=logging.INFO):
 def next_power_of_two(number):
     """Compute the next power of two of the *number*."""
     return 2 ** int(math.ceil(math.log(number, 2)))
+
+
+def read_image(filename):
+    """Read image from file *filename*."""
+    if filename.lower().endswith('.tif'):
+        from tofu.tifffile import TiffFile
+        import numpy as np
+        with TiffFile(filename) as tif:
+            image = np.copy(tif.asarray())
+    elif '.edf' in filename.lower():
+        import fabio
+        edf = fabio.edfimage.edfimage()
+        edf.read(filename)
+        image = edf.data
+    else:
+        raise ValueError('Unsupported image format')
+
+    return image
+
+
+def determine_shape(args):
+    """Determine input shape from *args* which means either width and height are specified in
+    args or try to read the input and determine the shape from it. Return a tuple (width, height).
+    """
+    width = args.width
+    height = args.height
+
+    if not (width and height):
+        try:
+            filename = get_filenames(args.input)[0]
+            image = read_image(filename)
+            # Now set the width and height but only if they were not specified
+            if not width:
+                width = image.shape[1]
+            if not height:
+                height = image.shape[0]
+        except:
+            LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
+
+    return (width, height)

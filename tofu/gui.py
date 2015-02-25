@@ -9,7 +9,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pkg_resources
 
-from . import reco, config, tifffile
+from . import reco, config, tifffile, util
 from PyQt4 import QtGui, QtCore, uic
 from scipy.signal import fftconvolve
 
@@ -468,17 +468,9 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if f.endswith(self.ext)]
         img = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
-        if img.endswith('.tif'):
-            tif = tifffile.TiffFile(img)
-            array = tif.asarray()
-            self.params.width = array.shape[1]
-            self.params.height = array.shape[0]
-        else:
-            import fabio
-            edf = fabio.edfimage.edfimage()
-            edf_sino = edf.read(img)
-            self.params.width = int(edf_sino.header['Dim_1'])
-            self.params.height = int(edf_sino.header['Dim_2'])
+        im = util.read_image(img)
+        self.params.width = im.shape[1]
+        self.params.height = im.shape[0]
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
