@@ -3,6 +3,7 @@ import re
 import logging
 import glob
 import tempfile
+import argparse
 import numpy as np
 from gi.repository import Ufo
 from . import tifffile
@@ -23,14 +24,8 @@ def get_output_name(output_path):
 
 
 def tomo(params):
-    cargs = {}
-
-    #if params.include:
-    #    config = Ufo.Config(paths=params.include)
-    #    cargs['config'] = config
-
     # Create reader and writer
-    pm = Ufo.PluginManager(**cargs)
+    pm = Ufo.PluginManager()
 
     def get_task(name, **kwargs):
         task = pm.get_task(name)
@@ -170,14 +165,8 @@ def tomo(params):
 
 
 def lamino(params):
-    cargs = {}
-
-    if params.include:
-        config = Ufo.Config(paths=params.include)
-        cargs['config'] = config
-
     # Create reader and writer
-    pm = Ufo.PluginManager(**cargs)
+    pm = Ufo.PluginManager()
 
     radios = pm.get_task('read')
     set_node_props(radios, params)
@@ -198,20 +187,22 @@ def lamino(params):
     writer.set_properties(filename=params.output)
 
     vx, vy, vz = params.bbox
+    width, height = params.size
+    pad_width, pad_height = params.pad
 
-    xpad = (params.pad[0] - params.width) / 2 / params.downsample
-    ypad = (params.pad[1] - params.height) / 2 / params.downsample
+    xpad = (pad_width - width) / 2 / params.downsample
+    ypad = (pad_height - height) / 2 / params.downsample
 
     pad.set_properties(xl=xpad, xr=xpad, yt=ypad, yb=ypad, mode='brep')
-    ramp.set_properties(width=params.pad[0] / params.downsample,
-                        height=params.pad[1] / params.downsample,
+    ramp.set_properties(width=pad_width / params.downsample,
+                        height=pad_height / params.downsample,
                         fwidth=vx, theta=params.tilt, tau=params.tau)
 
     rec.set_properties(theta=params.tilt, angle_step=params.angle, psi=params.psi,
                        proj_ox=params.axis[0] / params.downsample,
                        proj_oy=params.axis[1] / params.downsample,
                        vol_sx=vx, vol_sy=vy, vol_sz=vz,
-                       vol_ox=vx/2, vol_oy=vy/2, vol_oz=vz/2)
+                       vol_ox=vx / 2, vol_oy=vy / 2, vol_oz=vz / 2)
 
     fft1.set_properties(dimensions=2)
     fft2.set_properties(dimensions=2)
