@@ -218,7 +218,12 @@ SECTIONS['estimate'] = {
     'num-iterations': {
         'default': 10,
         'type': int,
-        'help': "Number of reconstruction iterations"}}
+        'help': "Number of reconstruction iterations"},
+    'estimate-method': {
+        'type': str,
+        'default': 'reconstruction',
+        'help': 'Rotation axis estimation algorithm',
+        'choices': ['reconstruction', 'correlation']}}
 
 
 def get_config_name():

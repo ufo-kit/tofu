@@ -241,6 +241,15 @@ def lamino(params):
 
 
 def estimate_center(params):
+    if params.estimate_method == 'reconstruction':
+        axis = estimate_center_by_reconstruction(params)
+    else:
+        axis = estimate_center_by_correlation(params)
+
+    return axis
+
+
+def estimate_center_by_reconstruction(params):
     if params.from_projections:
         sys.exit("Cannot estimate axis from projections")
 
@@ -299,6 +308,51 @@ def estimate_center(params):
         LOG.info("Could not remove {} or {}".format(tmp_output, tmp_dir))
 
     return new_center
+
+
+def estimate_center_by_correlation(params):
+    """Use correlation to estimate center of rotation for tomography."""
+    def flat_correct(flat, radio):
+        nonzero = np.where(radio != 0)
+        result = np.zeros_like(radio)
+        result[nonzero] = flat[nonzero] / radio[nonzero]
+        # log(1) = 0
+        result[result <= 0] = 1
+
+        return np.log(result)
+
+    first = read_image(get_filenames(params.input)[0]).astype(np.float)
+    last_index = params.end if params.end else -1
+    last = read_image(get_filenames(params.input)[last_index]).astype(np.float)
+
+    if params.darks and params.flats:
+        dark = read_image(get_filenames(params.darks)[0]).astype(np.float)
+        flat = read_image(get_filenames(params.flats)[0]) - dark
+        first = flat_correct(flat, first - dark)
+        last = flat_correct(flat, last - dark)
+
+    return compute_rotation_axis(first, last)
+
+
+def compute_rotation_axis(first_projection, last_projection):
+    """
+    Compute the tomographic rotation axis based on cross-correlation technique.
+    *first_projection* is the projection at 0 deg, *last_projection* is the projection
+    at 180 deg.
+    """
+    from scipy.signal import fftconvolve
+    width = first_projection.shape[1]
+    first_projection = first_projection - first_projection.mean()
+    last_projection = last_projection - last_projection.mean()
+
+    # The rotation by 180 deg flips the image horizontally, in order
+    # to do cross-correlation by convolution we must also flip it
+    # vertically, so the image is transposed and we can apply convolution
+    # which will act as cross-correlation
+    convolved = fftconvolve(first_projection, last_projection[::-1, :], mode='same')
+    center = np.unravel_index(convolved.argmax(), convolved.shape)[1]
+
+    return (width / 2.0 + center) / 2
 
 
 def setup_padding(pad, crop, width, height):
