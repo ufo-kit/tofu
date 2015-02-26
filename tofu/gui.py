@@ -530,27 +530,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         else:
             try:
                 reco.tomo(self.params)
-                self.show_slices()
-
             except Exception as e:
                 QtGui.QMessageBox.warning(self, "Warning", str(e))
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
         self.params.angle = self.ui.angle_step.value()
-
-    def check_output_dir(self):
-        if os.listdir(str(self.ui.output_path_line.text())) == []:
-            QtGui.QMessageBox.warning(self, "Warning", "Empty output directory")
-        else:
-            output_images = _get_filtered_filenames(str(self.ui.output_path_line.text()))
-            if output_images == []:
-                QtGui.QMessageBox.warning(self, "Warning", "No tif or edf files in output path")
-            else:
-                try:
-                    self.show_slices()
-                except Exception as e:
-                    QtGui.QMessageBox.warning(self, "Warning", str(e))
 
     def make_reco_layout(self):
         self.reco_images_layout = True
