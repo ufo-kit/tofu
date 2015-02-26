@@ -59,9 +59,13 @@ def _disable_wait_cursor():
     QtGui.QApplication.restoreOverrideCursor()
 
 
-class Bunch(object):
-    def __init__(self, adict):
-        self.__dict__.update(adict)
+def _get_filtered_filenames(path, exts=['.tif', '.edf']):
+    result = []
+
+    for ext in exts:
+        result += [os.path.join(path, f) for f in os.listdir(path) if f.endswith(ext)]
+
+    return sorted(result)
 
 
 class ApplicationWindow(QtGui.QMainWindow):
@@ -85,7 +89,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.reco_images_layout = False
         self.volume_layout = False
         self.viewbox = False
-        self.ext = tuple([".tif", ".edf"])
         self.get_values_from_params()
 
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
@@ -357,10 +360,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_clear_output_dir_clicked(self):
         _enable_wait_cursor()
-        output_files = [f for f in os.listdir(str(self.ui.output_path_line.text())) if
-                        f.endswith(self.ext)]
-        output_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
-                           for name in output_files]
+        output_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
         for f in output_absfiles:
             os.remove(f)
         self.ui.reco_slider.setEnabled(False)
@@ -500,10 +500,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.repaint()
         self.app.processEvents()
 
-        input_images = [f for f in os.listdir(str(self.ui.input_path_line.text())) if
-                        f.endswith(self.ext)]
-        img = str(self.ui.input_path_line.text()) + '/' + str(input_images[0])
-        im = util.read_image(img)
+        input_images = _get_filtered_filenames(str(self.ui.input_path_line.text()))
+        im = util.read_image(input_images[0])
         self.params.width = im.shape[1]
         self.params.height = im.shape[0]
 
@@ -516,8 +514,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.flats2 = ''
 
         if self.params.ffc_correction:
-            flats_files = [f for f in os.listdir(str(self.ui.flats_path_line.text())) if
-                           f.endswith(self.ext)]
+            flats_files = _get_filtered_filenames(str(self.ui.flats_path_line.text()))
             self.params.num_flats = len(flats_files)
         else:
             self.params.num_flats = 0
@@ -577,8 +574,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         if os.listdir(str(self.ui.output_path_line.text())) == []:
             QtGui.QMessageBox.warning(self, "Warning", "Empty output directory")
         else:
-            output_images = [f for f in os.listdir(str(self.ui.output_path_line.text())) if
-                             f.endswith(self.ext)]
+            output_images = _get_filtered_filenames(str(self.ui.output_path_line.text()))
             if output_images == []:
                 QtGui.QMessageBox.warning(self, "Warning", "No tif or edf files in output path")
             else:
@@ -598,31 +594,35 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.reco_images.addWidget(self.reco_histogram, 0, 1)
 
     def show_reco_images(self):
+        path = str(self.ui.output_path_line.text())
         self.levels = None
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if
-                      f.endswith(self.ext)]
-        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
-                              for name in reco_files]
+        self.reco_absfiles = _get_filtered_filenames(path)
         self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
         self.ui.reco_slider.setEnabled(True)
         self.move_reco_slider()
         self.levels = self.reco_histogram.getLevels()
+
+        if not self.reco_absfiles:
+            LOG.info('No files found in {}'.format(path))
+
         if not self.ui.reco_images_widget.isVisible():
             self.ui.reco_images_widget.setVisible(True)
             self.ui.resize(1500, 900)
 
     def move_reco_slider(self):
-        new_levels = self.reco_histogram.getLevels()
-        pos = self.ui.reco_slider.value()
-        img = self.convert_tif_to_img(self.reco_absfiles[pos])
-        self.reco_viewbox.clear()
-        self.reco_viewbox.addItem(img)
-        self.reco_histogram.setImageItem(img)
-        if self.levels is not None:
-            if new_levels == self.levels:
-                self.reco_histogram.setLevels(self.levels[0], self.levels[1])
-            else:
-                self.reco_histogram.setLevels(new_levels[0], new_levels[1])
+        if self.reco_absfiles:
+            new_levels = self.reco_histogram.getLevels()
+            pos = self.ui.reco_slider.value()
+            img = self.convert_tif_to_img(self.reco_absfiles[pos])
+            self.reco_viewbox.clear()
+            self.reco_viewbox.addItem(img)
+            self.reco_histogram.setImageItem(img)
+
+            if self.levels is not None:
+                if new_levels == self.levels:
+                    self.reco_histogram.setLevels(self.levels[0], self.levels[1])
+                else:
+                    self.reco_histogram.setLevels(new_levels[0], new_levels[1])
 
     def convert_tif_to_img(self, tif_file):
         tif = tifffile.TiffFile(tif_file)
@@ -644,8 +644,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
         self.get_slices()
         try:
-            self.scale_data()
-            self.show_volume()
+            if self.reco_absfiles:
+                self.scale_data()
+                self.show_volume()
         except ValueError as verror:
             LOG.debug(str(verror))
             log.seek(0)
@@ -660,10 +661,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         volume_img.translate(-volume.shape[0]/2, -volume.shape[1]/2, -volume.shape[2]/2)
 
     def get_slices(self):
-        reco_files = [f for f in sorted(os.listdir(str(self.ui.output_path_line.text()))) if
-                      f.endswith(self.ext)]
-        self.reco_absfiles = [str(self.ui.output_path_line.text()) + '/' + name
-                              for name in reco_files]
+        self.reco_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
 
     def scale_data(self):
         self.step = 1
