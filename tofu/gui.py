@@ -129,8 +129,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.tab_widget.currentChanged.connect(self.on_tab_changed)
         self.ui.path_button_0.clicked.connect(self.on_path_0_clicked)
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
-        self.ui.show_2d_box.clicked.connect(self.on_hide_reco_images)
-        self.ui.show_3d_box.clicked.connect(self.on_hide_volume)
+        self.ui.show_slices_button.clicked.connect(self.on_show_slices_clicked)
+        self.ui.show_volume_button.clicked.connect(self.on_show_volume_clicked)
         self.ui.percent_box.valueChanged.connect(self.on_percent_box)
         self.ui.percent_box2.valueChanged.connect(self.on_percent_box2)
         self.ui.volume_min_slider.valueChanged.connect(self.on_volume_sliders)
@@ -139,7 +139,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.crop_more_button.clicked.connect(self.on_crop_more_circle)
         self.ui.crop_less_button.clicked.connect(self.on_crop_less_circle)
         self.ui.make_contrast_button.clicked.connect(self.show_volume)
-        self.ui.show_slices_button.clicked.connect(self.check_output_dir)
         self.ui.run_button.clicked.connect(self.on_run)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
@@ -184,10 +183,6 @@ class ApplicationWindow(QtGui.QMainWindow):
                                                 str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180',
                                                   str(self.ui.path_line_180.text())))
-        self.ui.show_2d_box.clicked.connect(lambda value: self.change_value('show_2d',
-                                            self.ui.show_2d_box.isChecked()))
-        self.ui.show_3d_box.clicked.connect(lambda value: self.change_value('show_3d',
-                                            self.ui.show_3d_box.isChecked()))
 
     def get_values_from_params(self):
         self.ui.input_path_line.setText(self.params.input)
@@ -251,14 +246,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
-
-        self.ui.show_2d_box.setChecked(self.params.show_2d)
-
-        if self.params.show_3d:
-            self.ui.show_3d_box.setChecked(True)
-            self.ui.volume_params.setVisible(True)
-        else:
-            self.ui.show_3d_box.setChecked(False)
 
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
@@ -451,8 +438,6 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.ui.fix_naninf_box.setChecked(True)
         self.ui.absorptivity_box.setChecked(True)
-        self.ui.show_2d_box.setChecked(False)
-        self.ui.show_3d_box.setChecked(False)
         self.ui.sino_button.setChecked(True)
         self.ui.proj_button.setChecked(False)
         self.ui.region_box.setChecked(False)
@@ -556,19 +541,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         logtxt = open(log.name).read()
         self.ui.text_browser.setPlainText(logtxt)
         self.ui.text_browser.setLineWrapMode(QtGui.QTextEdit.NoWrap)
-
-    def show_slices(self):
-        if self.ui.show_2d_box.isChecked():
-            if not self.reco_images_layout:
-                self.make_reco_layout()
-            else:
-                self.show_reco_images()
-
-        elif self.ui.show_3d_box.isChecked():
-            if not self.volume_layout:
-                self.make_volume_layout()
-            else:
-                self.show_volume()
 
     def check_output_dir(self):
         if os.listdir(str(self.ui.output_path_line.text())) == []:
@@ -805,34 +777,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.percent_box.setValue(self.ui.percent_box.value())
         self.scale_percent = self.ui.percent_box2.value()
 
-    def on_hide_reco_images(self):
-        if not self.ui.show_2d_box.isChecked():
-            self.ui.reco_images_widget.setVisible(False)
+    def on_show_slices_clicked(self):
+        if not self.reco_images_layout:
+            self.make_reco_layout()
         else:
-            self.ui.show_3d_box.setChecked(False)
-            self.ui.volume_params.setVisible(False)
-            self.ui.reco_volume_widget.setVisible(False)
-            self.params.show_3d = False
+            self.show_reco_images()
 
-        if (self.ui.tab_widget.currentIndex() == 0 and not
-                self.ui.reco_volume_widget.isVisible() and not
-                self.ui.reco_images_widget.isVisible()):
-            self.ui.resize(585, 825)
-
-    def on_hide_volume(self):
-        if not self.ui.show_3d_box.isChecked():
-            self.ui.reco_volume_widget.setVisible(False)
-            self.ui.volume_params.setVisible(False)
+    def on_show_volume_clicked(self):
+        if not self.volume_layout:
+            self.make_volume_layout()
         else:
-            self.ui.show_2d_box.setChecked(False)
-            self.ui.reco_images_widget.setVisible(False)
-            self.ui.volume_params.setVisible(True)
-            self.params.show_2d = False
-
-        if (self.ui.tab_widget.currentIndex() == 0 and not
-                self.ui.reco_volume_widget.isVisible() and not
-                self.ui.reco_images_widget.isVisible()):
-            self.ui.resize(585, 825)
+            self.show_volume()
 
     def on_run(self):
         _enable_wait_cursor()
