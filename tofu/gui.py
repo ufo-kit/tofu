@@ -13,20 +13,7 @@ from PyQt4 import QtGui, QtCore, uic
 from scipy.signal import fftconvolve
 
 
-logging.getLogger('').handlers = []
 LOG = logging.getLogger(__name__)
-logging.getLogger('PyQt4.uic.uiparser').disabled = True
-logging.getLogger('PyQt4.uic.properties').disabled = True
-logging.getLogger('fabioutils').disabled = True
-logging.getLogger('edfimage').disabled = True
-log = tempfile.NamedTemporaryFile(delete=False, suffix='.txt')
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-    filename=log.name,
-    filemode='a'
-)
 
 
 def _set_line_edit_to_path(parent, directory, last_dir):
@@ -68,6 +55,15 @@ def _get_filtered_filenames(path, exts=['.tif', '.edf']):
     return sorted(result)
 
 
+class CallableHandler(logging.Handler):
+    def __init__(self, func):
+        logging.Handler.__init__(self)
+        self.func = func
+
+    def emit(self, record):
+        self.func(self.format(record))
+
+
 class ApplicationWindow(QtGui.QMainWindow):
     def __init__(self, app, params):
         QtGui.QMainWindow.__init__(self)
@@ -90,6 +86,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.volume_layout = False
         self.viewbox = False
         self.get_values_from_params()
+
+        log_handler = CallableHandler(self.on_log_record)
+        log_handler.setLevel(logging.DEBUG)
+        log_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s'))
+        root_logger = logging.getLogger('')
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.handlers = [log_handler]
 
         self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
         self.ui.proj_button.setToolTip(self.get_help('fbp', 'from-projections'))
@@ -183,6 +186,9 @@ class ApplicationWindow(QtGui.QMainWindow):
                                                 str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180',
                                                   str(self.ui.path_line_180.text())))
+
+    def on_log_record(self, record):
+        self.ui.text_browser.append(record)
 
     def get_values_from_params(self):
         self.ui.input_path_line.setText(self.params.input)
@@ -474,10 +480,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         except IOError as e:
             QtGui.QMessageBox.warning(self, "Warning", str(e))
             self.on_save_as()
-        try:
-            os.remove(log.name)
-        except OSError as e:
-            pass
 
     def on_reconstruct(self):
         _enable_wait_cursor()
@@ -536,11 +538,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
         self.params.angle = self.ui.angle_step.value()
-
-        log.seek(0)
-        logtxt = open(log.name).read()
-        self.ui.text_browser.setPlainText(logtxt)
-        self.ui.text_browser.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
     def check_output_dir(self):
         if os.listdir(str(self.ui.output_path_line.text())) == []:
@@ -621,10 +618,6 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.show_volume()
         except ValueError as verror:
             LOG.debug(str(verror))
-            log.seek(0)
-            logtxt = open(log.name).read()
-            self.ui.text_browser.setPlainText(logtxt)
-            self.ui.text_browser.setLineWrapMode(QtGui.QTextEdit.NoWrap)
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
