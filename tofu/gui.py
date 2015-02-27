@@ -76,7 +76,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.setGeometry(100, 100, 585, 825)
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.slice_dock.setVisible(False)
-        self.ui.reco_volume_widget.setVisible(False)
+        self.ui.volume_dock.setVisible(False)
         self.ui.volume_min_slider.setTracking(False)
         self.ui.volume_max_slider.setTracking(False)
         self.ui.axis_view_widget.setVisible(False)
@@ -129,7 +129,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.ffc_options.currentIndexChanged.connect(self.change_ffc_options)
         self.ui.reco_button.clicked.connect(self.on_reconstruct)
         self.ui.slice_slider.valueChanged.connect(self.move_slice_slider)
-        self.ui.tab_widget.currentChanged.connect(self.on_tab_changed)
         self.ui.path_button_0.clicked.connect(self.on_path_0_clicked)
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
         self.ui.show_slices_button.clicked.connect(self.on_show_slices_clicked)
@@ -252,19 +251,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
-
-    def on_tab_changed(self):
-        current_tab = self.ui.tab_widget.currentIndex()
-        if (current_tab == 0 and not self.ui.slice_container.isVisible() and
-                not self.ui.reco_volume_widget.isVisible()):
-            self.ui.resize(585, 825)
-        elif current_tab == 0 and (self.ui.slice_container.isVisible() or
-                                   self.ui.reco_volume_widget.isVisible()):
-            self.ui.resize(1500, 900)
-        elif current_tab == 1 and not self.ui.axis_view_widget.isVisible():
-            self.ui.resize(585, 825)
-        elif current_tab == 1 and self.ui.axis_view_widget.isVisible():
-            self.ui.resize(1500, 900)
 
     def change_method(self):
         if self.ui.method_box.currentIndex() == 0:
@@ -428,11 +414,9 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_clear(self):
         self.ui.slice_container.setVisible(False)
-        self.ui.reco_volume_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.volume_params.setVisible(False)
         self.ui.axis_options.setVisible(False)
-        self.on_tab_changed()
 
         self.ui.input_path_line.setText('.')
         self.ui.output_path_line.setText('.')
@@ -591,6 +575,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             LOG.debug(str(verror))
 
         _disable_wait_cursor()
+        self.ui.volume_dock.setVisible(True)
         self.ui.centralWidget.setEnabled(True)
 
     def set_volume_to_center(self, volume_img, volume):
@@ -653,13 +638,11 @@ class ApplicationWindow(QtGui.QMainWindow):
             data = negative * (255./negative.max())
             self.data_for_slider = np.copy(data)
             self.volume = self.get_volume(data)
-            self.ui.volume_slider_widget.setVisible(False)
         else:
             data += np.abs(data.min())
             data = data / data.max() * 255
             self.data_for_slider = np.copy(data)
             self.volume = self.get_volume(data)
-            self.ui.volume_slider_widget.setVisible(True)
             if (self.ui.volume_min_slider.value() is not 0 or
                     self.ui.volume_max_slider.value() is not 255):
                 self.on_volume_sliders()
@@ -670,11 +653,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.volume_img = gl.GLVolumeItem(self.volume)
             self.reco_volume_view.addItem(self.volume_img)
             self.set_volume_to_center(self.volume_img, self.volume)
-
-        if not self.ui.reco_volume_widget.isVisible():
-            self.ui.reco_volume_widget.setVisible(True)
-            self.ui.volume_params.setVisible(False)
-            self.ui.resize(1500, 900)
 
         self.new_output = False
         _disable_wait_cursor()
@@ -758,6 +736,27 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_show_volume_clicked(self):
         if not self.volume_layout:
             self.make_volume_layout()
+            _enable_wait_cursor()
+            self.ui.centralWidget.setEnabled(False)
+            self.repaint()
+            self.app.processEvents()
+            self.volume_layout = True
+            self.new_output = False
+            self.scale_percent = self.ui.percent_box.value()
+            self.reco_volume_view = gl.GLViewWidget()
+            self.volume_img = None
+
+            self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
+            self.get_slices()
+            try:
+                if self.reco_absfiles:
+                    self.scale_data()
+                    self.show_volume()
+            except ValueError as verror:
+                LOG.debug(str(verror))
+
+            _disable_wait_cursor()
+            self.ui.centralWidget.setEnabled(True)
         else:
             self.show_volume()
 
