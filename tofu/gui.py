@@ -10,7 +10,6 @@ import pkg_resources
 
 from . import reco, config, tifffile, util
 from PyQt4 import QtGui, QtCore, uic
-from scipy.signal import fftconvolve
 
 
 LOG = logging.getLogger(__name__)
@@ -723,24 +722,16 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def compute_axis(self):
         self.width = self.arr_0.shape[1]
-        mean_0 = self.arr_0 - self.arr_0.mean()
-        mean_180 = self.arr_180 - self.arr_180.mean()
-
-        convolved = fftconvolve(mean_0, mean_180[::-1, :], mode='same')
-        center = np.unravel_index(convolved.argmax(), convolved.shape)[1]
-
-        self.axis = (self.width / 2.0 + center) / 2
-        adj = (self.width / 2.0) - self.axis
-        self.move = int(-adj)
-        slider_val = int(adj) + 500
-        self.ui.axis_slider.setValue(slider_val)
-
+        self.ui.axis_slider.setMaximum(self.width)
+        self.axis = reco.compute_rotation_axis(self.arr_0, self.arr_180)
+        self.ui.axis_slider.setValue(int(self.axis))
         self.params.axis = self.axis
         self.ui.axis_spin.setValue(self.axis)
         self.update_image()
 
     def update_image(self):
-        arr_180 = np.roll(self.arr_180, self.move, axis=1)
+        delta = int(self.width / 2.0 - self.axis)
+        arr_180 = np.roll(self.arr_180, delta * 2, axis=1)
         self.arr_over = self.arr_flip - arr_180
         current_overlap = self.ui.overlap_opt.currentIndex()
         if current_overlap == 0:
@@ -791,15 +782,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.axis_slider.setValue(self.ui.axis_slider.value() - wheel)
 
     def move_axis_slider(self):
-        pos = self.ui.axis_slider.value()
-        if pos > 500:
-            self.move = -1 * (pos - 500)
-        elif pos < 500:
-            self.move = 500 - pos
-        else:
-            self.move = 0
-
-        self.update_axis()
+        self.axis = self.ui.axis_slider.value()
+        self.ui.axis_num.setText('%i px' % self.axis)
         self.update_image()
 
     def on_overlap_opt_changed(self):
@@ -808,10 +792,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.arr_over = self.arr_flip - self.arr_180
         elif current_overlap == 1:
             self.arr_over = self.arr_flip + self.arr_180
-
-    def update_axis(self):
-        self.axis = self.width / 2 + self.move
-        self.ui.axis_num.setText('%i px' % self.axis)
 
 
 def main(params):
