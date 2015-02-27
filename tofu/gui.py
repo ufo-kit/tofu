@@ -73,15 +73,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui = uic.loadUi(ui_file, self)
         self.ui.show()
         self.ui.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.ui.setGeometry(100, 100, 585, 825)
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.slice_dock.setVisible(False)
         self.ui.volume_dock.setVisible(False)
         self.ui.volume_min_slider.setTracking(False)
         self.ui.volume_max_slider.setTracking(False)
         self.ui.axis_view_widget.setVisible(False)
-        self.ui.axis_options.setVisible(False)
-        self.ui.volume_params.setVisible(False)
         self.slice_view_constructed = False
         self.volume_layout = False
         self.viewbox = False
@@ -89,7 +86,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         log_handler = CallableHandler(self.on_log_record)
         log_handler.setLevel(logging.DEBUG)
-        log_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s'))
+        log_handler.setFormatter(logging.Formatter('%(name)s: %(message)s'))
         root_logger = logging.getLogger('')
         root_logger.setLevel(logging.DEBUG)
         root_logger.handlers = [log_handler]
@@ -106,7 +103,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation-factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.ffc_box.setToolTip(self.get_help('gui', 'ffc-correction'))
-        self.ui.ip_box.setToolTip('Interpolate between two sets of flat fields')
+        self.ui.interpolate_button.setToolTip('Interpolate between two sets of flat fields')
         self.ui.darks_path_button.setToolTip(self.get_help('flat-correction', 'darks'))
         self.ui.flats_path_button.setToolTip(self.get_help('flat-correction', 'flats'))
         self.ui.flats2_path_button.setToolTip(self.get_help('flat-correction', 'flats2'))
@@ -122,7 +119,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.valueChanged.connect(self.change_angle_step)
         self.ui.output_path_button.clicked.connect(self.on_output_path_clicked)
         self.ui.ffc_box.clicked.connect(self.on_ffc_box_clicked)
-        self.ui.ip_box.clicked.connect(self.on_ip_box_clicked)
+        self.ui.interpolate_button.clicked.connect(self.on_interpolate_button_clicked)
         self.ui.darks_path_button.clicked.connect(self.on_darks_path_clicked)
         self.ui.flats_path_button.clicked.connect(self.on_flats_path_clicked)
         self.ui.flats2_path_button.clicked.connect(self.on_flats2_path_clicked)
@@ -147,44 +144,26 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.clear_output_dir_action.triggered.connect(self.on_clear_output_dir_clicked)
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
-        self.ui.add_params.clicked.connect(self.change_method)
         self.ui.axis_slider.valueChanged.connect(self.move_axis_slider)
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
         self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
 
-        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input',
-                                                    str(self.ui.input_path_line.text())))
-        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections',
-                                            False))
-        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections',
-                                            True))
+        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
+        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
+        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
-        if self.add_params.isChecked():
-            self.ui.method_box.currentIndexChanged.connect(lambda value:
-                                                           self.change_value('method', self.method))
-        self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling',
-                                                  value))
-        self.ui.iterations_sart.valueChanged.connect(lambda value:
-                                                     self.change_value('max_iterations', value))
-        self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor',
-                                                value))
-        self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output',
-                                                     str(self.ui.output_path_line.text())))
-        self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks',
-                                                    str(self.ui.darks_path_line.text())))
-        self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats',
-                                                    str(self.ui.flats_path_line.text())))
-        self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2',
-                                                     str(self.ui.flats2_path_line.text())))
-        self.ui.fix_naninf_box.clicked.connect(lambda value: self.change_value('fix_nan_and_inf',
-                                               self.ui.fix_naninf_box.isChecked()))
-        self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity',
-                                                 self.ui.absorptivity_box.isChecked()))
-        self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0',
-                                                str(self.ui.path_line_0.text())))
-        self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180',
-                                                  str(self.ui.path_line_180.text())))
+        self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
+        self.ui.iterations_sart.valueChanged.connect(lambda value: self.change_value('max_iterations', value))
+        self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor', value))
+        self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
+        self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
+        self.ui.flats_path_line.textChanged.connect(lambda value: self.change_value('flats', str(self.ui.flats_path_line.text())))
+        self.ui.flats2_path_line.textChanged.connect(lambda value: self.change_value('flats2', str(self.ui.flats2_path_line.text())))
+        self.ui.fix_naninf_box.clicked.connect(lambda value: self.change_value('fix_nan_and_inf', self.ui.fix_naninf_box.isChecked()))
+        self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_box.isChecked()))
+        self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
+        self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
 
     def on_log_record(self, record):
         self.ui.text_browser.append(record)
@@ -232,17 +211,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.region_box.setChecked(False)
         self.ui.on_region_box_clicked()
 
-        if self.params.ffc_correction and self.proj_button.isChecked():
-            self.ui.ffc_box.setChecked(True)
-        else:
-            self.ui.ffc_box.setChecked(False)
-        self.on_ffc_box_clicked()
-
-        if self.params.flats2 and self.proj_button.isChecked():
-            self.ui.ip_box.setChecked(True)
-        else:
-            self.ui.ip_box.setChecked(False)
-        self.on_ip_box_clicked()
+        ffc_enabled = bool(self.params.flats) and bool(self.params.darks) and self.proj_button.isChecked()
+        self.ui.ffc_box.setChecked(ffc_enabled)
+        self.ui.preprocessing_container.setVisible(ffc_enabled)
+        self.ui.interpolate_button.setChecked(bool(self.params.flats2) and ffc_enabled)
 
         self.ui.fix_naninf_box.setChecked(self.params.fix_nan_and_inf)
         self.ui.absorptivity_box.setChecked(self.params.absorptivity)
@@ -253,23 +225,16 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_options.setCurrentIndex(1)
 
     def change_method(self):
-        if self.ui.method_box.currentIndex() == 0:
-            self.ui.add_params.setVisible(False)
-            self.ui.dfi_params.setVisible(False)
-            self.ui.sart_params.setVisible(False)
-            self.params.method = "fbp"
+        self.params.method = str(self.ui.method_box.currentText()).lower()
+        is_dfi = self.params.method == 'dfi'
+        is_sart = self.params.method == 'sart'
 
-        elif self.ui.method_box.currentIndex() == 1:
-            self.ui.add_params.setVisible(True)
-            self.ui.sart_params.setVisible(False)
-            self.ui.dfi_params.setVisible(self.ui.add_params.isChecked())
-            self.params.method = "dfi"
+        for w in (self.ui.oversampling_label, self.ui.oversampling):
+            w.setVisible(is_dfi)
 
-        elif self.ui.method_box.currentIndex() == 2:
-            self.ui.add_params.setVisible(True)
-            self.ui.dfi_params.setVisible(False)
-            self.ui.sart_params.setVisible(self.ui.add_params.isChecked())
-            self.params.method = "sart"
+        for w in (self.ui.relaxation, self.ui.relaxation_label,
+                  self.ui.iterations_sart, self.ui.iterations_sart_label):
+            w.setVisible(is_sart)
 
     def get_help(self, section, name):
         help = config.SECTIONS[section][name]['help']
@@ -279,19 +244,15 @@ class ApplicationWindow(QtGui.QMainWindow):
         setattr(self.params, name, value)
 
     def on_sino_button_clicked(self):
-        if self.ui.sino_button.isChecked():
-            self.ui.ffc_box.setEnabled(False)
-            self.ui.ffc_box.setChecked(False)
-            self.ui.ip_box.setEnabled(False)
-            self.ui.ip_box.setChecked(False)
-            self.on_ffc_box_clicked()
-            self.on_ip_box_clicked()
-            self.ui.region_box.setEnabled(True)
+        self.ffc_box.setEnabled(False)
+        self.ui.preprocessing_container.setVisible(False)
 
     def on_proj_button_clicked(self):
+        self.ffc_box.setEnabled(False)
+        self.ui.preprocessing_container.setVisible(self.ffc_box.isChecked())
+
         if self.ui.proj_button.isChecked():
             self.ui.ffc_box.setEnabled(True)
-            self.ui.ip_box.setEnabled(True)
             self.ui.region_box.setEnabled(False)
             self.ui.region_box.setChecked(False)
             self.on_region_box_clicked()
@@ -307,17 +268,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         path = _set_line_edit_to_path(self, self.params.input, self.params.last_dir)
         self.params.last_dir = _set_last_dir(self, path, self.ui.input_path_line,
                                              self.params.last_dir)
-
-        if "sinogram" in str(self.ui.input_path_line.text()):
-            self.ui.sino_button.setChecked(True)
-            self.ui.proj_button.setChecked(False)
-            self.params.from_projections = False
-            self.on_sino_button_clicked()
-        elif "projection" in str(self.ui.input_path_line.text()):
-            self.ui.sino_button.setChecked(False)
-            self.ui.proj_button.setChecked(True)
-            self.params.from_projections = True
-            self.on_proj_button_clicked()
 
     def change_axis_spin(self):
         if self.ui.axis_spin.value() == 0:
@@ -346,25 +296,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         _disable_wait_cursor()
 
     def on_ffc_box_clicked(self):
-        self.params.ffc_correction = self.ui.ffc_box.isChecked()
-        self.ui.ffc_correction.setVisible(self.ui.ffc_box.isChecked())
-        self.ui.fix_naninf_box.setVisible(self.ui.ffc_box.isChecked())
-        self.ui.absorptivity_box.setVisible(self.ui.ffc_box.isChecked())
-        if not self.ui.ffc_box.isChecked():
-            self.ip_box.setChecked(False)
-            self.ui.ip_correction.setVisible(False)
+        checked = self.ui.ffc_box.isChecked()
+        self.ui.preprocessing_container.setVisible(checked)
+        self.params.ffc_correction = checked
 
-    def on_ip_box_clicked(self):
-        self.ui.ip_correction.setVisible(self.ui.ip_box.isChecked())
-        if self.ui.ip_box.isChecked():
-            self.ui.ffc_box.setChecked(True)
-            self.params.ffc_correction = True
-            self.ui.ffc_correction.setVisible(True)
-            self.ui.fix_naninf_box.setVisible(False)
-            self.ui.absorptivity_box.setVisible(False)
-        elif not self.ui.ip_box.isChecked() and self.ui.ffc_box.isChecked():
-            self.ui.fix_naninf_box.setVisible(True)
-            self.ui.absorptivity_box.setVisible(True)
+    def on_interpolate_button_clicked(self):
+        checked = self.ui.interpolate_button.isChecked()
+        self.ui.flats2_path_line.setEnabled(checked)
+        self.ui.flats2_path_button.setEnabled(checked)
 
     def change_ffc_options(self):
         self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
@@ -415,8 +354,6 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_clear(self):
         self.ui.slice_container.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
-        self.ui.volume_params.setVisible(False)
-        self.ui.axis_options.setVisible(False)
 
         self.ui.input_path_line.setText('.')
         self.ui.output_path_line.setText('.')
@@ -432,7 +369,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.proj_button.setChecked(False)
         self.ui.region_box.setChecked(False)
         self.ui.ffc_box.setChecked(False)
-        self.ui.ip_box.setChecked(False)
+        self.ui.interpolate_button.setChecked(False)
 
         self.ui.y_step.setValue(1)
         self.ui.axis_spin.setValue(0)
@@ -455,14 +392,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.axis = None
         self.on_region_box_clicked()
         self.on_ffc_box_clicked()
-        self.on_ip_box_clicked()
+        self.on_interpolate_button_clicked()
 
     def closeEvent(self, event):
         try:
             sections = config.TomoParams().sections + ('gui',)
             config.write('reco.conf', args=self.params, sections=sections)
         except IOError as e:
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
+            self.gui_warn(str(e))
             self.on_save_as()
 
     def on_reconstruct(self):
@@ -475,47 +412,34 @@ class ApplicationWindow(QtGui.QMainWindow):
         im = util.read_image(input_images[0])
         self.params.width = im.shape[1]
         self.params.height = im.shape[0]
+        self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
 
         if self.params.y_step > 1:
             self.params.angle *= self.params.y_step
-
-        if self.ui.ip_box.isChecked():
-            self.params.flats2 = self.ui.flats2_path_line.text()
-        else:
-            self.params.flats2 = ''
 
         if self.params.ffc_correction:
             flats_files = _get_filtered_filenames(str(self.ui.flats_path_line.text()))
             self.params.num_flats = len(flats_files)
         else:
             self.params.num_flats = 0
+            self.params.darks = None
+            self.params.flats = None
 
-        if not self.ui.add_params.isChecked() and self.params.method == "dfi":
-            self.params.oversampling = None
-        elif self.ui.add_params.isChecked() and self.params.method == "dfi":
-            self.params.oversampling = self.ui.oversampling.value()
+        self.params.flats2 = self.ui.flats2_path_line.text() if self.ui.interpolate_button.isChecked() else ''
+        self.params.oversampling = self.ui.oversampling.value() if self.params.method == 'dfi' else None
 
-        if self.params.method == "sart":
-            if self.params.from_projections:
-                self.params.num_angles = len(input_images)
-            else:
-                self.params.num_angles = self.params.height
+        if self.params.method == 'sart':
+            self.params.num_angles = len(input_images) if self.params.from_projections else self.params.height
+            self.params.max_iterations = self.ui.iterations_sart.value()
+            self.params.relaxation_factor = self.ui.relaxation.value()
 
-            if self.ui.add_params.isChecked():
-                self.params.max_iterations = self.ui.iterations_sart.value()
-                self.params.relaxation_factor = self.ui.relaxation.value()
-            else:
-                self.params.max_iterations = 2
-                self.params.relaxation_factor = 0.25
-
-        if self.params.method == "sart" and self.params.angle is None:
-            QtGui.QMessageBox.warning(self, "Warning", "Missing argument for Angle step (rad)")
-
+            if self.params.angle is None:
+                self.gui_warn("Missing argument for Angle step (rad)")
         else:
             try:
                 reco.tomo(self.params)
             except Exception as e:
-                QtGui.QMessageBox.warning(self, "Warning", str(e))
+                self.gui_warn(str(e))
 
         _disable_wait_cursor()
         self.ui.centralWidget.setEnabled(True)
@@ -611,11 +535,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.get_slices()
             self.scale_data()
 
-        if self.ui.volume_params.isVisible():
-            self.scale_percent = self.ui.percent_box.value()
-            self.ui.percent_box2.setValue(self.scale_percent)
-        else:
-            self.scale_percent = self.ui.percent_box2.value()
+        self.scale_percent = self.ui.percent_box2.value()
 
         if (int(self.percent * 100)) is not self.scale_percent:
             self.scale_data()
@@ -775,14 +695,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         try:
             self.read_data()
             self.compute_axis()
+
             if not self.axis_view_widget.isVisible():
                 self.axis_view_widget.setVisible(True)
-                self.axis_options.setVisible(True)
-                self.ui.resize(1500, 900)
-
         except Exception as e:
             _disable_wait_cursor()
-            QtGui.QMessageBox.warning(self, "Warning", str(e))
+            self.gui_warn(str(e))
 
     def read_data(self):
         tif_0 = tifffile.TiffFile(str(self.ui.path_line_0.text()))
@@ -825,9 +743,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.viewbox.addItem(img)
         self.viewbox.setAspectLocked(True)
         self.histogram.setImageItem(img)
-        self.ui.axis_num.setText('center of rotation = %i px' % (self.axis))
+        self.ui.axis_num.setText('%i px' % (self.axis))
         self.ui.img_size.setText('width = %i | height = %i' % (self.img_width, self.img_height))
         _disable_wait_cursor()
+
+    def gui_warn(self, message):
+        QtGui.QMessageBox.warning(self, "Warning", message)
 
     def keyPressEvent(self, event):
         if self.ui.tab_widget.currentIndex() == 0:
