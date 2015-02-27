@@ -692,6 +692,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.extrema_checkbox.setChecked(False)
         self.extrema_checkbox.setEnabled(True)
+
         try:
             self.read_data()
             self.compute_axis()
@@ -706,8 +707,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         tif_0 = tifffile.TiffFile(str(self.ui.path_line_0.text()))
         tif_180 = tifffile.TiffFile(str(self.ui.path_line_180.text()))
 
-        self.arr_0 = tif_0.asarray()
-        self.arr_180 = tif_180.asarray()
+        self.arr_0 = tif_0.asarray().astype(np.float)
+        self.arr_180 = tif_180.asarray().astype(np.float)
         self.arr_flip = np.fliplr(self.arr_0)
 
     def compute_axis(self):
@@ -800,7 +801,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def update_axis(self):
         self.axis = self.width / 2 + self.move
-        self.ui.axis_num.setText('center of rotation = %s px' % str(self.axis))
+        self.ui.axis_num.setText('%i px' % self.axis)
 
     def on_remove_extrema(self):
         if self.ui.extrema_checkbox.isChecked():
