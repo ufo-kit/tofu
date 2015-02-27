@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1657</width>
-    <height>1150</height>
+    <width>1544</width>
+    <height>874</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -218,6 +218,22 @@
                  </layout>
                 </item>
                </layout>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="input_path_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string notr="true"/>
+               </property>
+               <property name="text">
+                <string>  Path:</string>
+               </property>
               </widget>
              </item>
              <item row="6" column="0" colspan="5">
@@ -634,22 +650,6 @@
                </property>
                <property name="text">
                 <string>Browse ...</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="input_path_label">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="toolTip">
-                <string notr="true"/>
-               </property>
-               <property name="text">
-                <string>  Path:</string>
                </property>
               </widget>
              </item>
@@ -1180,41 +1180,6 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="6" rowspan="20">
-              <widget class="QGroupBox" name="reco_images_widget">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="title">
-                <string/>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_9">
-                <property name="margin">
-                 <number>0</number>
-                </property>
-                <property name="spacing">
-                 <number>6</number>
-                </property>
-                <item row="1" column="0">
-                 <layout class="QGridLayout" name="reco_images">
-                  <property name="spacing">
-                   <number>0</number>
-                  </property>
-                 </layout>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QSlider" name="reco_slider">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
              <item row="1" column="2">
               <widget class="QSpinBox" name="y_step">
                <property name="enabled">
@@ -1573,7 +1538,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1657</width>
+     <width>1544</width>
      <height>20</height>
     </rect>
    </property>
@@ -1612,6 +1577,35 @@
    </widget>
    <addaction name="file_menu"/>
    <addaction name="edit_menu"/>
+  </widget>
+  <widget class="QDockWidget" name="slice_dock">
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QGridLayout" name="slice_container">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+      </layout>
+     </item>
+     <item>
+      <widget class="QSlider" name="slice_slider">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <action name="actionOpen">
    <property name="text">

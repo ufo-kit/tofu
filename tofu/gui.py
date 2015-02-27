@@ -75,14 +75,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.ui.setGeometry(100, 100, 585, 825)
         self.ui.tab_widget.setCurrentIndex(0)
-        self.ui.reco_images_widget.setVisible(False)
+        self.ui.slice_dock.setVisible(False)
         self.ui.reco_volume_widget.setVisible(False)
         self.ui.volume_min_slider.setTracking(False)
         self.ui.volume_max_slider.setTracking(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.axis_options.setVisible(False)
         self.ui.volume_params.setVisible(False)
-        self.reco_images_layout = False
+        self.slice_view_constructed = False
         self.volume_layout = False
         self.viewbox = False
         self.get_values_from_params()
@@ -128,7 +128,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats2_path_button.clicked.connect(self.on_flats2_path_clicked)
         self.ui.ffc_options.currentIndexChanged.connect(self.change_ffc_options)
         self.ui.reco_button.clicked.connect(self.on_reconstruct)
-        self.ui.reco_slider.valueChanged.connect(self.move_reco_slider)
+        self.ui.slice_slider.valueChanged.connect(self.move_slice_slider)
         self.ui.tab_widget.currentChanged.connect(self.on_tab_changed)
         self.ui.path_button_0.clicked.connect(self.on_path_0_clicked)
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
@@ -255,10 +255,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_tab_changed(self):
         current_tab = self.ui.tab_widget.currentIndex()
-        if (current_tab == 0 and not self.ui.reco_images_widget.isVisible() and
+        if (current_tab == 0 and not self.ui.slice_container.isVisible() and
                 not self.ui.reco_volume_widget.isVisible()):
             self.ui.resize(585, 825)
-        elif current_tab == 0 and (self.ui.reco_images_widget.isVisible() or
+        elif current_tab == 0 and (self.ui.slice_container.isVisible() or
                                    self.ui.reco_volume_widget.isVisible()):
             self.ui.resize(1500, 900)
         elif current_tab == 1 and not self.ui.axis_view_widget.isVisible():
@@ -356,7 +356,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         output_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
         for f in output_absfiles:
             os.remove(f)
-        self.ui.reco_slider.setEnabled(False)
+        self.ui.slice_slider.setEnabled(False)
         _disable_wait_cursor()
 
     def on_ffc_box_clicked(self):
@@ -427,7 +427,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             config.write(save_config, args=self.params, sections=sections)
 
     def on_clear(self):
-        self.ui.reco_images_widget.setVisible(False)
+        self.ui.slice_container.setVisible(False)
         self.ui.reco_volume_widget.setVisible(False)
         self.ui.axis_view_widget.setVisible(False)
         self.ui.volume_params.setVisible(False)
@@ -537,36 +537,22 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.centralWidget.setEnabled(True)
         self.params.angle = self.ui.angle_step.value()
 
-    def make_reco_layout(self):
-        self.reco_images_layout = True
-        self.reco_graphics_view = pg.GraphicsView()
-        self.reco_viewbox = pg.ViewBox(lockAspect=True, invertY=True)
-        self.reco_histogram = pg.HistogramLUTWidget()
-        self.reco_graphics_view.setCentralItem(self.reco_viewbox)
-        self.show_reco_images()
-        self.ui.reco_images.addWidget(self.reco_graphics_view, 0, 0)
-        self.ui.reco_images.addWidget(self.reco_histogram, 0, 1)
-
     def show_reco_images(self):
         path = str(self.ui.output_path_line.text())
         self.levels = None
         self.reco_absfiles = _get_filtered_filenames(path)
-        self.ui.reco_slider.setMaximum(len(self.reco_absfiles) - 1)
-        self.ui.reco_slider.setEnabled(True)
-        self.move_reco_slider()
+        self.ui.slice_slider.setMaximum(len(self.reco_absfiles) - 1)
+        self.ui.slice_slider.setEnabled(True)
+        self.move_slice_slider()
         self.levels = self.reco_histogram.getLevels()
 
         if not self.reco_absfiles:
             LOG.info('No files found in {}'.format(path))
 
-        if not self.ui.reco_images_widget.isVisible():
-            self.ui.reco_images_widget.setVisible(True)
-            self.ui.resize(1500, 900)
-
-    def move_reco_slider(self):
+    def move_slice_slider(self):
         if self.reco_absfiles:
             new_levels = self.reco_histogram.getLevels()
-            pos = self.ui.reco_slider.value()
+            pos = self.ui.slice_slider.value()
             img = self.convert_tif_to_img(self.reco_absfiles[pos])
             self.reco_viewbox.clear()
             self.reco_viewbox.addItem(img)
@@ -756,8 +742,16 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.scale_percent = self.ui.percent_box2.value()
 
     def on_show_slices_clicked(self):
-        if not self.reco_images_layout:
-            self.make_reco_layout()
+        if not self.slice_view_constructed:
+            self.slice_view_constructed = True
+            self.reco_graphics_view = pg.GraphicsView()
+            self.reco_viewbox = pg.ViewBox(lockAspect=True, invertY=True)
+            self.reco_histogram = pg.HistogramLUTWidget()
+            self.reco_graphics_view.setCentralItem(self.reco_viewbox)
+            self.show_reco_images()
+            self.ui.slice_container.addWidget(self.reco_graphics_view, 0, 0)
+            self.ui.slice_container.addWidget(self.reco_histogram, 0, 1)
+            self.ui.slice_dock.setVisible(True)
         else:
             self.show_reco_images()
 
@@ -837,11 +831,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         _disable_wait_cursor()
 
     def keyPressEvent(self, event):
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible():
+        if self.ui.tab_widget.currentIndex() == 0:
             if event.key() == QtCore.Qt.Key_Right:
-                self.ui.reco_slider.setValue(self.ui.reco_slider.value() + 1)
+                self.ui.slice_slider.setValue(self.ui.slice_slider.value() + 1)
             elif event.key() == QtCore.Qt.Key_Left:
-                self.ui.reco_slider.setValue(self.ui.reco_slider.value() - 1)
+                self.ui.slice_slider.setValue(self.ui.slice_slider.value() - 1)
             else:
                 QtGui.QMainWindow.keyPressEvent(self, event)
 
@@ -855,10 +849,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def wheelEvent(self, event):
         wheel = 0
-        if self.ui.tab_widget.currentIndex() == 0 and self.ui.reco_images_widget.isVisible():
+        if self.ui.tab_widget.currentIndex() == 0 and self.ui.slice_container.isVisible():
             delta = event.delta()
             wheel += (delta and delta // abs(delta))
-            self.ui.reco_slider.setValue(self.ui.reco_slider.value() - wheel)
+            self.ui.slice_slider.setValue(self.ui.slice_slider.value() - wheel)
 
         elif self.ui.tab_widget.currentIndex() == 1 and self.ui.axis_view_widget.isVisible():
             delta = event.delta()
