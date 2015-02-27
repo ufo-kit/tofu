@@ -145,7 +145,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
         self.ui.axis_slider.valueChanged.connect(self.move_axis_slider)
-        self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema)
         self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
 
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
@@ -711,6 +710,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.arr_180 = tif_180.asarray().astype(np.float)
         self.arr_flip = np.fliplr(self.arr_0)
 
+        if self.ui.extrema_checkbox.isChecked():
+            max_flip = np.percentile(self.arr_flip, 99)
+            min_flip = np.percentile(self.arr_flip, 1)
+            self.arr_flip[self.arr_flip > max_flip] = max_flip
+            self.arr_flip[self.arr_flip < min_flip] = min_flip
+
+            max_180 = np.percentile(self.arr_180, 99)
+            min_180 = np.percentile(self.arr_180, 1)
+            self.arr_180[self.arr_180 > max_180] = max_180
+            self.arr_180[self.arr_180 < min_180] = min_180
+
     def compute_axis(self):
         self.width = self.arr_0.shape[1]
         mean_0 = self.arr_0 - self.arr_0.mean()
@@ -802,30 +812,6 @@ class ApplicationWindow(QtGui.QMainWindow):
     def update_axis(self):
         self.axis = self.width / 2 + self.move
         self.ui.axis_num.setText('%i px' % self.axis)
-
-    def on_remove_extrema(self):
-        if self.ui.extrema_checkbox.isChecked():
-            self.original_flip = np.copy(self.arr_flip)
-            self.original_arr_180 = np.copy(self.arr_180)
-
-            max_flip = np.percentile(self.arr_flip, 99)
-            min_flip = np.percentile(self.arr_flip, 1)
-            self.arr_flip = np.copy(self.arr_flip)
-            self.arr_flip[self.arr_flip > max_flip] = max_flip
-            self.arr_flip[self.arr_flip < min_flip] = min_flip
-
-            max_180 = np.percentile(self.arr_180, 99)
-            min_180 = np.percentile(self.arr_180, 1)
-            self.arr_180 = np.copy(self.arr_180)
-            self.arr_180[self.arr_180 > max_180] = max_180
-            self.arr_180[self.arr_180 < min_180] = min_180
-
-            self.update_image()
-
-        else:
-            self.arr_flip = self.original_flip
-            self.arr_180 = self.original_arr_180
-            self.update_image()
 
 
 def main(params):
