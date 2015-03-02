@@ -1,6 +1,10 @@
 """Flat field correction."""
+import logging
 from gi.repository import Ufo
 from tofu.util import get_filenames, set_node_props, make_subargs
+
+
+LOG = logging.getLogger(__name__)
 
 
 def create_pipeline(args, graph):
@@ -27,6 +31,8 @@ def create_pipeline(args, graph):
     set_node_props(reader, args)
     set_node_props(dark_reader, roi_args)
     set_node_props(flat_before_reader, roi_args)
+
+    LOG.debug("Doing flat field correction using reduction mode `{}'".format(mode))
 
     if args.flats2:
         flat_after_reader = get_task('read', path=args.flats2)

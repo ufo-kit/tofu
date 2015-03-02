@@ -91,22 +91,6 @@ def get_filenames(path):
     return sorted(glob.glob(path))
 
 
-def config_log_handler(handler, log, msg_format=None):
-    """Config logging *handler* to handle *log* and use *msg_format*.
-    """
-    if not msg_format:
-        msg_format = '[%(asctime)s] - %(name)s - %(levelname)s - %(message)s'
-    formatter = logging.Formatter(msg_format)
-    handler.setFormatter(formatter)
-    log.addHandler(handler)
-
-
-def log_dictionary(dictionary, log, level=logging.INFO):
-    """Log all key:value pairs in *dictionary* to *log*. *level* specifies logging level."""
-    for k, v in dictionary.iteritems():
-        log.log(level, '{}: {}'.format(k, v))
-
-
 def next_power_of_two(number):
     """Compute the next power of two of the *number*."""
     return 2 ** int(math.ceil(math.log(number, 2)))
