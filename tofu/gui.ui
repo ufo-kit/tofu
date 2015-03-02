@@ -1333,6 +1333,9 @@
    <addaction name="edit_menu"/>
   </widget>
   <widget class="QDockWidget" name="slice_dock">
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
@@ -1362,6 +1365,9 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="volume_dock">
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
