@@ -1,11 +1,8 @@
 import sys
 import os
 import logging
-import tempfile
 from argparse import ArgumentParser
 import numpy as np
-import pyqtgraph as pg
-import pyqtgraph.opengl as gl
 import pkg_resources
 
 from . import reco, config, tifffile, util
@@ -79,7 +76,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_view_widget.setVisible(False)
         self.slice_viewer = None
         self.volume_viewer = None
-        self.viewbox = False
+        self.overlap_viewer = tofu.vis.qt.OverlapViewer()
         self.get_values_from_params()
 
         log_handler = CallableHandler(self.on_log_record)
@@ -127,14 +124,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
         self.ui.show_slices_button.clicked.connect(self.on_show_slices_clicked)
         self.ui.show_volume_button.clicked.connect(self.on_show_volume_clicked)
-        self.ui.run_button.clicked.connect(self.on_run)
+        self.ui.run_button.clicked.connect(self.on_compute_center)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
         self.ui.clear_output_dir_action.triggered.connect(self.on_clear_output_dir_clicked)
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
-        self.ui.axis_slider.valueChanged.connect(self.move_axis_slider)
-        self.ui.overlap_opt.currentIndexChanged.connect(self.update_image)
+        self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema_clicked)
+        self.ui.overlap_opt.currentIndexChanged.connect(self.on_overlap_opt_changed)
 
         self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
@@ -152,6 +149,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_box.isChecked()))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
+
+        self.ui.overlap_layout.addWidget(self.overlap_viewer)
+        self.overlap_viewer.slider.valueChanged.connect(self.on_axis_slider_changed)
 
     def on_log_record(self, record):
         self.ui.text_browser.append(record)
@@ -453,91 +453,37 @@ class ApplicationWindow(QtGui.QMainWindow):
         filenames = _get_filtered_filenames(path)
         self.volume_viewer.load_files(filenames)
 
-    def on_run(self):
-        _enable_wait_cursor()
-        if not self.viewbox:
-            self.viewbox = pg.ViewBox()
-            self.histogram = pg.HistogramLUTWidget()
-            self.w_over = pg.GraphicsView()
-            self.w_over.setCentralItem(self.viewbox)
-            self.ui.axis_view_layout.addWidget(self.w_over, 0, 0)
-            self.ui.axis_view_layout.addWidget(self.histogram, 0, 1)
+    def on_compute_center(self):
+        first_name = str(self.ui.path_line_0.text())
+        second_name = str(self.ui.path_line_180.text())
+        first = tifffile.TiffFile(first_name).asarray().astype(np.float)
+        second = tifffile.TiffFile(second_name).asarray().astype(np.float)
 
-        self.extrema_checkbox.setChecked(False)
-        self.extrema_checkbox.setEnabled(True)
+        self.axis = reco.compute_rotation_axis(first, second)
+        self.height, self.width = first.shape
 
-        try:
-            self.read_data()
-            self.compute_axis()
+        w2 = self.width / 2.0
+        position = w2 + (w2 - self.axis) * 2.0
+        self.overlap_viewer.set_images(first, second)
+        self.overlap_viewer.set_position(position)
+        self.ui.img_size.setText('width = {} | height = {}'.format(self.width, self.height))
 
-            if not self.axis_view_widget.isVisible():
-                self.axis_view_widget.setVisible(True)
-        except Exception as e:
-            _disable_wait_cursor()
-            self.gui_warn(str(e))
+    def on_remove_extrema_clicked(self, val):
+        self.ui.overlap_viewer.remove_extrema = val
 
-    def read_data(self):
-        tif_0 = tifffile.TiffFile(str(self.ui.path_line_0.text()))
-        tif_180 = tifffile.TiffFile(str(self.ui.path_line_180.text()))
+    def on_overlap_opt_changed(self, index):
+        self.ui.overlap_viewer.subtract = index == 0
+        self.ui.overlap_viewer.update_image()
 
-        self.arr_0 = tif_0.asarray().astype(np.float)
-        self.arr_180 = tif_180.asarray().astype(np.float)
-        self.arr_flip = np.fliplr(self.arr_0)
-
-        if self.ui.extrema_checkbox.isChecked():
-            max_flip = np.percentile(self.arr_flip, 99)
-            min_flip = np.percentile(self.arr_flip, 1)
-            self.arr_flip[self.arr_flip > max_flip] = max_flip
-            self.arr_flip[self.arr_flip < min_flip] = min_flip
-
-            max_180 = np.percentile(self.arr_180, 99)
-            min_180 = np.percentile(self.arr_180, 1)
-            self.arr_180[self.arr_180 > max_180] = max_180
-            self.arr_180[self.arr_180 < min_180] = min_180
-
-    def compute_axis(self):
-        self.width = self.arr_0.shape[1]
-        self.ui.axis_slider.setMaximum(self.width)
-        self.axis = reco.compute_rotation_axis(self.arr_0, self.arr_180)
-        self.ui.axis_slider.setValue(int(self.axis))
-        self.params.axis = self.axis
+    def on_axis_slider_changed(self):
+        val = self.overlap_viewer.slider.value()
+        w2 = self.width / 2.0
+        self.axis = w2 + (w2 - val) / 2
+        self.ui.axis_num.setText('{} px'.format(self.axis))
         self.ui.axis_spin.setValue(self.axis)
-        self.update_image()
-
-    def update_image(self):
-        delta = int(self.width / 2.0 - self.axis)
-        arr_180 = np.roll(self.arr_180, delta * 2, axis=1)
-        self.arr_over = self.arr_flip - arr_180
-        current_overlap = self.ui.overlap_opt.currentIndex()
-        if current_overlap == 0:
-            self.arr_over = self.arr_flip - arr_180
-        elif current_overlap == 1:
-            self.arr_over = self.arr_flip + arr_180
-        img = pg.ImageItem(self.arr_over.T)
-        self.img_width = self.arr_over.T.shape[0]
-        self.img_height = self.arr_over.T.shape[1]
-        self.viewbox.clear()
-        self.viewbox.addItem(img)
-        self.viewbox.setAspectLocked(True)
-        self.histogram.setImageItem(img)
-        self.ui.axis_num.setText('%i px' % (self.axis))
-        self.ui.img_size.setText('width = %i | height = %i' % (self.img_width, self.img_height))
-        _disable_wait_cursor()
 
     def gui_warn(self, message):
         QtGui.QMessageBox.warning(self, "Warning", message)
-
-    def move_axis_slider(self):
-        self.axis = self.ui.axis_slider.value()
-        self.ui.axis_num.setText('%i px' % self.axis)
-        self.update_image()
-
-    def on_overlap_opt_changed(self):
-        current_overlap = self.ui.overlap_opt.currentIndex()
-        if current_overlap == 0:
-            self.arr_over = self.arr_flip - self.arr_180
-        elif current_overlap == 1:
-            self.arr_over = self.arr_flip + self.arr_180
 
 
 def main(params):

@@ -69,7 +69,7 @@
        <enum>Qt::LeftToRight</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="Reconstruction">
        <property name="enabled">
@@ -1247,9 +1247,15 @@
            </layout>
           </widget>
           <widget class="QWidget" name="verticalLayoutWidget_2">
-           <layout class="QVBoxLayout" name="verticalLayout_14">
+           <layout class="QVBoxLayout" name="overlap_layout">
             <item>
              <widget class="QWidget" name="axis_view_widget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <layout class="QGridLayout" name="gridLayout_11">
                <property name="margin">
                 <number>0</number>
@@ -1257,24 +1263,7 @@
                <property name="spacing">
                 <number>0</number>
                </property>
-               <item row="0" column="0">
-                <layout class="QGridLayout" name="axis_view_layout">
-                 <property name="spacing">
-                  <number>0</number>
-                 </property>
-                </layout>
-               </item>
               </layout>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSlider" name="axis_slider">
-              <property name="maximum">
-               <number>999</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
              </widget>
             </item>
            </layout>
