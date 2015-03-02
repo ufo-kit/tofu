@@ -76,11 +76,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.slice_dock.setVisible(False)
         self.ui.volume_dock.setVisible(False)
-        self.ui.volume_min_slider.setTracking(False)
-        self.ui.volume_max_slider.setTracking(False)
         self.ui.axis_view_widget.setVisible(False)
         self.slice_viewer = None
-        self.volume_layout = False
+        self.volume_viewer = None
         self.viewbox = False
         self.get_values_from_params()
 
@@ -129,14 +127,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_button_180.clicked.connect(self.on_path_180_clicked)
         self.ui.show_slices_button.clicked.connect(self.on_show_slices_clicked)
         self.ui.show_volume_button.clicked.connect(self.on_show_volume_clicked)
-        self.ui.percent_box.valueChanged.connect(self.on_percent_box)
-        self.ui.percent_box2.valueChanged.connect(self.on_percent_box2)
-        self.ui.volume_min_slider.valueChanged.connect(self.on_volume_sliders)
-        self.ui.volume_max_slider.valueChanged.connect(self.on_volume_sliders)
-        self.ui.crop_circle_box.clicked.connect(self.on_crop_circle)
-        self.ui.crop_more_button.clicked.connect(self.on_crop_more_circle)
-        self.ui.crop_less_button.clicked.connect(self.on_crop_less_circle)
-        self.ui.make_contrast_button.clicked.connect(self.show_volume)
         self.ui.run_button.clicked.connect(self.on_run)
         self.ui.save_action.triggered.connect(self.on_save_as)
         self.ui.clear_action.triggered.connect(self.on_clear)
@@ -442,173 +432,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.centralWidget.setEnabled(True)
         self.params.angle = self.ui.angle_step.value()
 
-    def convert_tif_to_img(self, tif_file):
-        tif = tifffile.TiffFile(tif_file)
-        array = tif.asarray()
-        image = pg.ImageItem(array.T)
-        return image
-
-    def make_volume_layout(self):
-        _enable_wait_cursor()
-        self.ui.centralWidget.setEnabled(False)
-        self.repaint()
-        self.app.processEvents()
-        self.volume_layout = True
-        self.new_output = False
-        self.scale_percent = self.ui.percent_box.value()
-        self.reco_volume_view = gl.GLViewWidget()
-        self.volume_img = None
-
-        self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
-        self.get_slices()
-        try:
-            if self.reco_absfiles:
-                self.scale_data()
-                self.show_volume()
-        except ValueError as verror:
-            LOG.debug(str(verror))
-
-        _disable_wait_cursor()
-        self.ui.volume_dock.setVisible(True)
-        self.ui.centralWidget.setEnabled(True)
-
-    def set_volume_to_center(self, volume_img, volume):
-        volume_img.translate(-volume.shape[0]/2, -volume.shape[1]/2, -volume.shape[2]/2)
-
-    def get_slices(self):
-        self.reco_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
-
-    def scale_data(self):
-        self.step = 1
-        self.percent = 1.0
-
-        if self.scale_percent < 100:
-            self.percent = self.scale_percent / 100.0
-            self.calculate_image_step()
-
-        arr = self.convert_tif_to_smaller_img(self.reco_absfiles[0])
-        self.len = len(self.reco_absfiles) / self.step
-        self.scaled_data = np.empty((arr.shape[0], arr.shape[1], self.len), dtype=np.float32)
-
-        for i in range(0, len(self.reco_absfiles)-1, self.step):
-            self.scaled_data[0:arr.shape[0], 0:arr.shape[1],
-                             (self.len-1) - i/self.step] = \
-                self.convert_tif_to_smaller_img(self.reco_absfiles[i])
-
-    def show_volume(self):
-        _enable_wait_cursor()
-        self.ui.centralWidget.setEnabled(False)
-        self.repaint()
-        self.app.processEvents()
-
-        if self.new_output:
-            self.get_slices()
-            self.scale_data()
-
-        self.scale_percent = self.ui.percent_box2.value()
-
-        if (int(self.percent * 100)) is not self.scale_percent:
-            self.scale_data()
-
-        data = np.copy(self.scaled_data)
-
-        if self.ui.crop_circle_box.isChecked():
-            lx = data.shape[0]
-            ly = data.shape[1]
-            X, Y = np.ogrid[0:lx, 0:ly]
-            mask = (X - lx / 2) ** 2 + (Y - ly / 2) ** 2 > lx * ly / self.radius
-            circle_array = np.copy(data)
-            circle_array[mask] = 0.0
-            data = circle_array
-
-        if self.ui.make_contrast_button.isChecked():
-            np.seterr(divide='ignore')
-            negative = np.log(np.clip(-data, 0, -data.min())**2)
-            np.seterr(divide='warn')
-            data = negative * (255./negative.max())
-            self.data_for_slider = np.copy(data)
-            self.volume = self.get_volume(data)
-        else:
-            data += np.abs(data.min())
-            data = data / data.max() * 255
-            self.data_for_slider = np.copy(data)
-            self.volume = self.get_volume(data)
-            if (self.ui.volume_min_slider.value() is not 0 or
-                    self.ui.volume_max_slider.value() is not 255):
-                self.on_volume_sliders()
-
-        if self.volume_img:
-            self.volume_img = self.update_volume_img(self.volume_img, self.volume)
-        else:
-            self.volume_img = gl.GLVolumeItem(self.volume)
-            self.reco_volume_view.addItem(self.volume_img)
-            self.set_volume_to_center(self.volume_img, self.volume)
-
-        self.new_output = False
-        _disable_wait_cursor()
-        self.ui.centralWidget.setEnabled(True)
-
-    def update_volume_img(self, old_volume_img, volume):
-        new_volume_img = gl.GLVolumeItem(volume)
-        self.reco_volume_view.removeItem(old_volume_img)
-        self.reco_volume_view.addItem(new_volume_img)
-        self.set_volume_to_center(new_volume_img, volume)
-        return new_volume_img
-
-    def calculate_image_step(self):
-        images = len(self.reco_absfiles)
-        self.step = float(images) / (self.scale_percent * images / 100.0)
-        self.step = int(np.round(self.step))
-
-    def convert_tif_to_smaller_img(self, tif_file):
-        tif = tifffile.TiffFile(tif_file)
-        array = tif.asarray()
-        if self.scale_percent < 100:
-            array = array[::self.step, ::self.step]
-        return array
-
-    def get_volume(self, data):
-        volume = np.empty(data.shape + (4, ), dtype=np.ubyte)
-        volume[..., 0] = data
-        volume[..., 1] = data
-        volume[..., 2] = data
-        volume[..., 3] = ((volume[..., 0] * 0.3 +
-                           volume[..., 1] * 0.3).astype(float) / 255.) ** 2 * 255
-        return volume
-
-    def on_crop_circle(self):
-        self.radius = 4
-        self.ui.crop_more_button.setEnabled(True)
-        self.ui.crop_less_button.setEnabled(True)
-        self.show_volume()
-        _disable_wait_cursor()
-
-    def on_crop_more_circle(self):
-        self.radius += 1
-        self.show_volume()
-
-    def on_crop_less_circle(self):
-        if self.radius > 4:
-            self.radius -= 1
-            self.show_volume()
-
-    def on_volume_sliders(self):
-        _enable_wait_cursor()
-        data = np.copy(self.data_for_slider)
-        data[data < self.ui.volume_min_slider.value()] = 0
-        data[data > self.ui.volume_max_slider.value()] = 0
-        self.volume = self.get_volume(data)
-        self.volume_img = self.update_volume_img(self.volume_img, self.volume)
-        _disable_wait_cursor()
-
-    def on_percent_box(self):
-        self.ui.percent_box2.setValue(self.ui.percent_box.value())
-        self.scale_percent = self.ui.percent_box.value()
-
-    def on_percent_box2(self):
-        self.ui.percent_box.setValue(self.ui.percent_box.value())
-        self.scale_percent = self.ui.percent_box2.value()
-
     def on_show_slices_clicked(self):
         path = str(self.ui.output_path_line.text())
         filenames = _get_filtered_filenames(path)
@@ -621,31 +444,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.slice_viewer.load_files(filenames)
 
     def on_show_volume_clicked(self):
-        if not self.volume_layout:
-            self.make_volume_layout()
-            _enable_wait_cursor()
-            self.ui.centralWidget.setEnabled(False)
-            self.repaint()
-            self.app.processEvents()
-            self.volume_layout = True
-            self.new_output = False
-            self.scale_percent = self.ui.percent_box.value()
-            self.reco_volume_view = gl.GLViewWidget()
-            self.volume_img = None
+        if not self.volume_viewer:
+            self.volume_viewer = tofu.vis.qt.VolumeViewer(parent=self, step=2)
+            self.volume_dock.setWidget(self.volume_viewer)
+            self.ui.volume_dock.setVisible(True)
 
-            self.ui.volume_image.addWidget(self.reco_volume_view, 0, 0)
-            self.get_slices()
-            try:
-                if self.reco_absfiles:
-                    self.scale_data()
-                    self.show_volume()
-            except ValueError as verror:
-                LOG.debug(str(verror))
-
-            _disable_wait_cursor()
-            self.ui.centralWidget.setEnabled(True)
-        else:
-            self.show_volume()
+        path = str(self.ui.output_path_line.text())
+        filenames = _get_filtered_filenames(path)
+        self.volume_viewer.load_files(filenames)
 
     def on_run(self):
         _enable_wait_cursor()
