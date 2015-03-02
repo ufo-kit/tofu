@@ -445,7 +445,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_show_volume_clicked(self):
         if not self.volume_viewer:
-            self.volume_viewer = tofu.vis.qt.VolumeViewer(parent=self, step=2)
+            step = int(self.ui.reduction_box.currentText())
+            self.volume_viewer = tofu.vis.qt.VolumeViewer(parent=self, step=step)
             self.volume_dock.setWidget(self.volume_viewer)
             self.ui.volume_dock.setVisible(True)
 
