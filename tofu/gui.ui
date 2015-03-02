@@ -1346,22 +1346,7 @@
       <verstretch>0</verstretch>
      </sizepolicy>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout_4">
-     <item>
-      <layout class="QGridLayout" name="slice_container">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-      </layout>
-     </item>
-     <item>
-      <widget class="QSlider" name="slice_slider">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <layout class="QVBoxLayout" name="verticalLayout_4"/>
    </widget>
   </widget>
   <widget class="QDockWidget" name="volume_dock">
