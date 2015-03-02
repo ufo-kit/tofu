@@ -1,4 +1,5 @@
 import pyqtgraph as pg
+import pyqtgraph.opengl as gl
 import logging
 import numpy as np
 
@@ -21,6 +22,20 @@ def remove_extrema(data):
     data[data > upper] = upper
     data[data < lower] = lower
     return data
+
+
+def create_volume(data):
+    gradient = (data - np.roll(data, 1))**2
+    cmin = gradient.min()
+    div = gradient.max() - cmin
+    gradient = (gradient - cmin) / div * 255
+
+    volume = np.empty(data.shape + (4, ), dtype=np.ubyte)
+    volume[..., 0] = data
+    volume[..., 1] = data
+    volume[..., 2] = data
+    volume[..., 3] = gradient
+    return volume
 
 
 class ImageViewer(QtGui.QWidget):
@@ -110,3 +125,35 @@ class OverlapViewer(QtGui.QWidget):
             pos = self.slider.value()
             moved = np.roll(self.second, self.second.shape[0] / 2 - pos, axis=0)
             self.image_view.setImage(moved - self.first)
+
+
+class VolumeViewer(QtGui.QWidget):
+
+    def __init__(self, step=1, density=1, parent=None):
+        super(VolumeViewer, self).__init__(parent)
+        self.volume_view = gl.GLViewWidget()
+        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout.addWidget(self.volume_view)
+        self.setLayout(self.main_layout)
+        self.step = step
+        self.density = density
+
+    def load_files(self, filenames):
+        """Load *filenames* for display."""
+        filenames = filenames[::self.step]
+        num = len(filenames)
+        first = read_tiff(filenames[0])[::self.step, ::self.step]
+        width, height = first.shape
+        data = np.empty((width, height, num), dtype=np.float32)
+        data[:,:,0] = first
+
+        for i, filename in enumerate(filenames[1:]):
+            data[:, :, i + 1] = read_tiff(filename)[::self.step, ::self.step]
+
+        volume = create_volume(data)
+        dx, dy, dz, _ = volume.shape
+
+        volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
+        volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
+        volume_item.scale(0.05, 0.05, 0.05, local=False)
+        self.volume_view.addItem(volume_item)
