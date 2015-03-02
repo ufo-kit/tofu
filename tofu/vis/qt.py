@@ -96,6 +96,7 @@ class OverlapViewer(QtGui.QWidget):
         self.setLayout(self.main_layout)
         self.first, self.second = (None, None)
         self.remove_extrema = remove_extrema
+        self.subtract = True
 
     def set_images(self, first, second):
         """Set *first* and *second* image."""
@@ -124,7 +125,11 @@ class OverlapViewer(QtGui.QWidget):
         else:
             pos = self.slider.value()
             moved = np.roll(self.second, self.second.shape[0] / 2 - pos, axis=0)
-            self.image_view.setImage(moved - self.first)
+            
+            if self.subtract:
+                self.image_view.setImage(moved - self.first)
+            else:
+                self.image_view.setImage(moved + self.first)
 
 
 class VolumeViewer(QtGui.QWidget):
