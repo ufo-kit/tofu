@@ -1,10 +1,11 @@
 import sys
 import os
 import logging
-from argparse import ArgumentParser
 import numpy as np
 import pkg_resources
 
+from argparse import ArgumentParser
+from contextlib import contextmanager
 from . import reco, config, tifffile, util
 import tofu.vis.qt
 from PyQt4 import QtGui, QtCore, uic
@@ -35,14 +36,6 @@ def _set_last_dir(parent, path, line_edit, last_dir):
     return last_dir
 
 
-def _enable_wait_cursor():
-    QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-
-
-def _disable_wait_cursor():
-    QtGui.QApplication.restoreOverrideCursor()
-
-
 def _get_filtered_filenames(path, exts=['.tif', '.edf']):
     result = []
 
@@ -53,6 +46,13 @@ def _get_filtered_filenames(path, exts=['.tif', '.edf']):
         return []
 
     return sorted(result)
+
+
+@contextmanager
+def spinning_cursor():
+    QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+    yield
+    QtGui.QApplication.restoreOverrideCursor()
 
 
 class CallableHandler(logging.Handler):
@@ -279,12 +279,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.new_output = True
 
     def on_clear_output_dir_clicked(self):
-        _enable_wait_cursor()
-        output_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
-        for f in output_absfiles:
-            os.remove(f)
-        self.ui.slice_slider.setEnabled(False)
-        _disable_wait_cursor()
+        with spinning_cursor():
+            output_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
+
+            for f in output_absfiles:
+                os.remove(f)
 
     def on_ffc_box_clicked(self):
         checked = self.ui.ffc_box.isChecked()
@@ -393,54 +392,52 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.on_save_as()
 
     def on_reconstruct(self):
-        _enable_wait_cursor()
-        self.ui.centralWidget.setEnabled(False)
-        self.repaint()
-        self.app.processEvents()
+        with spinning_cursor():
+            self.ui.centralWidget.setEnabled(False)
+            self.repaint()
+            self.app.processEvents()
 
-        input_images = _get_filtered_filenames(str(self.ui.input_path_line.text()))
+            input_images = _get_filtered_filenames(str(self.ui.input_path_line.text()))
 
-        if not input_images:
-            self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
-            _disable_wait_cursor()
+            if not input_images:
+                self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
+                self.ui.centralWidget.setEnabled(True)
+                return
+
+            im = util.read_image(input_images[0])
+            self.params.width = im.shape[1]
+            self.params.height = im.shape[0]
+            self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
+
+            if self.params.y_step > 1:
+                self.params.angle *= self.params.y_step
+
+            if self.params.ffc_correction:
+                flats_files = _get_filtered_filenames(str(self.ui.flats_path_line.text()))
+                self.params.num_flats = len(flats_files)
+            else:
+                self.params.num_flats = 0
+                self.params.darks = None
+                self.params.flats = None
+
+            self.params.flats2 = self.ui.flats2_path_line.text() if self.ui.interpolate_button.isChecked() else ''
+            self.params.oversampling = self.ui.oversampling.value() if self.params.method == 'dfi' else None
+
+            if self.params.method == 'sart':
+                self.params.num_angles = len(input_images) if self.params.from_projections else self.params.height
+                self.params.max_iterations = self.ui.iterations_sart.value()
+                self.params.relaxation_factor = self.ui.relaxation.value()
+
+                if self.params.angle is None:
+                    self.gui_warn("Missing argument for Angle step (rad)")
+            else:
+                try:
+                    reco.tomo(self.params)
+                except Exception as e:
+                    self.gui_warn(str(e))
+
             self.ui.centralWidget.setEnabled(True)
-            return
-
-        im = util.read_image(input_images[0])
-        self.params.width = im.shape[1]
-        self.params.height = im.shape[0]
-        self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
-
-        if self.params.y_step > 1:
-            self.params.angle *= self.params.y_step
-
-        if self.params.ffc_correction:
-            flats_files = _get_filtered_filenames(str(self.ui.flats_path_line.text()))
-            self.params.num_flats = len(flats_files)
-        else:
-            self.params.num_flats = 0
-            self.params.darks = None
-            self.params.flats = None
-
-        self.params.flats2 = self.ui.flats2_path_line.text() if self.ui.interpolate_button.isChecked() else ''
-        self.params.oversampling = self.ui.oversampling.value() if self.params.method == 'dfi' else None
-
-        if self.params.method == 'sart':
-            self.params.num_angles = len(input_images) if self.params.from_projections else self.params.height
-            self.params.max_iterations = self.ui.iterations_sart.value()
-            self.params.relaxation_factor = self.ui.relaxation.value()
-
-            if self.params.angle is None:
-                self.gui_warn("Missing argument for Angle step (rad)")
-        else:
-            try:
-                reco.tomo(self.params)
-            except Exception as e:
-                self.gui_warn(str(e))
-
-        _disable_wait_cursor()
-        self.ui.centralWidget.setEnabled(True)
-        self.params.angle = self.ui.angle_step.value()
+            self.params.angle = self.ui.angle_step.value()
 
     def on_show_slices_clicked(self):
         path = str(self.ui.output_path_line.text())
