@@ -122,8 +122,8 @@ def determine_shape(args):
     height = args.height
 
     if not (width and height):
+        filename = get_filenames(args.input)[0]
         try:
-            filename = get_filenames(args.input)[0]
             image = read_image(filename)
             # Now set the width and height but only if they were not specified
             if not width:
