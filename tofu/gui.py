@@ -46,8 +46,11 @@ def _disable_wait_cursor():
 def _get_filtered_filenames(path, exts=['.tif', '.edf']):
     result = []
 
-    for ext in exts:
-        result += [os.path.join(path, f) for f in os.listdir(path) if f.endswith(ext)]
+    try:
+        for ext in exts:
+            result += [os.path.join(path, f) for f in os.listdir(path) if f.endswith(ext)]
+    except OSError:
+        return []
 
     return sorted(result)
 
@@ -396,6 +399,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.app.processEvents()
 
         input_images = _get_filtered_filenames(str(self.ui.input_path_line.text()))
+
+        if not input_images:
+            self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
+            _disable_wait_cursor()
+            self.ui.centralWidget.setEnabled(True)
+            return
+
         im = util.read_image(input_images[0])
         self.params.width = im.shape[1]
         self.params.height = im.shape[0]
