@@ -14,29 +14,16 @@ from PyQt4 import QtGui, QtCore, uic
 LOG = logging.getLogger(__name__)
 
 
-def _set_line_edit_to_path(parent, directory, last_dir):
-    if last_dir is not None:
-        directory = last_dir
-    path = QtGui.QFileDialog.getExistingDirectory(parent, '.', directory)
-    return path
-
-
-def _set_line_edit_to_file(parent, directory, last_dir):
-    if last_dir is not None:
-        directory = last_dir
-    file_name = QtGui.QFileDialog.getOpenFileName(parent, '.', directory)
-    return file_name
-
-
-def _set_last_dir(parent, path, line_edit, last_dir):
+def set_last_dir(path, line_edit, last_dir):
     if os.path.exists(str(path)):
         line_edit.clear()
         line_edit.setText(path)
         last_dir = str(line_edit.text())
+
     return last_dir
 
 
-def _get_filtered_filenames(path, exts=['.tif', '.edf']):
+def get_filtered_filenames(path, exts=['.tif', '.edf']):
     result = []
 
     try:
@@ -256,9 +243,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.y_step = 1
 
     def on_input_path_clicked(self, checked):
-        path = _set_line_edit_to_path(self, self.params.input, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.input_path_line,
-                                             self.params.last_dir)
+        path = self.get_path(self.params.input, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.input_path_line, self.params.last_dir)
 
     def change_axis_spin(self):
         if self.ui.axis_spin.value() == 0:
@@ -273,14 +259,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.angle = self.ui.angle_step.value()
 
     def on_output_path_clicked(self, checked):
-        path = _set_line_edit_to_path(self, self.params.output, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.output_path_line,
-                                             self.params.last_dir)
+        path = self.get_path(self.params.output, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.output_path_line, self.params.last_dir)
         self.new_output = True
 
     def on_clear_output_dir_clicked(self):
         with spinning_cursor():
-            output_absfiles = _get_filtered_filenames(str(self.ui.output_path_line.text()))
+            output_absfiles = get_filtered_filenames(str(self.ui.output_path_line.text()))
 
             for f in output_absfiles:
                 os.remove(f)
@@ -299,29 +284,30 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
 
     def on_darks_path_clicked(self, checked):
-        path = _set_line_edit_to_path(self, self.params.darks, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.darks_path_line,
-                                             self.params.last_dir)
+        path = self.get_path(self.params.darks, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.darks_path_line, self.params.last_dir)
 
     def on_flats_path_clicked(self, checked):
-        path = _set_line_edit_to_path(self, self.params.flats, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.flats_path_line,
-                                             self.params.last_dir)
+        path = self.get_path(self.params.flats, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.flats_path_line, self.params.last_dir)
 
     def on_flats2_path_clicked(self, checked):
-        path = _set_line_edit_to_path(self, self.params.flats2, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.flats2_path_line,
-                                             self.params.last_dir)
+        path = self.get_path(self.params.flats2, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.flats2_path_line, self.params.last_dir)
+
+    def get_path(self, directory, last_dir):
+        return QtGui.QFileDialog.getExistingDirectory(self, '.', last_dir or directory)
+
+    def get_filename(self, directory, last_dir):
+        return QtGui.QFileDialog.getOpenFileName(self, '.', last_dir or directory)
 
     def on_path_0_clicked(self, checked):
-        path = _set_line_edit_to_file(self, self.params.deg0, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_0,
-                                             self.params.last_dir)
+        path = self.get_filename(self.params.deg0, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.path_line_0, self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
-        path = _set_line_edit_to_file(self, self.params.deg180, self.params.last_dir)
-        self.params.last_dir = _set_last_dir(self, path, self.ui.path_line_180,
-                                             self.params.last_dir)
+        path = self.get_filename(self.params.deg180, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.path_line_180, self.params.last_dir)
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
@@ -397,7 +383,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.repaint()
             self.app.processEvents()
 
-            input_images = _get_filtered_filenames(str(self.ui.input_path_line.text()))
+            input_images = get_filtered_filenames(str(self.ui.input_path_line.text()))
 
             if not input_images:
                 self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
@@ -413,7 +399,7 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.params.angle *= self.params.y_step
 
             if self.params.ffc_correction:
-                flats_files = _get_filtered_filenames(str(self.ui.flats_path_line.text()))
+                flats_files = get_filtered_filenames(str(self.ui.flats_path_line.text()))
                 self.params.num_flats = len(flats_files)
             else:
                 self.params.num_flats = 0
@@ -441,7 +427,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_show_slices_clicked(self):
         path = str(self.ui.output_path_line.text())
-        filenames = _get_filtered_filenames(path)
+        filenames = get_filtered_filenames(path)
 
         if not self.slice_viewer:
             self.slice_viewer = tofu.vis.qt.ImageViewer(filenames)
@@ -458,7 +444,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.volume_dock.setVisible(True)
 
         path = str(self.ui.output_path_line.text())
-        filenames = _get_filtered_filenames(path)
+        filenames = get_filtered_filenames(path)
         self.volume_viewer.load_files(filenames)
 
     def on_compute_center(self):
