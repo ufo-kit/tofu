@@ -142,11 +142,7 @@ def tomo(params):
         g.connect_nodes(ifft, swap_backward)
         g.connect_nodes(swap_backward, writer)
 
-    resources = Ufo.Resources(device_type=Ufo.DeviceType.GPU)
-    arch = Ufo.ArchGraph(resources=resources)
-    nodes = arch.get_gpu_nodes()
-    sched = Ufo.FixedScheduler()
-    sched.set_gpu_nodes(arch, nodes)
+    sched = Ufo.Scheduler()
 
     # if params.remote:
     #     sched.set_properties(remotes=params.remote)
