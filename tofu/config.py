@@ -277,8 +277,7 @@ def config_to_list(config_name=NAME):
                             if value == 'True':
                                 result.append('--{}'.format(name))
                         else:
-                            result.append('--{}'.format(name))
-                            result.append(value)
+                            result.append('--{}={}'.format(name, value))
 
     return result
 
