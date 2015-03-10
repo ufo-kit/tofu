@@ -296,6 +296,12 @@ class Params(object):
         self.add_parser_args(parser)
         return parser
 
+    def set_defaults(self):
+        for section in self.sections:
+            for name in sorted(SECTIONS[section]):
+                default = SECTIONS[section][name]['default']
+                setattr(self, name.replace('-', '_'), default)
+
 
 class TomoParams(Params):
     def __init__(self, sections=()):
