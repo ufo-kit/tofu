@@ -1,3 +1,4 @@
+import argparse
 import ConfigParser as configparser
 import sys
 from collections import OrderedDict
@@ -296,11 +297,11 @@ class Params(object):
         self.add_parser_args(parser)
         return parser
 
-    def set_defaults(self):
-        for section in self.sections:
-            for name in sorted(SECTIONS[section]):
-                default = SECTIONS[section][name]['default']
-                setattr(self, name.replace('-', '_'), default)
+    def get_defaults(self):
+        parser = argparse.ArgumentParser()
+        self.add_arguments(parser)
+
+        return parser.parse_args('')
 
 
 class TomoParams(Params):
