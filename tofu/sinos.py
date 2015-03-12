@@ -6,16 +6,15 @@ from tofu.util import set_node_props, get_filenames, determine_shape
 
 def make_sinos(args):
     """Make the sinograms with arguments provided by *args*."""
-    total_height = determine_shape(args)[1]
     if not args.height:
-        args.height = total_height
+        args.height = determine_shape(args)[1] - args.y
 
     step = args.y_step * args.pass_size if args.pass_size else args.height
-    starts = range(args.y, args.y + args.height, step)
-    for start in starts:
-        args.y = start
-        args.height = min(step, total_height - args.y) if total_height else step
-        _execute(args, append=start != starts[0])
+    starts = range(args.y, args.y + args.height, step) + [args.y + args.height]
+    for i in range(len(starts) - 1):
+        args.y = starts[i]
+        args.height = starts[i + 1] - starts[i]
+        _execute(args, append=i != 0)
 
 
 def _execute(args, append=False):
