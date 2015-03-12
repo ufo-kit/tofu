@@ -152,6 +152,7 @@ def tomo(params):
         sched.props.enable_tracing = params.enable_tracing
 
     sched.run(g)
+    return sched.props.time
 
 
 def lamino(params):
