@@ -1,11 +1,9 @@
 from setuptools import setup, find_packages
-import subprocess
-
-VERSION='0.7'
+from tofu import __version__
 
 setup(
     name='tofu',
-    version=VERSION,
+    version=__version__,
     author='Matthias Vogelgesang',
     author_email='matthias.vogelgesang@kit.edu',
     url='http://ufo.kit.edu',
