@@ -47,8 +47,8 @@ def tomo(params):
     g = Ufo.TaskGraph()
 
     if params.from_projections:
-        if params.end:
-            count = len(range(params.start, params.end, params.step))
+        if params.number:
+            count = len(range(params.start, params.start + params.number, params.step))
         else:
             count = len(get_filenames(params.input))
 
@@ -311,7 +311,7 @@ def estimate_center_by_correlation(params):
         return np.log(result)
 
     first = read_image(get_filenames(params.input)[0]).astype(np.float)
-    last_index = params.end if params.end else -1
+    last_index = params.start + params.number if params.number else -1
     last = read_image(get_filenames(params.input)[last_index]).astype(np.float)
 
     if params.darks and params.flats:

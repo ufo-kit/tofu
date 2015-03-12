@@ -41,8 +41,8 @@ def create_pipeline(args, graph):
     pm = Ufo.PluginManager()
     sinos = pm.get_task('transpose-projections')
 
-    if args.end:
-        region = (args.start, args.end, args.step)
+    if args.number:
+        region = (args.start, args.start + args.number, args.step)
         num_projections = len(range(*region))
     else:
         num_projections = len(get_filenames(args.input))

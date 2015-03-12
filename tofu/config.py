@@ -54,10 +54,10 @@ SECTIONS['reading'] = {
         'type': positive_int,
         'default': 0,
         'help': 'Offset to the first read file'},
-    'end': {
+    'number': {
         'type': positive_int,
         'default': None,
-        'help': 'The files will be read until \"end\" - 1 index'},
+        'help': 'Number of files to read'},
     'step': {
         'type': positive_int,
         'default': 1,
