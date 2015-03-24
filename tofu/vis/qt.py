@@ -48,14 +48,15 @@ class ImageViewer(QtGui.QWidget):
 
     def __init__(self, filenames, parent=None):
         super(ImageViewer, self).__init__(parent)
-        self.image_view = pg.ImageView()
-        self.image_view.getView().setAspectLocked(True)
+        image_view = pg.ImageView()
+        image_view.getView().setAspectLocked(True)
+        self.image_item = image_view.getImageItem()
 
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.slider.valueChanged.connect(self.update_image)
 
         self.main_layout = QtGui.QVBoxLayout(self)
-        self.main_layout.addWidget(self.image_view)
+        self.main_layout.addWidget(image_view)
         self.main_layout.addWidget(self.slider)
         self.setLayout(self.main_layout)
         self.load_files(filenames)
@@ -71,7 +72,7 @@ class ImageViewer(QtGui.QWidget):
         """Update the currently display image."""
         pos = self.slider.value()
         image = read_tiff(self.filenames[pos])
-        self.image_view.setImage(image)
+        self.image_item.setImage(image)
 
 
 class OverlapViewer(QtGui.QWidget):
@@ -83,15 +84,16 @@ class OverlapViewer(QtGui.QWidget):
     """
     def __init__(self, parent=None, remove_extrema=False):
         super(OverlapViewer, self).__init__()
-        self.image_view = pg.ImageView()
-        self.image_view.getView().setAspectLocked(True)
+        image_view = pg.ImageView()
+        image_view.getView().setAspectLocked(True)
+        self.image_item = image_view.getImageItem()
 
         self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, 0)
         self.slider.valueChanged.connect(self.update_image)
 
         self.main_layout = QtGui.QVBoxLayout()
-        self.main_layout.addWidget(self.image_view)
+        self.main_layout.addWidget(image_view)
         self.main_layout.addWidget(self.slider)
         self.setLayout(self.main_layout)
         self.first, self.second = (None, None)
@@ -127,9 +129,9 @@ class OverlapViewer(QtGui.QWidget):
             moved = np.roll(self.second, self.second.shape[0] / 2 - pos, axis=0)
             
             if self.subtract:
-                self.image_view.setImage(moved - self.first)
+                self.image_item.setImage(moved - self.first)
             else:
-                self.image_view.setImage(moved + self.first)
+                self.image_item.setImage(moved + self.first)
 
 
 class VolumeViewer(QtGui.QWidget):
