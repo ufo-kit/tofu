@@ -127,7 +127,7 @@ def tomo(params):
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
 
-        pad = get_task('zeropad', oversampling=oversampling)
+        pad = get_task('zeropad', center_of_rotation=params.axis, oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')
         ifft = get_task('ifft', dimensions=2)
