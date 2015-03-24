@@ -13,15 +13,6 @@ from tofu.util import set_node_props, get_filenames, next_power_of_two, read_ima
 LOG = logging.getLogger(__name__)
 
 
-def get_output_name(output_path):
-    abs_path = os.path.abspath(output_path)
-
-    if re.search(r"%[0-9]*i", output_path):
-        return abs_path
-
-    return os.path.join(abs_path, 'slice-%05i.tif')
-
-
 def tomo(params):
     # Create reader and writer
     pm = Ufo.PluginManager()
@@ -39,7 +30,7 @@ def tomo(params):
     if params.dry_run:
         writer = get_task('null')
     else:
-        outname = get_output_name(params.output)
+        outname = params.output
         writer = get_task('write', filename=outname)
         LOG.debug("Write to {}".format(outname))
 
