@@ -60,7 +60,7 @@ def tomo(params):
     if params.method == 'fbp':
         fft = get_task('fft', dimensions=1)
         ifft = get_task('ifft', dimensions=1)
-        fltr = get_task('filter')
+        fltr = get_task('filter', filter=params.projection_filter)
         bp = get_task('backproject')
 
         if params.axis:
