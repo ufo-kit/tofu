@@ -103,7 +103,12 @@ SECTIONS['reconstruction'] = {
     'angle': {
         'default': None,
         'type': float,
-        'help': "Angle step between projections in radians"}}
+        'help': "Angle step between projections in radians"},
+    'projection-filter': {
+        'default': 'ramp',
+        'type': str,
+        'help': "Projection filter",
+        'choices': ['ramp', 'butterworth', 'faris-byer']}}
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {
         'default': None,
