@@ -37,7 +37,11 @@ def create_pipeline(args, graph):
     if args.flats2:
         flat_after_reader = get_task('read', path=args.flats2)
         set_node_props(flat_after_reader, roi_args)
-        flat_interpolate = get_task('interpolate', number=len(get_filenames(args.input)))
+        num_files = len(get_filenames(args.input))
+        can_read = len(range(args.start, num_files, args.step))
+        number = args.number if args.number else num_files
+        num_read = min(can_read, number)
+        flat_interpolate = get_task('interpolate', number=num_read)
 
     if mode == 'median':
         dark_stack = get_task('stack', number=len(get_filenames(args.darks)))
