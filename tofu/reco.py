@@ -75,7 +75,7 @@ def tomo(params):
         if width and height:
             # Pad the image with its extent to prevent reconstuction ring
             pad = get_task('pad')
-            crop = get_task('cut-roi')
+            crop = get_task('crop')
             setup_padding(pad, crop, width, height)
 
             LOG.debug("Padding to {}x{} pixels".format(pad.props.width, pad.props.height))
