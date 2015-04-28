@@ -36,7 +36,12 @@ SECTIONS['general'] = {
     'width': {
         'default': None,
         'type': positive_int,
-        'help': "Input width"}}
+        'help': "Input width"},
+    'remotes': {
+        'default': [],
+        'type': str,
+        'help': "Addresses to remote ufo-nodes",
+        'nargs': '+'}}
 SECTIONS['reading'] = {
     'y': {
         'type': positive_int,
