@@ -395,6 +395,10 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.height = im.shape[0]
             self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
 
+            if not (self.params.output.endswith('.tif') or
+                    self.params.output.endswith('.tiff')):
+                self.params.output = os.path.join(self.params.output, 'slice-%05i.tif')
+
             if self.params.y_step > 1:
                 self.params.angle *= self.params.y_step
 
