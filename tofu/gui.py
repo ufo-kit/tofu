@@ -6,7 +6,7 @@ import pkg_resources
 
 from argparse import ArgumentParser
 from contextlib import contextmanager
-from . import reco, config, tifffile, util
+from . import reco, config, tifffile, util, __version__
 import tofu.vis.qt
 from PyQt4 import QtGui, QtCore, uic
 
@@ -120,6 +120,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.clear_output_dir_action.triggered.connect(self.on_clear_output_dir_clicked)
         self.ui.open_action.triggered.connect(self.on_open_from)
         self.ui.close_action.triggered.connect(self.close)
+        self.ui.about_action.triggered.connect(self.on_about)
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema_clicked)
         self.ui.overlap_opt.currentIndexChanged.connect(self.on_overlap_opt_changed)
 
@@ -316,6 +317,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         parser = params.add_arguments(parser)
         self.params = parser.parse_known_args(config.config_to_list(config_name=config_file))[0]
         self.get_values_from_params()
+
+    def on_about(self):
+        message = "GUI is part of ufo-reconstruct {}.".format(__version__)
+        QtGui.QMessageBox.about(self, "About ufo-reconstruct", message)
 
     def on_save_as(self):
         if os.path.exists(self.params.last_dir):
