@@ -64,7 +64,7 @@ class ImageViewer(QtGui.QWidget):
     def load_files(self, filenames):
         """Load *filenames* for display."""
         self.filenames = filenames
-        self.slider.setRange(0, len(self.filenames))
+        self.slider.setRange(0, len(self.filenames) - 1)
         self.slider.setSliderPosition(0)
         self.update_image()
 
