@@ -75,6 +75,20 @@ class ImageViewer(QtGui.QWidget):
         self.image_item.setImage(image)
 
 
+class ImageWindow(object):
+    """
+    Stand-alone window to display image sequences.
+    """
+
+    global_app = None
+
+    def __init__(self, filenames):
+        self.global_app = QtGui.QApplication.instance() or QtGui.QApplication([])
+
+        self.viewer = ImageViewer(filenames)
+        self.viewer.show()
+
+
 class OverlapViewer(QtGui.QWidget):
     """
     Presents two images by subtracting the flipped second from the first.
