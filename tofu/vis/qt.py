@@ -70,9 +70,10 @@ class ImageViewer(QtGui.QWidget):
 
     def update_image(self):
         """Update the currently display image."""
-        pos = self.slider.value()
-        image = read_tiff(self.filenames[pos])
-        self.image_item.setImage(image)
+        if self.filenames:
+            pos = self.slider.value()
+            image = read_tiff(self.filenames[pos])
+            self.image_item.setImage(image)
 
 
 class ImageWindow(object):
