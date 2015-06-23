@@ -261,9 +261,12 @@ def parse_known_args(parser, subparser=False):
     *parser* for parsing and is *subparser* is True take into account that there is a value on the
     command line specifying the subparser.
     """
-    subparser_value = [sys.argv[1]] if subparser else []
-    config_values = config_to_list(config_name=get_config_name())
-    values = subparser_value + config_values + sys.argv[1:]
+    if len(sys.argv) > 1:
+        subparser_value = [sys.argv[1]] if subparser else []
+        config_values = config_to_list(config_name=get_config_name())
+        values = subparser_value + config_values + sys.argv[1:]
+    else:
+        values = ""
     args = parser.parse_known_args(values)[0]
 
     return args
