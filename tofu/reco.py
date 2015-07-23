@@ -142,6 +142,9 @@ def tomo(params):
         swap_forward = get_task('swap-quadrants')
         swap_backward = get_task('swap-quadrants')
 
+        if params.angle:
+            dfi.props.angle_step = params.angle
+
         g.connect_nodes(sino_output, pad)
         g.connect_nodes(pad, fft)
         g.connect_nodes(fft, dfi)
