@@ -11,7 +11,6 @@ setup(
     package_data={'':['gui.ui']},
     scripts=['bin/ufo-reconstruct',
              'bin/ufo-sinos',
-             'bin/ufo-perf',
              'bin/ufo-flat-correct',
              ],
     long_description=open('README.md').read(),

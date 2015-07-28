@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import logging
+import time
 from tofu import config, __version__
 
 
@@ -43,6 +44,52 @@ def estimate(params):
     print(out)
 
 
+def perf(args):
+    from tofu import reco
+
+    def measure(args):
+        exec_times = []
+        total_times = []
+
+        for i in range(args.num_runs):
+            start = time.time()
+            exec_times.append(reco.tomo(args))
+            total_times.append(time.time() - start)
+
+        exec_time = sum(exec_times) / len(exec_times)
+        total_time = sum(total_times) / len(total_times)
+        overhead = (total_time / exec_time - 1.0) * 100
+        input_bandwidth = args.width * args.height * num_projections * 4 / exec_time / 1024. / 1024.
+        output_bandwidth = args.width * args.width * height * 4 / exec_time / 1024. / 1024.
+        slice_bandwidth = args.height / exec_time
+
+        # Four bytes of our output bandwidth constitute one slice pixel, for each
+        # pixel we have to do roughly n * 6 floating point ops (2 mad, 1 add, 1
+        # interpolation)
+        flops = output_bandwidth / 4 * 6 * num_projections / 1024
+
+        msg = ("width={:<6d} height={:<6d} n_proj={:<6d}  "
+               "exec={:.4f}s  total={:.4f}s  overhead={:.2f}%  "
+               "bandwidth_i={:.2f}MB/s  bandwidth_o={:.2f}MB/s slices={:.2f}/s  "
+               "flops={:.2f}GFLOPs\n")
+
+        sys.stdout.write(msg.format(args.width, args.height, args.number,
+                                    exec_time, total_time, overhead,
+                                    input_bandwidth, output_bandwidth, slice_bandwidth, flops))
+        sys.stdout.flush()
+
+    args.generate_input = True
+    args.dry_run = True
+
+    for width in range(*args.width_range):
+        for height in range(*args.height_range):
+            for num_projections in range(*args.num_projection_range):
+                args.width = width
+                args.height = height
+                args.number = num_projections
+                measure(args)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', **config.SECTIONS['general']['config'])
@@ -79,6 +126,12 @@ def main():
     estimate_parser = subparsers.add_parser('estimate', help="Estimate center of rotation")
     estimate_parser = estimate_params.add_arguments(estimate_parser)
     estimate_parser.set_defaults(_func=estimate)
+
+    # perf parser
+    perf_params = config.TomoParams(sections=('perf',))
+    perf_parser = subparsers.add_parser('perf', help="Check reconstruction performance")
+    perf_parser = perf_params.add_arguments(perf_parser)
+    perf_parser.set_defaults(_func=perf)
 
     args = config.parse_known_args(parser, subparser=True)
 

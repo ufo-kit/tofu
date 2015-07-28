@@ -39,13 +39,19 @@ def tomo(params):
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('read')
-    reader.props.path = params.input
-    set_node_props(reader, params)
-    width, height = determine_shape(params)
+    if params.generate_input:
+        width, height = params.width, params.height
+        reader = get_task('dummy-data')
+        reader.set_properties(width=width, height=height, number=params.number)
+    else:
+        reader = get_task('read')
+        reader.props.path = params.input
+        set_node_props(reader, params)
+        width, height = determine_shape(params)
 
     if params.dry_run:
         writer = get_task('null')
+        writer.set_properties(force_download=True)
     else:
         outname = params.output
         writer = get_task('write', filename=outname)
@@ -134,8 +140,9 @@ def tomo(params):
 
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
+        axis = params.axis or width / 2.
 
-        pad = get_task('zeropad', center_of_rotation=params.axis, oversampling=oversampling)
+        pad = get_task('zeropad', center_of_rotation=axis, oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')
         ifft = get_task('ifft', dimensions=2)

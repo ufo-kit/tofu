@@ -2,7 +2,7 @@ import argparse
 import ConfigParser as configparser
 import sys
 from collections import OrderedDict
-from tofu.util import positive_int, tupleize
+from tofu.util import positive_int, tupleize, range_list
 
 
 NAME = "reco.conf"
@@ -41,7 +41,12 @@ SECTIONS['general'] = {
         'default': [],
         'type': str,
         'help': "Addresses to remote ufo-nodes",
-        'nargs': '+'}}
+        'nargs': '+'},
+    'generate-input': {
+        'default': False,
+        'type': bool,
+        'help': "Ignore input field and generate input data"}}
+
 SECTIONS['reading'] = {
     'y': {
         'type': positive_int,
@@ -67,6 +72,7 @@ SECTIONS['reading'] = {
         'type': positive_int,
         'default': 1,
         'help': 'Read every \"step\" file'}}
+
 SECTIONS['flat-correction'] = {
     'darks': {
         'default': '',
@@ -99,11 +105,13 @@ SECTIONS['flat-correction'] = {
         'default': False,
         'action': 'store_true',
         'help': 'Do absorption correction'}}
+
 SECTIONS['sinos'] = {
     'pass-size': {
         'type': positive_int,
         'default': 0,
         'help': 'Number of sinograms to process per pass'}}
+
 SECTIONS['reconstruction'] = {
     'angle': {
         'default': None,
@@ -114,6 +122,7 @@ SECTIONS['reconstruction'] = {
         'type': str,
         'help': "Projection filter",
         'choices': ['ramp', 'butterworth', 'faris-byer']}}
+
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {
         'default': None,
@@ -132,6 +141,7 @@ SECTIONS['tomographic-reconstruction'] = {
         'type': str,
         'help': "Reconstruction method",
         'choices': ['fbp', 'sart', 'dfi']}}
+
 SECTIONS['laminographic-reconstruction'] = {
     'axis': {
         'default': None,
@@ -165,6 +175,7 @@ SECTIONS['laminographic-reconstruction'] = {
         'default': 0.0,
         'type': float,
         'help': "Axis misalignment angle in radians"}}
+
 SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
@@ -174,11 +185,13 @@ SECTIONS['fbp'] = {
         'default': False,
         'help': "Reconstruct from projections instead of sinograms",
         'action': 'store_true'}}
+
 SECTIONS['dfi'] = {
     'oversampling': {
         'default': None,
         'type': positive_int,
         'help': "Oversample factor"}}
+
 SECTIONS['sart'] = {
     'max-iterations': {
         'default': 2,
@@ -192,6 +205,7 @@ SECTIONS['sart'] = {
         'default': None,
         'type': positive_int,
         'help': "Sinogram height"}}
+
 SECTIONS['gui'] = {
     'enable-cropping': {
         'default': False,
@@ -228,6 +242,7 @@ SECTIONS['gui'] = {
         'default': 0,
         'type': int,
         'help': "Number of flats for ffc correction."}}
+
 SECTIONS['estimate'] = {
     'num-iterations': {
         'default': 10,
@@ -238,6 +253,24 @@ SECTIONS['estimate'] = {
         'default': 'reconstruction',
         'help': 'Rotation axis estimation algorithm',
         'choices': ['reconstruction', 'correlation']}}
+
+SECTIONS['perf'] = {
+    'num-runs': {
+        'default': 3,
+        'type': positive_int,
+        'help': "Number of runs"},
+    'width-range': {
+        'default': '1024',
+        'type': range_list,
+        'help': "Width or range of widths of generated projections"},
+    'height-range': {
+        'default': '1024',
+        'type': range_list,
+        'help': "Height or range of heights of generated projections"},
+    'num-projection-range': {
+        'default': '512',
+        'type': range_list,
+        'help': "Number or range of number of projections"}}
 
 
 def get_config_name():

@@ -9,15 +9,15 @@ import os
 LOG = logging.getLogger(__name__)
 
 
-def range_from(s):
+def range_list(value):
     """
-    Split *s* separated by ':' into int triple, filling missing values with 1s.
+    Split *value* separated by ':' into int triple, filling missing values with 1s.
     """
     def check(region):
         if region[0] >= region[1]:
-            raise ValueError("'From' must be less than 'to'")
+            raise argparse.ArgumentTypeError("{} must be less than {}".format(region[0], region[1]))
 
-    lst = [int(x) for x in s.split(':')]
+    lst = [int(x) for x in value.split(':')]
 
     if len(lst) == 1:
         frm = lst[0]
@@ -31,7 +31,7 @@ def range_from(s):
         check(lst)
         return (lst[0], lst[1], lst[2])
 
-    raise ValueError("Cannot parse {}".format(s))
+    raise argparse.ArgumentTypeError("Cannot parse {}".format(value))
 
 
 def make_subargs(args, subargs):
