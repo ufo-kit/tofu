@@ -121,22 +121,30 @@ def tomo(params):
 
         g.connect_nodes(bp, writer)
 
-    if params.method == 'sart':
-        proj = pm.get_plugin("ufo_ir_cl_projector_new", "libufoir_cl_projector.so")
-        proj.set_properties(model="Joseph")
+    if params.method in ('sart', 'sirt', 'sbtv', 'asdpocs'):
+        projector = pm.get_task_from_package('ir', 'parallel-projector')
+        projector.set_properties(model='joseph', is_forward=False)
 
-        geometry = pm.get_plugin("ufo_ir_parallel_geometry_new", "libufoir_parallel_geometry.so")
-        geometry.set_properties(angle_step=params.angle * 180.0 / np.pi,
-                                num_angles=params.num_angles)
+        if params.axis:
+            projector.set_properties(axis_position=params.axis or width / 2.)
 
-        method = pm.get_plugin("ufo_ir_sart_method_new", "libufoir_sart_method.so")
-        method.set_properties(relaxation_factor=params.relaxation_factor,
-                              max_iterations=params.max_iterations)
+        if params.angle:
+            projector.set_properties(step=params.angle)
 
-        ir = get_task('ir', method=method, projector=proj, geometry=geometry)
+        method = pm.get_task_from_package('ir', params.method)
+        method.set_properties(projector=projector, num_iterations=params.num_iterations)
 
-        g.connect_nodes(sino_output, ir)
-        g.connect_nodes(ir, writer)
+        if params.method in ('sart', 'sirt'):
+            method.set_properties(relaxation_factor=params.relaxation_factor)
+
+        if params.method == 'sbtv':
+            # FIXME: the lambda keyword is preventing from the following
+            # assignment ...
+            # method.props.lambda = params.lambda
+            method.set_properties(mu=params.mu)
+
+        g.connect_nodes(sino_output, method)
+        g.connect_nodes(method, writer)
 
     if params.method == 'dfi':
         oversampling = params.oversampling or 1

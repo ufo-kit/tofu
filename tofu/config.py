@@ -140,7 +140,7 @@ SECTIONS['tomographic-reconstruction'] = {
         'default': 'fbp',
         'type': str,
         'help': "Reconstruction method",
-        'choices': ['fbp', 'sart', 'dfi']}}
+        'choices': ['fbp', 'dfi', 'sart', 'sirt', 'sbtv', 'asdpocs']}}
 
 SECTIONS['laminographic-reconstruction'] = {
     'axis': {
@@ -192,11 +192,13 @@ SECTIONS['dfi'] = {
         'type': positive_int,
         'help': "Oversample factor"}}
 
+SECTIONS['ir'] = {
+    'num-iterations': {
+        'default': 10,
+        'type': positive_int,
+        'help': "Maximum number of iterations"}}
+
 SECTIONS['sart'] = {
-    'max-iterations': {
-        'default': 2,
-        'type': int,
-        'help': "Maximum number of iterations"},
     'relaxation-factor': {
         'default': 0.25,
         'type': float,
@@ -205,6 +207,16 @@ SECTIONS['sart'] = {
         'default': None,
         'type': positive_int,
         'help': "Sinogram height"}}
+
+SECTIONS['sbtv'] = {
+    'lambda': {
+        'default': 0.1,
+        'type': float,
+        'help': "Lambda"},
+    'mu': {
+        'default': 0.5,
+        'type': float,
+        'help': "mu"}}
 
 SECTIONS['gui'] = {
     'enable-cropping': {
@@ -244,10 +256,6 @@ SECTIONS['gui'] = {
         'help': "Number of flats for ffc correction."}}
 
 SECTIONS['estimate'] = {
-    'num-iterations': {
-        'default': 10,
-        'type': int,
-        'help': "Number of reconstruction iterations"},
     'estimate-method': {
         'type': str,
         'default': 'reconstruction',
@@ -353,7 +361,7 @@ class Params(object):
 class TomoParams(Params):
     def __init__(self, sections=()):
         sections = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi',
-                    'sart') + sections
+                    'ir', 'sart', 'sbtv') + sections
         super(TomoParams, self).__init__(sections=sections)
 
 
