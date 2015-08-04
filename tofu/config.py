@@ -143,38 +143,54 @@ SECTIONS['tomographic-reconstruction'] = {
         'choices': ['fbp', 'dfi', 'sart', 'sirt', 'sbtv', 'asdpocs']}}
 
 SECTIONS['laminographic-reconstruction'] = {
+    'dry-run': {
+        'default': False,
+        'help': "Reconstruct without writing data",
+        'action': 'store_true'},
     'axis': {
         'default': None,
         'required': True,
         'type': tupleize(2, float),
         'help': "Axis position"},
-    'bbox': {
-        'default': None,
-        'required': True,
+    'x-region': {
+        'default': "0,-1,1",
         'type': tupleize(3, int),
-        'help': "Bounding box of reconstructed volume"},
-    'downsample': {
-        'default': 1,
-        'type': positive_int,
-        'help': "Downsampling factor"},
-    'pad': {
+        'help': "X region as from,to,step"},
+    'y-region': {
+        'default': "0,-1,1",
+        'type': tupleize(3, int),
+        'help': "Y region as from,to,step"},
+    'z': {
+        'default': 0,
+        'type': int,
+        'help': "Z coordinate of the reconstructed slice"},
+    'z-parameter': {
+        'default': 'z',
+        'type': str,
+        'choices': ['z', 'x-center', 'lamino-angle', 'roll-angle'],
+        'help': "Parameter to vary along the reconstructed z-axis"},
+    'region': {
+        'default': "0,-1,1",
+        'type': tupleize(3, float),
+        'help': "Z-axis parameter region as from,to,step"},
+    'overall-angle': {
+        'default': None,
+        'type': float,
+        'help': "The total angle over which projections were taken in degrees"},
+    'lamino-angle': {
         'default': None,
         'required': True,
-        'type': tupleize(2, int),
-        'help': "Final padded size of input"},
-    'tau': {
-        'default': 1,
         'type': float,
-        'help': "Pixel size in microns"},
-    'tilt': {
-        'default': None,
-        'required': True,
-        'type': float,
-        'help': "Tilt angle of sample in radians"},
-    'psi': {
+        'help': "The laminographic angle in degrees"},
+    'roll-angle': {
         'default': 0.0,
         'type': float,
-        'help': "Axis misalignment angle in radians"}}
+        'help': "Sample angular misalignment to the side (roll) in degrees, positive angles mean\
+        clockwise misalignment"},
+    'slices-per-device': {
+        'default': None,
+        'type': positive_int,
+        'help': "Number of slices computed by one computing device"}}
 
 SECTIONS['fbp'] = {
     'crop-width': {

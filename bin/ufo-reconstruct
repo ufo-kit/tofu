@@ -25,8 +25,8 @@ def run_tomo(args):
 
 
 def run_lamino(args):
-    from tofu import reco
-    reco.lamino(args)
+    from tofu import lamino
+    lamino.lamino(args)
 
 
 def get_ipython_shell(config=None):
