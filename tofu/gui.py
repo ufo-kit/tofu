@@ -84,7 +84,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setToolTip(self.get_help('reconstruction', 'angle'))
         self.ui.angle_offset.setToolTip(self.get_help('tomographic-reconstruction', 'offset'))
         self.ui.oversampling.setToolTip(self.get_help('dfi', 'oversampling'))
-        self.ui.iterations_sart.setToolTip(self.get_help('sart', 'max-iterations'))
+        self.ui.iterations_sart.setToolTip(self.get_help('ir', 'num-iterations'))
         self.ui.relaxation.setToolTip(self.get_help('sart', 'relaxation-factor'))
         self.ui.output_path_button.setToolTip(self.get_help('general', 'output'))
         self.ui.ffc_box.setToolTip(self.get_help('gui', 'ffc-correction'))
@@ -130,7 +130,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
-        self.ui.iterations_sart.valueChanged.connect(lambda value: self.change_value('max_iterations', value))
+        self.ui.iterations_sart.valueChanged.connect(lambda value: self.change_value('num_iterations', value))
         self.ui.relaxation.valueChanged.connect(lambda value: self.change_value('relaxation_factor', value))
         self.ui.output_path_line.textChanged.connect(lambda value: self.change_value('output', str(self.ui.output_path_line.text())))
         self.ui.darks_path_line.textChanged.connect(lambda value: self.change_value('darks', str(self.ui.darks_path_line.text())))
@@ -161,8 +161,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.angle_step.setValue(self.params.angle if self.params.angle else 0.0)
         self.ui.angle_offset.setValue(self.params.offset if self.params.offset else 0.0)
         self.ui.oversampling.setValue(self.params.oversampling if self.params.oversampling else 0)
-        self.ui.iterations_sart.setValue(self.params.max_iterations if
-                                         self.params.max_iterations else 0)
+        self.ui.iterations_sart.setValue(self.params.num_iterations if
+                                         self.params.num_iterations else 0)
         self.ui.relaxation.setValue(self.params.relaxation_factor if
                                     self.params.relaxation_factor else 0.0)
 
