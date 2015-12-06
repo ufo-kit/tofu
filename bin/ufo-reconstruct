@@ -5,6 +5,7 @@ import sys
 import argparse
 import logging
 import time
+import re
 from tofu import config, __version__
 
 
@@ -26,6 +27,42 @@ def run_tomo(args):
 def run_lamino(args):
     from tofu import reco
     reco.lamino(args)
+
+
+def get_ipython_shell(config=None):
+    import IPython
+
+    version = IPython.__version__
+    shell = None
+
+    def cmp_versions(v1, v2):
+        """Compare two version numbers and return cmp compatible result"""
+        def normalize(v):
+            return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
+
+        n1 = normalize(v1)
+        n2 = normalize(v2)
+        return (n1 > n2) - (n1 < n2)
+
+    if cmp_versions(version, '0.11') < 0:
+        from IPython.Shell import IPShellEmbed
+        shell = IPShellEmbed()
+    elif cmp_versions(version, '1.0') < 0:
+        from IPython.frontend.terminal.embed import \
+            InteractiveShellEmbed
+        shell = InteractiveShellEmbed(config=config, banner1='')
+    else:
+        from IPython.terminal.embed import InteractiveShellEmbed
+        shell = InteractiveShellEmbed(config=config, banner1='')
+
+    return shell
+
+
+def run_interactive(args):
+    from tofu import reco
+
+    shell = get_ipython_shell()
+    shell()
 
 
 def gui(args):
@@ -98,40 +135,39 @@ def main():
 
     subparsers = parser.add_subparsers(title="Commands", metavar='')
 
-    # init parser
     cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
     cmd_parser.add_argument('--verbose', **config.SECTIONS['general']['verbose'])
     cmd_parser.set_defaults(_func=init)
 
-    # tomo parser
     tomo_params = config.TomoParams()
     tomo_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
     tomo_parser = tomo_params.add_arguments(tomo_parser)
     tomo_parser.set_defaults(_func=run_tomo)
 
-    # gui parser
     gui_params = config.TomoParams(sections=('gui',))
     gui_parser = subparsers.add_parser('gui', help="GUI for tomographic reconstruction")
     gui_parser = gui_params.add_arguments(gui_parser)
     gui_parser.set_defaults(_func=gui)
 
-    # lamino parser
     lamino_params = config.LaminoParams()
     lamino_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
     lamino_parser = lamino_params.add_arguments(lamino_parser)
     lamino_parser.set_defaults(_func=run_lamino)
 
-    # estimate parser
     estimate_params = config.TomoParams(sections=('estimate',))
     estimate_parser = subparsers.add_parser('estimate', help="Estimate center of rotation")
     estimate_parser = estimate_params.add_arguments(estimate_parser)
     estimate_parser.set_defaults(_func=estimate)
 
-    # perf parser
     perf_params = config.TomoParams(sections=('perf',))
     perf_parser = subparsers.add_parser('perf', help="Check reconstruction performance")
     perf_parser = perf_params.add_arguments(perf_parser)
     perf_parser.set_defaults(_func=perf)
+
+    interactive_params = config.TomoParams()
+    interactive_parser = subparsers.add_parser('interactive', help="Run interactive mode")
+    interactive_parser = interactive_params.add_arguments(interactive_parser)
+    interactive_parser.set_defaults(_func=run_interactive)
 
     args = config.parse_known_args(parser, subparser=True)
 
