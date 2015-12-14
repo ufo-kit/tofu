@@ -121,7 +121,7 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'butterworth', 'faris-byer']}}
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']}}
 
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {
