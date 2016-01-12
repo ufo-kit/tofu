@@ -42,7 +42,7 @@ def tomo(params):
     if params.generate_input:
         width, height = params.width, params.height
         reader = get_task('dummy-data')
-        reader.set_properties(width=width, height=height, number=params.number)
+        reader.set_properties(width=width, height=height, number=params.number or 1)
     else:
         reader = get_task('read')
         reader.props.path = params.input
