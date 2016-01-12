@@ -390,16 +390,3 @@ def write(config_file, args=None, sections=None):
 
     with open(config_file, 'wb') as config_file:
         cfg.write(config_file)
-
-
-def _str_to_bool(value):
-    """Convert a string *value* into a boolean."""
-    result = None
-    if value == 'True':
-        result = True
-    elif value == 'False':
-        result = False
-    else:
-        raise ValueError("'{}' not recognized, must be 'True' or 'False'".format(value))
-
-    return result
