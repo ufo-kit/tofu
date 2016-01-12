@@ -44,8 +44,8 @@ SECTIONS['general'] = {
         'nargs': '+'},
     'generate-input': {
         'default': False,
-        'type': bool,
-        'help': "Ignore input field and generate input data"}}
+        'help': "Ignore input field and generate input data",
+        'action': 'store_true'}}
 
 SECTIONS['reading'] = {
     'y': {
