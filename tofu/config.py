@@ -18,10 +18,6 @@ SECTIONS['general'] = {
         'default': False,
         'help': 'Verbose output',
         'action': 'store_true'},
-    'enable-tracing': {
-        'default': False,
-        'help': "Enable tracing and store result in .PID.json",
-        'action': 'store_true'},
     'input': {
         'default': '.',
         'type': str,
@@ -37,11 +33,6 @@ SECTIONS['general'] = {
         'default': None,
         'type': positive_int,
         'help': "Input width"},
-    'remotes': {
-        'default': [],
-        'type': str,
-        'help': "Addresses to remote ufo-nodes",
-        'nargs': '+'},
     'generate-input': {
         'default': False,
         'help': "Ignore input field and generate input data",
@@ -117,6 +108,15 @@ SECTIONS['reconstruction'] = {
         'default': None,
         'type': float,
         'help': "Angle step between projections in radians"},
+    'enable-tracing': {
+        'default': False,
+        'help': "Enable tracing and store result in .PID.json",
+        'action': 'store_true'},
+    'remotes': {
+        'default': [],
+        'type': str,
+        'help': "Addresses to remote ufo-nodes",
+        'nargs': '+'},
     'projection-filter': {
         'default': 'ramp-fromreal',
         'type': str,
