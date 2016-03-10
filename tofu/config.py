@@ -296,6 +296,10 @@ SECTIONS['perf'] = {
         'type': range_list,
         'help': "Number or range of number of projections"}}
 
+TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
+
+LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
+
 
 def get_config_name():
     """Get the command line --config option."""
@@ -372,19 +376,6 @@ class Params(object):
         self.add_arguments(parser)
 
         return parser.parse_args('')
-
-
-class TomoParams(Params):
-    def __init__(self, sections=()):
-        sections = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi',
-                    'ir', 'sart', 'sbtv') + sections
-        super(TomoParams, self).__init__(sections=sections)
-
-
-class LaminoParams(Params):
-    def __init__(self):
-        sections = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
-        super(LaminoParams, self).__init__(sections=sections)
 
 
 def write(config_file, args=None, sections=None):

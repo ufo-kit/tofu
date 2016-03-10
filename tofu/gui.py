@@ -313,7 +313,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
         parser = ArgumentParser()
-        params = config.TomoParams(sections=('gui',))
+        params = config.Params(sections=config.TOMO_PARAMS + ('gui',))
         parser = params.add_arguments(parser)
         self.params = parser.parse_known_args(config.config_to_list(config_name=config_file))[0]
         self.get_values_from_params()
@@ -329,7 +329,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             config_file = str(os.getenv('HOME') + "reco.conf")
         save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
         if save_config:
-            sections = config.TomoParams().sections + ('gui',)
+            sections = config.TOMO_PARAMS + ('gui',)
             config.write(save_config, args=self.params, sections=sections)
 
     def on_clear(self):
@@ -376,7 +376,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         try:
-            sections = config.TomoParams().sections + ('gui',)
+            sections = config.TOMO_PARAMS + ('gui',)
             config.write('reco.conf', args=self.params, sections=sections)
         except IOError as e:
             self.gui_warn(str(e))
