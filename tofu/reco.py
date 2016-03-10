@@ -51,7 +51,7 @@ def tomo(params):
 
     if params.dry_run:
         writer = get_task('null')
-        writer.set_properties(force_download=True)
+        writer.set_properties(download=True)
     else:
         outname = params.output
         writer = get_task('write', filename=outname)
