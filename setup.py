@@ -9,9 +9,6 @@ setup(
     url='http://ufo.kit.edu',
     packages=find_packages(),
     package_data={'':['gui.ui']},
-    scripts=['bin/tofu',
-             'bin/ufo-sinos',
-             'bin/ufo-flat-correct',
-             ],
+    scripts=['bin/tofu'],
     long_description=open('README.md').read(),
 )

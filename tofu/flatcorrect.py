@@ -81,3 +81,15 @@ def create_pipeline(args, graph):
         graph.connect_nodes_full(flat_before_reduced, ffc, 2)
 
     return ffc
+
+
+def run(args):
+    graph = Ufo.TaskGraph()
+    sched = Ufo.Scheduler()
+    pm = Ufo.PluginManager()
+
+    out_task = pm.get_task('write')
+    out_task.props.filename = args.output
+    flat_task = create_pipeline(args, graph)
+    graph.connect_nodes(flat_task, out_task)
+    sched.run(graph)

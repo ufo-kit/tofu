@@ -29,6 +29,16 @@ def run_lamino(args):
     lamino.lamino(args)
 
 
+def run_flat_correction(args):
+    from tofu import flatcorrect
+    flatcorrect.run(args)
+
+
+def run_sinos(args):
+    from tofu import sinos
+    sinos.make_sinos(args)
+
+
 def get_ipython_shell(config=None):
     import IPython
 
@@ -138,6 +148,16 @@ def main():
     cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
     cmd_parser.add_argument('--verbose', **config.SECTIONS['general']['verbose'])
     cmd_parser.set_defaults(_func=init)
+
+    flatcorrect_params = config.Params(sections=('flat-correction',))
+    flatcorrect_parser = subparsers.add_parser('flatcorrect', help="Run flat field correction")
+    flatcorrect_parser = flatcorrect_params.add_arguments(flatcorrect_parser)
+    flatcorrect_parser.set_defaults(_func=run_flat_correction)
+
+    sinos_params = config.Params(sections=('flat-correction', 'sinos'))
+    sinos_parser = subparsers.add_parser('sinos', help="Generate sinograms from projections")
+    sinos_parser = sinos_params.add_arguments(sinos_parser)
+    sinos_parser.set_defaults(_func=run_sinos)
 
     tomo_params = config.TomoParams()
     tomo_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
