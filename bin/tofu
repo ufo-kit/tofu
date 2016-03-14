@@ -29,14 +29,14 @@ def run_lamino(args):
     lamino.lamino(args)
 
 
-def run_flatcorrect(args):
-    from tofu import flatcorrect
-    flatcorrect.run(args)
+def run_flat_correct(args):
+    from tofu import preprocess
+    preprocess.run_flat_correct(args)
 
 
 def run_sinos(args):
-    from tofu import sinos
-    sinos.make_sinos(args)
+    from tofu import preprocess
+    preprocess.run_sinogram_generation(args)
 
 
 def get_ipython_shell(config=None):
@@ -151,7 +151,7 @@ def main():
 
     cmd_parsers = [
         ('init',        init,           (),                             "Create configuration file"),
-        ('flatcorrect', run_flatcorrect, ('flat-correction',),          "Run flat field correction"),
+        ('flatcorrect', run_flat_correct, ('flat-correction',),         "Run flat field correction"),
         ('sinos',       run_sinos,      sino_params,                    "Generate sinograms from projections"),
         ('tomo',        run_tomo,       tomo_params,                    "Run tomographic reconstruction"),
         ('lamino',      run_lamino,     lamino_params,                  "Run laminographic reconstruction"),

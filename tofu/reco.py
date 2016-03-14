@@ -6,7 +6,7 @@ import tempfile
 import sys
 import numpy as np
 from gi.repository import Ufo
-from tofu.flatcorrect import create_pipeline
+from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import set_node_props, get_filenames, next_power_of_two, read_image, determine_shape
 
 
@@ -70,7 +70,7 @@ def tomo(params):
         sino_output = get_task('transpose-projections', number=count)
 
         if params.darks and params.flats:
-            g.connect_nodes(create_pipeline(params, g), sino_output)
+            g.connect_nodes(create_flat_correct_pipeline(params, g), sino_output)
         else:
             g.connect_nodes(reader, sino_output)
 

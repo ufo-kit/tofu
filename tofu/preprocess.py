@@ -1,16 +1,17 @@
 """Flat field correction."""
 import logging
 from gi.repository import Ufo
-from tofu.util import get_filenames, set_node_props, make_subargs
+from tofu.util import get_filenames, set_node_props, make_subargs, determine_shape
 
 
 LOG = logging.getLogger(__name__)
 
 
-def create_pipeline(args, graph):
-    """Create flat field correction pipeline. All the settings are provided in *args*. *graph* is
-    used for making the connections. Returns the flat field correction task which can be used
-    for further pipelining.
+def create_flat_correct_pipeline(args, graph):
+    """
+    Create flat field correction pipeline. All the settings are provided in
+    *args*. *graph* is used for making the connections. Returns the flat field
+    correction task which can be used for further pipelining.
     """
     pm = Ufo.PluginManager()
 
@@ -83,13 +84,64 @@ def create_pipeline(args, graph):
     return ffc
 
 
-def run(args):
+def run_flat_correct(args):
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
     pm = Ufo.PluginManager()
 
     out_task = pm.get_task('write')
     out_task.props.filename = args.output
-    flat_task = create_pipeline(args, graph)
+    flat_task = create_flat_correct_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)
     sched.run(graph)
+
+
+def create_sinogram_pipeline(args, graph):
+    """Create sinogram generating pipeline based on arguments from *args*."""
+    pm = Ufo.PluginManager()
+    sinos = pm.get_task('transpose-projections')
+
+    if args.number:
+        region = (args.start, args.start + args.number, args.step)
+        num_projections = len(range(*region))
+    else:
+        num_projections = len(get_filenames(args.input))
+    sinos.props.number = num_projections
+
+    if args.darks and args.flats:
+        start = create_flat_correct_pipeline(args, graph)
+    else:
+        start = pm.get_task('read')
+        start.props.path = args.input
+        set_node_props(start, args)
+
+    graph.connect_nodes(start, sinos)
+
+    return sinos
+
+
+def run_sinogram_generation(args):
+    """Make the sinograms with arguments provided by *args*."""
+    if not args.height:
+        args.height = determine_shape(args)[1] - args.y
+
+    step = args.y_step * args.pass_size if args.pass_size else args.height
+    starts = range(args.y, args.y + args.height, step) + [args.y + args.height]
+
+    def generate_partial(append=False):
+        pm = Ufo.PluginManager()
+        graph = Ufo.TaskGraph()
+        sched = Ufo.Scheduler()
+
+        writer = pm.get_task('write')
+        writer.props.filename = args.output
+        writer.props.append = append
+
+        sinos = create_sinogram_pipeline(args, graph)
+        graph.connect_nodes(sinos, writer)
+        sched.run(graph)
+
+    for i in range(len(starts) - 1):
+        args.y = starts[i]
+        args.height = starts[i + 1] - starts[i]
+        generate_partial(append=i != 0)
