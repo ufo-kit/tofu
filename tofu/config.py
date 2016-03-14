@@ -18,11 +18,6 @@ SECTIONS['general'] = {
         'default': False,
         'help': 'Verbose output',
         'action': 'store_true'},
-    'input': {
-        'default': '.',
-        'type': str,
-        'help': "Location with sinograms or projections",
-        'metavar': 'PATH'},
     'output': {
         'default': '.',
         'type': str,
@@ -65,6 +60,11 @@ SECTIONS['reading'] = {
         'help': 'Read every \"step\" file'}}
 
 SECTIONS['flat-correction'] = {
+    'projections': {
+        'default': None,
+        'type': str,
+        'help': "Location with projections",
+        'metavar': 'PATH'},
     'darks': {
         'default': '',
         'type': str,
@@ -104,6 +104,11 @@ SECTIONS['sinos'] = {
         'help': 'Number of sinograms to process per pass'}}
 
 SECTIONS['reconstruction'] = {
+    'sinograms': {
+        'default': None,
+        'type': str,
+        'help': "Location with sinograms",
+        'metavar': 'PATH'},
     'angle': {
         'default': None,
         'type': float,
@@ -196,11 +201,7 @@ SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
         'type': positive_int,
-        'help': "Width of final slice"},
-    'from-projections': {
-        'default': False,
-        'help': "Reconstruct from projections instead of sinograms",
-        'action': 'store_true'}}
+        'help': "Width of final slice"}}
 
 SECTIONS['dfi'] = {
     'oversampling': {

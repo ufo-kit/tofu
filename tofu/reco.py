@@ -34,6 +34,14 @@ def tomo(params):
     # Create reader and writer
     pm = Ufo.PluginManager()
 
+    if params.projections is None and params.sinograms is None:
+        LOG.error("You must specify either --projections or --sinograms")
+        sys.exit(1)
+
+    if params.projections and params.sinograms:
+        LOG.error("Cannot specify both projections and sinograms.")
+        sys.exit(1)
+
     def get_task(name, **kwargs):
         task = pm.get_task(name)
         task.set_properties(**kwargs)
@@ -45,7 +53,7 @@ def tomo(params):
         reader.set_properties(width=width, height=height, number=params.number or 1)
     else:
         reader = get_task('read')
-        reader.props.path = params.input
+        reader.props.path = params.projections or params.sinograms
         set_node_props(reader, params)
         width, height = determine_shape(params)
 
@@ -60,7 +68,7 @@ def tomo(params):
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
 
-    if params.from_projections:
+    if params.projections is not None:
         if params.number:
             count = len(range(params.start, params.start + params.number, params.step))
         else:
@@ -181,7 +189,7 @@ def estimate_center(params):
 
 
 def estimate_center_by_reconstruction(params):
-    if params.from_projections:
+    if params.projections is not None:
         sys.exit("Cannot estimate axis from projections")
 
     sinos = sorted(glob.glob(os.path.join(params.input, '*.tif')))
