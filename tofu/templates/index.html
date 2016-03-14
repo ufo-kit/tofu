@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% set active_page = "index" %}
+{% block body %}
+<table class="table">
+  {% for dataset in datasets %}
+  <tr>
+    <td>{{ dataset }}</td>
+    <td><a href="/render/{{ loop.index0 }}"><button class="btn btn-default">view</button></a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

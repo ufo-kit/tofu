@@ -1,2 +1,3 @@
-include pkgconfig.py
+recursive-include tofu/templates *
+recursive-include tofu/static *
 include README.md

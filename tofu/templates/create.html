@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% set active_page = "create" %}
+{% block body %}
+  <form action="/create" method="post">
+    <div class="form-group">
+      <label for="slices">Slices</label>
+      <div class="input-group">
+        <div class="input-group-addon">{{ home }} / </div>
+        <input class="form-control" type="text" id="slices" name="slices">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="numRows">Name</label>
+      <input class="form-control" type="text" id="name" name="name" placeholder="Dataset XYZ">
+    </div>
+    <button class="btn btn-primary" type="submit">Create</button>
+  </form>
+{% endblock %}
+

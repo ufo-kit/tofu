@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% set active_page = "render" %}
+{% block body %}
+
+<div id="container"></div>
+<img id="transferFunctionImg"/>
+
+<script src="{{ url_for('static', filename='js/three.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/TrackballControls.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dat.gui.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dat.gui.helper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ejs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/volumeRaycaster.min.js') }}"></script>
+
+<script>
+window.onload = function() {
+    var config = {
+      "dom_container_id": "container",
+      "domContainerId": "container",
+      "slicemaps_paths": [
+      {% for slicemap in slicemaps %}
+        '/data/{{ dataset_id }}/{{ slicemap }}',
+      {% endfor %}
+      ],
+      "row_col": [{{ tilelength }}, {{ tilelength }}],
+      "slices_range": [0, {{ numslices }}],
+      "gray_min": 0.01,
+      "gray_max": 0.99,
+      "steps": 256,
+      "absorption_mode": 1,
+      "renderer_size": [512, 512],
+      "renderer_canvas_size": [512, 512],
+      "auto_steps": true,
+
+    };
+
+    raycaster = new VRC.VolumeRaycaster(config);
+    InitGUI(raycaster.getConfig(), raycaster);
+};
+
+</script>
+{% endblock %}

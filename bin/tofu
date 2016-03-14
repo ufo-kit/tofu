@@ -141,6 +141,14 @@ def perf(args):
                 measure(args)
 
 
+def serve(args):
+    try:
+        from tofu.vis import web
+        web.app.run(debug=True)
+    except ImportError:
+        sys.stderr.write("You need to install Flask and appdirs to launch the web service.\n")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', **config.SECTIONS['general']['config'])
@@ -162,6 +170,7 @@ def main():
         ('gui',         gui,            tomo_params + ('gui',),         "GUI for tomographic reconstruction"),
         ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
+        ('serve',       serve,          (),                             "Visualize reconstructions"),
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
     ]
 
