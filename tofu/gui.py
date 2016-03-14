@@ -76,8 +76,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         root_logger.setLevel(logging.DEBUG)
         root_logger.handlers = [log_handler]
 
-        self.ui.input_path_button.setToolTip(self.get_help('general', 'input'))
-        self.ui.proj_button.setToolTip(self.get_help('fbp', 'from-projections'))
+        self.ui.input_path_button.setToolTip('Path to projections or sinograms')
+        self.ui.proj_button.setToolTip('Denote if path contains projections')
         self.ui.y_step.setToolTip(self.get_help('reading', 'y-step'))
         self.ui.method_box.setToolTip(self.get_help('tomographic-reconstruction', 'method'))
         self.ui.axis_spin.setToolTip(self.get_help('tomographic-reconstruction', 'axis'))
@@ -123,8 +123,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.about_action.triggered.connect(self.on_about)
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema_clicked)
         self.ui.overlap_opt.currentIndexChanged.connect(self.on_overlap_opt_changed)
+        self.ui.input_path_line.textChanged.connect(self.on_input_path_changed)
 
-        self.ui.input_path_line.textChanged.connect(lambda value: self.change_value('input', str(self.ui.input_path_line.text())))
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
         self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
@@ -148,7 +148,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.text_browser.append(record)
 
     def get_values_from_params(self):
-        self.ui.input_path_line.setText(self.params.input)
+        self.ui.input_path_line.setText(self.params.sinograms or self.params.projections or '.')
         self.ui.output_path_line.setText(self.params.output)
         self.ui.darks_path_line.setText(self.params.darks)
         self.ui.flats_path_line.setText(self.params.flats)
@@ -166,7 +166,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.relaxation.setValue(self.params.relaxation_factor if
                                     self.params.relaxation_factor else 0.0)
 
-        if self.params.from_projections:
+        if self.params.projections is not None:
             self.ui.proj_button.setChecked(True)
             self.ui.sino_button.setChecked(False)
             self.on_proj_button_clicked()
@@ -243,6 +243,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         else:
             self.params.y_step = 1
 
+    def on_input_path_changed(self):
+        if self.ui.sino_button.isChecked():
+            self.params.sinograms = self.ui.input_path_line.text()
+            self.params.projections = None
+        else:
+            self.params.sinograms = None
+            self.params.projections = self.ui.input_path_line.text()
+
     def on_input_path_clicked(self, checked):
         path = self.get_path(self.params.input, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.input_path_line, self.params.last_dir)
@@ -313,7 +321,7 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
         parser = ArgumentParser()
-        params = config.TomoParams(sections=('gui',))
+        params = config.Params(sections=config.TOMO_PARAMS + ('gui',))
         parser = params.add_arguments(parser)
         self.params = parser.parse_known_args(config.config_to_list(config_name=config_file))[0]
         self.get_values_from_params()
@@ -329,7 +337,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             config_file = str(os.getenv('HOME') + "reco.conf")
         save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
         if save_config:
-            sections = config.TomoParams().sections + ('gui',)
+            sections = config.TOMO_PARAMS + ('gui',)
             config.write(save_config, args=self.params, sections=sections)
 
     def on_clear(self):
@@ -376,7 +384,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         try:
-            sections = config.TomoParams().sections + ('gui',)
+            sections = config.TOMO_PARAMS + ('gui',)
             config.write('reco.conf', args=self.params, sections=sections)
         except IOError as e:
             self.gui_warn(str(e))

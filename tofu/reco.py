@@ -6,7 +6,7 @@ import tempfile
 import sys
 import numpy as np
 from gi.repository import Ufo
-from tofu.flatcorrect import create_pipeline
+from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import set_node_props, get_filenames, next_power_of_two, read_image, determine_shape
 
 
@@ -34,6 +34,14 @@ def tomo(params):
     # Create reader and writer
     pm = Ufo.PluginManager()
 
+    if params.projections is None and params.sinograms is None:
+        LOG.error("You must specify either --projections or --sinograms")
+        sys.exit(1)
+
+    if params.projections and params.sinograms:
+        LOG.error("Cannot specify both projections and sinograms.")
+        sys.exit(1)
+
     def get_task(name, **kwargs):
         task = pm.get_task(name)
         task.set_properties(**kwargs)
@@ -45,7 +53,7 @@ def tomo(params):
         reader.set_properties(width=width, height=height, number=params.number or 1)
     else:
         reader = get_task('read')
-        reader.props.path = params.input
+        reader.props.path = params.projections or params.sinograms
         set_node_props(reader, params)
         width, height = determine_shape(params)
 
@@ -60,7 +68,7 @@ def tomo(params):
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
 
-    if params.from_projections:
+    if params.projections is not None:
         if params.number:
             count = len(range(params.start, params.start + params.number, params.step))
         else:
@@ -70,7 +78,7 @@ def tomo(params):
         sino_output = get_task('transpose-projections', number=count)
 
         if params.darks and params.flats:
-            g.connect_nodes(create_pipeline(params, g), sino_output)
+            g.connect_nodes(create_flat_correct_pipeline(params, g), sino_output)
         else:
             g.connect_nodes(reader, sino_output)
 
@@ -181,7 +189,7 @@ def estimate_center(params):
 
 
 def estimate_center_by_reconstruction(params):
-    if params.from_projections:
+    if params.projections is not None:
         sys.exit("Cannot estimate axis from projections")
 
     sinos = sorted(glob.glob(os.path.join(params.input, '*.tif')))

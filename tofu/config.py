@@ -18,15 +18,6 @@ SECTIONS['general'] = {
         'default': False,
         'help': 'Verbose output',
         'action': 'store_true'},
-    'enable-tracing': {
-        'default': False,
-        'help': "Enable tracing and store result in .PID.json",
-        'action': 'store_true'},
-    'input': {
-        'default': '.',
-        'type': str,
-        'help': "Location with sinograms or projections",
-        'metavar': 'PATH'},
     'output': {
         'default': '.',
         'type': str,
@@ -37,11 +28,6 @@ SECTIONS['general'] = {
         'default': None,
         'type': positive_int,
         'help': "Input width"},
-    'remotes': {
-        'default': [],
-        'type': str,
-        'help': "Addresses to remote ufo-nodes",
-        'nargs': '+'},
     'generate-input': {
         'default': False,
         'help': "Ignore input field and generate input data",
@@ -74,6 +60,11 @@ SECTIONS['reading'] = {
         'help': 'Read every \"step\" file'}}
 
 SECTIONS['flat-correction'] = {
+    'projections': {
+        'default': None,
+        'type': str,
+        'help': "Location with projections",
+        'metavar': 'PATH'},
     'darks': {
         'default': '',
         'type': str,
@@ -113,10 +104,24 @@ SECTIONS['sinos'] = {
         'help': 'Number of sinograms to process per pass'}}
 
 SECTIONS['reconstruction'] = {
+    'sinograms': {
+        'default': None,
+        'type': str,
+        'help': "Location with sinograms",
+        'metavar': 'PATH'},
     'angle': {
         'default': None,
         'type': float,
         'help': "Angle step between projections in radians"},
+    'enable-tracing': {
+        'default': False,
+        'help': "Enable tracing and store result in .PID.json",
+        'action': 'store_true'},
+    'remotes': {
+        'default': [],
+        'type': str,
+        'help': "Addresses to remote ufo-nodes",
+        'nargs': '+'},
     'projection-filter': {
         'default': 'ramp-fromreal',
         'type': str,
@@ -196,11 +201,7 @@ SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
         'type': positive_int,
-        'help': "Width of final slice"},
-    'from-projections': {
-        'default': False,
-        'help': "Reconstruct from projections instead of sinograms",
-        'action': 'store_true'}}
+        'help': "Width of final slice"}}
 
 SECTIONS['dfi'] = {
     'oversampling': {
@@ -296,6 +297,10 @@ SECTIONS['perf'] = {
         'type': range_list,
         'help': "Number or range of number of projections"}}
 
+TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
+
+LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
+
 
 def get_config_name():
     """Get the command line --config option."""
@@ -372,19 +377,6 @@ class Params(object):
         self.add_arguments(parser)
 
         return parser.parse_args('')
-
-
-class TomoParams(Params):
-    def __init__(self, sections=()):
-        sections = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi',
-                    'ir', 'sart', 'sbtv') + sections
-        super(TomoParams, self).__init__(sections=sections)
-
-
-class LaminoParams(Params):
-    def __init__(self):
-        sections = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
-        super(LaminoParams, self).__init__(sections=sections)
 
 
 def write(config_file, args=None, sections=None):

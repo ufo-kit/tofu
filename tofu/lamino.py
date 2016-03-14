@@ -74,7 +74,7 @@ def _create_runs(params, queue):
 def _run(params, x_region, y_region, regions, index):
     """Execute one pass on all possible GPUs with slice ranges given by *regions*."""
     from gi.repository import Ufo
-    from tofu.flatcorrect import create_pipeline as create_flat_pipeline
+    from tofu.preprocess import create_flat_correct_pipeline
     from tofu.util import set_node_props
 
     pm = Ufo.PluginManager()
@@ -90,7 +90,7 @@ def _run(params, x_region, y_region, regions, index):
         source.props.width = params.width
         source.props.height = params.height
     elif params.darks and params.flats:
-        source = create_flat_pipeline(params, graph)
+        source = create_flat_correct_pipeline(params, graph)
     else:
         source = pm.get_task('read')
         source.props.path = params.input

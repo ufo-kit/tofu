@@ -29,6 +29,16 @@ def run_lamino(args):
     lamino.lamino(args)
 
 
+def run_flat_correct(args):
+    from tofu import preprocess
+    preprocess.run_flat_correct(args)
+
+
+def run_sinos(args):
+    from tofu import preprocess
+    preprocess.run_sinogram_generation(args)
+
+
 def get_ipython_shell(config=None):
     import IPython
 
@@ -58,7 +68,7 @@ def get_ipython_shell(config=None):
     return shell
 
 
-def run_interactive(args):
+def run_shell(args):
     from tofu import reco
 
     shell = get_ipython_shell()
@@ -133,45 +143,37 @@ def main():
     parser.add_argument('--version', action='version',
                         version='%(prog)s {}'.format(__version__))
 
+    sino_params = ('flat-correction', 'sinos')
+    reco_params = ('flat-correction', 'reconstruction')
+    tomo_params = config.TOMO_PARAMS
+    lamino_params = config.LAMINO_PARAMS
+    gui_params = tomo_params + ('gui', )
+
+    cmd_parsers = [
+        ('init',        init,           (),                             "Create configuration file"),
+        ('flatcorrect', run_flat_correct, ('flat-correction',),         "Run flat field correction"),
+        ('sinos',       run_sinos,      sino_params,                    "Generate sinograms from projections"),
+        ('tomo',        run_tomo,       tomo_params,                    "Run tomographic reconstruction"),
+        ('lamino',      run_lamino,     lamino_params,                  "Run laminographic reconstruction"),
+        ('gui',         gui,            tomo_params + ('gui',),         "GUI for tomographic reconstruction"),
+        ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
+        ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
+        ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
+    ]
+
     subparsers = parser.add_subparsers(title="Commands", metavar='')
 
-    cmd_parser = subparsers.add_parser('init', help="Create a configuration file")
-    cmd_parser.add_argument('--verbose', **config.SECTIONS['general']['verbose'])
-    cmd_parser.set_defaults(_func=init)
-
-    tomo_params = config.TomoParams()
-    tomo_parser = subparsers.add_parser('tomo', help="Run tomographic reconstruction")
-    tomo_parser = tomo_params.add_arguments(tomo_parser)
-    tomo_parser.set_defaults(_func=run_tomo)
-
-    gui_params = config.TomoParams(sections=('gui',))
-    gui_parser = subparsers.add_parser('gui', help="GUI for tomographic reconstruction")
-    gui_parser = gui_params.add_arguments(gui_parser)
-    gui_parser.set_defaults(_func=gui)
-
-    lamino_params = config.LaminoParams()
-    lamino_parser = subparsers.add_parser('lamino', help="Run laminographic reconstruction")
-    lamino_parser = lamino_params.add_arguments(lamino_parser)
-    lamino_parser.set_defaults(_func=run_lamino)
-
-    estimate_params = config.TomoParams(sections=('estimate',))
-    estimate_parser = subparsers.add_parser('estimate', help="Estimate center of rotation")
-    estimate_parser = estimate_params.add_arguments(estimate_parser)
-    estimate_parser.set_defaults(_func=estimate)
-
-    perf_params = config.TomoParams(sections=('perf',))
-    perf_parser = subparsers.add_parser('perf', help="Check reconstruction performance")
-    perf_parser = perf_params.add_arguments(perf_parser)
-    perf_parser.set_defaults(_func=perf)
-
-    interactive_params = config.TomoParams()
-    interactive_parser = subparsers.add_parser('interactive', help="Run interactive mode")
-    interactive_parser = interactive_params.add_arguments(interactive_parser)
-    interactive_parser.set_defaults(_func=run_interactive)
+    for cmd, func, sections, text in cmd_parsers:
+        cmd_params = config.Params(sections=sections)
+        cmd_parser = subparsers.add_parser(cmd, help=text)
+        cmd_parser = cmd_params.add_arguments(cmd_parser)
+        cmd_parser.set_defaults(_func=func)
 
     args = config.parse_known_args(parser, subparser=True)
 
     if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
         logging.basicConfig(level=logging.INFO)
 
     args._func(args)
