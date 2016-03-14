@@ -172,6 +172,8 @@ def main():
     args = config.parse_known_args(parser, subparser=True)
 
     if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
         logging.basicConfig(level=logging.INFO)
 
     args._func(args)
