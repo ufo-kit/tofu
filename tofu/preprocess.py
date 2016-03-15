@@ -42,7 +42,7 @@ def create_flat_correct_pipeline(args, graph):
     if args.flats2:
         flat_after_reader = get_task('read', path=args.flats2)
         set_node_props(flat_after_reader, roi_args)
-        num_files = len(get_filenames(args.input))
+        num_files = len(get_filenames(args.projections))
         can_read = len(range(args.start, num_files, args.step))
         number = args.number if args.number else num_files
         num_read = min(can_read, number)
@@ -109,14 +109,14 @@ def create_sinogram_pipeline(args, graph):
         region = (args.start, args.start + args.number, args.step)
         num_projections = len(range(*region))
     else:
-        num_projections = len(get_filenames(args.input))
+        num_projections = len(get_filenames(args.projections))
     sinos.props.number = num_projections
 
     if args.darks and args.flats:
         start = create_flat_correct_pipeline(args, graph)
     else:
         start = pm.get_task('read')
-        start.props.path = args.input
+        start.props.path = args.projections
         set_node_props(start, args)
 
     graph.connect_nodes(start, sinos)

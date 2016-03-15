@@ -69,7 +69,7 @@ def tomo(params):
         if params.number:
             count = len(range(params.start, params.start + params.number, params.step))
         else:
-            count = len(get_filenames(params.input))
+            count = len(get_filenames(params.projections))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('transpose-projections', number=count)
@@ -189,10 +189,10 @@ def estimate_center_by_reconstruction(params):
     if params.projections is not None:
         sys.exit("Cannot estimate axis from projections")
 
-    sinos = sorted(glob.glob(os.path.join(params.input, '*.tif')))
+    sinos = sorted(glob.glob(os.path.join(params.sinograms, '*.tif')))
 
     if not sinos:
-        sys.exit("No sinograms found in {}".format(params.input))
+        sys.exit("No sinograms found in {}".format(params.sinograms))
 
     # Use a sinogram that probably has some interesting data
     filename = sinos[len(sinos) / 2]
@@ -206,7 +206,7 @@ def estimate_center_by_reconstruction(params):
     tmp_dir = tempfile.mkdtemp()
     tmp_output = os.path.join(tmp_dir, 'slice-0.tif')
 
-    params.input = filename
+    params.sinograms = filename
     params.output = os.path.join(tmp_dir, 'slice-%i.tif')
 
     def heaviside(A):
@@ -257,9 +257,9 @@ def estimate_center_by_correlation(params):
 
         return np.log(result)
 
-    first = read_image(get_filenames(params.input)[0]).astype(np.float)
+    first = read_image(get_filenames(params.projections)[0]).astype(np.float)
     last_index = params.start + params.number if params.number else -1
-    last = read_image(get_filenames(params.input)[last_index]).astype(np.float)
+    last = read_image(get_filenames(params.projections)[last_index]).astype(np.float)
 
     if params.darks and params.flats:
         dark = read_image(get_filenames(params.darks)[0]).astype(np.float)

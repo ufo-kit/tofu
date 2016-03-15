@@ -15,9 +15,9 @@ def lamino(params):
         params.overall_angle = 360.
         LOG.info('Overall angle not specified, using 360 deg')
     if not params.angle:
-        num_files = len(get_filenames(params.input))
+        num_files = len(get_filenames(params.projections))
         if not num_files:
-            raise RuntimeError("No files found in `{}'".format(params.input))
+            raise RuntimeError("No files found in `{}'".format(params.projections))
         params.angle = params.overall_angle / num_files * params.step
         LOG.info('Angle not specified, calculating from ' +
                  '{} projections and step {}: {} deg'.format(num_files, params.step,
@@ -93,7 +93,7 @@ def _run(params, x_region, y_region, regions, index):
         source = create_flat_correct_pipeline(params, graph)
     else:
         source = pm.get_task('read')
-        source.props.path = params.input
+        source.props.path = params.projections
         set_node_props(source, params)
     graph.connect_nodes(source, broadcast)
 
