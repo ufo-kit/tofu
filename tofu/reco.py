@@ -34,12 +34,8 @@ def tomo(params):
     # Create reader and writer
     pm = Ufo.PluginManager()
 
-    if params.projections is None and params.sinograms is None:
-        LOG.error("You must specify either --projections or --sinograms")
-        sys.exit(1)
-
     if params.projections and params.sinograms:
-        LOG.error("Cannot specify both projections and sinograms.")
+        LOG.error("Cannot specify both --projections and --sinograms.")
         sys.exit(1)
 
     def get_task(name, **kwargs):
@@ -47,19 +43,20 @@ def tomo(params):
         task.set_properties(**kwargs)
         return task
 
-    if params.generate_input:
+    if params.projections is None and params.sinograms is None:
+        if params.width is None and params.height is None:
+            LOG.error("You have to specify --width and --height when generating data.")
+            sys.exit(1)
+
         width, height = params.width, params.height
-        reader = get_task('dummy-data')
-        reader.set_properties(width=width, height=height, number=params.number or 1)
+        reader = get_task('dummy-data', width=width, height=height, number=params.number or 1)
     else:
-        reader = get_task('read')
-        reader.props.path = params.projections or params.sinograms
+        reader = get_task('read', path=params.projections or params.sinograms)
         set_node_props(reader, params)
         width, height = determine_shape(params)
 
     if params.dry_run:
-        writer = get_task('null')
-        writer.set_properties(download=True)
+        writer = get_task('null', download=True)
     else:
         outname = params.output
         writer = get_task('write', filename=outname)

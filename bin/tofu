@@ -125,7 +125,8 @@ def perf(args):
                                     input_bandwidth, output_bandwidth, slice_bandwidth, flops))
         sys.stdout.flush()
 
-    args.generate_input = True
+    args.projections = None
+    args.sinograms = None
     args.dry_run = True
 
     for width in range(*args.width_range):

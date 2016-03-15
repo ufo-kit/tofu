@@ -27,11 +27,7 @@ SECTIONS['general'] = {
     'width': {
         'default': None,
         'type': positive_int,
-        'help': "Input width"},
-    'generate-input': {
-        'default': False,
-        'help': "Ignore input field and generate input data",
-        'action': 'store_true'}}
+        'help': "Input width"}}
 
 SECTIONS['reading'] = {
     'y': {
