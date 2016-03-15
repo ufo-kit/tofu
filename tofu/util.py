@@ -99,19 +99,17 @@ def next_power_of_two(number):
 def read_image(filename):
     """Read image from file *filename*."""
     if filename.lower().endswith('.tif'):
-        from tofu.tifffile import TiffFile
+        from tifffile import TiffFile
         import numpy as np
         with TiffFile(filename) as tif:
-            image = np.copy(tif.asarray())
+            return np.copy(tif.asarray())
     elif '.edf' in filename.lower():
         import fabio
         edf = fabio.edfimage.edfimage()
         edf.read(filename)
-        image = edf.data
+        return edf.data
     else:
         raise ValueError('Unsupported image format')
-
-    return image
 
 
 def determine_shape(args):

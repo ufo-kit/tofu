@@ -10,5 +10,6 @@ setup(
     packages=find_packages(),
     package_data={'':['gui.ui']},
     scripts=['bin/tofu'],
+    install_requires=['tifffile'],
     long_description=open('README.md').read(),
 )

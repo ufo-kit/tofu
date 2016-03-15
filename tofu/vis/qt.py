@@ -2,9 +2,9 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import logging
 import numpy as np
+import tifffile
 
 from PyQt4 import QtGui, QtCore
-from .. import tifffile
 
 
 LOG = logging.getLogger(__name__)

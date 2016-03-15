@@ -2,11 +2,12 @@ import sys
 import os
 import logging
 import numpy as np
+import tifffile
 import pkg_resources
 
 from argparse import ArgumentParser
 from contextlib import contextmanager
-from . import reco, config, tifffile, util, __version__
+from . import reco, config, util, __version__
 import tofu.vis.qt
 from PyQt4 import QtGui, QtCore, uic
 
