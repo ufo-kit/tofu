@@ -12,23 +12,6 @@ from tofu.util import set_node_props, get_filenames, next_power_of_two, read_ima
 
 LOG = logging.getLogger(__name__)
 
-def run_task_graph (params, taskgraph, scheduler=None):
-    if not scheduler:
-        scheduler = Ufo.Scheduler()
-
-    if hasattr(scheduler.props, 'enable_tracing'):
-        LOG.debug("Use tracing: {}".format(params.enable_tracing))
-        scheduler.props.enable_tracing = params.enable_tracing
-
-    if params.remotes:
-        resources = Ufo.Resources(remotes=params.remotes)
-        scheduler.set_resources(resources)
-        scheduler.run(taskgraph)
-    else:
-        scheduler.run(taskgraph)
-
-    return scheduler.props.time
-
 
 def tomo(params):
     # Create reader and writer
@@ -173,7 +156,20 @@ def tomo(params):
         g.connect_nodes(ifft, swap_backward)
         g.connect_nodes(swap_backward, writer)
 
-    return run_task_graph(params, g)
+    scheduler = Ufo.Scheduler()
+
+    if hasattr(scheduler.props, 'enable_tracing'):
+        LOG.debug("Use tracing: {}".format(params.enable_tracing))
+        scheduler.props.enable_tracing = params.enable_tracing
+
+    if params.remotes:
+        resources = Ufo.Resources(remotes=params.remotes)
+        scheduler.set_resources(resources)
+        scheduler.run(g)
+    else:
+        scheduler.run(g)
+
+    return scheduler.props.time
 
 
 def estimate_center(params):
