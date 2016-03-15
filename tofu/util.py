@@ -122,7 +122,7 @@ def determine_shape(args):
     height = args.height
 
     if not (width and height):
-        filename = get_filenames(args.input)[0]
+        filename = get_filenames(args.projections or args.sinograms)[0]
         try:
             image = read_image(filename)
             # Now set the width and height but only if they were not specified
