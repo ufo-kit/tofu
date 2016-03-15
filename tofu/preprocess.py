@@ -15,13 +15,17 @@ def create_flat_correct_pipeline(args, graph):
     """
     pm = Ufo.PluginManager()
 
+    if args.projections is None:
+        LOG.error("You must specify --projections.")
+        sys.exit(1)
+
     def get_task(name, **kwargs):
         """Get task *name* with properties *kwargs*."""
         task = pm.get_task(name)
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('read', path=args.input)
+    reader = get_task('read', path=args.projections)
     dark_reader = get_task('read', path=args.darks)
     flat_before_reader = get_task('read', path=args.flats)
     ffc = get_task('flat-field-correct', dark_scale=args.dark_scale,
