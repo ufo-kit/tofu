@@ -19,7 +19,7 @@ SECTIONS['general'] = {
         'help': 'Verbose output',
         'action': 'store_true'},
     'output': {
-        'default': '.',
+        'default': 'result-%05i.tif',
         'type': str,
         'help': "Path to location or format-specified file path "
                 "for storing reconstructed slices",
