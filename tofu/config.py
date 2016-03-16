@@ -267,7 +267,7 @@ SECTIONS['gui'] = {
 SECTIONS['estimate'] = {
     'estimate-method': {
         'type': str,
-        'default': 'reconstruction',
+        'default': 'correlation',
         'help': 'Rotation axis estimation algorithm',
         'choices': ['reconstruction', 'correlation']}}
 
