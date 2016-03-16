@@ -8,8 +8,12 @@ import pkg_resources
 from argparse import ArgumentParser
 from contextlib import contextmanager
 from . import reco, config, util, __version__
-import tofu.vis.qt
-from PyQt4 import QtGui, QtCore, uic
+
+try:
+    import tofu.vis.qt
+    from PyQt4 import QtGui, QtCore, uic
+except ImportError:
+    raise ImportError("Cannot import modules for GUI, please install PyQt4 and pyqtgraph")
 
 
 LOG = logging.getLogger(__name__)

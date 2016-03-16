@@ -76,8 +76,11 @@ def run_shell(args):
 
 
 def gui(args):
-    from tofu import gui
-    gui.main(args)
+    try:
+        from tofu import gui
+        gui.main(args)
+    except ImportError as e:
+        LOG.error(str(e))
 
 
 def estimate(params):
