@@ -428,7 +428,6 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.oversampling = self.ui.oversampling.value() if self.params.method == 'dfi' else None
 
             if self.params.method == 'sart':
-                self.params.num_angles = len(input_images) if self.params.from_projections else self.params.height
                 self.params.max_iterations = self.ui.iterations_sart.value()
                 self.params.relaxation_factor = self.ui.relaxation.value()
 

@@ -215,11 +215,7 @@ SECTIONS['sart'] = {
     'relaxation-factor': {
         'default': 0.25,
         'type': float,
-        'help': "Relaxation factor"},
-    'num-angles': {
-        'default': None,
-        'type': positive_int,
-        'help': "Sinogram height"}}
+        'help': "Relaxation factor"}}
 
 SECTIONS['sbtv'] = {
     'lambda': {
