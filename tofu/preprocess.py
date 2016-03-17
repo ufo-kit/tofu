@@ -1,4 +1,5 @@
 """Flat field correction."""
+import sys
 import logging
 from gi.repository import Ufo
 from tofu.util import get_filenames, set_node_props, make_subargs, determine_shape
