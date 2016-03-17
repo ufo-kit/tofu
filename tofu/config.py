@@ -65,9 +65,10 @@ SECTIONS['flat-correction'] = {
         'default': None,
         'type': str,
         'help': "Location with projections",
-        'metavar': 'PATH'},
+        'metavar': 'PATH',
+        'required': True},
     'darks': {
-        'default': '',
+        'default': None,
         'type': str,
         'help': "Location with darks",
         'metavar': 'PATH'},
@@ -84,12 +85,12 @@ SECTIONS['flat-correction'] = {
         'help': "Fix nan and inf",
         'action': 'store_true'},
     'flats': {
-        'default': '',
+        'default': None,
         'type': str,
         'help': "Location with flats",
         'metavar': 'PATH'},
     'flats2': {
-        'default': '',
+        'default': None,
         'type': str,
         'help': "Location with flats 2 for interpolation correction",
         'metavar': 'PATH'},

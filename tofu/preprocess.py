@@ -16,8 +16,8 @@ def create_flat_correct_pipeline(args, graph):
     """
     pm = Ufo.PluginManager()
 
-    if args.projections is None:
-        LOG.error("You must specify --projections.")
+    if args.projections is None or args.flats is None or args.darks is None:
+        LOG.error("You must specify --projections, --flats and --darks.")
         sys.exit(1)
 
     def get_task(name, **kwargs):
