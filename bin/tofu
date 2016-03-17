@@ -182,6 +182,12 @@ def main():
     stream_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
     LOG.addHandler(stream_handler)
 
+    if args.log:
+        file_handler = logging.FileHandler(args.log)
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(logging.Formatter('%(name)s:%(levelname)s: %(message)s'))
+        LOG.addHandler(file_handler)
+
     args._func(args)
 
 

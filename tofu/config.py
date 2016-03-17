@@ -24,6 +24,11 @@ SECTIONS['general'] = {
         'help': "Path to location or format-specified file path "
                 "for storing reconstructed slices",
         'metavar': 'PATH'},
+    'log': {
+        'default': None,
+        'type': str,
+        'help': "File name of optional log",
+        'metavar': 'FILE'},
     'width': {
         'default': None,
         'type': positive_int,
