@@ -65,8 +65,7 @@ SECTIONS['flat-correction'] = {
         'default': None,
         'type': str,
         'help': "Location with projections",
-        'metavar': 'PATH',
-        'required': True},
+        'metavar': 'PATH'},
     'darks': {
         'default': None,
         'type': str,
