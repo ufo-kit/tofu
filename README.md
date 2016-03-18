@@ -45,6 +45,13 @@ You can also load reconstruction parameters from a configuration file called
 Note, that options passed via the command line always override configuration
 parameters!
 
+Besides scripted reconstructions, one can also run a standalone GUI for both
+reconstruction and quick assessment of the reconstructed data via
+
+    $ tofu gui
+
+![GUI](https://cloud.githubusercontent.com/assets/115270/6442540/db0b55fe-c0f0-11e4-9577-0048fddae8b7.png)
+
 
 ### Performance measurement
 
