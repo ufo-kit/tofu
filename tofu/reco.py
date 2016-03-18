@@ -161,12 +161,7 @@ def tomo(params):
         LOG.debug("Use tracing: {}".format(params.enable_tracing))
         scheduler.props.enable_tracing = params.enable_tracing
 
-    if params.remotes:
-        resources = Ufo.Resources(remotes=params.remotes)
-        scheduler.set_resources(resources)
-        scheduler.run(g)
-    else:
-        scheduler.run(g)
+    scheduler.run(g)
 
     return scheduler.props.time
 
