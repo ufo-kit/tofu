@@ -154,10 +154,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def get_values_from_params(self):
         self.ui.input_path_line.setText(self.params.sinograms or self.params.projections or '.')
-        self.ui.output_path_line.setText(self.params.output)
-        self.ui.darks_path_line.setText(self.params.darks)
-        self.ui.flats_path_line.setText(self.params.flats)
-        self.ui.flats2_path_line.setText(self.params.flats2)
+        self.ui.output_path_line.setText(self.params.output or '')
+        self.ui.darks_path_line.setText(self.params.darks or '')
+        self.ui.flats_path_line.setText(self.params.flats or '')
+        self.ui.flats2_path_line.setText(self.params.flats2 or '')
         self.ui.path_line_0.setText(self.params.deg0)
         self.ui.path_line_180.setText(self.params.deg180)
 
