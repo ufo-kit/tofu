@@ -260,6 +260,15 @@ SECTIONS['gui'] = {
         'type': str,
         'help': "Location with 180 deg projection",
         'metavar': 'PATH'},
+    'use-h5': {
+        'default': 'False',
+        'help': "Use h5 projections",
+        'action': 'store_true'},
+    'h5-projection': {
+        'default': '.',
+        'type': str,
+        'help': "Location with h5 projection",
+        'metavar': 'PATH'},
     'ffc-correction': {
         'default': False,
         'help': "Enable darks or flats correction",
