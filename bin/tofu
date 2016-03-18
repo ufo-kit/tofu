@@ -176,15 +176,14 @@ def main():
     args = config.parse_known_args(parser, subparser=True)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
+    LOG.setLevel(log_level)
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(log_level)
     stream_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
     LOG.addHandler(stream_handler)
 
     if args.log:
         file_handler = logging.FileHandler(args.log)
-        file_handler.setLevel(log_level)
         file_handler.setFormatter(logging.Formatter('%(name)s:%(levelname)s: %(message)s'))
         LOG.addHandler(file_handler)
 
