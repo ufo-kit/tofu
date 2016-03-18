@@ -1,5 +1,6 @@
 import sys
 import os
+import h5py
 import logging
 import numpy as np
 import tifffile
@@ -99,6 +100,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats2_path_button.setToolTip(self.get_help('flat-correction', 'flats2'))
         self.ui.path_button_0.setToolTip(self.get_help('gui', 'deg0'))
         self.ui.path_button_180.setToolTip(self.get_help('gui', 'deg180'))
+        self.ui.box_h5.setToolTip(self.get_help('gui', 'use-h5'))
+        self.ui.path_button_h5.setToolTip(self.get_help('gui', 'h5-projection'))
 
         self.ui.input_path_button.clicked.connect(self.on_input_path_clicked)
         self.ui.sino_button.clicked.connect(self.on_sino_button_clicked)
@@ -129,6 +132,9 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.extrema_checkbox.clicked.connect(self.on_remove_extrema_clicked)
         self.ui.overlap_opt.currentIndexChanged.connect(self.on_overlap_opt_changed)
         self.ui.input_path_line.textChanged.connect(self.on_input_path_changed)
+        self.ui.box_h5.clicked.connect(self.on_box_h5_clicked)
+        self.ui.path_button_h5.clicked.connect(self.on_path_h5_clicked)
+        self.ui.combo_h5.activated[str].connect(self.on_combo_h5_clicked)
 
         self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
         self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
@@ -145,6 +151,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.absorptivity_box.clicked.connect(lambda value: self.change_value('absorptivity', self.ui.absorptivity_box.isChecked()))
         self.ui.path_line_0.textChanged.connect(lambda value: self.change_value('deg0', str(self.ui.path_line_0.text())))
         self.ui.path_line_180.textChanged.connect(lambda value: self.change_value('deg180', str(self.ui.path_line_180.text())))
+        self.ui.box_h5.clicked.connect(lambda value: self.change_value('use_h5', self.ui.box_h5.isChecked()))
+        self.ui.path_line_h5.textChanged.connect(lambda value: self.change_value('h5_projection', str(self.ui.path_line_h5.text())))
 
         self.ui.overlap_layout.addWidget(self.overlap_viewer)
         self.overlap_viewer.slider.valueChanged.connect(self.on_axis_slider_changed)
@@ -160,6 +168,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats2_path_line.setText(self.params.flats2 or '')
         self.ui.path_line_0.setText(self.params.deg0)
         self.ui.path_line_180.setText(self.params.deg180)
+        self.ui.path_line_h5.setText(self.params.h5_projection)
 
         self.ui.y_step.setValue(self.params.y_step if self.params.y_step else 1)
         self.ui.axis_spin.setValue(self.params.axis if self.params.axis else 0.0)
@@ -207,6 +216,15 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.ffc_options.setCurrentIndex(0)
         else:
             self.ui.ffc_options.setCurrentIndex(1)
+
+        if self.params.use_h5 == True:
+            self.ui.box_h5.setChecked(True)
+            self.set_h5_visibility()
+            if '.h5' in self.ui.path_line_h5.text():
+                self.get_h5_options()
+        else:
+            self.ui.box_h5.setChecked(False)
+            self.set_h5_visibility()
 
     def change_method(self):
         self.params.method = str(self.ui.method_box.currentText()).lower()
@@ -323,6 +341,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         path = self.get_filename(self.params.deg180, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_180, self.params.last_dir)
 
+    def on_path_h5_clicked(self, checked):
+        path = self.get_filename(self.params.h5_projection, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.path_line_h5, self.params.last_dir)
+        if '.h5' in self.ui.path_line_h5.text():
+            self.get_h5_options()
+
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
         parser = ArgumentParser()
@@ -355,6 +379,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.flats2_path_line.setText('.')
         self.ui.path_line_0.setText('.')
         self.ui.path_line_180.setText('.')
+        self.ui.path_line_h5.setText('.')
 
         self.ui.fix_naninf_box.setChecked(True)
         self.ui.absorptivity_box.setChecked(True)
@@ -363,6 +388,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.region_box.setChecked(False)
         self.ui.ffc_box.setChecked(False)
         self.ui.interpolate_button.setChecked(False)
+        self.ui.box_h5.setChecked(False)
 
         self.ui.y_step.setValue(1)
         self.ui.axis_spin.setValue(0)
@@ -372,6 +398,8 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.ffc_options.setCurrentIndex(0)
 
         self.ui.text_browser.clear()
+        self.ui.combo_h5.clear()
+        self.set_h5_visibility()
         self.ui.method_box.setCurrentIndex(0)
 
         self.params.from_projections = False
@@ -468,11 +496,86 @@ class ApplicationWindow(QtGui.QMainWindow):
         filenames = get_filtered_filenames(path)
         self.volume_viewer.load_files(filenames)
 
+    def on_box_h5_clicked(self):
+        self.set_h5_visibility()
+        self.params.use_h5 = self.ui.box_h5.isChecked()
+        if '.h5' in self.ui.path_line_h5.text():
+            self.get_h5_options()
+
+    def on_combo_h5_clicked(self, text):
+        self.get_h5_options()
+
+    def set_h5_visibility(self):
+        self.ui.label_h5_dir.setVisible(self.ui.box_h5.isChecked())
+        self.ui.label_h5_proj.setVisible(self.ui.box_h5.isChecked())
+        self.ui.path_line_h5.setVisible(self.ui.box_h5.isChecked())
+        self.ui.combo_h5.setVisible(self.ui.box_h5.isChecked())
+        self.ui.path_button_h5.setVisible(self.ui.box_h5.isChecked())
+        self.ui.label_0.setVisible(not self.ui.box_h5.isChecked())
+        self.ui.label_180.setVisible(not self.ui.box_h5.isChecked())
+        self.ui.path_line_0.setVisible(not self.ui.box_h5.isChecked())
+        self.ui.path_line_180.setVisible(not self.ui.box_h5.isChecked())
+        self.ui.path_button_0.setVisible(not self.ui.box_h5.isChecked())
+        self.ui.path_button_180.setVisible(not self.ui.box_h5.isChecked())
+
+    def get_h5_options(self):
+        self.keys_for_eval = ''
+        more_keys = True
+        inner_path = ''
+
+        if self.ui.combo_h5.currentText():
+            path = self.ui.combo_h5.currentText()
+        else:
+            path = str(self.ui.path_line_h5.text())
+
+        if ':/' in path:
+            h5_dir = path.split(':', 1)[1].split('/')
+            keys = [0] * len(h5_dir)
+            for i in range(1, len(h5_dir)):
+                keys[i] = h5_dir[i]
+                if '[' in keys[i]:
+                    keys[i] = keys[i].split('[', 1)[0]
+            keys.pop(0)
+            self.keys_for_eval = ''.join('["' + str(keys[j] + '"]') for j in range(0, len(keys)))
+            file_tmp = h5py.File(str(path.split(':', 1)[0]), 'r')
+            h5_file = eval('file_tmp' + self.keys_for_eval)
+        else:
+            h5_file = h5py.File(path, 'r')
+
+        while (more_keys == True):
+            try:
+                if len(h5_file.keys()) == 1:
+                    self.ui.combo_h5.clear()
+                    key = str(h5_file.keys()[0])
+                    h5_file = h5_file[key]
+                    inner_path = path + ":/" + key
+                    self.ui.combo_h5.addItem(inner_path)
+                elif len(h5_file.keys()) > 1:
+                    if not inner_path:
+                        inner_path = path
+                    self.ui.combo_h5.clear()
+                    for i in range(0,len(h5_file.keys())):
+                        self.ui.combo_h5.addItem(inner_path + "/" + str(h5_file.keys()[i]))
+                    more_keys = False
+            except AttributeError:
+                more_keys = False
+
     def on_compute_center(self):
-        first_name = str(self.ui.path_line_0.text())
-        second_name = str(self.ui.path_line_180.text())
-        first = tifffile.TiffFile(first_name).asarray().astype(np.float)
-        second = tifffile.TiffFile(second_name).asarray().astype(np.float)
+        if not self.ui.box_h5.isChecked():
+            first_name = str(self.ui.path_line_0.text())
+            second_name = str(self.ui.path_line_180.text())
+            first = tifffile.TiffFile(first_name).asarray().astype(np.float)
+            second = tifffile.TiffFile(second_name).asarray().astype(np.float)
+        else:
+            try:
+                path = h5py.File(str(self.ui.path_line_h5.text()).split(':', 1)[0], 'r')
+                shape = eval('path' + self.keys_for_eval + '.shape')
+            except AttributeError:
+                self.get_h5_options()
+                path = h5py.File(str(self.ui.path_line_h5.text()).split(':', 1)[0], 'r')
+                shape = eval('path' + self.keys_for_eval + '.shape')
+            first = eval('path' + self.keys_for_eval + '[0,:,:]')
+            second = eval('path' + self.keys_for_eval + '[shape[0]-1,:,:]')
 
         self.axis = reco.compute_rotation_axis(first, second)
         self.height, self.width = first.shape
