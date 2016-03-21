@@ -18,8 +18,7 @@ def tomo(params):
     pm = Ufo.PluginManager()
 
     if params.projections and params.sinograms:
-        LOG.error("Cannot specify both --projections and --sinograms.")
-        sys.exit(1)
+        raise RuntimeError("Cannot specify both --projections and --sinograms.")
 
     def get_task(name, **kwargs):
         task = pm.get_task(name)
@@ -28,8 +27,7 @@ def tomo(params):
 
     if params.projections is None and params.sinograms is None:
         if params.width is None and params.height is None:
-            LOG.error("You have to specify --width and --height when generating data.")
-            sys.exit(1)
+            raise RuntimeError("You have to specify --width and --height when generating data.")
 
         width, height = params.width, params.height
         reader = get_task('dummy-data', width=width, height=height, number=params.number or 1)
@@ -179,12 +177,12 @@ def estimate_center(params):
 
 def estimate_center_by_reconstruction(params):
     if params.projections is not None:
-        sys.exit("Cannot estimate axis from projections")
+        raise RuntimeError("Cannot estimate axis from projections")
 
     sinos = sorted(glob.glob(os.path.join(params.sinograms, '*.tif')))
 
     if not sinos:
-        sys.exit("No sinograms found in {}".format(params.sinograms))
+        raise RuntimeError("No sinograms found in {}".format(params.sinograms))
 
     # Use a sinogram that probably has some interesting data
     filename = sinos[len(sinos) / 2]

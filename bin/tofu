@@ -16,7 +16,7 @@ def init(args):
     if not os.path.exists(config.NAME):
         config.write(args.config)
     else:
-        sys.exit("{0} already exists".format(config.NAME))
+        raise RuntimeError("{0} already exists".format(config.NAME))
 
 
 def run_tomo(args):
@@ -191,6 +191,7 @@ def main():
         args._func(args)
     except RuntimeError as e:
         LOG.error(str(e))
+        sys.exit(1)
 
 
 if __name__ == '__main__':
