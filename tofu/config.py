@@ -119,7 +119,7 @@ SECTIONS['reconstruction'] = {
         'help': "Enable tracing and store result in .PID.json",
         'action': 'store_true'},
     'remotes': {
-        'default': [],
+        'default': None,
         'type': str,
         'help': "Addresses to remote ufo-nodes",
         'nargs': '+'},
@@ -316,9 +316,10 @@ def get_config_name():
 
 
 def parse_known_args(parser, subparser=False):
-    """Parse arguments from file and then override by the ones specified on the command line. Use
-    *parser* for parsing and is *subparser* is True take into account that there is a value on the
-    command line specifying the subparser.
+    """
+    Parse arguments from file and then override by the ones specified on the
+    command line. Use *parser* for parsing and is *subparser* is True take into
+    account that there is a value on the command line specifying the subparser.
     """
     if len(sys.argv) > 1:
         subparser_value = [sys.argv[1]] if subparser else []
@@ -326,31 +327,39 @@ def parse_known_args(parser, subparser=False):
         values = subparser_value + config_values + sys.argv[1:]
     else:
         values = ""
-    args = parser.parse_known_args(values)[0]
 
-    return args
+    return parser.parse_known_args(values)[0]
 
 
 def config_to_list(config_name=NAME):
-    """Read arguments from config file and convert them to a list of keys and values as sys.argv
-    does when they are specified on the command line. *config_name* is the file name of the config
-    file.
+    """
+    Read arguments from config file and convert them to a list of keys and
+    values as sys.argv does when they are specified on the command line.
+    *config_name* is the file name of the config file.
     """
     result = []
     config = configparser.ConfigParser()
-    if config.read([config_name]):
-        for section in SECTIONS:
-            for name, opts in SECTIONS[section].items():
-                if config.has_option(section, name):
-                    value = config.get(section, name)
-                    if value is not '' and value != 'None':
-                        action = SECTIONS[section][name].get('action', None)
-                        if action == 'store_true':
-                            # Only the key is on the command line for this action
-                            if value == 'True':
-                                result.append('--{}'.format(name))
-                        else:
-                            result.append('--{}={}'.format(name, value))
+
+    if not config.read([config_name]):
+        return []
+
+    for section in SECTIONS:
+        for name, opts in ((n, o) for n, o in SECTIONS[section].items() if config.has_option(section, n)):
+            value = config.get(section, name)
+
+            if value is not '' and value != 'None':
+                action = opts.get('action', None)
+
+                if action == 'store_true' and value == 'True':
+                    # Only the key is on the command line for this action
+                    result.append('--{}'.format(name))
+
+                if not action == 'store_true':
+                    if opts.get('nargs', None) == '+':
+                        result.append('--{}'.format(name))
+                        result.extend((v.strip() for v in value.split(',')))
+                    else:
+                        result.append('--{}={}'.format(name, value))
 
     return result
 
@@ -377,21 +386,28 @@ class Params(object):
 
 
 def write(config_file, args=None, sections=None):
-    """Write *config_file* with values from *args* if they are specified, otherwise use the
-    defaults. If *sections* are specified, write values from *args* only to those sections, use the
-    defaults on the remaining ones.
     """
-    cfg = configparser.ConfigParser()
+    Write *config_file* with values from *args* if they are specified,
+    otherwise use the defaults. If *sections* are specified, write values from
+    *args* only to those sections, use the defaults on the remaining ones.
+    """
+    config = configparser.ConfigParser()
+
     for section in SECTIONS:
-        cfg.add_section(section)
+        config.add_section(section)
         for name, opts in SECTIONS[section].items():
             if args and sections and section in sections and hasattr(args, name.replace('-', '_')):
                 value = getattr(args, name.replace('-', '_'))
+
+                if isinstance(value, list):
+                    value = ', '.join(value)
             else:
                 value = opts['default'] if opts['default'] is not None else ''
-            prefix = '# ' if value is '' else ''
-            if name != 'config':
-                cfg.set(section, prefix + name, value)
 
-    with open(config_file, 'wb') as config_file:
-        cfg.write(config_file)
+            prefix = '# ' if value is '' else ''
+
+            if name != 'config':
+                config.set(section, prefix + name, value)
+
+    with open(config_file, 'wb') as f:
+        config.write(f)
