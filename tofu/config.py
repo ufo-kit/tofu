@@ -43,6 +43,10 @@ SECTIONS['reading'] = {
         'default': None,
         'type': positive_int,
         'help': "Number of rows which will be read"},
+    'bitdepth': {
+        'default': 32,
+        'type': positive_int,
+        'help': "Bit depth of raw files"},
     'y-step': {
         'type': positive_int,
         'default': 1,

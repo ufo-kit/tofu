@@ -187,7 +187,10 @@ def main():
         file_handler.setFormatter(logging.Formatter('%(name)s:%(levelname)s: %(message)s'))
         LOG.addHandler(file_handler)
 
-    args._func(args)
+    try:
+        args._func(args)
+    except RuntimeError as e:
+        LOG.error(str(e))
 
 
 if __name__ == '__main__':

@@ -53,6 +53,21 @@ def set_node_props(node, args):
                 node.set_property(name, getattr(args, name))
 
 
+def setup_read_task(task, path, args):
+    """Set up *task* and take care of handling file types correctly."""
+    task.props.path = path
+
+    fnames = glob.glob(path if '*' in path else os.path.join(path, '*'))
+
+    if fnames and fnames[0].endswith('.raw'):
+        if not args.width or not args.height:
+            raise RuntimeError("Raw files require --width, --height and --bitdepth arguments.")
+
+        task.props.raw_width = args.width
+        task.props.raw_height = args.width
+        task.props.raw_bitdepth = args.bitdepth
+
+
 def positive_int(value):
     """Convert *value* to an integer and make sure it is positive."""
     result = int(value)

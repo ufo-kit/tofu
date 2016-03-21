@@ -2,7 +2,8 @@
 import sys
 import logging
 from gi.repository import Ufo
-from tofu.util import get_filenames, set_node_props, make_subargs, determine_shape
+from tofu.util import (get_filenames, set_node_props, make_subargs,
+                       determine_shape, setup_read_task)
 
 
 LOG = logging.getLogger(__name__)
@@ -26,9 +27,10 @@ def create_flat_correct_pipeline(args, graph):
         task.set_properties(**kwargs)
         return task
 
-    reader = get_task('read', path=args.projections)
-    dark_reader = get_task('read', path=args.darks)
-    flat_before_reader = get_task('read', path=args.flats)
+    reader = get_task('read')
+    dark_reader = get_task('read')
+    flat_before_reader = get_task('read')
+
     ffc = get_task('flat-field-correct', dark_scale=args.dark_scale,
                    absorption_correct=args.absorptivity,
                    fix_nan_and_inf=args.fix_nan_and_inf)
@@ -38,10 +40,14 @@ def create_flat_correct_pipeline(args, graph):
     set_node_props(dark_reader, roi_args)
     set_node_props(flat_before_reader, roi_args)
 
+    for r, path in ((reader, args.projections), (dark_reader, args.darks), (flat_before_reader, args.flats)):
+        setup_read_task(r, path, args)
+
     LOG.debug("Doing flat field correction using reduction mode `{}'".format(mode))
 
     if args.flats2:
-        flat_after_reader = get_task('read', path=args.flats2)
+        flat_after_reader = get_task('read')
+        setup_read_task(flat_after_reader, args.flats2, args)
         set_node_props(flat_after_reader, roi_args)
         num_files = len(get_filenames(args.projections))
         can_read = len(range(args.start, num_files, args.step))
@@ -79,6 +85,7 @@ def create_flat_correct_pipeline(args, graph):
 
     graph.connect_nodes_full(reader, ffc, 0)
     graph.connect_nodes_full(dark_reduced, ffc, 1)
+
     if args.flats2:
         graph.connect_nodes_full(flat_before_reduced, flat_interpolate, 0)
         graph.connect_nodes_full(flat_after_reduced, flat_interpolate, 1)
@@ -111,6 +118,7 @@ def create_sinogram_pipeline(args, graph):
         num_projections = len(range(*region))
     else:
         num_projections = len(get_filenames(args.projections))
+
     sinos.props.number = num_projections
 
     if args.darks and args.flats:

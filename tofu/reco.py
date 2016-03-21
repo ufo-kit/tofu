@@ -6,7 +6,8 @@ import sys
 import numpy as np
 from gi.repository import Ufo
 from tofu.preprocess import create_flat_correct_pipeline
-from tofu.util import set_node_props, get_filenames, next_power_of_two, read_image, determine_shape
+from tofu.util import (set_node_props, setup_read_task,get_filenames,
+                       next_power_of_two, read_image, determine_shape)
 
 
 LOG = logging.getLogger(__name__)
@@ -33,8 +34,9 @@ def tomo(params):
         width, height = params.width, params.height
         reader = get_task('dummy-data', width=width, height=height, number=params.number or 1)
     else:
-        reader = get_task('read', path=params.projections or params.sinograms)
+        reader = get_task('read')
         set_node_props(reader, params)
+        setup_read_task(reader, params.projections or params.sinograms, params)
         width, height = determine_shape(params)
 
     if params.dry_run:
