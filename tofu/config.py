@@ -121,6 +121,44 @@ SECTIONS['flat-correction'] = {
         'action': 'store_true',
         'help': 'Do absorption correction'}}
 
+SECTIONS['retrieve-phase'] = {
+    'retrieval-method': {
+        'choices': ['tie', 'ctf', 'ctfhalfsin', 'qp', 'qphalfsine', 'qp2'],
+        'default': 'tie',
+        'help': "Phase retrieval method"},
+    'energy': {
+        'default': None,
+        'type': float,
+        'help': "X-ray energy [keV]"},
+    'propagation-distance': {
+        'default': None,
+        'type': float,
+        'help': "Sample <-> detector distance [m]"},
+    'pixel-size': {
+        'default': 1e-6,
+        'type': float,
+        'help': "Pixel size [m]"},
+    'regularization-rate': {
+        'default': 2,
+        'type': float,
+        'help': "Regularization rate (typical values between [2, 3])"},
+    'retrieval-padded-width': {
+        'default': 0,
+        'type': positive_int,
+        'help': "Padded width used for phase retrieval"},
+    'retrieval-padded-height': {
+        'default': 0,
+        'type': positive_int,
+        'help': "Padded height used for phase retrieval"},
+    'retrieval-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"},
+    'thresholding-rate': {
+        'default': 0.01,
+        'type': float,
+        'help': "Thresholding rate (typical values between [0.01, 0.1])"}}
+
 SECTIONS['sinos'] = {
     'pass-size': {
         'type': positive_int,
@@ -323,7 +361,7 @@ SECTIONS['perf'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
+LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
 
 
 def get_config_name():
