@@ -135,9 +135,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.box_h5.clicked.connect(self.on_box_h5_clicked)
         self.ui.path_button_h5.clicked.connect(self.on_path_h5_clicked)
         self.ui.combo_h5.activated[str].connect(self.on_combo_h5_clicked)
+        self.ui.input_path_h5button.clicked.connect(self.on_input_h5path_clicked)
+        self.ui.input_combo.activated[str].connect(self.on_input_combo_clicked)
+        self.ui.darks_checkbox.clicked.connect(self.on_darks_checkbox_clicked)
+        self.ui.flats_checkbox.clicked.connect(self.on_flats_checkbox_clicked)
+        self.ui.darks_combo.activated[str].connect(self.on_darks_combo_clicked)
+        self.ui.flats_combo.activated[str].connect(self.on_flats_combo_clicked)
+        self.ui.flats2_combo.activated[str].connect(self.on_flats2_combo_clicked)
 
-        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
@@ -204,10 +209,18 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.region_box.setChecked(False)
         self.ui.on_region_box_clicked()
 
-        ffc_enabled = bool(self.params.flats) and bool(self.params.darks) and self.proj_button.isChecked()
+        ffc_enabled = bool(self.params.flats) and bool(self.params.darks) and self.proj_button.isChecked() and self.params.ffc_correction
         self.ui.ffc_box.setChecked(ffc_enabled)
         self.ui.preprocessing_container.setVisible(ffc_enabled)
         self.ui.interpolate_button.setChecked(bool(self.params.flats2) and ffc_enabled)
+        self.on_interpolate_button_clicked()
+
+        if '.h5' in self.ui.input_path_line.text():
+            if '.h5:/' in self.ui.input_path_line.text():
+                self.ui.input_path_line.setText(self.ui.input_path_line.text().split(':', 1)[0])
+            self.get_h5_options(self.input_path_line, self.input_combo)
+            self.set_h5_ffc()
+        self.on_input_path_changed()
 
         self.ui.fix_naninf_box.setChecked(self.params.fix_nan_and_inf)
         self.ui.absorptivity_box.setChecked(self.params.absorptivity)
@@ -221,7 +234,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.box_h5.setChecked(True)
             self.set_h5_visibility()
             if '.h5' in self.ui.path_line_h5.text():
-                self.get_h5_options()
+                self.get_h5_options(self.ui.path_line_h5, self.ui.combo_h5)
         else:
             self.ui.box_h5.setChecked(False)
             self.set_h5_visibility()
@@ -248,10 +261,12 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_sino_button_clicked(self):
         self.ffc_box.setEnabled(False)
         self.ui.preprocessing_container.setVisible(False)
+        self.on_input_path_changed()
 
     def on_proj_button_clicked(self):
         self.ffc_box.setEnabled(False)
         self.ui.preprocessing_container.setVisible(self.ffc_box.isChecked())
+        self.on_input_path_changed()
 
         if self.ui.proj_button.isChecked():
             self.ui.ffc_box.setEnabled(True)
@@ -267,16 +282,47 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.y_step = 1
 
     def on_input_path_changed(self):
+        self.ui.label_h5_reco.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.input_combo.setVisible('.h5' in self.ui.input_path_line.text())
+
+        if '.h5' in self.ui.input_path_line.text():
+            path = self.ui.input_combo.currentText()
+        else:
+            path = self.ui.input_path_line.text()
+
         if self.ui.sino_button.isChecked():
-            self.params.sinograms = self.ui.input_path_line.text()
+            self.params.sinograms = str(path)
             self.params.projections = None
         else:
             self.params.sinograms = None
-            self.params.projections = self.ui.input_path_line.text()
+            self.params.projections = str(path)
+
+        if self.ui.ffc_box.isChecked():
+            self.set_h5_ffc()
 
     def on_input_path_clicked(self, checked):
-        path = self.get_path(self.params.input, self.params.last_dir)
+        path_to_get = ''
+        if self.params.projections is not None:
+            path_to_get = self.params.projections
+        else:
+            path_to_get = self.params.sinograms
+        path = self.get_path(path_to_get, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.input_path_line, self.params.last_dir)
+
+    def on_input_h5path_clicked(self, checked):
+        path_to_get = ''
+        if self.params.projections is not None:
+            path_to_get = self.params.projections
+        else:
+            path_to_get = self.params.sinograms
+        path = self.get_filename(path_to_get, self.params.last_dir)
+        self.params.last_dir = set_last_dir(path, self.ui.input_path_line, self.params.last_dir)
+        if '.h5' in self.ui.input_path_line.text():
+            self.get_h5_options(self.ui.input_path_line, self.ui.input_combo)
+            self.on_input_path_changed()
+
+    def on_input_combo_clicked(self):
+        self.on_input_path_changed()
 
     def change_axis_spin(self):
         if self.ui.axis_spin.value() == 0:
@@ -306,11 +352,58 @@ class ApplicationWindow(QtGui.QMainWindow):
         checked = self.ui.ffc_box.isChecked()
         self.ui.preprocessing_container.setVisible(checked)
         self.params.ffc_correction = checked
+        if self.ui.ffc_box.isChecked():
+            self.set_h5_ffc()
 
     def on_interpolate_button_clicked(self):
-        checked = self.ui.interpolate_button.isChecked()
-        self.ui.flats2_path_line.setEnabled(checked)
-        self.ui.flats2_path_button.setEnabled(checked)
+        self.ui.flats2_path_line.setEnabled(self.ui.interpolate_button.isChecked())
+        self.ui.flats2_path_button.setEnabled(self.ui.interpolate_button.isChecked())
+        self.ui.flats2_combo.setEnabled(self.ui.interpolate_button.isChecked())
+
+    def on_darks_combo_clicked(self):
+        self.params.darks = self.ui.darks_combo.currentText()
+
+    def on_flats_combo_clicked(self):
+        self.params.flats = self.ui.flats_combo.currentText()
+
+    def on_flats2_combo_clicked(self):
+        self.params.flats2 = self.ui.flats2_combo.currentText()
+
+    def on_darks_checkbox_clicked(self):
+        self.ui.darks_combo.setEnabled(self.ui.darks_checkbox.isChecked())
+        self.ui.darks_path_button.setEnabled(self.ui.darks_checkbox.isChecked())
+        self.ui.darks_path_line.setEnabled(self.ui.darks_checkbox.isChecked())
+        if self.ui.darks_checkbox.isChecked():
+            self.params.darks = self.ui.darks_combo.currentText()
+        else:
+            self.params.darks = None
+
+    def on_flats_checkbox_clicked(self):
+        self.ui.flats_combo.setEnabled(self.ui.flats_checkbox.isChecked())
+        self.ui.flats_path_button.setEnabled(self.ui.flats_checkbox.isChecked())
+        self.ui.flats_path_line.setEnabled(self.ui.flats_checkbox.isChecked())
+        if self.ui.flats_checkbox.isChecked():
+            self.params.flats = self.ui.flats_combo.currentText()
+        else:
+            self.params.flats = None
+
+    def set_h5_ffc(self):
+        self.ui.darks_checkbox.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.flats_checkbox.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.darks_combo.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.flats_combo.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.flats2_combo.setVisible('.h5' in self.ui.input_path_line.text())
+        self.ui.darks_path_line.setVisible(not '.h5' in self.ui.input_path_line.text())
+        self.ui.flats_path_line.setVisible(not '.h5' in self.ui.input_path_line.text())
+        self.ui.flats2_path_line.setVisible(not '.h5' in self.ui.input_path_line.text())
+        if '.h5' in self.ui.input_path_line.text():
+            self.get_h5_options(self.ui.input_path_line, self.ui.darks_combo)
+            self.get_h5_options(self.ui.input_path_line, self.ui.flats_combo)
+            self.get_h5_options(self.ui.input_path_line, self.ui.flats2_combo)
+            self.ui.darks_checkbox.setChecked(True)
+            self.ui.flats_checkbox.setChecked(True)
+            self.params.darks = self.ui.darks_combo.currentText()
+            self.params.flats = self.ui.flats_combo.currentText()
 
     def change_ffc_options(self):
         self.params.reduction_mode = str(self.ui.ffc_options.currentText()).lower()
@@ -318,14 +411,26 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_darks_path_clicked(self, checked):
         path = self.get_path(self.params.darks, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.darks_path_line, self.params.last_dir)
+        if path:
+            self.ui.darks_combo.setVisible(False)
+            self.ui.darks_path_line.setVisible(True)
+            self.ui.darks_path_button.setVisible(True)
 
     def on_flats_path_clicked(self, checked):
         path = self.get_path(self.params.flats, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.flats_path_line, self.params.last_dir)
+        if path:
+            self.ui.flats_combo.setVisible(False)
+            self.ui.flats_path_line.setVisible(True)
+            self.ui.flats_path_button.setVisible(True)
 
     def on_flats2_path_clicked(self, checked):
         path = self.get_path(self.params.flats2, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.flats2_path_line, self.params.last_dir)
+        if path:
+            self.ui.flats2_combo.set_Visible(False)
+            self.ui.flats2_path_line.setVisible(True)
+            self.ui.flats2_path_button.setVisible(True)
 
     def get_path(self, directory, last_dir):
         return QtGui.QFileDialog.getExistingDirectory(self, '.', last_dir or directory)
@@ -345,7 +450,7 @@ class ApplicationWindow(QtGui.QMainWindow):
         path = self.get_filename(self.params.h5_projection, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_h5, self.params.last_dir)
         if '.h5' in self.ui.path_line_h5.text():
-            self.get_h5_options()
+            self.get_h5_options(self.ui.path_line_h5, self.ui.combo_h5)
 
     def on_open_from(self):
         config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
@@ -429,16 +534,25 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.repaint()
             self.app.processEvents()
 
-            input_images = get_filtered_filenames(str(self.ui.input_path_line.text()))
+            if not '.h5' in self.ui.input_path_line.text():
+                input_images = get_filtered_filenames(str(self.ui.input_path_line.text()))
 
-            if not input_images:
-                self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
-                self.ui.centralWidget.setEnabled(True)
-                return
+                if not input_images:
+                    self.gui_warn("No data found in {}".format(str(self.ui.input_path_line.text())))
+                    self.ui.centralWidget.setEnabled(True)
+                    return
 
-            im = util.read_image(input_images[0])
-            self.params.width = im.shape[1]
-            self.params.height = im.shape[0]
+                im = util.read_image(input_images[0])
+                self.params.width = im.shape[1]
+                self.params.height = im.shape[0]
+            else:
+                if self.keys_for_eval == '':
+                    self.get_h5_options(self.ui.input_path_line, self.ui.input_combo)
+                path = h5py.File(str(self.ui.input_path_line.text()).split(':', 1)[0], 'r')
+                im = eval('path' + self.keys_for_eval + '[0,:,:]')
+                self.params.width = im.shape[0]
+                self.params.height = im.shape[1]
+
             self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
 
             if not (self.params.output.endswith('.tif') or
@@ -449,15 +563,29 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.params.angle *= self.params.y_step
 
             if self.params.ffc_correction:
-                flats_files = get_filtered_filenames(str(self.ui.flats_path_line.text()))
-                self.params.num_flats = len(flats_files)
+                if not '.h5' in self.ui.input_path_line.text():
+                    flats_files = get_filtered_filenames(str(self.ui.flats_path_line.text()))
+                    self.params.num_flats = len(flats_files)
+                else:
+                    self.get_h5_options(self.ui.input_path_line, self.ui.flats_combo)
+                    path = h5py.File(str(self.ui.input_path_line.text()).split(':', 1)[0], 'r')
+                    self.params.num_flats = eval('path' + self.keys_for_eval + '.shape[0]')
             else:
                 self.params.num_flats = 0
                 self.params.darks = None
                 self.params.flats = None
 
-            self.params.flats2 = self.ui.flats2_path_line.text() if self.ui.interpolate_button.isChecked() else ''
+            if '.h5' in self.ui.input_path_line.text():
+                self.params.flats2 = self.ui.flats2_combo.currentText() if self.ui.interpolate_button.isChecked() else None
+            else:
+                self.params.flats2 = self.ui.flats2_path_line.text() if self.ui.interpolate_button.isChecked() else None
             self.params.oversampling = self.ui.oversampling.value() if self.params.method == 'dfi' else None
+
+            print "Projections:", self.params.projections
+            print "Sinograms:", self.params.sinograms
+            print "Darks:", self.params.darks
+            print "Flats:", self.params.flats
+            print "Flats2:", self.params.flats2
 
             if self.params.method == 'sart':
                 self.params.max_iterations = self.ui.iterations_sart.value()
@@ -500,10 +628,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.set_h5_visibility()
         self.params.use_h5 = self.ui.box_h5.isChecked()
         if '.h5' in self.ui.path_line_h5.text():
-            self.get_h5_options()
+            self.get_h5_options(self.ui.path_line_h5, self.ui.combo_h5)
 
-    def on_combo_h5_clicked(self, text):
-        self.get_h5_options()
+    def on_combo_h5_clicked(self):
+        self.get_h5_options(self.ui.path_line_h5, self.ui.combo_h5)
 
     def set_h5_visibility(self):
         self.ui.label_h5_dir.setVisible(self.ui.box_h5.isChecked())
@@ -518,15 +646,15 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.path_button_0.setVisible(not self.ui.box_h5.isChecked())
         self.ui.path_button_180.setVisible(not self.ui.box_h5.isChecked())
 
-    def get_h5_options(self):
+    def get_h5_options(self, path_line, combo):
         self.keys_for_eval = ''
         more_keys = True
         inner_path = ''
 
-        if self.ui.combo_h5.currentText():
-            path = self.ui.combo_h5.currentText()
+        if combo.currentText():
+            path = combo.currentText()
         else:
-            path = str(self.ui.path_line_h5.text())
+            path = str(path_line.text())
 
         if ':/' in path:
             h5_dir = path.split(':', 1)[1].split('/')
@@ -545,17 +673,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         while (more_keys == True):
             try:
                 if len(h5_file.keys()) == 1:
-                    self.ui.combo_h5.clear()
+                    combo.clear()
                     key = str(h5_file.keys()[0])
                     h5_file = h5_file[key]
                     inner_path = path + ":/" + key
-                    self.ui.combo_h5.addItem(inner_path)
+                    combo.addItem(inner_path)
                 elif len(h5_file.keys()) > 1:
                     if not inner_path:
                         inner_path = path
-                    self.ui.combo_h5.clear()
+                    combo.clear()
                     for i in range(0,len(h5_file.keys())):
-                        self.ui.combo_h5.addItem(inner_path + "/" + str(h5_file.keys()[i]))
+                        combo.addItem(inner_path + "/" + str(h5_file.keys()[i]))
                     more_keys = False
             except AttributeError:
                 more_keys = False
@@ -571,7 +699,7 @@ class ApplicationWindow(QtGui.QMainWindow):
                 path = h5py.File(str(self.ui.path_line_h5.text()).split(':', 1)[0], 'r')
                 shape = eval('path' + self.keys_for_eval + '.shape')
             except AttributeError:
-                self.get_h5_options()
+                self.get_h5_options(self.ui.path_line_h5, self.ui.combo_h5)
                 path = h5py.File(str(self.ui.path_line_h5.text()).split(':', 1)[0], 'r')
                 shape = eval('path' + self.keys_for_eval + '.shape')
             first = eval('path' + self.keys_for_eval + '[0,:,:]')
