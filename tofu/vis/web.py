@@ -36,12 +36,13 @@ class Process(multiprocessing.Process):
         dataset_dir = os.path.join(DEST, self.dataset)
 
         filenames = sorted(glob.glob(root))
-        num_files = len(filenames)
+        is_multi_tiff = len(first.shape) > 2
         first = tifffile.imread(filenames[0])
-        slice_size, _ = first.shape
+        slice_size = first.shape[1] if is_multi_tiff else first.shape[0]
+        num_slices = first.shape[0] if is_multi_tiff else len(filenames)
 
         # Optimize the input to 4 slice maps at 4Kx4K pixels
-        tiles_per_map = num_files / 4.0
+        tiles_per_map = num_slices / 4.0
         tile_length = int(math.ceil(math.sqrt(tiles_per_map)))
         tile_size = 4096. / tile_length
         factor = tile_size / slice_size
@@ -56,7 +57,7 @@ class Process(multiprocessing.Process):
 
         with open(os.path.join(dataset_dir, 'meta.json'), 'w') as f:
             json.dump({'tilelength': tile_length,
-                       'numslices': num_files }, f)
+                       'numslices': num_slices }, f)
 
         app.logger.debug("Finished conversion")
 
