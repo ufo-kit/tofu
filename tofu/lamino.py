@@ -116,7 +116,7 @@ def _setup_graph(pm, graph, index, gpu, x_region, y_region, region, params):
     fft = pm.get_task('fft')
     ifft = pm.get_task('ifft')
     fltr = pm.get_task('filter')
-    backproject = pm.get_task('anka-backproject')
+    backproject = pm.get_task('lamino-backproject')
     slicer = pm.get_task('slice')
     if params.dry_run:
         writer = pm.get_task('null')
