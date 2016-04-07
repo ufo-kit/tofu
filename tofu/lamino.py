@@ -120,7 +120,7 @@ def _setup_graph(pm, graph, index, gpu, x_region, y_region, region, params):
     slicer = pm.get_task('slice')
     if params.dry_run:
         writer = pm.get_task('null')
-        writer.props.force_download = True
+        writer.props.download = True
     else:
         writer = pm.get_task('write')
         writer.props.filename = '{}-{:>03}-%04i.tif'.format(params.output, index)
