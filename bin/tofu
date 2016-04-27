@@ -13,10 +13,10 @@ LOG = logging.getLogger('tofu')
 
 
 def init(args):
-    if not os.path.exists(config.NAME):
+    if not os.path.exists(args.config):
         config.write(args.config)
     else:
-        raise RuntimeError("{0} already exists".format(config.NAME))
+        raise RuntimeError("{0} already exists".format(args.config))
 
 
 def run_tomo(args):
