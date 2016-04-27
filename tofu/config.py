@@ -103,6 +103,12 @@ SECTIONS['flat-correction'] = {
         'help': 'Do absorption correction'}}
 
 SECTIONS['sinos'] = {
+    'sinograms': {
+        'default': None,
+        'type': str,
+        'help': "Location with sinograms",
+        'metavar': 'PATH',
+        'required': True},
     'pass-size': {
         'type': positive_int,
         'default': 0,
