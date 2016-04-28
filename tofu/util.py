@@ -64,7 +64,7 @@ def setup_read_task(task, path, args):
             raise RuntimeError("Raw files require --width, --height and --bitdepth arguments.")
 
         task.props.raw_width = args.width
-        task.props.raw_height = args.width
+        task.props.raw_height = args.height
         task.props.raw_bitdepth = args.bitdepth
 
 
