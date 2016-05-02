@@ -135,7 +135,7 @@ def create_sinogram_pipeline(args, graph):
 def run_sinogram_generation(args):
     """Make the sinograms with arguments provided by *args*."""
     if not args.height:
-        args.height = determine_shape(args)[1] - args.y
+        args.height = determine_shape(args, args.projections)[1] - args.y
 
     step = args.y_step * args.pass_size if args.pass_size else args.height
     starts = range(args.y, args.y + args.height, step) + [args.y + args.height]

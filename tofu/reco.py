@@ -34,8 +34,9 @@ def tomo(params):
     else:
         reader = get_task('read')
         set_node_props(reader, params)
-        setup_read_task(reader, params.projections or params.sinograms, params)
-        width, height = determine_shape(params)
+        path = params.projections or params.sinograms
+        setup_read_task(reader, path, params)
+        width, height = determine_shape(params, path)
 
     if params.dry_run:
         writer = get_task('null', download=True)

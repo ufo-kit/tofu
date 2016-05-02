@@ -23,7 +23,7 @@ def lamino(params):
                  '{} projections and step {}: {} deg'.format(num_files, params.step,
                                                              params.angle))
     if not (params.width and params.height):
-        proj_width, proj_height = determine_shape(params)
+        proj_width, proj_height = determine_shape(params, params.projections)
         if not proj_width:
             raise RuntimeError("Could not determine width from the input")
     if not params.number:
