@@ -75,7 +75,7 @@ def _run(params, x_region, y_region, regions, index):
     """Execute one pass on all possible GPUs with slice ranges given by *regions*."""
     from gi.repository import Ufo
     from tofu.preprocess import create_flat_correct_pipeline
-    from tofu.util import set_node_props
+    from tofu.util import set_node_props, setup_read_task
 
     pm = Ufo.PluginManager()
     graph = Ufo.TaskGraph()
@@ -93,8 +93,8 @@ def _run(params, x_region, y_region, regions, index):
         source = create_flat_correct_pipeline(params, graph)
     else:
         source = pm.get_task('read')
-        source.props.path = params.projections
         set_node_props(source, params)
+        setup_read_task(source, params.projections, params)
     graph.connect_nodes(source, broadcast)
 
     for i, region in enumerate(regions):
