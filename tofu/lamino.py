@@ -15,9 +15,14 @@ def lamino(params):
         params.overall_angle = 360.
         LOG.info('Overall angle not specified, using 360 deg')
     if not params.angle:
-        num_files = len(get_filenames(params.projections))
-        if not num_files:
-            raise RuntimeError("No files found in `{}'".format(params.projections))
+        if params.dry_run:
+            if not params.number:
+                raise ValueError('--number must be specified by --dry-run')
+            num_files = params.number
+        else:
+            num_files = len(get_filenames(params.projections))
+            if not num_files:
+                raise RuntimeError("No files found in `{}'".format(params.projections))
         params.angle = params.overall_angle / num_files * params.step
         LOG.info('Angle not specified, calculating from ' +
                  '{} projections and step {}: {} deg'.format(num_files, params.step,
