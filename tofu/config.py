@@ -200,7 +200,11 @@ SECTIONS['laminographic-reconstruction'] = {
     'slices-per-device': {
         'default': None,
         'type': positive_int,
-        'help': "Number of slices computed by one computing device"}}
+        'help': "Number of slices computed by one computing device"},
+    'only-bp': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Do only backprojection with no other processing steps"}}
 
 SECTIONS['fbp'] = {
     'crop-width': {

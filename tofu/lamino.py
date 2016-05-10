@@ -42,9 +42,9 @@ def lamino(params):
                                                              params.height,
                                                              params.number))
 
-    # For now we need to make a workaround for the memory leak, which means we need to execute the
-    # passes in separate processes to clean up the low level code. For that we also need to call the
-    # region-splitting in a separate function.
+    # For now we need to make a workaround for the memory leak, which means we need to execute
+    # the passes in separate processes to clean up the low level code. For that we also need to
+    # call the region-splitting in a separate function.
     # TODO: Simplify after the memory leak fix!
     queue = Queue()
     proc = Process(target=_create_runs, args=(params, queue,))
@@ -79,8 +79,6 @@ def _create_runs(params, queue):
 def _run(params, x_region, y_region, regions, index):
     """Execute one pass on all possible GPUs with slice ranges given by *regions*."""
     from gi.repository import Ufo
-    from tofu.preprocess import create_flat_correct_pipeline
-    from tofu.util import set_node_props, setup_read_task
 
     pm = Ufo.PluginManager()
     graph = Ufo.TaskGraph()
@@ -89,6 +87,24 @@ def _run(params, x_region, y_region, regions, index):
     num_gpus = len(gpus)
 
     broadcast = Ufo.CopyTask()
+    source = _setup_source(params, pm, graph)
+    graph.connect_nodes(source, broadcast)
+
+    for i, region in enumerate(regions):
+        subindex = index * num_gpus + i
+        first = _setup_graph(pm, graph, subindex, x_region, y_region, region, params, gpu=gpus[i])
+        graph.connect_nodes(broadcast, first)
+
+    scheduler.run(graph)
+    duration = scheduler.props.time
+    LOG.info('Execution time: {} s'.format(duration))
+
+    return duration
+
+
+def _setup_source(params, pm, graph):
+    from tofu.preprocess import create_flat_correct_pipeline
+    from tofu.util import set_node_props, setup_read_task
     if params.dry_run:
         source = pm.get_task('dummy-data')
         source.props.number = params.number
@@ -100,29 +116,20 @@ def _run(params, x_region, y_region, regions, index):
         source = pm.get_task('read')
         set_node_props(source, params)
         setup_read_task(source, params.projections, params)
-    graph.connect_nodes(source, broadcast)
 
-    for i, region in enumerate(regions):
-        subindex = index * num_gpus + i
-        pad = _setup_graph(pm, graph, subindex, gpus[i], x_region, y_region, region, params)
-        graph.connect_nodes(broadcast, pad)
-
-    scheduler.run(graph)
-    duration = scheduler.props.time
-    LOG.info('Execution time: {} s'.format(duration))
-
-    return duration
+    return source
 
 
-def _setup_graph(pm, graph, index, gpu, x_region, y_region, region, params):
-    from tofu.reco import setup_padding
-    pad = pm.get_task('pad')
-    crop = pm.get_task('crop')
-    fft = pm.get_task('fft')
-    ifft = pm.get_task('ifft')
-    fltr = pm.get_task('filter')
+def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None):
     backproject = pm.get_task('lamino-backproject')
     slicer = pm.get_task('slice')
+    if not params.only_bp:
+        from tofu.reco import setup_padding
+        pad = pm.get_task('pad')
+        crop = pm.get_task('crop')
+        fft = pm.get_task('fft')
+        ifft = pm.get_task('ifft')
+        fltr = pm.get_task('filter')
     if params.dry_run:
         writer = pm.get_task('null')
         writer.props.download = True
@@ -131,7 +138,6 @@ def _setup_graph(pm, graph, index, gpu, x_region, y_region, region, params):
         writer.props.filename = '{}-{:>03}-%04i.tif'.format(params.output, index)
 
     # parameters
-    setup_padding(pad, crop, params.width, params.height)
     backproject.props.num_projections = params.number
     backproject.props.overall_angle = np.deg2rad(params.overall_angle)
     backproject.props.lamino_angle = np.deg2rad(params.lamino_angle)
@@ -144,26 +150,33 @@ def _setup_graph(pm, graph, index, gpu, x_region, y_region, region, params):
     backproject.props.region = region
     backproject.props.parameter = params.z_parameter
     backproject.props.center = params.axis
-    fft.props.dimensions = 1
-    ifft.props.dimensions = 1
-    fltr.props.scale = np.sin(backproject.props.lamino_angle)
 
-    pad.set_proc_node(gpu)
-    crop.set_proc_node(gpu)
-    fft.set_proc_node(gpu)
-    ifft.set_proc_node(gpu)
-    fltr.set_proc_node(gpu)
-    backproject.set_proc_node(gpu)
+    if not params.only_bp:
+        setup_padding(pad, crop, params.width, params.height)
+        fft.props.dimensions = 1
+        ifft.props.dimensions = 1
+        fltr.props.scale = np.sin(backproject.props.lamino_angle)
 
-    graph.connect_nodes(pad, fft)
-    graph.connect_nodes(fft, fltr)
-    graph.connect_nodes(fltr, ifft)
-    graph.connect_nodes(ifft, crop)
-    graph.connect_nodes(crop, backproject)
+        if gpu:
+            pad.set_proc_node(gpu)
+            crop.set_proc_node(gpu)
+            fft.set_proc_node(gpu)
+            ifft.set_proc_node(gpu)
+            fltr.set_proc_node(gpu)
+
+    if gpu:
+        backproject.set_proc_node(gpu)
+
+    if not params.only_bp:
+        graph.connect_nodes(pad, fft)
+        graph.connect_nodes(fft, fltr)
+        graph.connect_nodes(fltr, ifft)
+        graph.connect_nodes(ifft, crop)
+        graph.connect_nodes(crop, backproject)
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
 
-    return pad
+    return backproject if params.only_bp else pad
 
 
 def _split_regions(params, gpus):
