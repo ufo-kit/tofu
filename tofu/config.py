@@ -18,12 +18,6 @@ SECTIONS['general'] = {
         'default': False,
         'help': 'Verbose output',
         'action': 'store_true'},
-    'output': {
-        'default': 'result-%05i.tif',
-        'type': str,
-        'help': "Path to location or format-specified file path "
-                "for storing reconstructed slices",
-        'metavar': 'PATH'},
     'log': {
         'default': None,
         'type': str,
@@ -131,7 +125,13 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']}}
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+    'output': {
+        'default': "result-%05i.tif",
+        'type': str,
+        'help': "Path to location or format-specified file path "
+                "for storing reconstructed slices",
+        'metavar': 'PATH'}}
 
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {

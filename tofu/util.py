@@ -4,6 +4,7 @@ import glob
 import logging
 import math
 import os
+import h5py
 
 
 LOG = logging.getLogger(__name__)
@@ -57,15 +58,16 @@ def setup_read_task(task, path, args):
     """Set up *task* and take care of handling file types correctly."""
     task.props.path = path
 
-    fnames = glob.glob(path if '*' in path else os.path.join(path, '*'))
+    if not '.h5' in path:
+        fnames = glob.glob(path if '*' in path else os.path.join(str(path), '*'))
 
-    if fnames and fnames[0].endswith('.raw'):
-        if not args.width or not args.height:
-            raise RuntimeError("Raw files require --width, --height and --bitdepth arguments.")
+        if fnames and fnames[0].endswith('.raw'):
+            if not args.width or not args.height:
+                raise RuntimeError("Raw files require --width, --height and --bitdepth arguments.")
 
-        task.props.raw_width = args.width
-        task.props.raw_height = args.width
-        task.props.raw_bitdepth = args.bitdepth
+            task.props.raw_width = args.width
+            task.props.raw_height = args.width
+            task.props.raw_bitdepth = args.bitdepth
 
 
 def positive_int(value):
@@ -101,9 +103,37 @@ def get_filenames(path):
     for matching files in a directory.
     """
     if os.path.isdir(path):
-        path = os.path.join(path, '*')
+        path = os.path.join(str(path), '*')
 
     return sorted(glob.glob(path))
+
+
+def get_h5_keys(path):
+    keys_for_eval = ''
+    h5_dir = path.split(':', 1)[1].split('/')
+    keys = [0] * len(h5_dir)
+    for i in range(1, len(h5_dir)):
+        keys[i] = h5_dir[i]
+    keys.pop(0)
+    keys_for_eval = ''.join('["' + str(keys[j]) + '"]' for j in range(0, len(keys)))
+
+    return keys_for_eval
+
+
+def get_h5_shape(path):
+    keys = get_h5_keys(path)
+    h5_file = h5py.File(str(path.split(':', 1)[0]), 'r')
+    shape = eval('h5_file' + keys + '.shape')
+
+    return shape
+
+
+def get_h5_data(path, index):
+    keys = get_h5_keys(path)
+    h5_file = h5py.File(str(path.split(':', 1)[0]), 'r')
+    data = eval('h5_file' + keys + '[' + 'index' + ',:,:]')
+
+    return data
 
 
 def next_power_of_two(number):

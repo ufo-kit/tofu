@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1018</width>
-    <height>1134</height>
+    <height>1169</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -264,8 +264,11 @@
              </item>
              <item>
               <widget class="QPushButton" name="input_path_h5button">
+               <property name="toolTip">
+                <string>Path to projections or sinograms (HDF5)</string>
+               </property>
                <property name="text">
-                <string>Browse h5 File ...</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -278,10 +281,10 @@
                 </sizepolicy>
                </property>
                <property name="toolTip">
-                <string notr="true"/>
+                <string notr="true">Path to projections or sinograms</string>
                </property>
                <property name="text">
-                <string>Browse Dir ...</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -354,7 +357,7 @@
              <item row="1" column="0">
               <widget class="QLabel" name="label_3">
                <property name="text">
-                <string>Options</string>
+                <string>Options:</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -454,7 +457,10 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="darks_checkbox">
+                <widget class="QPushButton" name="darks_path_h5button">
+                 <property name="toolTip">
+                  <string>Location with darks (HDF5)</string>
+                 </property>
                  <property name="text">
                   <string/>
                  </property>
@@ -469,7 +475,7 @@
                   <string notr="true"/>
                  </property>
                  <property name="text">
-                  <string>Browse …</string>
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -527,7 +533,10 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="flats_checkbox">
+                <widget class="QPushButton" name="flats_path_h5button">
+                 <property name="toolTip">
+                  <string>Location with flats (HDF5)</string>
+                 </property>
                  <property name="text">
                   <string/>
                  </property>
@@ -542,7 +551,7 @@
                   <string notr="true"/>
                  </property>
                  <property name="text">
-                  <string>Browse …</string>
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -564,9 +573,22 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="flats2_path_button">
+                <widget class="QPushButton" name="flats2_path_h5button">
+                 <property name="toolTip">
+                  <string>Location with flats 2 for interpolation correction (HDF5)</string>
+                 </property>
                  <property name="text">
-                  <string>Browse …</string>
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="flats2_path_button">
+                 <property name="toolTip">
+                  <string>Location with flats 2 for interpolation correction</string>
+                 </property>
+                 <property name="text">
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -876,8 +898,8 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_9">
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_4">
-             <item>
+            <layout class="QGridLayout" name="gridLayout_8">
+             <item row="0" column="0">
               <widget class="QLabel" name="output_path_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -893,7 +915,7 @@
                </property>
               </widget>
              </item>
-             <item>
+             <item row="0" column="1">
               <widget class="QLineEdit" name="output_path_line">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -906,7 +928,7 @@
                </property>
               </widget>
              </item>
-             <item>
+             <item row="0" column="3">
               <widget class="QPushButton" name="output_path_button">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -918,9 +940,29 @@
                 <string notr="true"/>
                </property>
                <property name="text">
-                <string>Browse ...</string>
+                <string/>
                </property>
               </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QPushButton" name="output_path_h5button">
+               <property name="toolTip">
+                <string>Path to location or format-specified file path for storing reconstructed slices (HDF5)</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_h5_output">
+               <property name="text">
+                <string>h5 Dir: </string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1" colspan="3">
+              <widget class="QComboBox" name="output_combo"/>
              </item>
             </layout>
            </item>
@@ -958,6 +1000,16 @@
                  <string>8</string>
                 </property>
                </item>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="output_h5_box">
+               <property name="toolTip">
+                <string>Output to h5 file</string>
+               </property>
+               <property name="text">
+                <string>h5</string>
+               </property>
               </widget>
              </item>
              <item>

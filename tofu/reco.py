@@ -6,8 +6,9 @@ import sys
 import numpy as np
 from gi.repository import Ufo
 from tofu.preprocess import create_flat_correct_pipeline
-from tofu.util import (set_node_props, setup_read_task,get_filenames,
-                       next_power_of_two, read_image, determine_shape)
+from tofu.util import (set_node_props, setup_read_task, get_filenames,
+                       next_power_of_two, read_image, determine_shape,
+                       get_h5_shape, get_h5_data)
 
 
 LOG = logging.getLogger(__name__)
@@ -51,7 +52,10 @@ def tomo(params):
         if params.number:
             count = len(range(params.start, params.start + params.number, params.step))
         else:
-            count = len(get_filenames(params.projections))
+            if '.h5:/' in params.projections:
+                count = get_h5_shape(params.projections)[0]
+            else:
+                count = len(get_filenames(params.projections))
 
         LOG.debug("num_projections = {}".format(count))
         sino_output = get_task('transpose-projections', number=count)

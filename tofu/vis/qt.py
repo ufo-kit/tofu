@@ -3,6 +3,8 @@ import pyqtgraph.opengl as gl
 import logging
 import numpy as np
 import tifffile
+import h5py
+from tofu.util import (get_h5_shape, get_h5_data)
 
 from PyQt4 import QtGui, QtCore
 
@@ -14,7 +16,6 @@ def read_tiff(filename):
     tiff = tifffile.TiffFile(filename)
     array = tiff.asarray()
     return array.T
-
 
 def remove_extrema(data):
     upper = np.percentile(data, 99)
@@ -64,7 +65,11 @@ class ImageViewer(QtGui.QWidget):
     def load_files(self, filenames):
         """Load *filenames* for display."""
         self.filenames = filenames
-        self.slider.setRange(0, len(self.filenames) - 1)
+        if '.h5:/' in self.filenames:
+            maximum = get_h5_shape(self.filenames)[0] - 1
+        else:
+            maximum = len(self.filenames) - 1
+        self.slider.setRange(0, maximum)
         self.slider.setSliderPosition(0)
         self.update_image()
 
@@ -72,7 +77,11 @@ class ImageViewer(QtGui.QWidget):
         """Update the currently display image."""
         if self.filenames:
             pos = self.slider.value()
-            image = read_tiff(self.filenames[pos])
+            if '.h5:/' in self.filenames:
+                image = get_h5_data(self.filenames, pos)
+                image = image.T
+            else:
+                image = read_tiff(self.filenames[pos])
             self.image_item.setImage(image)
 
 
@@ -162,20 +171,34 @@ class VolumeViewer(QtGui.QWidget):
 
     def load_files(self, filenames):
         """Load *filenames* for display."""
-        filenames = filenames[::self.step]
-        num = len(filenames)
-        first = read_tiff(filenames[0])[::self.step, ::self.step]
+        if '.h5:/' in filenames:
+            num_full = get_h5_shape(filenames)[0]
+            num = get_h5_shape(filenames)[0] / self.step
+            first = get_h5_data(filenames, 0)[::self.step, ::self.step]
+        else:
+            filenames = filenames[::self.step]
+            num = len(filenames)
+            first = read_tiff(filenames[0])[::self.step, ::self.step]
         width, height = first.shape
         data = np.empty((width, height, num), dtype=np.float32)
         data[:,:,0] = first
 
-        for i, filename in enumerate(filenames[1:]):
-            data[:, :, i + 1] = read_tiff(filename)[::self.step, ::self.step]
+        if '.h5:/' in filenames:
+            for i, j in zip(range(0, num - 1), range(0, num_full - 1, self.step)):
+                data[:, :, i + 1] = get_h5_data(filenames, j)[::self.step, ::self.step]
+        else:
+            for i, filename in enumerate(filenames[1:]):
+                data[:, :, i + 1] = read_tiff(filename)[::self.step, ::self.step]
 
         volume = create_volume(data)
         dx, dy, dz, _ = volume.shape
 
-        volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
-        volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
-        volume_item.scale(0.05, 0.05, 0.05, local=False)
-        self.volume_view.addItem(volume_item)
+        try:
+            self.volume_view.removeItem(self.volume_item)
+        except AttributeError:
+            pass
+
+        self.volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
+        self.volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
+        self.volume_item.scale(0.05, 0.05, 0.05, local=False)
+        self.volume_view.addItem(self.volume_item)
