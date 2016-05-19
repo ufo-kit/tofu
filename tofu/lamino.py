@@ -52,11 +52,11 @@ def lamino(params):
     proc.join()
     x_region, y_region, regions, num_gpus = queue.get()
 
-    for i in range(0, len(regions), num_gpus):
+    for iteration, i in enumerate(range(0, len(regions), num_gpus)):
         z_subregion = regions[i:min(i + num_gpus, len(regions))]
         LOG.info('Computing slices {}..{}'.format(z_subregion[0][0], z_subregion[-1][1]))
         _run(params, x_region, y_region, z_subregion, i / num_gpus)
-        raw_input('Iteration {}'.format(i + 1))
+        raw_input('Iteration {}'.format(iteration + 1))
         # proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i / num_gpus))
         # proc.start()
         # proc.join()
