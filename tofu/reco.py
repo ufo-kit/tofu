@@ -116,8 +116,7 @@ def tomo(params):
         if params.axis:
             projector.set_properties(axis_position=params.axis or width / 2.)
 
-        if params.angle:
-            projector.set_properties(step=params.angle)
+        projector.set_properties(step=params.angle if params.angle else np.pi / 180.0)
 
         method = pm.get_task_from_package('ir', params.method)
         method.set_properties(projector=projector, num_iterations=params.num_iterations)
