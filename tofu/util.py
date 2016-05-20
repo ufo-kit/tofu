@@ -138,7 +138,12 @@ def determine_shape(args, path):
         if not path:
             raise RuntimeError("Path to sinograms or projections not set.")
 
-        filename = get_filenames(path)[0]
+        filenames = get_filenames(path)
+
+        if not filenames:
+            raise RuntimeError("No files found in `{}'".format(path))
+
+        filename = filenames[0]
 
         try:
             image = read_image(filename)
