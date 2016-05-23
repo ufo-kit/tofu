@@ -157,7 +157,14 @@ def tomo(params):
         g.connect_nodes(dfi, swap_forward)
         g.connect_nodes(swap_forward, ifft)
         g.connect_nodes(ifft, swap_backward)
-        g.connect_nodes(swap_backward, writer)
+
+        if width:
+            crop = get_task('crop')
+            crop.set_properties(from_center=True, width=width, height=width)
+            g.connect_nodes(swap_backward, crop)
+            g.connect_nodes(crop, writer)
+        else:
+            g.connect_nodes(swap_backward, writer)
 
     scheduler = Ufo.Scheduler()
 
