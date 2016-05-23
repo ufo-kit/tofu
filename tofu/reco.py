@@ -124,6 +124,10 @@ def tomo(params):
         if params.method in ('sart', 'sirt'):
             method.set_properties(relaxation_factor=params.relaxation_factor)
 
+        if params.method == 'asdpocs':
+            minimizer = pm.get_task_from_package('ir', 'sirt')
+            method.set_properties(df_minimizer=minimizer)
+
         if params.method == 'sbtv':
             # FIXME: the lambda keyword is preventing from the following
             # assignment ...
