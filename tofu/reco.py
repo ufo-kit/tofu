@@ -11,11 +11,11 @@ from tofu.util import (set_node_props, setup_read_task,get_filenames,
 
 
 LOG = logging.getLogger(__name__)
+pm = Ufo.PluginManager()
 
 
 def tomo(params):
     # Create reader and writer
-    pm = Ufo.PluginManager()
 
     if params.projections and params.sinograms:
         raise RuntimeError("Cannot specify both --projections and --sinograms.")
