@@ -173,8 +173,10 @@ def tomo(params):
         scheduler.props.enable_tracing = params.enable_tracing
 
     scheduler.run(g)
+    duration = scheduler.props.time
+    LOG.info("Execution time: {} s".format(duration))
 
-    return scheduler.props.time
+    return duration
 
 
 def estimate_center(params):
