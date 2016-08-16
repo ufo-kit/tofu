@@ -50,6 +50,7 @@ def set_node_props(node, args):
         if not name.startswith('_') and hasattr(args, name):
             value = getattr(args, name)
             if value is not None:
+                LOG.debug("Setting {}:{} to {}".format(node.get_plugin_name(), name, value))
                 node.set_property(name, getattr(args, name))
 
 

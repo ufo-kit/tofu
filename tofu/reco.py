@@ -15,13 +15,18 @@ LOG = logging.getLogger(__name__)
 pm = Ufo.PluginManager()
 
 
+def get_task(name, **kwargs):
+    task = pm.get_task(name)
+    task.set_properties(**kwargs)
+    return task
+
+
 def get_dummy_reader(params):
     if params.width is None and params.height is None:
         raise RuntimeError("You have to specify --width and --height when generating data.")
 
     width, height = params.width, params.height
-    reader = pm.get_task('dummy-data')
-    reader.set_properties(width=width, height=height, number=params.number or 1)
+    reader = get_task('dummy-data', width=width, height=height, number=params.number or 1)
     return reader, width, height
 
 
@@ -53,15 +58,20 @@ def get_sinogram_reader(params):
     return reader, width, height
 
 
+def get_writer(params):
+    if params.dry_run:
+        LOG.debug("Discarding data output")
+        return get_task('null', download=True)
+    else:
+        outname = params.output
+        LOG.debug("Writing output to {}".format(outname))
+        return get_task('write', filename=outname)
+
+
 def tomo(params):
     # Create reader and writer
     if params.projections and params.sinograms:
         raise RuntimeError("Cannot specify both --projections and --sinograms.")
-
-    def get_task(name, **kwargs):
-        task = pm.get_task(name)
-        task.set_properties(**kwargs)
-        return task
 
     if params.projections is None and params.sinograms is None:
         reader, width, height = get_dummy_reader(params)
@@ -71,14 +81,9 @@ def tomo(params):
         else:
             reader, width, height = get_sinogram_reader(params)
 
-    LOG.debug("Projection dimensions: {}x{} pixels".format(width, height))
+    LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
-    if params.dry_run:
-        writer = get_task('null', download=True)
-    else:
-        outname = params.output
-        writer = get_task('write', filename=outname)
-        LOG.debug("Write to {}".format(outname))
+    writer = get_writer(params)
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
@@ -89,7 +94,7 @@ def tomo(params):
         else:
             count = len(get_filenames(params.projections))
 
-        LOG.debug("num_projections = {}".format(count))
+        LOG.debug("Number of projections: {}".format(count))
         sino_output = get_task('transpose-projections', number=count)
 
         if params.darks and params.flats:
@@ -124,7 +129,7 @@ def tomo(params):
             crop = get_task('crop')
             setup_padding(pad, crop, width, height)
 
-            LOG.debug("Padding to {}x{} pixels".format(pad.props.width, pad.props.height))
+            LOG.debug("Padding input to: {}x{} pixels".format(pad.props.width, pad.props.height))
 
             g.connect_nodes(sino_output, pad)
             g.connect_nodes(pad, fft)
