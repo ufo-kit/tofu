@@ -117,7 +117,7 @@ def read_image(filename):
         from tifffile import TiffFile
         import numpy as np
         with TiffFile(filename) as tif:
-            return np.copy(tif.asarray())
+            return tif.asarray()
     elif '.edf' in filename.lower():
         import fabio
         edf = fabio.edfimage.edfimage()
@@ -125,6 +125,19 @@ def read_image(filename):
         return edf.data
     else:
         raise ValueError('Unsupported image format')
+
+
+def get_first_filename(path):
+    """Returns the first valid image filename in *path*."""
+    if not path:
+        raise RuntimeError("Path to sinograms or projections not set.")
+
+    filenames = get_filenames(path)
+
+    if not filenames:
+        raise RuntimeError("No files found in `{}'".format(path))
+
+    return filenames[0]
 
 
 def determine_shape(args, path):
@@ -135,15 +148,7 @@ def determine_shape(args, path):
     height = args.height
 
     if not (width and height):
-        if not path:
-            raise RuntimeError("Path to sinograms or projections not set.")
-
-        filenames = get_filenames(path)
-
-        if not filenames:
-            raise RuntimeError("No files found in `{}'".format(path))
-
-        filename = filenames[0]
+        filename = get_first_filename(path)
 
         try:
             image = read_image(filename)
