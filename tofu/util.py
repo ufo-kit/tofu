@@ -54,11 +54,19 @@ def set_node_props(node, args):
                 node.set_property(name, getattr(args, name))
 
 
+def get_filenames(path):
+    """
+    Get all filenams from *path*, which could be a directory or a pattern for
+    matching files in a directory.
+    """
+    return sorted(glob.glob(os.path.join(path, '*') if os.path.isdir(path) else path))
+
+
 def setup_read_task(task, path, args):
     """Set up *task* and take care of handling file types correctly."""
     task.props.path = path
 
-    fnames = glob.glob(path if '*' in path else os.path.join(path, '*'))
+    fnames = get_filenames(path)
 
     if fnames and fnames[0].endswith('.raw'):
         if not args.width or not args.height:
@@ -95,16 +103,6 @@ def tupleize(num_items, conv=None):
         return result
 
     return split_values
-
-
-def get_filenames(path):
-    """Get all filenams from *path*, which could be a directory or a pattern
-    for matching files in a directory.
-    """
-    if os.path.isdir(path):
-        path = os.path.join(path, '*')
-
-    return sorted(glob.glob(path))
 
 
 def next_power_of_two(number):
@@ -153,11 +151,10 @@ def determine_shape(args, path):
 
         try:
             image = read_image(filename)
-            # Now set the width and height but only if they were not specified
-            if not width:
-                width = image.shape[1]
-            if not height:
-                height = image.shape[0]
+
+            # Now set the width and height if not specified
+            width = width or image.shape[1]
+            height = height or image.shape[0]
         except:
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
 
