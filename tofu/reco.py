@@ -81,6 +81,13 @@ def tomo(params):
         else:
             reader, width, height = get_sinogram_reader(params)
 
+    axis = params.axis or width / 2.0
+
+    if params.projections and params.resize:
+        width /= params.resize
+        height /= params.resize
+        axis /= params.resize
+
     LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
     writer = get_writer(params)
@@ -112,10 +119,7 @@ def tomo(params):
         fft = get_task('fft', dimensions=1)
         ifft = get_task('ifft', dimensions=1)
         fltr = get_task('filter', filter=params.projection_filter)
-        bp = get_task('backproject')
-
-        if params.axis:
-            bp.props.axis_pos = params.axis
+        bp = get_task('backproject', axis_pos=axis)
 
         if params.angle:
             bp.props.angle_step = params.angle
@@ -153,9 +157,7 @@ def tomo(params):
         projector = pm.get_task_from_package('ir', 'parallel-projector')
         projector.set_properties(model='joseph', is_forward=False)
 
-        if params.axis:
-            projector.set_properties(axis_position=params.axis or width / 2.)
-
+        projector.set_properties(axis_position=axis)
         projector.set_properties(step=params.angle if params.angle else np.pi / 180.0)
 
         method = pm.get_task_from_package('ir', params.method)
@@ -179,8 +181,6 @@ def tomo(params):
 
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
-        axis = params.axis or width / 2.
-
         pad = get_task('zeropad', center_of_rotation=axis, oversampling=oversampling)
         fft = get_task('fft', dimensions=1, auto_zeropadding=0)
         dfi = get_task('dfi-sinc')

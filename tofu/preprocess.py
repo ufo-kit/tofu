@@ -54,6 +54,22 @@ def create_flat_correct_pipeline(args, graph):
         num_read = min(can_read, number)
         flat_interpolate = get_task('interpolate', number=num_read)
 
+    if args.resize:
+        LOG.debug("Resize input data by factor of {}".format(args.resize))
+        proj_bin = get_task('bin', size=args.resize)
+        dark_bin = get_task('bin', size=args.resize)
+        flat_bin = get_task('bin', size=args.resize)
+        graph.connect_nodes(reader, proj_bin)
+        graph.connect_nodes(dark_reader, dark_bin)
+        graph.connect_nodes(flat_before_reader, flat_bin)
+
+        reader, dark_reader, flat_before_reader = proj_bin, dark_bin, flat_bin
+
+        if args.flats2:
+            flat_bin = get_task('bin', size=args.resize)
+            graph.connect_nodes(flat_after_reader, flat_bin)
+            flat_after_reader = flat_bin
+
     if mode == 'median':
         dark_stack = get_task('stack', number=len(get_filenames(args.darks)))
         dark_reduced = get_task('flatten', mode='median')

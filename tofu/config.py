@@ -62,7 +62,11 @@ SECTIONS['reading'] = {
     'step': {
         'type': positive_int,
         'default': 1,
-        'help': 'Read every \"step\" file'}}
+        'help': 'Read every \"step\" file'},
+    'resize': {
+        'type': positive_int,
+        'default': None,
+        'help': 'Bin pixels before processing'}}
 
 SECTIONS['flat-correction'] = {
     'projections': {
