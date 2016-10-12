@@ -257,7 +257,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.params.projections = self.ui.input_path_line.text()
 
     def on_input_path_clicked(self, checked):
-        path = self.get_path(self.params.input, self.params.last_dir)
+        directory = self.params.projections or self.params.sinograms
+        path = self.get_path(directory, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.input_path_line, self.params.last_dir)
 
     def change_axis_spin(self):
