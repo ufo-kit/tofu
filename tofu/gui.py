@@ -250,11 +250,11 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_input_path_changed(self):
         if self.ui.sino_button.isChecked():
-            self.params.sinograms = self.ui.input_path_line.text()
+            self.params.sinograms = str(self.ui.input_path_line.text())
             self.params.projections = None
         else:
             self.params.sinograms = None
-            self.params.projections = self.ui.input_path_line.text()
+            self.params.projections = str(self.ui.input_path_line.text())
 
     def on_input_path_clicked(self, checked):
         directory = self.params.projections or self.params.sinograms
