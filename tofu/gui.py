@@ -130,8 +130,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.overlap_opt.currentIndexChanged.connect(self.on_overlap_opt_changed)
         self.ui.input_path_line.textChanged.connect(self.on_input_path_changed)
 
-        self.ui.sino_button.clicked.connect(lambda value: self.change_value('from_projections', False))
-        self.ui.proj_button.clicked.connect(lambda value: self.change_value('from_projections', True))
         self.ui.y_step.valueChanged.connect(lambda value: self.change_value('y_step', value))
         self.ui.angle_offset.valueChanged.connect(lambda value: self.change_value('offset', value))
         self.ui.oversampling.valueChanged.connect(lambda value: self.change_value('oversampling', value))
@@ -228,10 +226,12 @@ class ApplicationWindow(QtGui.QMainWindow):
         setattr(self.params, name, value)
 
     def on_sino_button_clicked(self):
+        self.on_input_path_changed()
         self.ffc_box.setEnabled(False)
         self.ui.preprocessing_container.setVisible(False)
 
     def on_proj_button_clicked(self):
+        self.on_input_path_changed()
         self.ffc_box.setEnabled(False)
         self.ui.preprocessing_container.setVisible(self.ffc_box.isChecked())
 
