@@ -112,7 +112,7 @@ def next_power_of_two(number):
 
 def read_image(filename):
     """Read image from file *filename*."""
-    if filename.lower().endswith('.tif'):
+    if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):
         from tifffile import TiffFile
         import numpy as np
         with TiffFile(filename) as tif:
