@@ -227,19 +227,16 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_sino_button_clicked(self):
         self.on_input_path_changed()
-        self.ffc_box.setEnabled(False)
+        self.ui.ffc_box.setEnabled(False)
         self.ui.preprocessing_container.setVisible(False)
 
     def on_proj_button_clicked(self):
         self.on_input_path_changed()
-        self.ffc_box.setEnabled(False)
+        self.ui.ffc_box.setEnabled(True)
         self.ui.preprocessing_container.setVisible(self.ffc_box.isChecked())
-
-        if self.ui.proj_button.isChecked():
-            self.ui.ffc_box.setEnabled(True)
-            self.ui.region_box.setEnabled(False)
-            self.ui.region_box.setChecked(False)
-            self.on_region_box_clicked()
+        self.ui.region_box.setEnabled(False)
+        self.ui.region_box.setChecked(False)
+        self.on_region_box_clicked()
 
     def on_region_box_clicked(self):
         self.ui.y_step.setEnabled(self.ui.region_box.isChecked())
@@ -276,7 +273,6 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_output_path_clicked(self, checked):
         path = self.get_path(self.params.output, self.params.last_dir)
         self.params.last_dir = set_last_dir(path, self.ui.output_path_line, self.params.last_dir)
-        self.new_output = True
 
     def on_clear_output_dir_clicked(self):
         with spinning_cursor():
@@ -375,7 +371,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.text_browser.clear()
         self.ui.method_box.setCurrentIndex(0)
 
-        self.params.from_projections = False
         self.params.enable_cropping = False
         self.params.reduction_mode = "average"
         self.params.fix_nan_and_inf = True
