@@ -24,6 +24,11 @@ SECTIONS['general'] = {
         'help': "Path to location or format-specified file path "
                 "for storing reconstructed slices",
         'metavar': 'PATH'},
+    'output-bitdepth': {
+        'default': 32,
+        'type': positive_int,
+        'help': "Bit depth of output, either 8, 16 or 32",
+        'metavar': 'BITDEPTH'},
     'log': {
         'default': None,
         'type': str,

@@ -9,6 +9,7 @@ from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
                        get_first_filename, next_power_of_two, read_image,
                        determine_shape)
+from tofu.tasks import get_writer
 
 
 LOG = logging.getLogger(__name__)
@@ -58,16 +59,6 @@ def get_sinogram_reader(params):
     return reader, width, height
 
 
-def get_writer(params):
-    if params.dry_run:
-        LOG.debug("Discarding data output")
-        return get_task('null', download=True)
-    else:
-        outname = params.output
-        LOG.debug("Writing output to {}".format(outname))
-        return get_task('write', filename=outname)
-
-
 def tomo(params):
     # Create reader and writer
     if params.projections and params.sinograms:
@@ -90,7 +81,7 @@ def tomo(params):
 
     LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
-    writer = get_writer(params)
+    writer = get_writer(pm, params)
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()

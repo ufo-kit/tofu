@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from multiprocessing import Queue, Process
 from tofu.util import determine_shape, get_filenames
+from tofu.tasks import get_writer
 
 
 LOG = logging.getLogger(__name__)
@@ -130,11 +131,10 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
         fft = pm.get_task('fft')
         ifft = pm.get_task('ifft')
         fltr = pm.get_task('filter')
-    if params.dry_run:
-        writer = pm.get_task('null')
-        writer.props.download = True
-    else:
-        writer = pm.get_task('write')
+
+    writer = get_writer(pm, params)
+
+    if not params.dry_run:
         writer.props.filename = '{}-{:>03}-%04i.tif'.format(params.output, index)
 
     # parameters
