@@ -14,7 +14,16 @@ def get_writer(pm, params):
     if params.dry_run:
         LOG.debug("Discarding data output")
         return get_task(pm, 'null', download=True)
-    else:
-        outname = params.output
-        LOG.debug("Writing output to {}".format(outname))
-        return get_task(pm, 'write', filename=outname)
+
+    outname = params.output
+    LOG.debug("Writing output to {}".format(outname))
+    writer = get_task(pm, 'write', filename=outname)
+
+    if params.output_bitdepth != 32:
+        writer.props.bits = params.output_bitdepth
+
+    if params.output_minimum is not None and params.output_maximum is not None:
+        writer.props.minimum = params.output_minimum
+        writer.props.maximum = params.output_maximum
+
+    return writer

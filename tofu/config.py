@@ -29,6 +29,16 @@ SECTIONS['general'] = {
         'type': positive_int,
         'help': "Bit depth of output, either 8, 16 or 32",
         'metavar': 'BITDEPTH'},
+    'output-minimum': {
+        'default': None,
+        'type': float,
+        'help': "Minimum value that maps to zero",
+        'metavar': 'MIN'},
+    'output-maximum': {
+        'default': None,
+        'type': float,
+        'help': "Maximum input value that maps to largest output value",
+        'metavar': 'MAX'},
     'log': {
         'default': None,
         'type': str,
