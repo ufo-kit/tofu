@@ -258,6 +258,10 @@ SECTIONS['laminographic-reconstruction'] = {
         'default': None,
         'type': positive_int,
         'help': "Number of slices computed by one computing device"},
+    'transpose-input': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
     'only-bp': {
         'default': False,
         'action': 'store_true',
