@@ -202,6 +202,7 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
     backproject.props.x_region = x_region
     backproject.props.y_region = y_region
     backproject.props.z = params.z
+    backproject.props.addressing_mode = params.lamino_padding_mode
     if params.z_parameter in ['lamino-angle', 'roll-angle']:
         region = [np.deg2rad(reg) for reg in region]
     backproject.props.region = region

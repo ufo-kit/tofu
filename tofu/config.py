@@ -269,7 +269,11 @@ SECTIONS['laminographic-reconstruction'] = {
     'only-bp': {
         'default': False,
         'action': 'store_true',
-        'help': "Do only backprojection with no other processing steps"}}
+        'help': "Do only backprojection with no other processing steps"},
+    'lamino-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp',
+        'help': "Padded values assignment for the filtered projection"}}
 
 SECTIONS['fbp'] = {
     'crop-width': {
