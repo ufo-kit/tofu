@@ -188,7 +188,11 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']}}
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+    'projection-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"}}
 
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {

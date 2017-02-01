@@ -122,7 +122,7 @@ def tomo(params):
             # Pad the image with its extent to prevent reconstuction ring
             pad = get_task('pad')
             crop = get_task('crop')
-            setup_padding(pad, crop, width, height)
+            setup_padding(pad, crop, width, height, params.projection_padding_mode)
 
             LOG.debug("Padding input to: {}x{} pixels".format(pad.props.width, pad.props.height))
 
@@ -330,13 +330,15 @@ def compute_rotation_axis(first_projection, last_projection):
     return (width / 2.0 + center) / 2
 
 
-def setup_padding(pad, crop, width, height):
+def setup_padding(pad, crop, width, height, mode):
     padding = next_power_of_two(width + 32) - width
     pad.props.width = width + padding
     pad.props.height = height
     pad.props.x = padding / 2
     pad.props.y = 0
-    pad.props.addressing_mode = 'clamp_to_edge'
+    pad.props.addressing_mode = mode
+    LOG.debug('Padded width: {}'.format(width + padding))
+    LOG.debug('Padding mode: {}'.format(mode))
 
     # crop to original width after filtering
     crop.props.width = width
