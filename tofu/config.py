@@ -123,6 +123,44 @@ SECTIONS['flat-correction'] = {
         'action': 'store_true',
         'help': 'Do absorption correction'}}
 
+SECTIONS['retrieve-phase'] = {
+    'retrieval-method': {
+        'choices': ['tie', 'ctf', 'ctfhalfsin', 'qp', 'qphalfsine', 'qp2'],
+        'default': 'tie',
+        'help': "Phase retrieval method"},
+    'energy': {
+        'default': None,
+        'type': float,
+        'help': "X-ray energy [keV]"},
+    'propagation-distance': {
+        'default': None,
+        'type': float,
+        'help': "Sample <-> detector distance [m]"},
+    'pixel-size': {
+        'default': 1e-6,
+        'type': float,
+        'help': "Pixel size [m]"},
+    'regularization-rate': {
+        'default': 2,
+        'type': float,
+        'help': "Regularization rate (typical values between [2, 3])"},
+    'retrieval-padded-width': {
+        'default': 0,
+        'type': positive_int,
+        'help': "Padded width used for phase retrieval"},
+    'retrieval-padded-height': {
+        'default': 0,
+        'type': positive_int,
+        'help': "Padded height used for phase retrieval"},
+    'retrieval-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"},
+    'thresholding-rate': {
+        'default': 0.01,
+        'type': float,
+        'help': "Thresholding rate (typical values between [0.01, 0.1])"}}
+
 SECTIONS['sinos'] = {
     'pass-size': {
         'type': positive_int,
@@ -152,7 +190,11 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']}}
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+    'projection-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"}}
 
 SECTIONS['tomographic-reconstruction'] = {
     'axis': {
@@ -222,10 +264,18 @@ SECTIONS['laminographic-reconstruction'] = {
         'default': None,
         'type': positive_int,
         'help': "Number of slices computed by one computing device"},
+    'transpose-input': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
     'only-bp': {
         'default': False,
         'action': 'store_true',
-        'help': "Do only backprojection with no other processing steps"}}
+        'help': "Do only backprojection with no other processing steps"},
+    'lamino-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp',
+        'help': "Padded values assignment for the filtered projection"}}
 
 SECTIONS['fbp'] = {
     'crop-width': {
@@ -325,7 +375,7 @@ SECTIONS['perf'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
+LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Sinogram generation',
               'General reconstruction', 'Tomographic reconstruction',

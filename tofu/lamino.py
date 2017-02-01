@@ -2,7 +2,7 @@
 import logging
 import numpy as np
 from multiprocessing import Queue, Process
-from tofu.util import determine_shape, get_filenames
+from tofu.util import determine_shape, get_filenames, next_power_of_two
 from tofu.tasks import get_writer
 
 
@@ -124,6 +124,7 @@ def _setup_source(params, pm, graph):
 def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None):
     backproject = pm.get_task('lamino-backproject')
     slicer = pm.get_task('slice')
+
     if not params.only_bp:
         from tofu.reco import setup_padding
         pad = pm.get_task('pad')
@@ -131,6 +132,62 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
         fft = pm.get_task('fft')
         ifft = pm.get_task('ifft')
         fltr = pm.get_task('filter')
+        width = params.width
+        height = params.height
+        if params.transpose_input:
+            transpose = pm.get_task('transpose')
+            tmp = width
+            width = height
+            height = tmp
+        phase_retrieve = None
+        if params.energy is not None and params.propagation_distance is not None:
+            # Retrieve phase
+            phase_retrieve = pm.get_task('retrieve-phase')
+            pad_phase_retrieve = pm.get_task('pad')
+            crop_phase_retrieve = pm.get_task('crop')
+            fft_phase_retrieve = pm.get_task('fft')
+            ifft_phase_retrieve = pm.get_task('ifft')
+            default_padded_width = next_power_of_two(width)
+            default_padded_height = next_power_of_two(height)
+
+            if params.transpose_input:
+                tmp = default_padded_width
+                default_padded_width = default_padded_height
+                default_padded_height = tmp
+
+            if not params.retrieval_padded_width:
+                params.retrieval_padded_width = default_padded_width
+            if not params.retrieval_padded_height:
+                params.retrieval_padded_height = default_padded_height
+            fmt = 'Phase retrieval padding: {}x{} -> {}x{}'
+            LOG.debug(fmt.format(width, height, params.retrieval_padded_width,
+                                 params.retrieval_padded_height))
+            x = (params.retrieval_padded_width - width) / 2
+            y = (params.retrieval_padded_height - height) / 2
+            pad_phase_retrieve.props.x = x
+            pad_phase_retrieve.props.y = y
+            pad_phase_retrieve.props.width = params.retrieval_padded_width
+            pad_phase_retrieve.props.height = params.retrieval_padded_height
+            pad_phase_retrieve.props.addressing_mode = params.retrieval_padding_mode
+            crop_phase_retrieve.props.x = x
+            crop_phase_retrieve.props.y = y
+            crop_phase_retrieve.props.width = width
+            crop_phase_retrieve.props.height = height
+            phase_retrieve.props.method = params.retrieval_method
+            phase_retrieve.props.energy = params.energy
+            phase_retrieve.props.distance = params.propagation_distance
+            phase_retrieve.props.pixel_size = params.pixel_size
+            phase_retrieve.props.regularization_rate = params.regularization_rate
+            phase_retrieve.props.thresholding_rate = params.thresholding_rate
+            fft_phase_retrieve.props.dimensions = 2
+            ifft_phase_retrieve.props.dimensions = 2
+
+            if gpu:
+                pad_phase_retrieve.set_proc_node(gpu)
+                crop_phase_retrieve.set_proc_node(gpu)
+                phase_retrieve.set_proc_node(gpu)
+                fft_phase_retrieve.set_proc_node(gpu)
+                ifft_phase_retrieve.set_proc_node(gpu)
 
     writer = get_writer(pm, params)
 
@@ -145,6 +202,7 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
     backproject.props.x_region = x_region
     backproject.props.y_region = y_region
     backproject.props.z = params.z
+    backproject.props.addressing_mode = params.lamino_padding_mode
     if params.z_parameter in ['lamino-angle', 'roll-angle']:
         region = [np.deg2rad(reg) for reg in region]
     backproject.props.region = region
@@ -152,10 +210,30 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
     backproject.props.center = params.axis
 
     if not params.only_bp:
-        setup_padding(pad, crop, params.width, params.height)
+        setup_padding(pad, crop, width, height, params.projection_padding_mode)
         fft.props.dimensions = 1
         ifft.props.dimensions = 1
         fltr.props.scale = np.sin(backproject.props.lamino_angle)
+
+        if phase_retrieve:
+            first = pad_phase_retrieve
+            graph.connect_nodes(pad_phase_retrieve, fft_phase_retrieve)
+            graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
+            graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
+            graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+            graph.connect_nodes(crop_phase_retrieve, pad)
+        else:
+            first = pad
+
+        if params.transpose_input:
+            graph.connect_nodes(transpose, first)
+            first = transpose
+
+        graph.connect_nodes(pad, fft)
+        graph.connect_nodes(fft, fltr)
+        graph.connect_nodes(fltr, ifft)
+        graph.connect_nodes(ifft, crop)
+        graph.connect_nodes(crop, backproject)
 
         if gpu:
             pad.set_proc_node(gpu)
@@ -167,16 +245,10 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
     if gpu:
         backproject.set_proc_node(gpu)
 
-    if not params.only_bp:
-        graph.connect_nodes(pad, fft)
-        graph.connect_nodes(fft, fltr)
-        graph.connect_nodes(fltr, ifft)
-        graph.connect_nodes(ifft, crop)
-        graph.connect_nodes(crop, backproject)
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
 
-    return backproject if params.only_bp else pad
+    return backproject if params.only_bp else first
 
 
 def _split_regions(params, gpus):
