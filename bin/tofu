@@ -188,6 +188,7 @@ def main():
         LOG.addHandler(file_handler)
 
     try:
+        config.log_values(args)
         args._func(args)
     except RuntimeError as e:
         LOG.error(str(e))

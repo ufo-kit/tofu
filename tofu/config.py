@@ -1,10 +1,12 @@
 import argparse
-import ConfigParser as configparser
 import sys
+import logging
+import ConfigParser as configparser
 from collections import OrderedDict
 from tofu.util import positive_int, tupleize, range_list
 
 
+LOG = logging.getLogger(__name__)
 NAME = "reco.conf"
 SECTIONS = OrderedDict()
 
@@ -325,6 +327,11 @@ TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction'
 
 LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction')
 
+NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Sinogram generation',
+              'General reconstruction', 'Tomographic reconstruction',
+              'Laminographic reconstruction', 'Filtered backprojection',
+              'Direct Fourier Inversion', 'Iterative reconstruction',
+              'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance')
 
 def get_config_name():
     """Get the command line --config option."""
@@ -438,3 +445,22 @@ def write(config_file, args=None, sections=None):
 
     with open(config_file, 'wb') as f:
         config.write(f)
+
+
+def log_values(args):
+    """Log all values set in the args namespace.
+
+    Arguments are grouped according to their section and logged alphabetically
+    using the DEBUG log level thus --verbose is required.
+    """
+    args = args.__dict__
+
+    for section, name in zip(SECTIONS, NICE_NAMES):
+        entries = sorted((k for k in args.keys() if k in SECTIONS[section]))
+
+        if entries:
+            LOG.debug(name)
+
+            for entry in entries:
+                value = args[entry] if args[entry] is not None else "-"
+                LOG.debug("  {:<16} {}".format(entry, value))
