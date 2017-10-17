@@ -6,7 +6,10 @@ import argparse
 import logging
 import time
 import re
+import gi
 from tofu import config, __version__
+
+gi.require_version('Ufo', '0.0')
 
 
 LOG = logging.getLogger('tofu')
