@@ -83,7 +83,17 @@ SECTIONS['reading'] = {
     'resize': {
         'type': positive_int,
         'default': None,
-        'help': 'Bin pixels before processing'}}
+        'help': 'Bin pixels before processing'},
+    'retries': {
+        'type': positive_int,
+        'default': 0,
+        'metavar': 'NUMBER',
+        'help': 'How many times to wait for new files'},
+    'retry-timeout': {
+        'type': positive_int,
+        'default': 0,
+        'metavar': 'TIME',
+        'help': 'How long to wait for new files per trial'}}
 
 SECTIONS['flat-correction'] = {
     'projections': {
