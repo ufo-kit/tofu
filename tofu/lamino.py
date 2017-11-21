@@ -195,7 +195,6 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
         writer.props.filename = '{}-{:>03}-%04i.tif'.format(params.output, index)
 
     # parameters
-    fltr.props.filter = params.projection_filter
     backproject.props.num_projections = params.number
     backproject.props.overall_angle = np.deg2rad(params.overall_angle)
     backproject.props.lamino_angle = np.deg2rad(params.lamino_angle)
@@ -214,6 +213,7 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
         setup_padding(pad, crop, width, height, params.projection_padding_mode)
         fft.props.dimensions = 1
         ifft.props.dimensions = 1
+        fltr.props.filter = params.projection_filter
         fltr.props.scale = np.sin(backproject.props.lamino_angle)
 
         if phase_retrieve:
