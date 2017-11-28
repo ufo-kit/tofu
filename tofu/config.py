@@ -226,6 +226,10 @@ SECTIONS['tomographic-reconstruction'] = {
         'choices': ['fbp', 'dfi', 'sart', 'sirt', 'sbtv', 'asdpocs']}}
 
 SECTIONS['laminographic-reconstruction'] = {
+    'angle': {
+        'default': None,
+        'type': float,
+        'help': "Angle step between projections in radians"},
     'dry-run': {
         'default': False,
         'help': "Reconstruct without writing data",
@@ -274,10 +278,6 @@ SECTIONS['laminographic-reconstruction'] = {
         'default': None,
         'type': positive_int,
         'help': "Number of slices computed by one computing device"},
-    'transpose-input': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
     'only-bp': {
         'default': False,
         'action': 'store_true',
@@ -405,8 +405,8 @@ SECTIONS['preprocess'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
 PREPROC_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase')
+LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',

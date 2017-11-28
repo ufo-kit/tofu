@@ -2,7 +2,8 @@
 import logging
 import numpy as np
 from multiprocessing import Queue, Process
-from tofu.util import determine_shape, get_filenames, next_power_of_two
+from tofu.preprocess import create_preprocessing_pipeline
+from tofu.util import determine_shape, get_filenames
 from tofu.tasks import get_task, get_writer
 
 
@@ -42,6 +43,8 @@ def lamino(params):
         LOG.info('Dummy data W x H x N: {} x {} x {}'.format(params.width,
                                                              params.height,
                                                              params.number))
+
+    params.projection_filter_scale = np.sin(np.deg2rad(params.lamino_angle))
 
     # For now we need to make a workaround for the memory leak, which means we need to execute
     # the passes in separate processes to clean up the low level code. For that we also need to
@@ -93,8 +96,8 @@ def _run(params, x_region, y_region, regions, index):
 
     for i, region in enumerate(regions):
         subindex = index * num_gpus + i
-        first = _setup_graph(pm, graph, subindex, x_region, y_region, region, params, gpu=gpus[i])
-        graph.connect_nodes(broadcast, first)
+        _setup_graph(pm, graph, subindex, x_region, y_region, region,
+                     params, broadcast, gpu=gpus[i])
 
     scheduler.run(graph)
     duration = scheduler.props.time
@@ -121,67 +124,9 @@ def _setup_source(params, pm, graph):
     return source
 
 
-def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None):
+def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, gpu=None):
     backproject = get_task(pm, 'lamino-backproject', processing_node=gpu)
     slicer = get_task(pm, 'slice', processing_node=gpu)
-
-    if not params.only_bp:
-        from tofu.reco import setup_padding
-        pad = get_task(pm, 'pad', processing_node=gpu)
-        crop = get_task(pm, 'crop', processing_node=gpu)
-        fft = get_task(pm, 'fft', processing_node=gpu)
-        ifft = get_task(pm, 'ifft', processing_node=gpu)
-        fltr = get_task(pm, 'filter', processing_node=gpu)
-        width = params.width
-        height = params.height
-        if params.transpose_input:
-            transpose = get_task(pm, 'transpose', processing_node=gpu)
-            tmp = width
-            width = height
-            height = tmp
-        phase_retrieve = None
-        if params.energy is not None and params.propagation_distance is not None:
-            # Retrieve phase
-            phase_retrieve = get_task(pm, 'retrieve-phase', processing_node=gpu)
-            pad_phase_retrieve = get_task(pm, 'pad', processing_node=gpu)
-            crop_phase_retrieve = get_task(pm, 'crop', processing_node=gpu)
-            fft_phase_retrieve = get_task(pm, 'fft', processing_node=gpu)
-            ifft_phase_retrieve = get_task(pm, 'ifft', processing_node=gpu)
-            default_padded_width = next_power_of_two(width)
-            default_padded_height = next_power_of_two(height)
-
-            if params.transpose_input:
-                tmp = default_padded_width
-                default_padded_width = default_padded_height
-                default_padded_height = tmp
-
-            if not params.retrieval_padded_width:
-                params.retrieval_padded_width = default_padded_width
-            if not params.retrieval_padded_height:
-                params.retrieval_padded_height = default_padded_height
-            fmt = 'Phase retrieval padding: {}x{} -> {}x{}'
-            LOG.debug(fmt.format(width, height, params.retrieval_padded_width,
-                                 params.retrieval_padded_height))
-            x = (params.retrieval_padded_width - width) / 2
-            y = (params.retrieval_padded_height - height) / 2
-            pad_phase_retrieve.props.x = x
-            pad_phase_retrieve.props.y = y
-            pad_phase_retrieve.props.width = params.retrieval_padded_width
-            pad_phase_retrieve.props.height = params.retrieval_padded_height
-            pad_phase_retrieve.props.addressing_mode = params.retrieval_padding_mode
-            crop_phase_retrieve.props.x = x
-            crop_phase_retrieve.props.y = y
-            crop_phase_retrieve.props.width = width
-            crop_phase_retrieve.props.height = height
-            phase_retrieve.props.method = params.retrieval_method
-            phase_retrieve.props.energy = params.energy
-            phase_retrieve.props.distance = params.propagation_distance
-            phase_retrieve.props.pixel_size = params.pixel_size
-            phase_retrieve.props.regularization_rate = params.regularization_rate
-            phase_retrieve.props.thresholding_rate = params.thresholding_rate
-            fft_phase_retrieve.props.dimensions = 2
-            ifft_phase_retrieve.props.dimensions = 2
-
     writer = get_writer(pm, params)
 
     if not params.dry_run:
@@ -202,37 +147,16 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
     backproject.props.parameter = params.z_parameter
     backproject.props.center = params.axis
 
-    if not params.only_bp:
-        setup_padding(pad, crop, width, height, params.projection_padding_mode)
-        fft.props.dimensions = 1
-        ifft.props.dimensions = 1
-        fltr.props.filter = params.projection_filter
-        fltr.props.scale = np.sin(backproject.props.lamino_angle)
-
-        if phase_retrieve:
-            first = pad_phase_retrieve
-            graph.connect_nodes(pad_phase_retrieve, fft_phase_retrieve)
-            graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
-            graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
-            graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
-            graph.connect_nodes(crop_phase_retrieve, pad)
-        else:
-            first = pad
-
-        if params.transpose_input:
-            graph.connect_nodes(transpose, first)
-            first = transpose
-
-        graph.connect_nodes(pad, fft)
-        graph.connect_nodes(fft, fltr)
-        graph.connect_nodes(fltr, ifft)
-        graph.connect_nodes(ifft, crop)
-        graph.connect_nodes(crop, backproject)
-
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
 
-    return backproject if params.only_bp else first
+    if params.only_bp:
+        first = backproject
+    else:
+        first = create_preprocessing_pipeline(params, graph, source=source, processing_node=gpu)
+        graph.connect_nodes(first, backproject)
+
+    return first
 
 
 def _split_regions(params, gpus):
