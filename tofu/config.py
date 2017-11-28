@@ -387,8 +387,8 @@ TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction'
 
 LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
 
-NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Sinogram generation',
-              'General reconstruction', 'Tomographic reconstruction',
+NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
+              'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance')
@@ -516,7 +516,7 @@ def log_values(args):
     args = args.__dict__
 
     for section, name in zip(SECTIONS, NICE_NAMES):
-        entries = sorted((k for k in args.keys() if k in SECTIONS[section]))
+        entries = sorted((k for k in args.keys() if k.replace('_', '-') in SECTIONS[section]))
 
         if entries:
             LOG.debug(name)
