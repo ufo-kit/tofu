@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from multiprocessing import Queue, Process
 from tofu.util import determine_shape, get_filenames, next_power_of_two
-from tofu.tasks import get_writer
+from tofu.tasks import get_task, get_writer
 
 
 LOG = logging.getLogger(__name__)
@@ -122,31 +122,31 @@ def _setup_source(params, pm, graph):
 
 
 def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None):
-    backproject = pm.get_task('lamino-backproject')
-    slicer = pm.get_task('slice')
+    backproject = get_task(pm, 'lamino-backproject', processing_node=gpu)
+    slicer = get_task(pm, 'slice', processing_node=gpu)
 
     if not params.only_bp:
         from tofu.reco import setup_padding
-        pad = pm.get_task('pad')
-        crop = pm.get_task('crop')
-        fft = pm.get_task('fft')
-        ifft = pm.get_task('ifft')
-        fltr = pm.get_task('filter')
+        pad = get_task(pm, 'pad', processing_node=gpu)
+        crop = get_task(pm, 'crop', processing_node=gpu)
+        fft = get_task(pm, 'fft', processing_node=gpu)
+        ifft = get_task(pm, 'ifft', processing_node=gpu)
+        fltr = get_task(pm, 'filter', processing_node=gpu)
         width = params.width
         height = params.height
         if params.transpose_input:
-            transpose = pm.get_task('transpose')
+            transpose = get_task(pm, 'transpose', processing_node=gpu)
             tmp = width
             width = height
             height = tmp
         phase_retrieve = None
         if params.energy is not None and params.propagation_distance is not None:
             # Retrieve phase
-            phase_retrieve = pm.get_task('retrieve-phase')
-            pad_phase_retrieve = pm.get_task('pad')
-            crop_phase_retrieve = pm.get_task('crop')
-            fft_phase_retrieve = pm.get_task('fft')
-            ifft_phase_retrieve = pm.get_task('ifft')
+            phase_retrieve = get_task(pm, 'retrieve-phase', processing_node=gpu)
+            pad_phase_retrieve = get_task(pm, 'pad', processing_node=gpu)
+            crop_phase_retrieve = get_task(pm, 'crop', processing_node=gpu)
+            fft_phase_retrieve = get_task(pm, 'fft', processing_node=gpu)
+            ifft_phase_retrieve = get_task(pm, 'ifft', processing_node=gpu)
             default_padded_width = next_power_of_two(width)
             default_padded_height = next_power_of_two(height)
 
@@ -181,13 +181,6 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
             phase_retrieve.props.thresholding_rate = params.thresholding_rate
             fft_phase_retrieve.props.dimensions = 2
             ifft_phase_retrieve.props.dimensions = 2
-
-            if gpu:
-                pad_phase_retrieve.set_proc_node(gpu)
-                crop_phase_retrieve.set_proc_node(gpu)
-                phase_retrieve.set_proc_node(gpu)
-                fft_phase_retrieve.set_proc_node(gpu)
-                ifft_phase_retrieve.set_proc_node(gpu)
 
     writer = get_writer(pm, params)
 
@@ -235,16 +228,6 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, gpu=None)
         graph.connect_nodes(fltr, ifft)
         graph.connect_nodes(ifft, crop)
         graph.connect_nodes(crop, backproject)
-
-        if gpu:
-            pad.set_proc_node(gpu)
-            crop.set_proc_node(gpu)
-            fft.set_proc_node(gpu)
-            ifft.set_proc_node(gpu)
-            fltr.set_proc_node(gpu)
-
-    if gpu:
-        backproject.set_proc_node(gpu)
 
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
