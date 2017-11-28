@@ -383,15 +383,37 @@ SECTIONS['perf'] = {
         'type': range_list,
         'help': "Number or range of number of projections"}}
 
+SECTIONS['preprocess'] = {
+    'transpose-input': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
+    'projection-filter': {
+        'default': 'ramp-fromreal',
+        'type': str,
+        'help': "Projection filter",
+        'choices': ['none', 'ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+    'projection-filter-scale': {
+        'default': 1.,
+        'type': float,
+        'help': "Multiplicative factor of the projection filter"},
+    'projection-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"}
+        }
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
-              'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance')
+              'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
+              'Preprocess')
 
 def get_config_name():
     """Get the command line --config option."""

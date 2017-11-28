@@ -3,7 +3,7 @@ import sys
 import logging
 from gi.repository import Ufo
 from tofu.util import (get_filenames, set_node_props, make_subargs,
-                       determine_shape, setup_read_task)
+                       determine_shape, setup_read_task, next_power_of_two)
 from tofu.tasks import get_task, get_writer
 
 
@@ -111,6 +111,55 @@ def create_flat_correct_pipeline(args, graph, processing_node=None):
     return ffc
 
 
+def create_phase_retrieval_pipeline(args, graph, processing_node=None):
+    LOG.debug('Creating phase retrieval pipeline')
+    pm = Ufo.PluginManager()
+    # Retrieve phase
+    phase_retrieve = get_task(pm, 'retrieve-phase', processing_node=processing_node)
+    pad_phase_retrieve = get_task(pm, 'pad', processing_node=processing_node)
+    crop_phase_retrieve = get_task(pm, 'crop', processing_node=processing_node)
+    fft_phase_retrieve = get_task(pm, 'fft', processing_node=processing_node)
+    ifft_phase_retrieve = get_task(pm, 'ifft', processing_node=processing_node)
+    width = args.width
+    height = args.height
+    default_padded_width = next_power_of_two(width)
+    default_padded_height = next_power_of_two(height)
+
+    if not args.retrieval_padded_width:
+        args.retrieval_padded_width = default_padded_width
+    if not args.retrieval_padded_height:
+        args.retrieval_padded_height = default_padded_height
+    fmt = 'Phase retrieval padding: {}x{} -> {}x{}'
+    LOG.debug(fmt.format(width, height, args.retrieval_padded_width,
+                         args.retrieval_padded_height))
+    x = (args.retrieval_padded_width - width) / 2
+    y = (args.retrieval_padded_height - height) / 2
+    pad_phase_retrieve.props.x = x
+    pad_phase_retrieve.props.y = y
+    pad_phase_retrieve.props.width = args.retrieval_padded_width
+    pad_phase_retrieve.props.height = args.retrieval_padded_height
+    pad_phase_retrieve.props.addressing_mode = args.retrieval_padding_mode
+    crop_phase_retrieve.props.x = x
+    crop_phase_retrieve.props.y = y
+    crop_phase_retrieve.props.width = width
+    crop_phase_retrieve.props.height = height
+    phase_retrieve.props.method = args.retrieval_method
+    phase_retrieve.props.energy = args.energy
+    phase_retrieve.props.distance = args.propagation_distance
+    phase_retrieve.props.pixel_size = args.pixel_size
+    phase_retrieve.props.regularization_rate = args.regularization_rate
+    phase_retrieve.props.thresholding_rate = args.thresholding_rate
+    fft_phase_retrieve.props.dimensions = 2
+    ifft_phase_retrieve.props.dimensions = 2
+
+    graph.connect_nodes(pad_phase_retrieve, fft_phase_retrieve)
+    graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
+    graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
+    graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+
+    return (pad_phase_retrieve, crop_phase_retrieve)
+
+
 def run_flat_correct(args):
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
@@ -173,3 +222,91 @@ def run_sinogram_generation(args):
         args.y = starts[i]
         args.height = starts[i + 1] - starts[i]
         generate_partial(append=i != 0)
+
+
+def create_projection_filtering_pipeline(args, graph, processing_node=None):
+    from tofu.reco import setup_padding
+    pm = Ufo.PluginManager()
+    pad = get_task(pm, 'pad', processing_node=processing_node)
+    crop = get_task(pm, 'crop', processing_node=processing_node)
+    fft = get_task(pm, 'fft', processing_node=processing_node)
+    ifft = get_task(pm, 'ifft', processing_node=processing_node)
+    fltr = get_task(pm, 'filter', processing_node=processing_node)
+
+    setup_padding(pad, crop, args.width, args.height, args.projection_padding_mode)
+    fft.props.dimensions = 1
+    ifft.props.dimensions = 1
+    fltr.props.filter = args.projection_filter
+    fltr.props.scale = args.projection_filter_scale
+
+    graph.connect_nodes(pad, fft)
+    graph.connect_nodes(fft, fltr)
+    graph.connect_nodes(fltr, ifft)
+    graph.connect_nodes(ifft, crop)
+
+    return (pad, crop)
+
+
+def create_preprocessing_pipeline(args, graph, source=None, processing_node=None):
+    pm = Ufo.PluginManager()
+
+    if not (args.width and args.height):
+        width, height = determine_shape(args, args.projections)
+        if not width:
+            raise RuntimeError("Could not determine width from the input")
+    if not args.width:
+        args.width = width
+    if not args.height:
+        args.height = height - args.y
+
+    LOG.debug('Image width x height: %d x %d', args.width, args.height)
+
+    if source:
+        current = source
+    elif args.darks and args.flats:
+        current = create_flat_correct_pipeline(args, graph, processing_node=processing_node)
+    else:
+        current = get_task(pm, 'read')
+        set_node_props(current, args)
+        if not args.projections:
+            raise RuntimeError('--projections not set')
+        setup_read_task(current, args.projections, args)
+        if args.absorptivity:
+            absorptivity = get_task(pm, 'calculate', processing_node=processing_node)
+            absorptivity.props.expression = '-log(v)'
+            graph.connect_nodes(current, absorptivity)
+            current = absorptivity
+
+    if args.transpose_input:
+        transpose = get_task(pm, 'transpose')
+        graph.connect_nodes(current, transpose)
+        current = transpose
+        tmp = args.width
+        args.width = args.height
+        args.height = tmp
+
+    if args.projection_filter != 'none':
+        pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
+                                                                 processing_node=processing_node)
+        graph.connect_nodes(current, pf_first)
+        current = pf_last
+
+    if args.energy is not None and args.propagation_distance is not None:
+        pr_first, pr_last = create_phase_retrieval_pipeline(args, graph,
+                                                            processing_node=processing_node)
+        graph.connect_nodes(current, pr_first)
+        current = pr_last
+
+    return current
+
+
+def run_preprocessing(args):
+    graph = Ufo.TaskGraph()
+    sched = Ufo.Scheduler()
+    pm = Ufo.PluginManager()
+
+    out_task = get_writer(pm, args)
+    current = create_preprocessing_pipeline(args, graph)
+    graph.connect_nodes(current, out_task)
+
+    sched.run(graph)
