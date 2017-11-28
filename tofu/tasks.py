@@ -4,9 +4,13 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-def get_task(pm, name, **kwargs):
+def get_task(pm, name, processing_node=None, **kwargs):
     task = pm.get_task(name)
     task.set_properties(**kwargs)
+    if processing_node and task.uses_gpu():
+        LOG.debug("Assigning task '%s' to node %d", name, processing_node.get_index())
+        task.set_proc_node(processing_node)
+
     return task
 
 
