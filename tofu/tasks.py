@@ -11,7 +11,7 @@ def get_task(pm, name, **kwargs):
 
 
 def get_writer(pm, params):
-    if params.dry_run:
+    if 'dry_run' in params and params.dry_run:
         LOG.debug("Discarding data output")
         return get_task(pm, 'null', download=True)
 
