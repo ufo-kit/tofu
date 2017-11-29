@@ -1,11 +1,13 @@
 import logging
+from gi.repository import Ufo
 
 
 LOG = logging.getLogger(__name__)
+PLUGIN_MANAGER = Ufo.PluginManager()
 
 
-def get_task(pm, name, processing_node=None, **kwargs):
-    task = pm.get_task(name)
+def get_task(name, processing_node=None, **kwargs):
+    task = PLUGIN_MANAGER.get_task(name)
     task.set_properties(**kwargs)
     if processing_node and task.uses_gpu():
         LOG.debug("Assigning task '%s' to node %d", name, processing_node.get_index())
@@ -14,14 +16,14 @@ def get_task(pm, name, processing_node=None, **kwargs):
     return task
 
 
-def get_writer(pm, params):
+def get_writer(params):
     if 'dry_run' in params and params.dry_run:
         LOG.debug("Discarding data output")
-        return get_task(pm, 'null', download=True)
+        return get_task('null', download=True)
 
     outname = params.output
     LOG.debug("Writing output to {}".format(outname))
-    writer = get_task(pm, 'write', filename=outname)
+    writer = get_task('write', filename=outname)
 
     if params.output_bitdepth != 32:
         writer.props.bits = params.output_bitdepth

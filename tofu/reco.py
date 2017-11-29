@@ -9,17 +9,11 @@ from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
                        get_first_filename, read_image, determine_shape,
                        setup_padding)
-from tofu.tasks import get_writer
+from tofu.tasks import get_task, get_writer
 
 
 LOG = logging.getLogger(__name__)
 pm = Ufo.PluginManager()
-
-
-def get_task(name, **kwargs):
-    task = pm.get_task(name)
-    task.set_properties(**kwargs)
-    return task
 
 
 def get_dummy_reader(params):
@@ -81,7 +75,7 @@ def tomo(params):
 
     LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
-    writer = get_writer(pm, params)
+    writer = get_writer(params)
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()

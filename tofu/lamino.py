@@ -125,9 +125,9 @@ def _setup_source(params, pm, graph):
 
 
 def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, gpu=None):
-    backproject = get_task(pm, 'lamino-backproject', processing_node=gpu)
-    slicer = get_task(pm, 'slice', processing_node=gpu)
-    writer = get_writer(pm, params)
+    backproject = get_task('lamino-backproject', processing_node=gpu)
+    slicer = get_task('slice', processing_node=gpu)
+    writer = get_writer(params)
 
     if not params.dry_run:
         writer.props.filename = '{}-{:>03}-%04i.tif'.format(params.output, index)
