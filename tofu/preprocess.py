@@ -3,7 +3,8 @@ import sys
 import logging
 from gi.repository import Ufo
 from tofu.util import (get_filenames, set_node_props, make_subargs,
-                       determine_shape, setup_read_task, next_power_of_two)
+                       determine_shape, setup_read_task,
+                       setup_padding, next_power_of_two)
 from tofu.tasks import get_task, get_writer
 
 
@@ -225,7 +226,6 @@ def run_sinogram_generation(args):
 
 
 def create_projection_filtering_pipeline(args, graph, processing_node=None):
-    from tofu.reco import setup_padding
     pm = Ufo.PluginManager()
     pad = get_task(pm, 'pad', processing_node=processing_node)
     crop = get_task(pm, 'crop', processing_node=processing_node)
