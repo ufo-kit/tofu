@@ -226,6 +226,10 @@ SECTIONS['tomographic-reconstruction'] = {
         'choices': ['fbp', 'dfi', 'sart', 'sirt', 'sbtv', 'asdpocs']}}
 
 SECTIONS['laminographic-reconstruction'] = {
+    'angle': {
+        'default': None,
+        'type': float,
+        'help': "Angle step between projections in radians"},
     'dry-run': {
         'default': False,
         'help': "Reconstruct without writing data",
@@ -274,10 +278,6 @@ SECTIONS['laminographic-reconstruction'] = {
         'default': None,
         'type': positive_int,
         'help': "Number of slices computed by one computing device"},
-    'transpose-input': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
     'only-bp': {
         'default': False,
         'action': 'store_true',
@@ -383,15 +383,37 @@ SECTIONS['perf'] = {
         'type': range_list,
         'help': "Number or range of number of projections"}}
 
+SECTIONS['preprocess'] = {
+    'transpose-input': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Transpose projections before they are backprojected (after phase retrieval)"},
+    'projection-filter': {
+        'default': 'ramp-fromreal',
+        'type': str,
+        'help': "Projection filter",
+        'choices': ['none', 'ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+    'projection-filter-scale': {
+        'default': 1.,
+        'type': float,
+        'help': "Multiplicative factor of the projection filter"},
+    'projection-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment"}
+        }
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-LAMINO_PARAMS = ('flat-correction', 'reconstruction', 'laminographic-reconstruction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase')
+LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 
-NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Sinogram generation',
-              'General reconstruction', 'Tomographic reconstruction',
+NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
+              'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
-              'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance')
+              'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
+              'Preprocess')
 
 def get_config_name():
     """Get the command line --config option."""
@@ -516,7 +538,7 @@ def log_values(args):
     args = args.__dict__
 
     for section, name in zip(SECTIONS, NICE_NAMES):
-        entries = sorted((k for k in args.keys() if k in SECTIONS[section]))
+        entries = sorted((k for k in args.keys() if k.replace('_', '-') in SECTIONS[section]))
 
         if entries:
             LOG.debug(name)

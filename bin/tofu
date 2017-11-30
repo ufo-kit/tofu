@@ -37,6 +37,11 @@ def run_flat_correct(args):
     preprocess.run_flat_correct(args)
 
 
+def run_preprocessing(args):
+    from tofu import preprocess
+    preprocess.run_preprocessing(args)
+
+
 def run_sinos(args):
     from tofu import preprocess
     preprocess.run_sinogram_generation(args)
@@ -158,6 +163,7 @@ def main():
 
     cmd_parsers = [
         ('init',        init,           (),                             "Create configuration file"),
+        ('preprocess',  run_preprocessing, config.PREPROC_PARAMS,       "Run preprocessing"),
         ('flatcorrect', run_flat_correct, ('flat-correction',),         "Run flat field correction"),
         ('sinos',       run_sinos,      sino_params,                    "Generate sinograms from projections"),
         ('tomo',        run_tomo,       tomo_params,                    "Run tomographic reconstruction"),

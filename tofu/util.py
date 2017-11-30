@@ -159,3 +159,20 @@ def determine_shape(args, path):
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
 
     return (width, height)
+
+
+def setup_padding(pad, crop, width, height, mode):
+    padding = next_power_of_two(width + 32) - width
+    pad.props.width = width + padding
+    pad.props.height = height
+    pad.props.x = padding / 2
+    pad.props.y = 0
+    pad.props.addressing_mode = mode
+    LOG.debug('Padded width: {}'.format(width + padding))
+    LOG.debug('Padding mode: {}'.format(mode))
+
+    # crop to original width after filtering
+    crop.props.width = width
+    crop.props.height = height
+    crop.props.x = padding / 2
+    crop.props.y = 0

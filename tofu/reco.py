@@ -7,19 +7,13 @@ import numpy as np
 from gi.repository import Ufo
 from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
-                       get_first_filename, next_power_of_two, read_image,
-                       determine_shape)
-from tofu.tasks import get_writer
+                       get_first_filename, read_image, determine_shape,
+                       setup_padding)
+from tofu.tasks import get_task, get_writer
 
 
 LOG = logging.getLogger(__name__)
 pm = Ufo.PluginManager()
-
-
-def get_task(name, **kwargs):
-    task = pm.get_task(name)
-    task.set_properties(**kwargs)
-    return task
 
 
 def get_dummy_reader(params):
@@ -81,7 +75,7 @@ def tomo(params):
 
     LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
-    writer = get_writer(pm, params)
+    writer = get_writer(params)
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
@@ -328,20 +322,3 @@ def compute_rotation_axis(first_projection, last_projection):
     center = np.unravel_index(convolved.argmax(), convolved.shape)[1]
 
     return (width / 2.0 + center) / 2
-
-
-def setup_padding(pad, crop, width, height, mode):
-    padding = next_power_of_two(width + 32) - width
-    pad.props.width = width + padding
-    pad.props.height = height
-    pad.props.x = padding / 2
-    pad.props.y = 0
-    pad.props.addressing_mode = mode
-    LOG.debug('Padded width: {}'.format(width + padding))
-    LOG.debug('Padding mode: {}'.format(mode))
-
-    # crop to original width after filtering
-    crop.props.width = width
-    crop.props.height = height
-    crop.props.x = padding / 2
-    crop.props.y = 0
