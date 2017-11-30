@@ -403,17 +403,193 @@ SECTIONS['preprocess'] = {
         'help': "Padded values assignment"}
         }
 
+SECTIONS['cone-beam-weight'] = {
+    'source-position-y': {
+        'default': "-Inf",
+        'type': tupleize(dtype=list),
+        'help': "Y source position (along beam direction) in global coordinates [pixels]"},
+    'detector-position-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Y detector position (along beam direction) in global coordinates [pixels]"},
+    'center-position-x': {
+        'default': None,
+        'type': tupleize(),
+        'help': "X rotation axis position on a projection"},
+    'center-position-z': {
+        'default': None,
+        'type': tupleize(),
+        'help': "Z rotation axis position on a projection"},
+    'axis-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the x axis"
+                "(laminographic angle, 0 = tomography) [deg]"}}
+
+SECTIONS['general-reconstruction'] = {
+    'enable-tracing': {
+        'default': False,
+        'help': "Enable tracing and store result in .PID.json",
+        'action': 'store_true'},
+    'disable-cone-beam-weight': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Disable cone beam weighting"},
+    'slice-memory-coeff': {
+        'default': 0.8,
+        'type': restrict_value((0.01, 0.95)),
+        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]"},
+    'num-gpu-threads': {
+        'default': 1,
+        'type': restrict_value((1, None), dtype=int),
+        'help': "Number of parallel reconstruction threads on one GPU"},
+    'only-bp': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Do only backprojection with no other processing steps"},
+    'dry-run': {
+        'default': False,
+        'help': "Reconstruct without reading or writing data",
+        'action': 'store_true'},
+    'data-splitting-policy': {
+        'default': 'one',
+        'type': str,
+        'help': "'one': one GPU should process as many slices as possible, "
+                "'many': slices should be spread across as many GPUs as possible",
+        'choices': ['one', 'many']},
+    'projection-margin': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "By optimization of the read projection region, the read region will be "
+                "[y - margin, y + height + margin]"},
+    'slices-per-device': {
+        'default': None,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of slices computed by one computing device"},
+    'gpus': {
+        'default': None,
+        'nargs': '+',
+        'type': int,
+        'help': "GPUs with these indices will be used (0-based)"},
+    'burst': {
+        'default': None,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of projections processed per kernel invocation"},
+    'x-region': {
+        'default': "0,-1,1",
+        'type': tupleize(num_items=3, conv=int),
+        'help': "x region as from,to,step"},
+    'y-region': {
+        'default': "0,-1,1",
+        'type': tupleize(num_items=3, conv=int),
+        'help': "y region as from,to,step"},
+    'z': {
+        'default': 0,
+        'type': int,
+        'help': "z coordinate of the reconstructed slice"},
+    'z-parameter': {
+        'default': 'z',
+        'type': str,
+        'choices': ['axis-angle-x', 'axis-angle-y', 'axis-angle-z',
+                    'volume-angle-x', 'volume-angle-y', 'volume-angle-z',
+                    'detector-angle-x', 'detector-angle-y', 'detector-angle-z',
+                    'detector-position-x', 'detector-position-y', 'detector-position-z',
+                    'source-position-x', 'source-position-y', 'source-position-z',
+                    'center-position-x', 'center-position-z', 'z'],
+        'help': "Parameter to vary along the reconstructed z-axis"},
+    'region': {
+        'default': "0,1,1",
+        'type': tupleize(num_items=3),
+        'help': "z axis parameter region as from,to,step"},
+    'source-position-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "X source position (horizontal) in global coordinates [pixels]"},
+    'source-position-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Z source position (vertical) in global coordinates [pixels]"},
+    'detector-position-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "X detector position (horizontal) in global coordinates [pixels]"},
+    'detector-position-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Z detector position (vertical) in global coordinates [pixels]"},
+    'detector-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the x axis (horizontal) [deg]"},
+    'detector-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the y axis (along beam direction) [deg]"},
+    'detector-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the z axis (vertical) [deg]"},
+    'axis-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the y axis (along beam direction) [deg]"},
+    'axis-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the z axis (vertical) [deg]"},
+    'volume-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the x axis (horizontal) [deg]"},
+    'volume-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the y axis (along beam direction) [deg]"},
+    'volume-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the z axis (vertical) [deg]"},
+    'compute-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type for performing kernel math operations",
+        'choices': ['half', 'float', 'double']},
+    'result-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type for storing the intermediate gray value for a voxel "
+                "from various rotation angles",
+        'choices': ['half', 'float', 'double']},
+    'store-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type of the output volume",
+        'choices': ['half', 'float', 'double', 'uchar', 'ushort', 'uint']},
+    'overall-angle': {
+        'default': None,
+        'type': float,
+        'help': "The total angle over which projections were taken in degrees"},
+    'genreco-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp',
+        'help': "Padded values assignment for the filtered projection"},
+    'slice-gray-map': {
+        'default': "0,0",
+        'type': tupleize(num_items=2, conv=float),
+        'help': "Minimum and maximum gray value mapping if store-type is integer-based"}}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-PREPROC_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
+GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess')
+              'Preprocess', 'Cone beam weight', 'General reconstruction')
 
 def get_config_name():
     """Get the command line --config option."""

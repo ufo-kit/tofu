@@ -242,3 +242,31 @@ def get_reconstruction_regions(params, store=False):
         params.region = region
 
     return x_region, y_region, region
+
+
+def get_scarray_value(scarray, index):
+    if len(scarray) == 1:
+        return scarray[0]
+
+    return scarray[index]
+
+
+class Vector(object):
+
+    """A vector based on axis-angle representation."""
+
+    def __init__(self, x_angle=0, y_angle=0, z_angle=0, position=None):
+        import numpy as np
+        self.position = np.array(position, dtype=np.float) if position is not None else None
+        self.x_angle = x_angle
+        self.y_angle = y_angle
+        self.z_angle = z_angle
+
+    def __repr__(self):
+        return 'Vector(position={}, angles=({}, {}, {}))'.format(self.position,
+                                                                 self.x_angle,
+                                                                 self.y_angle,
+                                                                 self.z_angle)
+
+    def __str__(self):
+        return repr(self)

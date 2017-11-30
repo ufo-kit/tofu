@@ -32,6 +32,11 @@ def run_lamino(args):
     lamino.lamino(args)
 
 
+def run_genreco(args):
+    from tofu import genreco
+    genreco.genreco(args)
+
+
 def run_flat_correct(args):
     from tofu import preprocess
     preprocess.run_flat_correct(args)
@@ -168,6 +173,9 @@ def main():
         ('sinos',       run_sinos,      sino_params,                    "Generate sinograms from projections"),
         ('tomo',        run_tomo,       tomo_params,                    "Run tomographic reconstruction"),
         ('lamino',      run_lamino,     lamino_params,                  "Run laminographic reconstruction"),
+        ('reco',        run_genreco,    config.GEN_RECO_PARAMS,         "Run general projection-based "
+                                                                        "reconstruction for tomographic/"
+                                                                        "laminographic cone/parallel beam"),
         ('gui',         gui,            tomo_params + ('gui',),         "GUI for tomographic reconstruction"),
         ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),

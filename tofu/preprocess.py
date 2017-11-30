@@ -247,9 +247,12 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     return (pad, crop)
 
 
-def create_preprocessing_pipeline(args, graph, source=None, processing_node=None):
-    pm = Ufo.PluginManager()
-
+def create_preprocessing_pipeline(args, graph, source=None, processing_node=None,
+                                  cone_beam_weight=True, make_reader=True):
+    """If *make_reader* is True, create a read task if *source* is None and no dark and flat fields
+    are given.
+    """
+    import numpy as np
     if not (args.width and args.height):
         width, height = determine_shape(args, args.projections)
         if not width:
@@ -261,40 +264,59 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
 
     LOG.debug('Image width x height: %d x %d', args.width, args.height)
 
+    current = None
     if source:
         current = source
     elif args.darks and args.flats:
         current = create_flat_correct_pipeline(args, graph, processing_node=processing_node)
     else:
-        current = get_task('read')
-        set_node_props(current, args)
-        if not args.projections:
-            raise RuntimeError('--projections not set')
-        setup_read_task(current, args.projections, args)
+        if make_reader:
+            current = get_task('read')
+            set_node_props(current, args)
+            if not args.projections:
+                raise RuntimeError('--projections not set')
+            setup_read_task(current, args.projections, args)
         if args.absorptivity:
             absorptivity = get_task('calculate', processing_node=processing_node)
             absorptivity.props.expression = '-log(v)'
-            graph.connect_nodes(current, absorptivity)
+            if current:
+                graph.connect_nodes(current, absorptivity)
             current = absorptivity
 
     if args.transpose_input:
         transpose = get_task('transpose')
-        graph.connect_nodes(current, transpose)
+        if current:
+            graph.connect_nodes(current, transpose)
         current = transpose
         tmp = args.width
         args.width = args.height
         args.height = tmp
 
+    if cone_beam_weight and not np.all(np.isinf(args.source_position_y)):
+        # Cone beam projection weight
+        LOG.debug('Enabling cone beam weighting')
+        weight = get_task('cone-beam-projection-weight', processing_node=processing_node)
+        weight.props.source_distance = (-np.array(args.source_position_y)).tolist()
+        weight.props.detector_distance = args.detector_position_y
+        weight.props.center_position_x = args.center_position_x or [args.width / 2. + (args.width % 2) * 0.5]
+        weight.props.center_position_z = args.center_position_z or [args.height / 2. + (args.height % 2) * 0.5]
+        weight.props.axis_angle_x = args.axis_angle_x
+        if current:
+            graph.connect_nodes(current, weight)
+        current = weight
+
     if args.projection_filter != 'none':
         pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
                                                                  processing_node=processing_node)
-        graph.connect_nodes(current, pf_first)
+        if current:
+            graph.connect_nodes(current, pf_first)
         current = pf_last
 
     if args.energy is not None and args.propagation_distance is not None:
         pr_first, pr_last = create_phase_retrieval_pipeline(args, graph,
                                                             processing_node=processing_node)
-        graph.connect_nodes(current, pr_first)
+        if current:
+            graph.connect_nodes(current, pr_first)
         current = pr_last
 
     return current
