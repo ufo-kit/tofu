@@ -86,7 +86,7 @@ def positive_int(value):
     return result
 
 
-def tupleize(num_items=None, conv=None):
+def tupleize(num_items=None, conv=float):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
