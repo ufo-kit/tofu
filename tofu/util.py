@@ -86,7 +86,7 @@ def positive_int(value):
     return result
 
 
-def tupleize(num_items, conv=None):
+def tupleize(num_items=None, conv=None):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
@@ -97,7 +97,7 @@ def tupleize(num_items, conv=None):
         except:
             raise argparse.ArgumentTypeError('Expect comma-separated tuple')
 
-        if len(result) != num_items:
+        if num_items and len(result) != num_items:
             raise argparse.ArgumentTypeError('Expected {} items'.format(num_items))
 
         return result

@@ -237,15 +237,15 @@ SECTIONS['laminographic-reconstruction'] = {
     'axis': {
         'default': None,
         'required': True,
-        'type': tupleize(2, float),
+        'type': tupleize(num_items=2, conv=float),
         'help': "Axis position"},
     'x-region': {
         'default': "0,-1,1",
-        'type': tupleize(3, int),
+        'type': tupleize(num_items=3, conv=int),
         'help': "X region as from,to,step"},
     'y-region': {
         'default': "0,-1,1",
-        'type': tupleize(3, int),
+        'type': tupleize(num_items=3, conv=int),
         'help': "Y region as from,to,step"},
     'z': {
         'default': 0,
@@ -258,7 +258,7 @@ SECTIONS['laminographic-reconstruction'] = {
         'help': "Parameter to vary along the reconstructed z-axis"},
     'region': {
         'default': "0,-1,1",
-        'type': tupleize(3, float),
+        'type': tupleize(num_items=3, conv=float),
         'help': "Z-axis parameter region as from,to,step"},
     'overall-angle': {
         'default': None,
