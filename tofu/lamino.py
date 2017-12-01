@@ -29,16 +29,9 @@ def lamino(params):
         LOG.info('Angle not specified, calculating from ' +
                  '{} projections and step {}: {} deg'.format(num_files, params.step,
                                                              params.angle))
-    if not (params.width and params.height):
-        proj_width, proj_height = determine_shape(params, params.projections)
-        if not proj_width:
-            raise RuntimeError("Could not determine width from the input")
+    determine_shape(params, params.projections, store=True)
     if not params.number:
         params.number = int(np.round(np.abs(params.overall_angle / params.angle)))
-    if not params.width:
-        params.width = proj_width
-    if not params.height:
-        params.height = proj_height - params.y
     if params.dry_run:
         LOG.info('Dummy data W x H x N: {} x {} x {}'.format(params.width,
                                                              params.height,
