@@ -3,7 +3,8 @@ import logging
 import numpy as np
 from multiprocessing import Queue, Process
 from tofu.preprocess import create_preprocessing_pipeline
-from tofu.util import determine_shape, get_filenames
+from tofu.util import (determine_shape, get_filenames, get_reconstruction_regions,
+                       get_reconstructed_cube_shape)
 from tofu.tasks import get_task, get_writer
 
 
@@ -154,29 +155,12 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
 
 def _split_regions(params, gpus):
     """Split processing between *gpus* by specifying the number of slices processed per GPU."""
-    if params.x_region[1] == -1:
-        x_region = _make_region(params.width)
-    else:
-        x_region = params.x_region
-    if params.y_region[1] == -1:
-        y_region = _make_region(params.width)
-    else:
-        y_region = params.y_region
-    if params.region[1] == -1:
-        region = _make_region(params.height)
-    else:
-        region = params.region
-    LOG.info('X region: {}'.format(x_region))
-    LOG.info('Y region: {}'.format(y_region))
-    LOG.info('Parameter region: {}'.format(region))
-
-    z_start, z_stop, z_step = region
+    x_region, y_region, z_region = get_reconstruction_regions(params)
+    z_start, z_stop, z_step = z_region
     y_start, y_stop, y_step = y_region
     x_start, x_stop, x_step = x_region
-
-    num_slices = len(np.arange(z_start, z_stop, z_step))
-    slice_height = len(range(y_start, y_stop, y_step))
-    slice_width = len(range(x_start, x_stop, x_step))
+    slice_width, slice_height, num_slices = get_reconstructed_cube_shape(x_region, y_region,
+                                                                         z_region)
 
     if params.slices_per_device:
         num_slices_per_gpu = params.slices_per_device
@@ -192,10 +176,6 @@ def _split_regions(params, gpus):
         regions.append((start, min(z_stop, start + z_step * num_slices_per_gpu), z_step))
 
     return x_region, y_region, regions
-
-
-def _make_region(n):
-    return (-(n / 2), n / 2 + n % 2, 1)
 
 
 def _compute_num_slices(gpus, width, height):
