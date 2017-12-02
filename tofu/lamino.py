@@ -146,6 +146,7 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
 
     if params.only_bp:
         first = backproject
+        graph.connect_nodes(source, backproject)
     else:
         first = create_preprocessing_pipeline(params, graph, source=source, processing_node=gpu)
         graph.connect_nodes(first, backproject)
