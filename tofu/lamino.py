@@ -14,6 +14,28 @@ LOG = logging.getLogger(__name__)
 def lamino(params):
     """Laminographic reconstruction utilizing all GPUs."""
     LOG.info('Z parameter: {}'.format(params.z_parameter))
+    prepare_angular_arguments(params)
+    params.projection_filter_scale = np.sin(np.deg2rad(params.lamino_angle))
+
+    # For now we need to make a workaround for the memory leak, which means we need to execute
+    # the passes in separate processes to clean up the low level code. For that we also need to
+    # call the region-splitting in a separate function.
+    # TODO: Simplify after the memory leak fix!
+    queue = Queue()
+    proc = Process(target=_create_runs, args=(params, queue,))
+    proc.start()
+    proc.join()
+    x_region, y_region, regions, num_gpus = queue.get()
+
+    for i in range(0, len(regions), num_gpus):
+        z_subregion = regions[i:min(i + num_gpus, len(regions))]
+        LOG.info('Computing slices {}..{}'.format(z_subregion[0][0], z_subregion[-1][1]))
+        proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i / num_gpus))
+        proc.start()
+        proc.join()
+
+
+def prepare_angular_arguments(params):
     if not params.overall_angle:
         params.overall_angle = 360.
         LOG.info('Overall angle not specified, using 360 deg')
@@ -37,25 +59,6 @@ def lamino(params):
         LOG.info('Dummy data W x H x N: {} x {} x {}'.format(params.width,
                                                              params.height,
                                                              params.number))
-
-    params.projection_filter_scale = np.sin(np.deg2rad(params.lamino_angle))
-
-    # For now we need to make a workaround for the memory leak, which means we need to execute
-    # the passes in separate processes to clean up the low level code. For that we also need to
-    # call the region-splitting in a separate function.
-    # TODO: Simplify after the memory leak fix!
-    queue = Queue()
-    proc = Process(target=_create_runs, args=(params, queue,))
-    proc.start()
-    proc.join()
-    x_region, y_region, regions, num_gpus = queue.get()
-
-    for i in range(0, len(regions), num_gpus):
-        z_subregion = regions[i:min(i + num_gpus, len(regions))]
-        LOG.info('Computing slices {}..{}'.format(z_subregion[0][0], z_subregion[-1][1]))
-        proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i / num_gpus))
-        proc.start()
-        proc.join()
 
 
 def _create_runs(params, queue):
