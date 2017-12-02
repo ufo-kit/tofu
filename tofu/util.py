@@ -92,14 +92,14 @@ def restrict_value(limits, dtype=float):
     return check
 
 
-def tupleize(num_items=None, conv=float):
+def tupleize(num_items=None, conv=float, dtype=tuple):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
     def split_values(value):
         """Convert comma-separated string *value* to a tuple of numbers."""
         try:
-            result = tuple([conv(x) for x in value.split(',')])
+            result = dtype([conv(x) for x in value.split(',')])
         except:
             raise argparse.ArgumentTypeError('Expect comma-separated tuple')
 
