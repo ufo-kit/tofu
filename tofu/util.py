@@ -77,13 +77,19 @@ def setup_read_task(task, path, args):
         task.props.raw_bitdepth = args.bitdepth
 
 
-def positive_int(value):
-    """Convert *value* to an integer and make sure it is positive."""
-    result = int(value)
-    if result < 0:
-        raise argparse.ArgumentTypeError('Only positive integers are allowed')
+def restrict_value(limits, dtype=float):
+    """Convert value to *dtype* and make sure it is within *limits* (included) specified as tuple
+    (min, max). If one of the tuple values is None it is ignored."""
+    def check(value):
+        result = dtype(value)
+        if limits[0] is not None and result < limits[0]:
+            raise argparse.ArgumentTypeError('Value cannot be less than {}'.format(limits[0]))
+        if limits[1] is not None and result > limits[1]:
+            raise argparse.ArgumentTypeError('Value cannot be greater than {}'.format(limits[1]))
 
-    return result
+        return result
+
+    return check
 
 
 def tupleize(num_items=None, conv=float):

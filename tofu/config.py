@@ -3,7 +3,7 @@ import sys
 import logging
 import ConfigParser as configparser
 from collections import OrderedDict
-from tofu.util import positive_int, tupleize, range_list
+from tofu.util import restrict_value, tupleize, range_list
 
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ SECTIONS['general'] = {
         'metavar': 'PATH'},
     'output-bitdepth': {
         'default': 32,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of output, either 8, 16 or 32",
         'metavar': 'BITDEPTH'},
     'output-minimum': {
@@ -48,49 +48,49 @@ SECTIONS['general'] = {
         'metavar': 'FILE'},
     'width': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Input width"}}
 
 SECTIONS['reading'] = {
     'y': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Vertical coordinate from where to start reading the input image'},
     'height': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of rows which will be read"},
     'bitdepth': {
         'default': 32,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of raw files"},
     'y-step': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 1,
         'help': "Read every \"step\" row from the input"},
     'start': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Offset to the first read file'},
     'number': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': None,
         'help': 'Number of files to read'},
     'step': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 1,
         'help': 'Read every \"step\" file'},
     'resize': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': None,
         'help': 'Bin pixels before processing'},
     'retries': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'metavar': 'NUMBER',
         'help': 'How many times to wait for new files'},
     'retry-timeout': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'metavar': 'TIME',
         'help': 'How long to wait for new files per trial'}}
@@ -156,11 +156,11 @@ SECTIONS['retrieve-phase'] = {
         'help': "Regularization rate (typical values between [2, 3])"},
     'retrieval-padded-width': {
         'default': 0,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Padded width used for phase retrieval"},
     'retrieval-padded-height': {
         'default': 0,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Padded height used for phase retrieval"},
     'retrieval-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
@@ -173,7 +173,7 @@ SECTIONS['retrieve-phase'] = {
 
 SECTIONS['sinos'] = {
     'pass-size': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Number of sinograms to process per pass'}}
 
@@ -276,7 +276,7 @@ SECTIONS['laminographic-reconstruction'] = {
         clockwise misalignment"},
     'slices-per-device': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of slices computed by one computing device"},
     'only-bp': {
         'default': False,
@@ -290,19 +290,19 @@ SECTIONS['laminographic-reconstruction'] = {
 SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Width of final slice"}}
 
 SECTIONS['dfi'] = {
     'oversampling': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Oversample factor"}}
 
 SECTIONS['ir'] = {
     'num-iterations': {
         'default': 10,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Maximum number of iterations"}}
 
 SECTIONS['sart'] = {
@@ -368,7 +368,7 @@ SECTIONS['estimate'] = {
 SECTIONS['perf'] = {
     'num-runs': {
         'default': 3,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of runs"},
     'width-range': {
         'default': '1024',
