@@ -11,7 +11,13 @@ Run
 
     python setup.py install
 
-in a prepared virtualenv or as root for system-wide installation.
+in a prepared virtualenv or as root for system-wide installation. Note, that if
+you do plan to use the graphical user interface you need PyQt4, pyqtgraph and
+PyOpenGL. You are strongly advised to install PyQt through your system package
+manager, you can install pyqtgraph and PyOpenGL using the pip package manager
+though:
+
+    pip install pyqtgraph PyOpenGL
 
 
 ## Usage
