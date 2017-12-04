@@ -441,6 +441,8 @@ def parse_known_args(parser, subparser=False):
         subparser_value = [sys.argv[1]] if subparser else []
         config_values = config_to_list(config_name=get_config_name())
         values = subparser_value + config_values + sys.argv[1:]
+        args = parser.parse_known_args(args=subparser_value + config_values)[0]
+        parser.parse_args(args=sys.argv[1:], namespace=args)
     else:
         values = ""
 
