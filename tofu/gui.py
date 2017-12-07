@@ -470,6 +470,17 @@ class ApplicationWindow(QtGui.QMainWindow):
         first = tifffile.TiffFile(first_name).asarray().astype(np.float)
         second = tifffile.TiffFile(second_name).asarray().astype(np.float)
 
+        if self.params.ffc_correction:
+            # FIXME: we should of course use the pipelines we have ...
+            flat_files = get_filtered_filenames(str(self.ui.flats_path_line.text()))
+            dark_files = get_filtered_filenames(str(self.ui.darks_path_line.text()))
+            flats = np.array([tifffile.TiffFile(x).asarray().astype(np.float) for x in flat_files])
+            darks = np.array([tifffile.TiffFile(x).asarray().astype(np.float) for x in dark_files])
+            dark = np.mean(darks, axis=0)
+            flat = np.mean(flats, axis=0) - dark
+            first = (first - dark) / flat
+            second = (second - dark) / flat
+
         self.axis = reco.compute_rotation_axis(first, second)
         self.height, self.width = first.shape
 
