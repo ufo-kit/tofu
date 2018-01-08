@@ -121,6 +121,7 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     crop_phase_retrieve = get_task('crop', processing_node=processing_node)
     fft_phase_retrieve = get_task('fft', processing_node=processing_node)
     ifft_phase_retrieve = get_task('ifft', processing_node=processing_node)
+    last = crop_phase_retrieve
     width = args.width
     height = args.height
     default_padded_width = next_power_of_two(width)
@@ -157,8 +158,24 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
     graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
     graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+    if args.retrieval_method == 'tie':
+        # Take the logarithm to obtain the projected thickness
+        calculate = get_task('calculate', processing_node=processing_node)
+        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
+        if args.delta is not None:
+            import numpy as np
+            lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
+            # Compute mju from the fact that beta = 10^-regularization_rate * delta
+            # and mju = 4 * Pi * beta / lambda
+            mju = 4 * np.pi * 10 ** -args.regularization_rate * args.delta / lam
+            expression += '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
+        else:
+            expression += '-log (v)'
+        calculate.props.expression = expression
+        graph.connect_nodes(crop_phase_retrieve, calculate)
+        last = calculate
 
-    return (pad_phase_retrieve, crop_phase_retrieve)
+    return (pad_phase_retrieve, last)
 
 
 def run_flat_correct(args):
@@ -305,19 +322,19 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
             graph.connect_nodes(current, weight)
         current = weight
 
-    if args.projection_filter != 'none':
-        pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
-                                                                 processing_node=processing_node)
-        if current:
-            graph.connect_nodes(current, pf_first)
-        current = pf_last
-
     if args.energy is not None and args.propagation_distance is not None:
         pr_first, pr_last = create_phase_retrieval_pipeline(args, graph,
                                                             processing_node=processing_node)
         if current:
             graph.connect_nodes(current, pr_first)
         current = pr_last
+
+    if args.projection_filter != 'none':
+        pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
+                                                                 processing_node=processing_node)
+        if current:
+            graph.connect_nodes(current, pf_first)
+        current = pf_last
 
     return current
 
