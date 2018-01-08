@@ -154,6 +154,10 @@ SECTIONS['retrieve-phase'] = {
         'default': 2,
         'type': float,
         'help': "Regularization rate (typical values between [2, 3])"},
+    'delta': {
+        'default': None,
+        'type': float,
+        'help': "Real part of the complex refractive index of the material"},
     'retrieval-padded-width': {
         'default': 0,
         'type': positive_int,
