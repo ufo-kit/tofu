@@ -161,17 +161,16 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     if args.retrieval_method == 'tie':
         # Take the logarithm to obtain the projected thickness
         calculate = get_task('calculate', processing_node=processing_node)
-        expression = ''
-        if args.fix_nan_and_inf:
-            expression += '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
-        expression += '- log (v)'
+        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
         if args.delta is not None:
             import numpy as np
             lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
             # Compute mju from the fact that beta = 10^-regularization_rate * delta
             # and mju = 4 * Pi * beta / lambda
             mju = 4 * np.pi * 10 ** -args.regularization_rate * args.delta / lam
-            expression = '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
+            expression += '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
+        else:
+            expression += '-log (v)'
         calculate.props.expression = expression
         graph.connect_nodes(crop_phase_retrieve, calculate)
         last = calculate
