@@ -417,7 +417,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
 
 def get_config_name():
     """Get the command line --config option."""
-    name = NAME
+    name = ''
     for i, arg in enumerate(sys.argv):
         if arg.startswith('--config'):
             if arg == '--config':
@@ -447,7 +447,7 @@ def parse_known_args(parser, subparser=False):
     return parser.parse_known_args(values)[0]
 
 
-def config_to_list(config_name=NAME):
+def config_to_list(config_name=''):
     """
     Read arguments from config file and convert them to a list of keys and
     values as sys.argv does when they are specified on the command line.
