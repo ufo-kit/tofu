@@ -211,7 +211,7 @@ def get_reconstructed_cube_shape(x_region, y_region, z_region):
     return slice_width, slice_height, num_slices
 
 
-def get_reconstruction_regions(params):
+def get_reconstruction_regions(params, store=False):
     """Compute reconstruction regions along all three axes.."""
     width, height = determine_shape(params)
     if getattr(params, 'transpose_input', False):
@@ -235,5 +235,10 @@ def get_reconstruction_regions(params):
     LOG.info('X region: {}'.format(x_region))
     LOG.info('Y region: {}'.format(y_region))
     LOG.info('Parameter region: {}'.format(region))
+
+    if store:
+        params.x_region = x_region
+        params.y_region = y_region
+        params.region = region
 
     return x_region, y_region, region
