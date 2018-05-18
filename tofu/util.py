@@ -153,8 +153,8 @@ def determine_shape(args, path):
             image = read_image(filename)
 
             # Now set the width and height if not specified
-            width = width or image.shape[1]
-            height = height or image.shape[0]
+            width = width or image.shape[-1]
+            height = height or image.shape[-2]
         except:
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
 
