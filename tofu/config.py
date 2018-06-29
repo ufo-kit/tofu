@@ -3,7 +3,7 @@ import sys
 import logging
 import ConfigParser as configparser
 from collections import OrderedDict
-from tofu.util import positive_int, tupleize, range_list
+from tofu.util import restrict_value, tupleize, range_list
 
 
 LOG = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ SECTIONS['general'] = {
         'metavar': 'PATH'},
     'output-bitdepth': {
         'default': 32,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of output, either 8, 16 or 32",
         'metavar': 'BITDEPTH'},
     'output-minimum': {
@@ -48,49 +48,49 @@ SECTIONS['general'] = {
         'metavar': 'FILE'},
     'width': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Input width"}}
 
 SECTIONS['reading'] = {
     'y': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Vertical coordinate from where to start reading the input image'},
     'height': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of rows which will be read"},
     'bitdepth': {
         'default': 32,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of raw files"},
     'y-step': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 1,
         'help': "Read every \"step\" row from the input"},
     'start': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Offset to the first read file'},
     'number': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': None,
         'help': 'Number of files to read'},
     'step': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 1,
         'help': 'Read every \"step\" file'},
     'resize': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': None,
         'help': 'Bin pixels before processing'},
     'retries': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'metavar': 'NUMBER',
         'help': 'How many times to wait for new files'},
     'retry-timeout': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'metavar': 'TIME',
         'help': 'How long to wait for new files per trial'}}
@@ -154,13 +154,17 @@ SECTIONS['retrieve-phase'] = {
         'default': 2,
         'type': float,
         'help': "Regularization rate (typical values between [2, 3])"},
+    'delta': {
+        'default': None,
+        'type': float,
+        'help': "Real part of the complex refractive index of the material"},
     'retrieval-padded-width': {
         'default': 0,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Padded width used for phase retrieval"},
     'retrieval-padded-height': {
         'default': 0,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Padded height used for phase retrieval"},
     'retrieval-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
@@ -173,7 +177,7 @@ SECTIONS['retrieve-phase'] = {
 
 SECTIONS['sinos'] = {
     'pass-size': {
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'default': 0,
         'help': 'Number of sinograms to process per pass'}}
 
@@ -237,15 +241,15 @@ SECTIONS['laminographic-reconstruction'] = {
     'axis': {
         'default': None,
         'required': True,
-        'type': tupleize(2, float),
+        'type': tupleize(num_items=2),
         'help': "Axis position"},
     'x-region': {
         'default': "0,-1,1",
-        'type': tupleize(3, int),
+        'type': tupleize(num_items=3, conv=int),
         'help': "X region as from,to,step"},
     'y-region': {
         'default': "0,-1,1",
-        'type': tupleize(3, int),
+        'type': tupleize(num_items=3, conv=int),
         'help': "Y region as from,to,step"},
     'z': {
         'default': 0,
@@ -258,7 +262,7 @@ SECTIONS['laminographic-reconstruction'] = {
         'help': "Parameter to vary along the reconstructed z-axis"},
     'region': {
         'default': "0,-1,1",
-        'type': tupleize(3, float),
+        'type': tupleize(num_items=3),
         'help': "Z-axis parameter region as from,to,step"},
     'overall-angle': {
         'default': None,
@@ -276,7 +280,7 @@ SECTIONS['laminographic-reconstruction'] = {
         clockwise misalignment"},
     'slices-per-device': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of slices computed by one computing device"},
     'only-bp': {
         'default': False,
@@ -290,19 +294,19 @@ SECTIONS['laminographic-reconstruction'] = {
 SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Width of final slice"}}
 
 SECTIONS['dfi'] = {
     'oversampling': {
         'default': None,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Oversample factor"}}
 
 SECTIONS['ir'] = {
     'num-iterations': {
         'default': 10,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Maximum number of iterations"}}
 
 SECTIONS['sart'] = {
@@ -368,7 +372,7 @@ SECTIONS['estimate'] = {
 SECTIONS['perf'] = {
     'num-runs': {
         'default': 3,
-        'type': positive_int,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Number of runs"},
     'width-range': {
         'default': '1024',
@@ -403,17 +407,193 @@ SECTIONS['preprocess'] = {
         'help': "Padded values assignment"}
         }
 
+SECTIONS['cone-beam-weight'] = {
+    'source-position-y': {
+        'default': "-Inf",
+        'type': tupleize(dtype=list),
+        'help': "Y source position (along beam direction) in global coordinates [pixels]"},
+    'detector-position-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Y detector position (along beam direction) in global coordinates [pixels]"},
+    'center-position-x': {
+        'default': None,
+        'type': tupleize(),
+        'help': "X rotation axis position on a projection"},
+    'center-position-z': {
+        'default': None,
+        'type': tupleize(),
+        'help': "Z rotation axis position on a projection"},
+    'axis-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the x axis"
+                "(laminographic angle, 0 = tomography) [deg]"}}
+
+SECTIONS['general-reconstruction'] = {
+    'enable-tracing': {
+        'default': False,
+        'help': "Enable tracing and store result in .PID.json",
+        'action': 'store_true'},
+    'disable-cone-beam-weight': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Disable cone beam weighting"},
+    'slice-memory-coeff': {
+        'default': 0.8,
+        'type': restrict_value((0.01, 0.95)),
+        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]"},
+    'num-gpu-threads': {
+        'default': 1,
+        'type': restrict_value((1, None), dtype=int),
+        'help': "Number of parallel reconstruction threads on one GPU"},
+    'only-bp': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Do only backprojection with no other processing steps"},
+    'dry-run': {
+        'default': False,
+        'help': "Reconstruct without reading or writing data",
+        'action': 'store_true'},
+    'data-splitting-policy': {
+        'default': 'one',
+        'type': str,
+        'help': "'one': one GPU should process as many slices as possible, "
+                "'many': slices should be spread across as many GPUs as possible",
+        'choices': ['one', 'many']},
+    'projection-margin': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "By optimization of the read projection region, the read region will be "
+                "[y - margin, y + height + margin]"},
+    'slices-per-device': {
+        'default': None,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of slices computed by one computing device"},
+    'gpus': {
+        'default': None,
+        'nargs': '+',
+        'type': int,
+        'help': "GPUs with these indices will be used (0-based)"},
+    'burst': {
+        'default': None,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of projections processed per kernel invocation"},
+    'x-region': {
+        'default': "0,-1,1",
+        'type': tupleize(num_items=3, conv=int),
+        'help': "x region as from,to,step"},
+    'y-region': {
+        'default': "0,-1,1",
+        'type': tupleize(num_items=3, conv=int),
+        'help': "y region as from,to,step"},
+    'z': {
+        'default': 0,
+        'type': int,
+        'help': "z coordinate of the reconstructed slice"},
+    'z-parameter': {
+        'default': 'z',
+        'type': str,
+        'choices': ['axis-angle-x', 'axis-angle-y', 'axis-angle-z',
+                    'volume-angle-x', 'volume-angle-y', 'volume-angle-z',
+                    'detector-angle-x', 'detector-angle-y', 'detector-angle-z',
+                    'detector-position-x', 'detector-position-y', 'detector-position-z',
+                    'source-position-x', 'source-position-y', 'source-position-z',
+                    'center-position-x', 'center-position-z', 'z'],
+        'help': "Parameter to vary along the reconstructed z-axis"},
+    'region': {
+        'default': "0,1,1",
+        'type': tupleize(num_items=3),
+        'help': "z axis parameter region as from,to,step"},
+    'source-position-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "X source position (horizontal) in global coordinates [pixels]"},
+    'source-position-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Z source position (vertical) in global coordinates [pixels]"},
+    'detector-position-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "X detector position (horizontal) in global coordinates [pixels]"},
+    'detector-position-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Z detector position (vertical) in global coordinates [pixels]"},
+    'detector-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the x axis (horizontal) [deg]"},
+    'detector-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the y axis (along beam direction) [deg]"},
+    'detector-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Detector rotation around the z axis (vertical) [deg]"},
+    'axis-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the y axis (along beam direction) [deg]"},
+    'axis-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Rotation axis rotation around the z axis (vertical) [deg]"},
+    'volume-angle-x': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the x axis (horizontal) [deg]"},
+    'volume-angle-y': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the y axis (along beam direction) [deg]"},
+    'volume-angle-z': {
+        'default': "0",
+        'type': tupleize(dtype=list),
+        'help': "Volume rotation around the z axis (vertical) [deg]"},
+    'compute-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type for performing kernel math operations",
+        'choices': ['half', 'float', 'double']},
+    'result-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type for storing the intermediate gray value for a voxel "
+                "from various rotation angles",
+        'choices': ['half', 'float', 'double']},
+    'store-type': {
+        'default': 'float',
+        'type': str,
+        'help': "Data type of the output volume",
+        'choices': ['half', 'float', 'double', 'uchar', 'ushort', 'uint']},
+    'overall-angle': {
+        'default': None,
+        'type': float,
+        'help': "The total angle over which projections were taken in degrees"},
+    'genreco-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'default': 'clamp',
+        'help': "Padded values assignment for the filtered projection"},
+    'slice-gray-map': {
+        'default': "0,0",
+        'type': tupleize(num_items=2, conv=float),
+        'help': "Minimum and maximum gray value mapping if store-type is integer-based"}}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-PREPROC_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
+GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess')
+              'Preprocess', 'Cone beam weight', 'General reconstruction')
 
 def get_config_name():
     """Get the command line --config option."""
@@ -441,6 +621,8 @@ def parse_known_args(parser, subparser=False):
         subparser_value = [sys.argv[1]] if subparser else []
         config_values = config_to_list(config_name=get_config_name())
         values = subparser_value + config_values + sys.argv[1:]
+        args = parser.parse_known_args(args=subparser_value + config_values)[0]
+        parser.parse_args(args=sys.argv[1:], namespace=args)
     else:
         values = ""
 

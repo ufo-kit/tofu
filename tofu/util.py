@@ -77,27 +77,33 @@ def setup_read_task(task, path, args):
         task.props.raw_bitdepth = args.bitdepth
 
 
-def positive_int(value):
-    """Convert *value* to an integer and make sure it is positive."""
-    result = int(value)
-    if result < 0:
-        raise argparse.ArgumentTypeError('Only positive integers are allowed')
+def restrict_value(limits, dtype=float):
+    """Convert value to *dtype* and make sure it is within *limits* (included) specified as tuple
+    (min, max). If one of the tuple values is None it is ignored."""
+    def check(value):
+        result = dtype(value)
+        if limits[0] is not None and result < limits[0]:
+            raise argparse.ArgumentTypeError('Value cannot be less than {}'.format(limits[0]))
+        if limits[1] is not None and result > limits[1]:
+            raise argparse.ArgumentTypeError('Value cannot be greater than {}'.format(limits[1]))
 
-    return result
+        return result
+
+    return check
 
 
-def tupleize(num_items, conv=None):
+def tupleize(num_items=None, conv=float, dtype=tuple):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
     def split_values(value):
         """Convert comma-separated string *value* to a tuple of numbers."""
         try:
-            result = tuple([conv(x) for x in value.split(',')])
+            result = dtype([conv(x) for x in value.split(',')])
         except:
             raise argparse.ArgumentTypeError('Expect comma-separated tuple')
 
-        if len(result) != num_items:
+        if num_items and len(result) != num_items:
             raise argparse.ArgumentTypeError('Expected {} items'.format(num_items))
 
         return result
@@ -139,15 +145,17 @@ def get_first_filename(path):
     return filenames[0]
 
 
-def determine_shape(args, path):
-    """Determine input shape from *args* which means either width and height are specified in
-    args or try to read the input and determine the shape from it. Return a tuple (width, height).
+def determine_shape(args, path=None, store=False):
+    """Determine input shape from *args* which means either width and height are specified in args
+    or try to read the *path* and determine the shape from it. The default path is args.projections,
+    which is the typical place to find the input. If *store* is True, assign the determined values
+    if they aren't already present in *args*. Return a tuple (width, height).
     """
     width = args.width
     height = args.height
 
     if not (width and height):
-        filename = get_first_filename(path)
+        filename = get_first_filename(path or args.projections)
 
         try:
             image = read_image(filename)
@@ -157,6 +165,12 @@ def determine_shape(args, path):
             height = height or image.shape[-2]
         except:
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
+
+    if store:
+        if not args.width:
+            args.width = width
+        if not args.height:
+            args.height = height - args.y
 
     return (width, height)
 
@@ -176,3 +190,83 @@ def setup_padding(pad, crop, width, height, mode):
     crop.props.height = height
     crop.props.x = padding / 2
     crop.props.y = 0
+
+
+def make_region(n):
+    """Make region in such a way that in case of odd *n* it is centered around 0."""
+    return (-(n / 2), n / 2 + n % 2, 1)
+
+
+def get_reconstructed_cube_shape(x_region, y_region, z_region):
+    """Get the shape of the reconstructed cube as (slice width, slice height, num slices)."""
+    import numpy as np
+    z_start, z_stop, z_step = z_region
+    y_start, y_stop, y_step = y_region
+    x_start, x_stop, x_step = x_region
+
+    num_slices = len(np.arange(z_start, z_stop, z_step))
+    slice_height = len(range(y_start, y_stop, y_step))
+    slice_width = len(range(x_start, x_stop, x_step))
+
+    return slice_width, slice_height, num_slices
+
+
+def get_reconstruction_regions(params, store=False):
+    """Compute reconstruction regions along all three axes.."""
+    width, height = determine_shape(params)
+    if getattr(params, 'transpose_input', False):
+        # In case down the pipeline there is a transpose task
+        tmp = width
+        width = height
+        height = tmp
+
+    if params.x_region[1] == -1:
+        x_region = make_region(width)
+    else:
+        x_region = params.x_region
+    if params.y_region[1] == -1:
+        y_region = make_region(width)
+    else:
+        y_region = params.y_region
+    if params.region[1] == -1:
+        region = make_region(height)
+    else:
+        region = params.region
+    LOG.info('X region: {}'.format(x_region))
+    LOG.info('Y region: {}'.format(y_region))
+    LOG.info('Parameter region: {}'.format(region))
+
+    if store:
+        params.x_region = x_region
+        params.y_region = y_region
+        params.region = region
+
+    return x_region, y_region, region
+
+
+def get_scarray_value(scarray, index):
+    if len(scarray) == 1:
+        return scarray[0]
+
+    return scarray[index]
+
+
+class Vector(object):
+
+    """A vector based on axis-angle representation."""
+
+    def __init__(self, x_angle=0, y_angle=0, z_angle=0, position=None):
+        import numpy as np
+        self.position = np.array(position, dtype=np.float) if position is not None else None
+        self.x_angle = x_angle
+        self.y_angle = y_angle
+        self.z_angle = z_angle
+
+    def __repr__(self):
+        return 'Vector(position={}, angles=({}, {}, {}))'.format(self.position,
+                                                                 self.x_angle,
+                                                                 self.y_angle,
+                                                                 self.z_angle)
+
+    def __str__(self):
+        return repr(self)

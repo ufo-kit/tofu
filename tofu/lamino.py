@@ -3,7 +3,8 @@ import logging
 import numpy as np
 from multiprocessing import Queue, Process
 from tofu.preprocess import create_preprocessing_pipeline
-from tofu.util import determine_shape, get_filenames
+from tofu.util import (determine_shape, get_filenames, get_reconstruction_regions,
+                       get_reconstructed_cube_shape)
 from tofu.tasks import get_task, get_writer
 
 
@@ -13,37 +14,7 @@ LOG = logging.getLogger(__name__)
 def lamino(params):
     """Laminographic reconstruction utilizing all GPUs."""
     LOG.info('Z parameter: {}'.format(params.z_parameter))
-    if not params.overall_angle:
-        params.overall_angle = 360.
-        LOG.info('Overall angle not specified, using 360 deg')
-    if not params.angle:
-        if params.dry_run:
-            if not params.number:
-                raise ValueError('--number must be specified by --dry-run')
-            num_files = params.number
-        else:
-            num_files = len(get_filenames(params.projections))
-            if not num_files:
-                raise RuntimeError("No files found in `{}'".format(params.projections))
-        params.angle = params.overall_angle / num_files * params.step
-        LOG.info('Angle not specified, calculating from ' +
-                 '{} projections and step {}: {} deg'.format(num_files, params.step,
-                                                             params.angle))
-    if not (params.width and params.height):
-        proj_width, proj_height = determine_shape(params, params.projections)
-        if not proj_width:
-            raise RuntimeError("Could not determine width from the input")
-    if not params.number:
-        params.number = int(np.round(np.abs(params.overall_angle / params.angle)))
-    if not params.width:
-        params.width = proj_width
-    if not params.height:
-        params.height = proj_height - params.y
-    if params.dry_run:
-        LOG.info('Dummy data W x H x N: {} x {} x {}'.format(params.width,
-                                                             params.height,
-                                                             params.number))
-
+    prepare_angular_arguments(params)
     params.projection_filter_scale = np.sin(np.deg2rad(params.lamino_angle))
 
     # For now we need to make a workaround for the memory leak, which means we need to execute
@@ -62,6 +33,32 @@ def lamino(params):
         proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i / num_gpus))
         proc.start()
         proc.join()
+
+
+def prepare_angular_arguments(params):
+    if not params.overall_angle:
+        params.overall_angle = 360.
+        LOG.info('Overall angle not specified, using 360 deg')
+    if not params.angle:
+        if params.dry_run:
+            if not params.number:
+                raise ValueError('--number must be specified by --dry-run')
+            num_files = params.number
+        else:
+            num_files = len(get_filenames(params.projections))
+            if not num_files:
+                raise RuntimeError("No files found in `{}'".format(params.projections))
+        params.angle = params.overall_angle / num_files * params.step
+        LOG.info('Angle not specified, calculating from ' +
+                 '{} projections and step {}: {} deg'.format(num_files, params.step,
+                                                             params.angle))
+    determine_shape(params, params.projections, store=True)
+    if not params.number:
+        params.number = int(np.round(np.abs(params.overall_angle / params.angle)))
+    if params.dry_run:
+        LOG.info('Dummy data W x H x N: {} x {} x {}'.format(params.width,
+                                                             params.height,
+                                                             params.number))
 
 
 def _create_runs(params, queue):
@@ -152,6 +149,7 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
 
     if params.only_bp:
         first = backproject
+        graph.connect_nodes(source, backproject)
     else:
         first = create_preprocessing_pipeline(params, graph, source=source, processing_node=gpu)
         graph.connect_nodes(first, backproject)
@@ -161,29 +159,12 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
 
 def _split_regions(params, gpus):
     """Split processing between *gpus* by specifying the number of slices processed per GPU."""
-    if params.x_region[1] == -1:
-        x_region = _make_region(params.width)
-    else:
-        x_region = params.x_region
-    if params.y_region[1] == -1:
-        y_region = _make_region(params.width)
-    else:
-        y_region = params.y_region
-    if params.region[1] == -1:
-        region = _make_region(params.height)
-    else:
-        region = params.region
-    LOG.info('X region: {}'.format(x_region))
-    LOG.info('Y region: {}'.format(y_region))
-    LOG.info('Parameter region: {}'.format(region))
-
-    z_start, z_stop, z_step = region
+    x_region, y_region, z_region = get_reconstruction_regions(params)
+    z_start, z_stop, z_step = z_region
     y_start, y_stop, y_step = y_region
     x_start, x_stop, x_step = x_region
-
-    num_slices = len(np.arange(z_start, z_stop, z_step))
-    slice_height = len(range(y_start, y_stop, y_step))
-    slice_width = len(range(x_start, x_stop, x_step))
+    slice_width, slice_height, num_slices = get_reconstructed_cube_shape(x_region, y_region,
+                                                                         z_region)
 
     if params.slices_per_device:
         num_slices_per_gpu = params.slices_per_device
@@ -199,10 +180,6 @@ def _split_regions(params, gpus):
         regions.append((start, min(z_stop, start + z_step * num_slices_per_gpu), z_step))
 
     return x_region, y_region, regions
-
-
-def _make_region(n):
-    return (-(n / 2), n / 2 + n % 2, 1)
 
 
 def _compute_num_slices(gpus, width, height):
