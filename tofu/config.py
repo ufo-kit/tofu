@@ -49,16 +49,19 @@ SECTIONS['general'] = {
     'width': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
+        'unit': "pixel",
         'help': "Input width"}}
 
 SECTIONS['reading'] = {
     'y': {
         'type': restrict_value((0, None), dtype=int),
         'default': 0,
+        'unit': "pixel",
         'help': 'Vertical coordinate from where to start reading the input image'},
     'height': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
+        'unit': "pixel",
         'help': "Number of rows which will be read"},
     'bitdepth': {
         'default': 32,
@@ -67,6 +70,7 @@ SECTIONS['reading'] = {
     'y-step': {
         'type': restrict_value((0, None), dtype=int),
         'default': 1,
+        'unit': "pixel",
         'help': "Read every \"step\" row from the input"},
     'start': {
         'type': restrict_value((0, None), dtype=int),
@@ -141,15 +145,18 @@ SECTIONS['retrieve-phase'] = {
     'energy': {
         'default': None,
         'type': float,
-        'help': "X-ray energy [keV]"},
+        'unit': "keV",
+        'help': "X-ray energy"},
     'propagation-distance': {
         'default': None,
         'type': float,
-        'help': "Sample <-> detector distance [m]"},
+        'unit': "m",
+        'help': "Sample <-> detector distance"},
     'pixel-size': {
         'default': 1e-6,
         'type': float,
-        'help': "Pixel size [m]"},
+        'unit': "m",
+        'help': "Pixel size"},
     'regularization-rate': {
         'default': 2,
         'type': float,
@@ -160,10 +167,12 @@ SECTIONS['retrieve-phase'] = {
         'help': "Real part of the complex refractive index of the material"},
     'retrieval-padded-width': {
         'default': 0,
+        'unit': "pixel",
         'type': restrict_value((0, None), dtype=int),
         'help': "Padded width used for phase retrieval"},
     'retrieval-padded-height': {
         'default': 0,
+        'unit': "pixel",
         'type': restrict_value((0, None), dtype=int),
         'help': "Padded height used for phase retrieval"},
     'retrieval-padding-mode': {
@@ -190,7 +199,8 @@ SECTIONS['reconstruction'] = {
     'angle': {
         'default': None,
         'type': float,
-        'help': "Angle step between projections in radians"},
+        'unit': "rad",
+        'help': "Angle step between projections"},
     'enable-tracing': {
         'default': False,
         'help': "Enable tracing and store result in .PID.json",
@@ -214,6 +224,7 @@ SECTIONS['tomographic-reconstruction'] = {
     'axis': {
         'default': None,
         'type': float,
+        'unit': "pixel",
         'help': "Axis position"},
     'dry-run': {
         'default': False,
@@ -222,7 +233,8 @@ SECTIONS['tomographic-reconstruction'] = {
     'offset': {
         'default': 0.0,
         'type': float,
-        'help': "Angle offset of first projection in radians"},
+        'unit': "rad",
+        'help': "Angle offset of first projection"},
     'method': {
         'default': 'fbp',
         'type': str,
@@ -233,7 +245,8 @@ SECTIONS['laminographic-reconstruction'] = {
     'angle': {
         'default': None,
         'type': float,
-        'help': "Angle step between projections in radians"},
+        'unit': "deg",
+        'help': "Angle step between projections"},
     'dry-run': {
         'default': False,
         'help': "Reconstruct without writing data",
@@ -241,18 +254,22 @@ SECTIONS['laminographic-reconstruction'] = {
     'axis': {
         'default': None,
         'required': True,
+        'unit': "pixel",
         'type': tupleize(num_items=2),
         'help': "Axis position"},
     'x-region': {
         'default': "0,-1,1",
+        'unit': "pixel",
         'type': tupleize(num_items=3, conv=int),
         'help': "X region as from,to,step"},
     'y-region': {
         'default': "0,-1,1",
+        'unit': "pixel",
         'type': tupleize(num_items=3, conv=int),
         'help': "Y region as from,to,step"},
     'z': {
         'default': 0,
+        'unit': "pixel",
         'type': int,
         'help': "Z coordinate of the reconstructed slice"},
     'z-parameter': {
@@ -266,17 +283,20 @@ SECTIONS['laminographic-reconstruction'] = {
         'help': "Z-axis parameter region as from,to,step"},
     'overall-angle': {
         'default': None,
+        'unit': "deg",
         'type': float,
-        'help': "The total angle over which projections were taken in degrees"},
+        'help': "The total angle over which projections were taken"},
     'lamino-angle': {
         'default': None,
+        'unit': "deg",
         'required': True,
         'type': float,
-        'help': "The laminographic angle in degrees"},
+        'help': "The laminographic angle"},
     'roll-angle': {
         'default': 0.0,
+        'unit': "deg",
         'type': float,
-        'help': "Sample angular misalignment to the side (roll) in degrees, positive angles mean\
+        'help': "Sample angular misalignment to the side (roll), positive angles mean\
         clockwise misalignment"},
     'slices-per-device': {
         'default': None,
@@ -294,6 +314,7 @@ SECTIONS['laminographic-reconstruction'] = {
 SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
+        'unit': "pixel",
         'type': restrict_value((0, None), dtype=int),
         'help': "Width of final slice"}}
 
@@ -377,10 +398,12 @@ SECTIONS['perf'] = {
     'width-range': {
         'default': '1024',
         'type': range_list,
+        'unit': "pixel",
         'help': "Width or range of widths of generated projections"},
     'height-range': {
         'default': '1024',
         'type': range_list,
+        'unit': "pixel",
         'help': "Height or range of heights of generated projections"},
     'num-projection-range': {
         'default': '512',
@@ -411,24 +434,29 @@ SECTIONS['cone-beam-weight'] = {
     'source-position-y': {
         'default': "-Inf",
         'type': tupleize(dtype=list),
-        'help': "Y source position (along beam direction) in global coordinates [pixels]"},
+        'unit': "pixel",
+        'help': "Y source position (along beam direction) in global coordinates"},
     'detector-position-y': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Y detector position (along beam direction) in global coordinates [pixels]"},
+        'unit': "pixel",
+        'help': "Y detector position (along beam direction) in global coordinates"},
     'center-position-x': {
         'default': None,
         'type': tupleize(),
+        'unit': "pixel",
         'help': "X rotation axis position on a projection"},
     'center-position-z': {
         'default': None,
         'type': tupleize(),
+        'unit': "pixel",
         'help': "Z rotation axis position on a projection"},
     'axis-angle-x': {
         'default': "0",
+        'unit': "deg",
         'type': tupleize(dtype=list),
         'help': "Rotation axis rotation around the x axis"
-                "(laminographic angle, 0 = tomography) [deg]"}}
+                "(laminographic angle, 0 = tomography)"}}
 
 SECTIONS['general-reconstruction'] = {
     'enable-tracing': {
@@ -442,7 +470,7 @@ SECTIONS['general-reconstruction'] = {
     'slice-memory-coeff': {
         'default': 0.8,
         'type': restrict_value((0.01, 0.95)),
-        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]"},
+        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9)"},
     'num-gpu-threads': {
         'default': 1,
         'type': restrict_value((1, None), dtype=int),
@@ -464,6 +492,7 @@ SECTIONS['general-reconstruction'] = {
     'projection-margin': {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
+        'unit': "pixel",
         'help': "By optimization of the read projection region, the read region will be "
                 "[y - margin, y + height + margin]"},
     'slices-per-device': {
@@ -482,14 +511,17 @@ SECTIONS['general-reconstruction'] = {
     'x-region': {
         'default': "0,-1,1",
         'type': tupleize(num_items=3, conv=int),
+        'unit': "pixel",
         'help': "x region as from,to,step"},
     'y-region': {
         'default': "0,-1,1",
         'type': tupleize(num_items=3, conv=int),
+        'unit': "pixel",
         'help': "y region as from,to,step"},
     'z': {
         'default': 0,
         'type': int,
+        'unit': "pixel",
         'help': "z coordinate of the reconstructed slice"},
     'z-parameter': {
         'default': 'z',
@@ -507,52 +539,64 @@ SECTIONS['general-reconstruction'] = {
         'help': "z axis parameter region as from,to,step"},
     'source-position-x': {
         'default': "0",
+        'unit': "pixel",
         'type': tupleize(dtype=list),
-        'help': "X source position (horizontal) in global coordinates [pixels]"},
+        'help': "X source position (horizontal) in global coordinates"},
     'source-position-z': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Z source position (vertical) in global coordinates [pixels]"},
+        'unit': "pixel",
+        'help': "Z source position (vertical) in global coordinates"},
     'detector-position-x': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "X detector position (horizontal) in global coordinates [pixels]"},
+        'unit': "pixel",
+        'help': "X detector position (horizontal) in global coordinates"},
     'detector-position-z': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Z detector position (vertical) in global coordinates [pixels]"},
+        'unit': "pixel",
+        'help': "Z detector position (vertical) in global coordinates"},
     'detector-angle-x': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Detector rotation around the x axis (horizontal) [deg]"},
+        'unit': "deg",
+        'help': "Detector rotation around the x axis (horizontal)"},
     'detector-angle-y': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Detector rotation around the y axis (along beam direction) [deg]"},
+        'unit': "deg",
+        'help': "Detector rotation around the y axis (along beam direction)"},
     'detector-angle-z': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Detector rotation around the z axis (vertical) [deg]"},
+        'unit': "deg",
+        'help': "Detector rotation around the z axis (vertical)"},
     'axis-angle-y': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Rotation axis rotation around the y axis (along beam direction) [deg]"},
+        'unit': "deg",
+        'help': "Rotation axis rotation around the y axis (along beam direction)"},
     'axis-angle-z': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Rotation axis rotation around the z axis (vertical) [deg]"},
+        'unit': "deg",
+        'help': "Rotation axis rotation around the z axis (vertical)"},
     'volume-angle-x': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Volume rotation around the x axis (horizontal) [deg]"},
+        'unit': "deg",
+        'help': "Volume rotation around the x axis (horizontal)"},
     'volume-angle-y': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Volume rotation around the y axis (along beam direction) [deg]"},
+        'unit': "deg",
+        'help': "Volume rotation around the y axis (along beam direction)"},
     'volume-angle-z': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Volume rotation around the z axis (vertical) [deg]"},
+        'unit': "deg",
+        'help': "Volume rotation around the z axis (vertical)"},
     'compute-type': {
         'default': 'float',
         'type': str,
@@ -572,7 +616,8 @@ SECTIONS['general-reconstruction'] = {
     'overall-angle': {
         'default': None,
         'type': float,
-        'help': "The total angle over which projections were taken in degrees"},
+        'unit': "deg",
+        'help': "The total angle over which projections were taken"},
     'genreco-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
         'default': 'clamp',
@@ -594,6 +639,14 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction')
+
+
+# Add unit info to help strings
+for section in SECTIONS:
+    for k, v in SECTIONS[section].items():
+        if 'unit' in v and 'help' in v:
+            v['help'] += ' [{}]'.format(v['unit'])
+
 
 def get_config_name():
     """Get the command line --config option."""
@@ -670,6 +723,7 @@ class Params(object):
         for section in self.sections:
             for name in sorted(SECTIONS[section]):
                 opts = SECTIONS[section][name]
+                opts.pop('unit', None)
                 parser.add_argument('--{}'.format(name), **opts)
 
     def add_arguments(self, parser):
