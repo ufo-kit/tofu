@@ -54,8 +54,13 @@ def genreco(args):
     for i, regions in enumerate(runs):
         duration += _run(resources, args, x_region, y_region, regions, i)
 
+    vol_shape = get_reconstructed_cube_shape(x_region, y_region, z_region)
+    num_gupdates = vol_shape[0] * vol_shape[1] * vol_shape[2] * args.number * 1e-9
+    total_duration = time.time() - st
     LOG.debug('UFO duration: %.2f s', duration)
-    LOG.debug('Total duration: %.2f s', time.time() - st)
+    LOG.debug('Total duration: %.2f s', total_duration)
+    LOG.debug('UFO performance: %.2f GUPS', num_gupdates / duration)
+    LOG.debug('Total performance: %.2f GUPS', num_gupdates / total_duration)
 
 
 def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_device=None,
