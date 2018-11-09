@@ -122,7 +122,7 @@ def read_image(filename):
         from tifffile import TiffFile
         import numpy as np
         with TiffFile(filename) as tif:
-            return tif.asarray()
+            return tif.asarray(out='memmap')
     elif '.edf' in filename.lower():
         import fabio
         edf = fabio.edfimage.edfimage()
