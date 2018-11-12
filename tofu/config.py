@@ -451,6 +451,10 @@ SECTIONS['general-reconstruction'] = {
         'default': False,
         'action': 'store_true',
         'help': "Do only backprojection with no other processing steps"},
+    'disable-projection-crop': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Disable automatic cropping of projections computed from volume region"},
     'dry-run': {
         'default': False,
         'help': "Reconstruct without reading or writing data",

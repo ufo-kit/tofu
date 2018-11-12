@@ -164,10 +164,11 @@ def _run(resources, args, x_region, y_region, regions, run_number):
             LOG.info('Simple tomography with integer z center, changing to center_position_z + 0.5 '
                      'to avoid interpolation')
             geometry.args.center_position_z = (geometry.args.center_position_z[0] + 0.5,)
-        if not args.dry_run and (args.y or args.height):
-            LOG.debug('--y or --height specified, not optimizing projection region')
-        else:
-            geometry.optimize_args(region=region)
+        if not args.disable_projection_crop:
+            if not args.dry_run and (args.y or args.height):
+                LOG.debug('--y or --height specified, not optimizing projection region')
+            else:
+                geometry.optimize_args(region=region)
         opt_args = geometry.args
         source = _setup_source(opt_args, graph)
         setup_graph(opt_args, graph, x_region, y_region, region, source, gpu=gpu,
