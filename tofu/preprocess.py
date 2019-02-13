@@ -183,8 +183,7 @@ def run_flat_correct(args):
     sched = Ufo.Scheduler()
     pm = Ufo.PluginManager()
 
-    out_task = pm.get_task('write')
-    out_task.props.filename = args.output
+    out_task = get_writer(args)
     flat_task = create_flat_correct_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)
     sched.run(graph)
