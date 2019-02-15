@@ -3,7 +3,7 @@ import sys
 import logging
 import ConfigParser as configparser
 from collections import OrderedDict
-from tofu.util import restrict_value, tupleize, range_list
+from tofu.util import convert_filesize, restrict_value, tupleize, range_list
 
 
 LOG = logging.getLogger(__name__)
@@ -41,6 +41,12 @@ SECTIONS['general'] = {
         'type': float,
         'help': "Maximum input value that maps to largest output value",
         'metavar': 'MAX'},
+    'output-bytes-per-file': {
+        'default': '0',
+        'type': convert_filesize,
+        'help': "Maximum bytes per file (0=single-image output, otherwise multi-image output)\
+                , 'k', 'm', 'g', 't' suffixes can be used",
+        'metavar': 'BYTESPERFILE'},
     'log': {
         'default': None,
         'type': str,

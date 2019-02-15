@@ -4,6 +4,7 @@ import glob
 import logging
 import math
 import os
+from collections import OrderedDict
 
 
 LOG = logging.getLogger(__name__)
@@ -90,6 +91,28 @@ def restrict_value(limits, dtype=float):
         return result
 
     return check
+
+
+def convert_filesize(value):
+    multiplier = 1
+    conv = OrderedDict((('k', 2 ** 10),
+                        ('m', 2 ** 20),
+                        ('g', 2 ** 30),
+                        ('t', 2 ** 40)))
+
+    if not value[-1].isdigit():
+        if value[-1] not in conv.keys():
+            raise argparse.ArgumentTypeError('--output-bytes-per-file must either be a ' +
+                                             'number or end with {} '.format(conv.keys()) +
+                                             'to indicate kilo, mega, giga or terabytes')
+        multiplier = conv[value[-1]]
+        value = value[:-1]
+
+    value = int(float(value) * multiplier)
+    if value < 0:
+        raise argparse.ArgumentTypeError('--output-bytes-per-file cannot be less than zero')
+
+    return value
 
 
 def tupleize(num_items=None, conv=float, dtype=tuple):
