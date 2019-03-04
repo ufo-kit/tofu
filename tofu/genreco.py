@@ -170,9 +170,12 @@ def _run(resources, args, x_region, y_region, regions, run_number):
             else:
                 geometry.optimize_args(region=region)
         opt_args = geometry.args
-        source = _setup_source(opt_args, graph)
-        setup_graph(opt_args, graph, x_region, y_region, region, source, gpu=gpu,
-                    index=region_index, make_reader=False)
+        if args.dry_run:
+            source = get_task('dummy-data', number=args.number, width=args.width, height=args.height)
+        else:
+            source = None
+        setup_graph(opt_args, graph, x_region, y_region, region, source=source, gpu=gpu,
+                    index=region_index, make_reader=True)
         LOG.debug('Pass: %d, device: %d, region: %s', run_number + 1, gpu_index, region)
         scheduler.run(graph)
 
@@ -185,8 +188,8 @@ def _run(resources, args, x_region, y_region, regions, run_number):
     return time.time() - st
 
 
-def setup_graph(args, graph, x_region, y_region, region, source, gpu=None, do_output=True, index=0,
-                make_reader=False):
+def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, do_output=True,
+                index=0, make_reader=True):
     backproject = get_task('general-backproject', processing_node=gpu)
 
     if do_output:
@@ -229,16 +232,14 @@ def setup_graph(args, graph, x_region, y_region, region, source, gpu=None, do_ou
     backproject.props.gray_map_min = args.slice_gray_map[0]
     backproject.props.gray_map_max = args.slice_gray_map[1]
 
-    if args.only_bp:
-        first = backproject
-        if source:
-            graph.connect_nodes(source, backproject)
+    source = create_preprocessing_pipeline(args, graph, source=source,
+                                           processing_node=gpu,
+                                           cone_beam_weight=not args.disable_cone_beam_weight,
+                                           make_reader=make_reader)
+    if source:
+        graph.connect_nodes(source, backproject)
     else:
-        first = create_preprocessing_pipeline(args, graph, source=source,
-                                              processing_node=gpu,
-                                              cone_beam_weight=not args.disable_cone_beam_weight,
-                                              make_reader=make_reader)
-        graph.connect_nodes(first, backproject)
+        source = backproject
 
     if do_output:
         graph.connect_nodes(backproject, sink)
@@ -246,22 +247,7 @@ def setup_graph(args, graph, x_region, y_region, region, source, gpu=None, do_ou
     else:
         last = backproject
 
-    return (first, last)
-
-
-def _setup_source(args, graph):
-    from tofu.preprocess import create_flat_correct_pipeline
-    from tofu.util import set_node_props, setup_read_task
-    if args.dry_run:
-        source = get_task('dummy-data', number=args.number, width=args.width, height=args.height)
-    elif args.darks and args.flats:
-        source = create_flat_correct_pipeline(args, graph)
-    else:
-        source = get_task('read')
-        set_node_props(source, args)
-        setup_read_task(source, args.projections, args)
-
-    return source
+    return (source, last)
 
 
 def set_projection_filter_scale(args):

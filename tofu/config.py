@@ -453,10 +453,6 @@ SECTIONS['general-reconstruction'] = {
         'default': 1,
         'type': restrict_value((1, None), dtype=int),
         'help': "Number of parallel reconstruction threads on one GPU"},
-    'only-bp': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Do only backprojection with no other processing steps"},
     'disable-projection-crop': {
         'default': False,
         'action': 'store_true',
