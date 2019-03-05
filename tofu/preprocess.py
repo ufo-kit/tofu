@@ -294,7 +294,7 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
             setup_read_task(current, args.projections, args)
         if args.absorptivity:
             absorptivity = get_task('calculate', processing_node=processing_node)
-            absorptivity.props.expression = '-log(v)'
+            absorptivity.props.expression = 'v <= 0 ? 0.0f : -log(v)'
             if current:
                 graph.connect_nodes(current, absorptivity)
             current = absorptivity
