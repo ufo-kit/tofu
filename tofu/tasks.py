@@ -32,5 +32,7 @@ def get_writer(params):
         writer.props.minimum = params.output_minimum
         writer.props.maximum = params.output_maximum
     writer.props.bytes_per_file = params.output_bytes_per_file
+    if hasattr(writer.props, 'tiff_bigtiff'):
+        writer.props.tiff_bigtiff = params.output_bigtiff
 
     return writer
