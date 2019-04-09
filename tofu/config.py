@@ -47,6 +47,10 @@ SECTIONS['general'] = {
         'help': "Maximum bytes per file (0=single-image output, otherwise multi-image output)\
                 , 'k', 'm', 'g', 't' suffixes can be used",
         'metavar': 'BYTESPERFILE'},
+    'output-bigtiff': {
+        'default': False,
+        'action': 'store_true',
+        'help': 'Write tiff in BigTiff format'},
     'log': {
         'default': None,
         'type': str,
