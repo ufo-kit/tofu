@@ -223,13 +223,11 @@ def run_sinogram_generation(args):
     starts = range(args.y, args.y + args.height, step) + [args.y + args.height]
 
     def generate_partial(append=False):
-        pm = Ufo.PluginManager()
         graph = Ufo.TaskGraph()
         sched = Ufo.Scheduler()
 
-        writer = get_task('write')
-        writer.props.filename = args.output
-        writer.props.append = append
+        args.output_append = append
+        writer = get_writer(args)
 
         sinos = create_sinogram_pipeline(args, graph)
         graph.connect_nodes(sinos, writer)

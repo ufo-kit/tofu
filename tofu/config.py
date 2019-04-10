@@ -51,6 +51,10 @@ SECTIONS['general'] = {
         'default': False,
         'action': 'store_true',
         'help': 'Write tiff in BigTiff format'},
+    'output-append': {
+        'default': False,
+        'action': 'store_true',
+        'help': 'Append images instead of overwriting existing files'},
     'log': {
         'default': None,
         'type': str,

@@ -25,6 +25,8 @@ def get_writer(params):
     LOG.debug("Writing output to {}".format(outname))
     writer = get_task('write', filename=outname)
 
+    writer.props.append = params.output_append
+
     if params.output_bitdepth != 32:
         writer.props.bits = params.output_bitdepth
 
