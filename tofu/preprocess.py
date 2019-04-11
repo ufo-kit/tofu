@@ -151,6 +151,7 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     phase_retrieve.props.pixel_size = args.pixel_size
     phase_retrieve.props.regularization_rate = args.regularization_rate
     phase_retrieve.props.thresholding_rate = args.thresholding_rate
+    phase_retrieve.props.frequency_cutoff = args.frequency_cutoff
     fft_phase_retrieve.props.dimensions = 2
     ifft_phase_retrieve.props.dimensions = 2
 

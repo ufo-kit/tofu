@@ -179,7 +179,11 @@ SECTIONS['retrieve-phase'] = {
     'thresholding-rate': {
         'default': 0.01,
         'type': float,
-        'help': "Thresholding rate (typical values between [0.01, 0.1])"}}
+        'help': "Thresholding rate (typical values between [0.01, 0.1])"},
+    'frequency-cutoff': {
+        'default': 1e30,
+        'type': float,
+        'help': "Phase retrieval frequency cutoff [rad]"}}
 
 SECTIONS['sinos'] = {
     'pass-size': {
