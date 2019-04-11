@@ -141,7 +141,7 @@ SECTIONS['flat-correction'] = {
 
 SECTIONS['retrieve-phase'] = {
     'retrieval-method': {
-        'choices': ['tie', 'ctf', 'ctfhalfsine', 'qp', 'qphalfsine', 'qp2'],
+        'choices': ['tie', 'ctf', 'qp', 'qp2'],
         'default': 'tie',
         'help': "Phase retrieval method"},
     'energy': {
