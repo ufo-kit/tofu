@@ -149,7 +149,7 @@ SECTIONS['flat-correction'] = {
 
 SECTIONS['retrieve-phase'] = {
     'retrieval-method': {
-        'choices': ['tie', 'ctf', 'ctfhalfsine', 'qp', 'qphalfsine', 'qp2'],
+        'choices': ['tie', 'ctf', 'qp', 'qp2'],
         'default': 'tie',
         'help': "Phase retrieval method"},
     'energy': {
@@ -187,7 +187,11 @@ SECTIONS['retrieve-phase'] = {
     'thresholding-rate': {
         'default': 0.01,
         'type': float,
-        'help': "Thresholding rate (typical values between [0.01, 0.1])"}}
+        'help': "Thresholding rate (typical values between [0.01, 0.1])"},
+    'frequency-cutoff': {
+        'default': 1e30,
+        'type': float,
+        'help': "Phase retrieval frequency cutoff [rad]"}}
 
 SECTIONS['sinos'] = {
     'pass-size': {

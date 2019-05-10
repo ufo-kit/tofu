@@ -151,6 +151,7 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     phase_retrieve.props.pixel_size = args.pixel_size
     phase_retrieve.props.regularization_rate = args.regularization_rate
     phase_retrieve.props.thresholding_rate = args.thresholding_rate
+    phase_retrieve.props.frequency_cutoff = args.frequency_cutoff
     fft_phase_retrieve.props.dimensions = 2
     ifft_phase_retrieve.props.dimensions = 2
 
@@ -158,9 +159,8 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
     graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
     graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+    calculate = get_task('calculate', processing_node=processing_node)
     if args.retrieval_method == 'tie':
-        # Take the logarithm to obtain the projected thickness
-        calculate = get_task('calculate', processing_node=processing_node)
         expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
         if args.delta is not None:
             import numpy as np
@@ -168,12 +168,15 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
             # Compute mju from the fact that beta = 10^-regularization_rate * delta
             # and mju = 4 * Pi * beta / lambda
             mju = 4 * np.pi * 10 ** -args.regularization_rate * args.delta / lam
+            # Take the logarithm to obtain the projected thickness
             expression += '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
         else:
             expression += '-log (v)'
-        calculate.props.expression = expression
-        graph.connect_nodes(crop_phase_retrieve, calculate)
-        last = calculate
+    else:
+        expression = '(isinf (v) || isnan (v)) ? 0.0f : -v'
+    calculate.props.expression = expression
+    graph.connect_nodes(crop_phase_retrieve, calculate)
+    last = calculate
 
     return (pad_phase_retrieve, last)
 
