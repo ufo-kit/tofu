@@ -83,3 +83,10 @@ you can estimate it with:
 
 Currently, a modified algorithm based on the work of [Donath et
 al.](http://dx.doi.org/10.1364/JOSAA.23.001048) is used to determine the center.
+
+
+## Citation
+
+If you use this software for publishing your data, we kindly ask to cite the article below.
+
+Vogelgesang, Matthias, et al. "Real-time image-content-based beamline control for smart 4D X-ray imaging." Journal of synchrotron radiation 23.5 (2016): 1254-1263.
