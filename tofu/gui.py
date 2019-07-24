@@ -383,14 +383,6 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.on_ffc_box_clicked()
         self.on_interpolate_button_clicked()
 
-    def closeEvent(self, event):
-        try:
-            sections = config.TOMO_PARAMS + ('gui',)
-            config.write('reco.conf', args=self.params, sections=sections)
-        except IOError as e:
-            self.gui_warn(str(e))
-            self.on_save_as()
-
     def on_reconstruct(self):
         with spinning_cursor():
             self.ui.centralWidget.setEnabled(False)

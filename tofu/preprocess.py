@@ -121,6 +121,7 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     crop_phase_retrieve = get_task('crop', processing_node=processing_node)
     fft_phase_retrieve = get_task('fft', processing_node=processing_node)
     ifft_phase_retrieve = get_task('ifft', processing_node=processing_node)
+    last = crop_phase_retrieve
     width = args.width
     height = args.height
     default_padded_width = next_power_of_two(width)
@@ -150,6 +151,7 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     phase_retrieve.props.pixel_size = args.pixel_size
     phase_retrieve.props.regularization_rate = args.regularization_rate
     phase_retrieve.props.thresholding_rate = args.thresholding_rate
+    phase_retrieve.props.frequency_cutoff = args.frequency_cutoff
     fft_phase_retrieve.props.dimensions = 2
     ifft_phase_retrieve.props.dimensions = 2
 
@@ -157,8 +159,26 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
     graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
     graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+    calculate = get_task('calculate', processing_node=processing_node)
+    if args.retrieval_method == 'tie':
+        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
+        if args.delta is not None:
+            import numpy as np
+            lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
+            # Compute mju from the fact that beta = 10^-regularization_rate * delta
+            # and mju = 4 * Pi * beta / lambda
+            mju = 4 * np.pi * 10 ** -args.regularization_rate * args.delta / lam
+            # Take the logarithm to obtain the projected thickness
+            expression += '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
+        else:
+            expression += '-log (v)'
+    else:
+        expression = '(isinf (v) || isnan (v)) ? 0.0f : -v'
+    calculate.props.expression = expression
+    graph.connect_nodes(crop_phase_retrieve, calculate)
+    last = calculate
 
-    return (pad_phase_retrieve, crop_phase_retrieve)
+    return (pad_phase_retrieve, last)
 
 
 def run_flat_correct(args):
@@ -166,8 +186,7 @@ def run_flat_correct(args):
     sched = Ufo.Scheduler()
     pm = Ufo.PluginManager()
 
-    out_task = pm.get_task('write')
-    out_task.props.filename = args.output
+    out_task = get_writer(args)
     flat_task = create_flat_correct_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)
     sched.run(graph)
@@ -207,13 +226,11 @@ def run_sinogram_generation(args):
     starts = range(args.y, args.y + args.height, step) + [args.y + args.height]
 
     def generate_partial(append=False):
-        pm = Ufo.PluginManager()
         graph = Ufo.TaskGraph()
         sched = Ufo.Scheduler()
 
-        writer = get_task('write')
-        writer.props.filename = args.output
-        writer.props.append = append
+        args.output_append = append
+        writer = get_writer(args)
 
         sinos = create_sinogram_pipeline(args, graph)
         graph.connect_nodes(sinos, writer)
@@ -247,9 +264,12 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     return (pad, crop)
 
 
-def create_preprocessing_pipeline(args, graph, source=None, processing_node=None):
-    pm = Ufo.PluginManager()
-
+def create_preprocessing_pipeline(args, graph, source=None, processing_node=None,
+                                  cone_beam_weight=True, make_reader=True):
+    """If *make_reader* is True, create a read task if *source* is None and no dark and flat fields
+    are given.
+    """
+    import numpy as np
     if not (args.width and args.height):
         width, height = determine_shape(args, args.projections)
         if not width:
@@ -261,41 +281,60 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
 
     LOG.debug('Image width x height: %d x %d', args.width, args.height)
 
+    current = None
     if source:
         current = source
     elif args.darks and args.flats:
         current = create_flat_correct_pipeline(args, graph, processing_node=processing_node)
     else:
-        current = get_task('read')
-        set_node_props(current, args)
-        if not args.projections:
-            raise RuntimeError('--projections not set')
-        setup_read_task(current, args.projections, args)
+        if make_reader:
+            current = get_task('read')
+            set_node_props(current, args)
+            if not args.projections:
+                raise RuntimeError('--projections not set')
+            setup_read_task(current, args.projections, args)
         if args.absorptivity:
             absorptivity = get_task('calculate', processing_node=processing_node)
-            absorptivity.props.expression = '-log(v)'
-            graph.connect_nodes(current, absorptivity)
+            absorptivity.props.expression = 'v <= 0 ? 0.0f : -log(v)'
+            if current:
+                graph.connect_nodes(current, absorptivity)
             current = absorptivity
 
     if args.transpose_input:
         transpose = get_task('transpose')
-        graph.connect_nodes(current, transpose)
+        if current:
+            graph.connect_nodes(current, transpose)
         current = transpose
         tmp = args.width
         args.width = args.height
         args.height = tmp
 
-    if args.projection_filter != 'none':
-        pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
-                                                                 processing_node=processing_node)
-        graph.connect_nodes(current, pf_first)
-        current = pf_last
+    if cone_beam_weight and not np.all(np.isinf(args.source_position_y)):
+        # Cone beam projection weight
+        LOG.debug('Enabling cone beam weighting')
+        weight = get_task('cone-beam-projection-weight', processing_node=processing_node)
+        weight.props.source_distance = (-np.array(args.source_position_y)).tolist()
+        weight.props.detector_distance = args.detector_position_y
+        weight.props.center_position_x = args.center_position_x or [args.width / 2. + (args.width % 2) * 0.5]
+        weight.props.center_position_z = args.center_position_z or [args.height / 2. + (args.height % 2) * 0.5]
+        weight.props.axis_angle_x = args.axis_angle_x
+        if current:
+            graph.connect_nodes(current, weight)
+        current = weight
 
     if args.energy is not None and args.propagation_distance is not None:
         pr_first, pr_last = create_phase_retrieval_pipeline(args, graph,
                                                             processing_node=processing_node)
-        graph.connect_nodes(current, pr_first)
+        if current:
+            graph.connect_nodes(current, pr_first)
         current = pr_last
+
+    if args.projection_filter != 'none':
+        pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
+                                                                 processing_node=processing_node)
+        if current:
+            graph.connect_nodes(current, pf_first)
+        current = pf_last
 
     return current
 
