@@ -258,8 +258,8 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     else:
         crop = None
 
-    padding = setup_padding(pad, args.width, args.height, args.projection_padding_mode, crop=crop)
-    LOG.debug('Padded image width x height: %d x %d', padding + args.width, args.height)
+    padding_width = setup_padding(pad, args.width, args.height, args.projection_padding_mode,
+                                  crop=crop)[0]
     fft.props.dimensions = 1
     ifft.props.dimensions = 1
     fltr.props.filter = args.projection_filter

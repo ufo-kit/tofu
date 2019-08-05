@@ -88,6 +88,12 @@ def run_shell(args):
     shell()
 
 
+def run_find_large_spots(args):
+    from tofu.find_large_spots import find_large_spots
+
+    find_large_spots(args)
+
+
 def gui(args):
     try:
         from tofu import gui
@@ -180,6 +186,7 @@ def main():
         ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
+        ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
     ]
 
     subparsers = parser.add_subparsers(title="Commands", metavar='')
