@@ -142,6 +142,10 @@ SECTIONS['flat-correction'] = {
         'type': str,
         'help': "Location with flats 2 for interpolation correction",
         'metavar': 'PATH'},
+    'flat-scale': {
+        'default': 1,
+        'type': float,
+        'help': "Scaling flat"},
     'absorptivity': {
         'default': False,
         'action': 'store_true',
@@ -222,7 +226,7 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3']},
     'projection-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
         'default': 'clamp_to_edge',

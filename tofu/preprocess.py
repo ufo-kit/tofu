@@ -28,6 +28,7 @@ def create_flat_correct_pipeline(args, graph, processing_node=None):
 
     ffc = get_task('flat-field-correct', processing_node=processing_node,
                    dark_scale=args.dark_scale,
+                   flat_scale=args.flat_scale,
                    absorption_correct=args.absorptivity,
                    fix_nan_and_inf=args.fix_nan_and_inf)
     mode = args.reduction_mode.lower()
