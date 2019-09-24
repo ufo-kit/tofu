@@ -155,6 +155,22 @@ def read_image(filename):
         raise ValueError('Unsupported image format')
 
 
+def get_image_shape(filename):
+    """Determine image shape (numpy order) from file *filename*."""
+    if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):
+        from tifffile import TiffFile
+        with TiffFile(filename) as tif:
+            page = tif.pages[0]
+            shape = (page.imagelength, page.imagewidth)
+            if len(tif.pages) > 1:
+                shape = (len(tif.pages),) + shape
+    else:
+        # fabio doesn't seem to be able to read the shape without reading the data
+        shape = read_image(filename).shape
+
+    return shape
+
+
 def get_first_filename(path):
     """Returns the first valid image filename in *path*."""
     if not path:
@@ -181,11 +197,11 @@ def determine_shape(args, path=None, store=False):
         filename = get_first_filename(path or args.projections)
 
         try:
-            image = read_image(filename)
+            shape = get_image_shape(filename)
 
             # Now set the width and height if not specified
-            width = width or image.shape[-1]
-            height = height or image.shape[-2]
+            width = width or shape[-1]
+            height = height or shape[-2]
         except:
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
 

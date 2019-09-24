@@ -396,9 +396,9 @@ class ApplicationWindow(QtGui.QMainWindow):
                 self.ui.centralWidget.setEnabled(True)
                 return
 
-            im = util.read_image(input_images[0])
-            self.params.width = im.shape[1]
-            self.params.height = im.shape[0]
+            shape = util.get_image_shape(input_images[0])
+            self.params.width = shape[-1]
+            self.params.height = shape[-2]
             self.params.ffc_correction = self.params.ffc_correction and self.ui.proj_button.isChecked()
 
             if not (self.params.output.endswith('.tif') or

@@ -7,8 +7,7 @@ import numpy as np
 from gi.repository import Ufo
 from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
-                       get_first_filename, read_image, determine_shape,
-                       setup_padding)
+                       read_image, determine_shape, setup_padding)
 from tofu.tasks import get_task, get_writer
 
 
@@ -41,14 +40,7 @@ def get_projection_reader(params):
 def get_sinogram_reader(params):
     reader = get_file_reader(params)
     setup_read_task(reader, params.sinograms, params)
-    image = read_image(get_first_filename(params.sinograms))
-
-    if len(image.shape) > 2:
-        # this is a probably a multi TIFF/raw
-        width, height = image.shape[2], image.shape[1]
-    else:
-        # this is a directory of sinograms
-        width, height = image.shape[1], image.shape[0]
+    width, height = determine_shape(params, path=params.sinograms)
 
     return reader, width, height
 
