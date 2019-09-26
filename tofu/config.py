@@ -42,15 +42,11 @@ SECTIONS['general'] = {
         'help': "Maximum input value that maps to largest output value",
         'metavar': 'MAX'},
     'output-bytes-per-file': {
-        'default': '0',
+        'default': '128g',
         'type': convert_filesize,
         'help': "Maximum bytes per file (0=single-image output, otherwise multi-image output)\
                 , 'k', 'm', 'g', 't' suffixes can be used",
         'metavar': 'BYTESPERFILE'},
-    'output-bigtiff': {
-        'default': False,
-        'action': 'store_true',
-        'help': 'Write tiff in BigTiff format'},
     'output-append': {
         'default': False,
         'action': 'store_true',
