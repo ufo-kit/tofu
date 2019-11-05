@@ -181,7 +181,7 @@ SECTIONS['retrieve-phase'] = {
         'type': restrict_value((0, None), dtype=int),
         'help': "Padded height used for phase retrieval"},
     'retrieval-padding-mode': {
-        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp_to_edge',
         'help': "Padded values assignment"},
     'thresholding-rate': {
@@ -224,7 +224,7 @@ SECTIONS['reconstruction'] = {
         'help': "Projection filter",
         'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3']},
     'projection-padding-mode': {
-        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp_to_edge',
         'help': "Padded values assignment"}}
 
@@ -305,7 +305,7 @@ SECTIONS['laminographic-reconstruction'] = {
         'action': 'store_true',
         'help': "Do only backprojection with no other processing steps"},
     'lamino-padding-mode': {
-        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp',
         'help': "Padded values assignment for the filtered projection"}}
 
@@ -420,7 +420,7 @@ SECTIONS['preprocess'] = {
         'type': float,
         'help': "Multiplicative factor of the projection filter"},
     'projection-padding-mode': {
-        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp_to_edge',
         'help': "Padded values assignment"}
         }
@@ -592,7 +592,7 @@ SECTIONS['general-reconstruction'] = {
         'type': float,
         'help': "The total angle over which projections were taken in degrees"},
     'genreco-padding-mode': {
-        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat'],
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp',
         'help': "Padded values assignment for the filtered projection"},
     'slice-gray-map': {
