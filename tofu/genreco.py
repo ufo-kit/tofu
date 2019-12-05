@@ -165,8 +165,9 @@ def _run(resources, args, x_region, y_region, regions, run_number):
                      'to avoid interpolation')
             geometry.args.center_position_z = (geometry.args.center_position_z[0] + 0.5,)
         if not args.disable_projection_crop:
-            if not args.dry_run and (args.y or args.height):
-                LOG.debug('--y or --height specified, not optimizing projection region')
+            if not args.dry_run and (args.y or args.height or args.transpose_input):
+                LOG.debug('--y or --height or --transpose-input specified, '
+                          'not optimizing projection region')
             else:
                 geometry.optimize_args(region=region)
         opt_args = geometry.args
@@ -206,8 +207,8 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
     backproject.props.region = region
     backproject.props.x_region = x_region
     backproject.props.y_region = y_region
-    backproject.props.center_position_x = (args.center_position_x or [args.width / 2.])
-    backproject.props.center_position_z = (args.center_position_z or [args.height / 2.])
+    backproject.props.center_position_x = args.center_position_x
+    backproject.props.center_position_z = args.center_position_z
     backproject.props.source_position_x = args.source_position_x
     backproject.props.source_position_y = args.source_position_y
     backproject.props.source_position_z = args.source_position_z
@@ -270,6 +271,10 @@ def set_projection_filter_scale(args):
 
 def _fill_missing_args(args):
     (width, height) = determine_shape(args, args.projections, store=False)
+    if args.transpose_input:
+        tmp = width
+        width = height
+        height = tmp
     args.center_position_x = (args.center_position_x or [width / 2.])
     args.center_position_z = (args.center_position_z or [height / 2.])
 
