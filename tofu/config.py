@@ -625,6 +625,12 @@ SECTIONS['find-large-spots'] = {
         'default': 0.0,
         'type': float,
         'help': "Pixels with grey value larger than this are considered as spots"},
+    'spot-threshold-mode': {
+        'default': 'absolute',
+        'type': str,
+        'help': "Pixels must be either \"below\", \"above\" the spot threshold, or \
+                their \"absolute\" value can be compared",
+        'choices': ['below', 'above', 'absolute']},
     'grow-threshold': {
         'default': 0.0,
         'type': float,
