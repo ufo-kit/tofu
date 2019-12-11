@@ -621,6 +621,10 @@ SECTIONS['find-large-spots'] = {
         'default': 0.0,
         'type': float,
         'help': "Gaussian sigma for removing low frequencies (filter will be 1 - gauss window)"},
+    'blurred-output': {
+        'default': None,
+        'type': str,
+        'help': "Path where to store the blurred input"},
     'spot-threshold': {
         'default': 0.0,
         'type': float,

@@ -9,9 +9,17 @@ LOG = logging.getLogger(__name__)
 
 def find_large_spots(args):
     graph = Ufo.TaskGraph()
-    sched = Ufo.Scheduler()
+    sched = Ufo.FixedScheduler()
     reader = get_task('read')
     writer = get_writer(args)
+    if args.gauss_sigma and args.blurred_output:
+        broadcast = Ufo.CopyTask()
+        blurred_writer = get_task('write')
+        if hasattr(blurred_writer.props, 'bytes_per_file'):
+            blurred_writer.props.bytes_per_file = 0
+        if hasattr(blurred_writer.props, 'tiff_bigtiff'):
+            blurred_writer.props.tiff_bigtiff = False
+        blurred_writer.props.filename = args.blurred_output
 
     find = get_task('find-large-spots')
     set_node_props(find, args)
@@ -38,7 +46,13 @@ def find_large_spots(args):
         graph.connect_nodes(pad, blur)
         graph.connect_nodes(blur, crop)
         graph.connect_nodes_full(crop, opencl, 1)
-        graph.connect_nodes(opencl, find)
+        if args.blurred_output:
+            graph.connect_nodes(opencl, broadcast)
+            graph.connect_nodes(broadcast, blurred_writer)
+            source = broadcast
+        else:
+            source = opencl
+        graph.connect_nodes(source, find)
     else:
         graph.connect_nodes(reader, find)
 
