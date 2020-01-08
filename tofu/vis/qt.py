@@ -127,7 +127,8 @@ class OverlapViewer(QtGui.QWidget):
             LOG.warn("Shape {} of {} is different to {} of {}".
                      format(self.first.shape, self.first, self.second.shape, self.second))
 
-        self.slider.setRange(0, self.first.shape[0])
+        width = self.first.shape[0]
+        self.slider.setRange(-width / 2, int(1.5 * width))
         self.slider.setSliderPosition(self.first.shape[0] / 2)
         self.update_image()
 
