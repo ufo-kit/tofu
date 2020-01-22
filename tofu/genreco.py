@@ -248,7 +248,9 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
 
 
 def is_output_single_file(args):
-    return args.output.lower().endswith('.tif') or args.output.lower().endswith('.tiff')
+    filename = args.output.lower()
+
+    return not args.dry_run and (filename.endswith('.tif') or filename.endswith('.tiff'))
 
 
 def set_projection_filter_scale(args):
