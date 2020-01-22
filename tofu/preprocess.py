@@ -161,20 +161,24 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
     graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
     calculate = get_task('calculate', processing_node=processing_node)
-    if args.retrieval_method == 'tie':
-        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f :'
-        if args.delta is not None:
-            import numpy as np
-            lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
-            # Compute mju from the fact that beta = 10^-regularization_rate * delta
-            # and mju = 4 * Pi * beta / lambda
-            mju = 4 * np.pi * 10 ** -args.regularization_rate * args.delta / lam
-            # Take the logarithm to obtain the projected thickness
-            expression += '-log ({} * v) * {}'.format(2 / 10 ** args.regularization_rate, 1 / mju)
-        else:
-            expression += '-log (v)'
+
+    if args.delta is not None:
+        import numpy as np
+        lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
+        thickness_conversion = -lam / (2 * np.pi * args.delta)
     else:
-        expression = '(isinf (v) || isnan (v)) ? 0.0f : -v'
+        thickness_conversion = 1
+
+    if args.retrieval_method == 'tie':
+        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : -log ({} * v) * {{}}'
+        # 2 for 0.5 factor in ufo-filters and alpha = 10^-R, so divide by 10^R
+        expression = expression.format(2 / 10 ** args.regularization_rate)
+        # The following converts the TIE result to the actual phase, which when multiplied by the
+        # thickness_conversion gives the projected thickness
+        thickness_conversion *= -10 ** args.regularization_rate / 2
+        expression = expression.format(thickness_conversion)
+    else:
+        expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
     calculate.props.expression = expression
     graph.connect_nodes(crop_phase_retrieve, calculate)
     last = calculate
