@@ -35,6 +35,10 @@ def genreco(args):
     _convert_angles_to_rad(args)
     set_projection_filter_scale(args)
     x_region, y_region, z_region = get_reconstruction_regions(args, store=True)
+    vol_shape = get_reconstructed_cube_shape(x_region, y_region, z_region)
+    bpp = DTYPE_CL_SIZE[args.store_type]
+    num_voxels = vol_shape[0] * vol_shape[1] * vol_shape[2]
+    vol_nbytes = num_voxels * bpp
 
     resources = [Ufo.Resources()]
     gpus = np.array(resources[0].get_gpu_nodes())
@@ -46,8 +50,7 @@ def genreco(args):
     for i, gpu in enumerate(gpus):
         print 'Max mem for {}: {:.2f} GB'.format(i, gpu.get_info(0) / 2 ** 30)
 
-    runs = make_runs(gpus, gpu_indices, x_region, y_region, z_region,
-                     DTYPE_CL_SIZE[args.store_type],
+    runs = make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp,
                      slices_per_device=args.slices_per_device,
                      slice_memory_coeff=args.slice_memory_coeff,
                      data_splitting_policy=args.data_splitting_policy,
@@ -62,10 +65,9 @@ def genreco(args):
         LOG.debug('%s', str(regions))
 
     for i, regions in enumerate(runs):
-        duration += _run(resources, args, x_region, y_region, regions, i)
+        duration += _run(resources, args, x_region, y_region, regions, i, vol_nbytes)
 
-    vol_shape = get_reconstructed_cube_shape(x_region, y_region, z_region)
-    num_gupdates = vol_shape[0] * vol_shape[1] * vol_shape[2] * args.number * 1e-9
+    num_gupdates = num_voxels * args.number * 1e-9
     total_duration = time.time() - st
     LOG.debug('UFO duration: %.2f s', duration)
     LOG.debug('Total duration: %.2f s', total_duration)
@@ -157,7 +159,7 @@ def get_num_slices_per_gpu(gpus, width, height, bpp, slice_memory_coeff=0.8):
     return num_slices
 
 
-def _run(resources, args, x_region, y_region, regions, run_number):
+def _run(resources, args, x_region, y_region, regions, run_number, vol_nbytes):
     """Execute one pass on all possible GPUs with slice ranges given by *regions*. Use separate
     thread per GPU and optimize the read projection regions.
     """
@@ -177,7 +179,9 @@ def _run(resources, args, x_region, y_region, regions, run_number):
 
     if is_output_single_file(args):
         import tifffile
-        with tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=True) as writer:
+        bigtiff = vol_nbytes > 2 ** 32
+        LOG.debug('Writing BigTiff: %s', bigtiff)
+        with tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=bigtiff) as writer:
             for executor in executors:
                 executor.consume(writer)
     result.wait()
