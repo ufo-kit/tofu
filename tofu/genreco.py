@@ -25,6 +25,12 @@ DTYPE_CL_SIZE = {'float': 4,
 
 def genreco(args):
     st = time.time()
+    if is_output_single_file(args):
+        try:
+            import ufo.numpy
+        except ImportError:
+            LOG.error('You must install ufo-python-tools to be able to write single-file output')
+            return
     _fill_missing_args(args)
     _convert_angles_to_rad(args)
     set_projection_filter_scale(args)
@@ -155,40 +161,25 @@ def _run(resources, args, x_region, y_region, regions, run_number):
     """Execute one pass on all possible GPUs with slice ranges given by *regions*. Use separate
     thread per GPU and optimize the read projection regions.
     """
-    def start_one(index):
+    executors = []
+    for index in range(len(regions)):
         gpu_index, region = regions[index]
-        scheduler = Ufo.FixedScheduler()
-        scheduler.set_resources(resources[index])
-        graph = Ufo.TaskGraph()
-        gpu = scheduler.get_resources().get_gpu_nodes()[gpu_index]
         region_index = run_number * len(resources) + index
-        geometry = CTGeometry(args)
-        if (len(args.center_position_z) == 1 and np.modf(args.center_position_z[0])[0] == 0 and
-            geometry.is_simple_parallel_tomo):
-            LOG.info('Simple tomography with integer z center, changing to center_position_z + 0.5 '
-                     'to avoid interpolation')
-            geometry.args.center_position_z = (geometry.args.center_position_z[0] + 0.5,)
-        if not args.disable_projection_crop:
-            if not args.dry_run and (args.y or args.height or args.transpose_input):
-                LOG.debug('--y or --height or --transpose-input specified, '
-                          'not optimizing projection region')
-            else:
-                geometry.optimize_args(region=region)
-        opt_args = geometry.args
-        if args.dry_run:
-            source = get_task('dummy-data', number=args.number, width=args.width, height=args.height)
-        else:
-            source = None
-        setup_graph(opt_args, graph, x_region, y_region, region, source=source, gpu=gpu,
-                    index=region_index, make_reader=True)
-        LOG.debug('Pass: %d, device: %d, region: %s', run_number + 1, gpu_index, region)
-        scheduler.run(graph)
+        executors.append(Executor(resources[index], args, region, x_region, y_region,
+                                  gpu_index, region_index))
 
-        return scheduler.props.time
+    def start_one(index):
+        return executors[index].process()
 
     st = time.time()
     pool = ThreadPool(processes=len(regions))
-    pool.map(start_one, range(len(regions)))
+    result = pool.map_async(start_one, range(len(regions)))
+
+    if is_output_single_file(args):
+        import tifffile
+        with tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=True) as writer:
+            for executor in executors:
+                executor.consume(writer)
 
     return time.time() - st
 
@@ -253,6 +244,10 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
         last = backproject
 
     return (source, last)
+
+
+def is_output_single_file(args):
+    return args.output.lower().endswith('.tif') or args.output.lower().endswith('.tiff')
 
 
 def set_projection_filter_scale(args):
@@ -334,6 +329,62 @@ def _convert_list_to_rad(values):
 
 def _are_values_equal(values):
     return np.all(np.array(values) == values[0])
+
+
+class Executor(object):
+    def __init__(self, resources, args, region, x_region, y_region, gpu_index, region_index):
+        self.resources = resources
+        self.args = args
+        self.region = region
+        self.gpu_index = gpu_index
+        self.x_region = x_region
+        self.y_region = y_region
+        self.region_index = region_index
+        self.single_file_output = is_output_single_file(self.args)
+        self.output = Ufo.OutputTask() if self.single_file_output else None
+
+    def process(self):
+        scheduler = Ufo.FixedScheduler()
+        scheduler.set_resources(self.resources)
+        graph = Ufo.TaskGraph()
+        gpu = scheduler.get_resources().get_gpu_nodes()[self.gpu_index]
+        geometry = CTGeometry(self.args)
+        if (len(self.args.center_position_z) == 1 and
+                np.modf(self.args.center_position_z[0])[0] == 0 and
+                geometry.is_simple_parallel_tomo):
+            LOG.info('Simple tomography with integer z center, changing to center_position_z + 0.5 '
+                     'to avoid interpolation')
+            geometry.args.center_position_z = (geometry.args.center_position_z[0] + 0.5,)
+        if not self.args.disable_projection_crop:
+            if not self.args.dry_run and (self.args.y or self.args.height or
+                                          self.args.transpose_input):
+                LOG.debug('--y or --height or --transpose-input specified, '
+                          'not optimizing projection region')
+            else:
+                geometry.optimize_args(region=self.region)
+        opt_args = geometry.args
+        if self.args.dry_run:
+            source = get_task('dummy-data', number=self.args.number, width=self.args.width,
+                              height=self.args.height)
+        else:
+            source = None
+        last = setup_graph(opt_args, graph, self.x_region, self.y_region, self.region,
+                           source=source, gpu=gpu, index=self.region_index, make_reader=True,
+                           do_output=not self.single_file_output)[-1]
+        if self.single_file_output:
+            graph.connect_nodes(last, self.output)
+        LOG.debug('Device: %d, region: %s', self.gpu_index, self.region)
+        scheduler.run(graph)
+
+        return scheduler.props.time
+
+    def consume(self, writer):
+        import ufo.numpy
+
+        for i in np.arange(*self.region):
+            buf = self.output.get_output_buffer()
+            writer.save(ufo.numpy.asarray(buf))
+            self.output.release_output_buffer(buf)
 
 
 class CTGeometry(object):
