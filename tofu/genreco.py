@@ -51,6 +51,9 @@ def genreco(args):
         resources.append(Ufo.Resources())
 
     LOG.info('Number of passes: %d', len(runs))
+    LOG.debug('GPUs and regions:')
+    for regions in runs:
+        LOG.debug('%s', str(regions))
 
     for i, regions in enumerate(runs):
         duration += _run(resources, args, x_region, y_region, regions, i)
