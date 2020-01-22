@@ -180,6 +180,7 @@ def _run(resources, args, x_region, y_region, regions, run_number):
         with tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=True) as writer:
             for executor in executors:
                 executor.consume(writer)
+    result.wait()
 
     return time.time() - st
 
