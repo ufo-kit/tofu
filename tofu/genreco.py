@@ -44,7 +44,8 @@ def genreco(args):
                      DTYPE_CL_SIZE[args.store_type],
                      slices_per_device=args.slices_per_device,
                      slice_memory_coeff=args.slice_memory_coeff,
-                     data_splitting_policy=args.data_splitting_policy)
+                     data_splitting_policy=args.data_splitting_policy,
+                     num_gpu_threads=args.num_gpu_threads)
 
     for i in range(len(runs[0]) - 1):
         resources.append(Ufo.Resources())
