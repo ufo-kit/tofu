@@ -171,7 +171,9 @@ SECTIONS['retrieve-phase'] = {
     'delta': {
         'default': None,
         'type': float,
-        'help': "Real part of the complex refractive index of the material"},
+        'help': "Real part of the complex refractive index of the material. "
+                "If specified, phase retrieval returns projected thickness, "
+                "if not, it returns phase"},
     'retrieval-padded-width': {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
