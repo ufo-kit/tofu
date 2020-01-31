@@ -31,6 +31,10 @@ def genreco(args):
         except ImportError:
             LOG.error('You must install ufo-python-tools to be able to write single-file output')
             return
+    if (args.energy is not None and args.propagation_distance is not None and not
+            (args.projection_margin or args.disable_projection_crop)):
+        LOG.warning('Phase retrieval without --projection-margin specification or '
+                    '--disable-projection-crop may cause convolution artifacts')
     _fill_missing_args(args)
     _convert_angles_to_rad(args)
     set_projection_filter_scale(args)
