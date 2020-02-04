@@ -501,11 +501,11 @@ SECTIONS['general-reconstruction'] = {
         'help': "Number of projections processed per kernel invocation"},
     'x-region': {
         'default': "0,-1,1",
-        'type': tupleize(num_items=3, conv=int),
+        'type': tupleize(num_items=3),
         'help': "x region as from,to,step"},
     'y-region': {
         'default': "0,-1,1",
-        'type': tupleize(num_items=3, conv=int),
+        'type': tupleize(num_items=3),
         'help': "y region as from,to,step"},
     'z': {
         'default': 0,

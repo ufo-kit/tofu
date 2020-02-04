@@ -244,8 +244,8 @@ def get_reconstructed_cube_shape(x_region, y_region, z_region):
     x_start, x_stop, x_step = x_region
 
     num_slices = len(np.arange(z_start, z_stop, z_step))
-    slice_height = len(range(y_start, y_stop, y_step))
-    slice_width = len(range(x_start, x_stop, x_step))
+    slice_height = len(np.arange(y_start, y_stop, y_step))
+    slice_width = len(np.arange(x_start, x_stop, x_step))
 
     return slice_width, slice_height, num_slices
 
