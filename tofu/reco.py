@@ -97,6 +97,7 @@ def tomo(params):
         ifft = get_task('ifft', dimensions=1)
         fltr = get_task('filter', filter=params.projection_filter)
         bp = get_task('backproject', axis_pos=axis)
+        last_node = bp
 
         if params.angle:
             bp.props.angle_step = params.angle
@@ -108,7 +109,13 @@ def tomo(params):
             # Pad the image with its extent to prevent reconstuction ring
             pad = get_task('pad')
             crop = get_task('crop')
-            setup_padding(pad, crop, width, height, params.projection_padding_mode)
+            if params.projection_crop_after == 'filter':
+                crop_after_filter = crop
+            else:
+                crop_after_filter = None
+
+            padding_width = setup_padding(pad, width, height, params.projection_padding_mode,
+                                          crop=crop_after_filter)
 
             LOG.debug("Padding input to: {}x{} pixels".format(pad.props.width, pad.props.height))
 
@@ -116,8 +123,18 @@ def tomo(params):
             g.connect_nodes(pad, fft)
             g.connect_nodes(fft, fltr)
             g.connect_nodes(fltr, ifft)
-            g.connect_nodes(ifft, crop)
-            g.connect_nodes(crop, bp)
+            if crop_after_filter:
+                g.connect_nodes(ifft, crop)
+                g.connect_nodes(crop, bp)
+            else:
+                bp.props.axis_pos = axis + padding_width / 2
+                crop.props.x = padding_width / 2
+                crop.props.y = padding_width / 2
+                crop.props.width = width
+                crop.props.height = width
+                g.connect_nodes(ifft, bp)
+                g.connect_nodes(bp, crop)
+                last_node = crop
         else:
             if params.crop_width:
                 ifft.props.crop_width = int(params.crop_width)
@@ -128,7 +145,7 @@ def tomo(params):
             g.connect_nodes(fltr, ifft)
             g.connect_nodes(ifft, bp)
 
-        g.connect_nodes(bp, writer)
+        g.connect_nodes(last_node, writer)
 
     if params.method in ('sart', 'sirt', 'sbtv', 'asdpocs'):
         projector = pm.get_task_from_package('ir', 'parallel-projector')

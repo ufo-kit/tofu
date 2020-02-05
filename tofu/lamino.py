@@ -3,8 +3,8 @@ import logging
 import numpy as np
 from multiprocessing import Queue, Process
 from tofu.preprocess import create_preprocessing_pipeline
-from tofu.util import (determine_shape, get_filenames, get_reconstruction_regions,
-                       get_reconstructed_cube_shape)
+from tofu.util import (get_filtering_padding, determine_shape, get_filenames,
+                       get_reconstruction_regions, get_reconstructed_cube_shape)
 from tofu.tasks import get_task, get_writer
 
 
@@ -142,7 +142,11 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
         region = [np.deg2rad(reg) for reg in region]
     backproject.props.region = region
     backproject.props.parameter = params.z_parameter
-    backproject.props.center = params.axis
+    if params.projection_crop_after == 'backprojection':
+        padding = get_filtering_padding(params.width)
+    else:
+        padding = 0
+    backproject.props.center = (params.axis[0] + padding / 2, params.axis[1])
 
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
