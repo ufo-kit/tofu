@@ -315,7 +315,12 @@ SECTIONS['fbp'] = {
     'crop-width': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
-        'help': "Width of final slice"}}
+        'help': "Width of final slice"},
+    'projection-crop-after': {
+        'choices': ['filter', 'backprojection'],
+        'default': 'backprojection',
+        'help': "Whether to crop projections after filtering (can cause truncation "
+                "artifacts) or after backprojection"}}
 
 SECTIONS['dfi'] = {
     'oversampling': {
@@ -424,8 +429,12 @@ SECTIONS['preprocess'] = {
     'projection-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp_to_edge',
-        'help': "Padded values assignment"}
-        }
+        'help': "Padded values assignment"},
+    'projection-crop-after': {
+        'choices': ['filter', 'backprojection'],
+        'default': 'backprojection',
+        'help': "Whether to crop projections after filtering (can cause truncation "
+                "artifacts) or after backprojection"}}
 
 SECTIONS['cone-beam-weight'] = {
     'source-position-y': {

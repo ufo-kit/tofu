@@ -10,8 +10,9 @@ import numpy as np
 from multiprocessing.pool import ThreadPool
 from gi.repository import Ufo
 from preprocess import create_preprocessing_pipeline
-from util import (get_reconstructed_cube_shape, get_reconstruction_regions, get_filenames,
-                  determine_shape, get_scarray_value, Vector)
+from util import (get_filtering_padding, get_reconstructed_cube_shape,
+                  get_reconstruction_regions, get_filenames, determine_shape,
+                  get_scarray_value, Vector)
 from tasks import get_task, get_writer
 
 
@@ -290,6 +291,10 @@ def _fill_missing_args(args):
         width = height
         height = tmp
     args.center_position_x = (args.center_position_x or [width / 2.])
+    if args.projection_crop_after == 'backprojection':
+        padding = get_filtering_padding(width)
+        args.center_position_x = (args.center_position_x[0] + padding / 2,)
+    LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
     args.center_position_z = (args.center_position_z or [height / 2.])
 
     if not args.overall_angle:

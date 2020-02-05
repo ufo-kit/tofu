@@ -214,8 +214,13 @@ def determine_shape(args, path=None, store=False):
     return (width, height)
 
 
-def setup_padding(pad, crop, width, height, mode):
-    padding = next_power_of_two(2 * width) - width
+def get_filtering_padding(width):
+    """Get the number of horizontal padded pixels in order to avoid convolution artifacts."""
+    return next_power_of_two(2 * width) - width
+
+
+def setup_padding(pad, width, height, mode, crop=None):
+    padding = get_filtering_padding(width)
     pad.props.width = width + padding
     pad.props.height = height
     pad.props.x = padding / 2
@@ -224,11 +229,14 @@ def setup_padding(pad, crop, width, height, mode):
     LOG.debug('Padded width: {}'.format(width + padding))
     LOG.debug('Padding mode: {}'.format(mode))
 
-    # crop to original width after filtering
-    crop.props.width = width
-    crop.props.height = height
-    crop.props.x = padding / 2
-    crop.props.y = 0
+    if crop:
+        # crop to original width after filtering
+        crop.props.width = width
+        crop.props.height = height
+        crop.props.x = padding / 2
+        crop.props.y = 0
+
+    return padding
 
 
 def make_region(n):

@@ -250,12 +250,16 @@ def run_sinogram_generation(args):
 def create_projection_filtering_pipeline(args, graph, processing_node=None):
     pm = Ufo.PluginManager()
     pad = get_task('pad', processing_node=processing_node)
-    crop = get_task('crop', processing_node=processing_node)
     fft = get_task('fft', processing_node=processing_node)
     ifft = get_task('ifft', processing_node=processing_node)
     fltr = get_task('filter', processing_node=processing_node)
+    if args.projection_crop_after == 'filter':
+        crop = get_task('crop', processing_node=processing_node)
+    else:
+        crop = None
 
-    setup_padding(pad, crop, args.width, args.height, args.projection_padding_mode)
+    padding = setup_padding(pad, args.width, args.height, args.projection_padding_mode, crop=crop)
+    LOG.debug('Padded image width x height: %d x %d', padding + args.width, args.height)
     fft.props.dimensions = 1
     ifft.props.dimensions = 1
     fltr.props.filter = args.projection_filter
@@ -264,9 +268,13 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(pad, fft)
     graph.connect_nodes(fft, fltr)
     graph.connect_nodes(fltr, ifft)
-    graph.connect_nodes(ifft, crop)
+    if crop:
+        graph.connect_nodes(ifft, crop)
+        last = crop
+    else:
+        last = ifft
 
-    return (pad, crop)
+    return (pad, last)
 
 
 def create_preprocessing_pipeline(args, graph, source=None, processing_node=None,
