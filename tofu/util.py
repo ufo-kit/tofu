@@ -215,7 +215,7 @@ def determine_shape(args, path=None, store=False):
 
 
 def setup_padding(pad, crop, width, height, mode):
-    padding = next_power_of_two(width + 32) - width
+    padding = next_power_of_two(2 * width) - width
     pad.props.width = width + padding
     pad.props.height = height
     pad.props.x = padding / 2
