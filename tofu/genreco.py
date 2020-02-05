@@ -209,6 +209,20 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
             sink = get_writer(args)
             sink.props.filename = '{}-{:>03}-%04i.tif'.format(args.output, index)
 
+    width = args.width
+    height = args.height
+    if args.transpose_input:
+        tmp = width
+        width = height
+        height = tmp
+    if args.projection_crop_after == 'backprojection':
+        # Take projection padding into account
+        padding = get_filtering_padding(width)
+        args.center_position_x = [pos + padding / 2 for pos in args.center_position_x]
+        if args.z_parameter == 'center-position-x':
+            region = [region[0] + padding / 2, region[1] + padding / 2, region[2]]
+    LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
+
     backproject.props.parameter = args.z_parameter
     if args.burst:
         backproject.props.burst = args.burst
@@ -291,10 +305,6 @@ def _fill_missing_args(args):
         width = height
         height = tmp
     args.center_position_x = (args.center_position_x or [width / 2.])
-    if args.projection_crop_after == 'backprojection':
-        padding = get_filtering_padding(width)
-        args.center_position_x = (args.center_position_x[0] + padding / 2,)
-    LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
     args.center_position_z = (args.center_position_z or [height / 2.])
 
     if not args.overall_angle:

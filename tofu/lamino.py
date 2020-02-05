@@ -138,15 +138,19 @@ def _setup_graph(pm, graph, index, x_region, y_region, region, params, source, g
     backproject.props.y_region = y_region
     backproject.props.z = params.z
     backproject.props.addressing_mode = params.lamino_padding_mode
-    if params.z_parameter in ['lamino-angle', 'roll-angle']:
-        region = [np.deg2rad(reg) for reg in region]
-    backproject.props.region = region
     backproject.props.parameter = params.z_parameter
     if params.projection_crop_after == 'backprojection':
         padding = get_filtering_padding(params.width)
     else:
         padding = 0
+    if params.z_parameter in ['lamino-angle', 'roll-angle']:
+        region = [np.deg2rad(reg) for reg in region]
+    if params.z_parameter == 'x-center':
+        # Take projection padding into account
+        region = [region[0] + padding / 2, region[1] + padding / 2, region[2]]
+    backproject.props.region = region
     backproject.props.center = (params.axis[0] + padding / 2, params.axis[1])
+    LOG.debug('x center after padding: %g', backproject.props.center[0])
 
     graph.connect_nodes(backproject, slicer)
     graph.connect_nodes(slicer, writer)
