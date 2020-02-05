@@ -219,24 +219,26 @@ def get_filtering_padding(width):
     return next_power_of_two(2 * width) - width
 
 
-def setup_padding(pad, width, height, mode, crop=None):
-    padding = get_filtering_padding(width)
-    pad.props.width = width + padding
-    pad.props.height = height
-    pad.props.x = padding / 2
-    pad.props.y = 0
+def setup_padding(pad, width, height, mode, crop=None, pad_width=0, pad_height=0):
+    if not pad_width:
+        # Default is horizontal padding only
+        pad_width = get_filtering_padding(width)
+    pad.props.width = width + pad_width
+    pad.props.height = height + pad_height
+    pad.props.x = pad_width / 2
+    pad.props.y = pad_height / 2
     pad.props.addressing_mode = mode
-    LOG.debug('Padded width: {}'.format(width + padding))
+    LOG.debug('Padded size: ({}, {})'.format(width + pad_width, height + pad_height))
     LOG.debug('Padding mode: {}'.format(mode))
 
     if crop:
         # crop to original width after filtering
         crop.props.width = width
         crop.props.height = height
-        crop.props.x = padding / 2
-        crop.props.y = 0
+        crop.props.x = pad_width / 2
+        crop.props.y = pad_height / 2
 
-    return padding
+    return (pad_width, pad_height)
 
 
 def make_region(n):

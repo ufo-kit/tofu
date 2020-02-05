@@ -115,7 +115,7 @@ def tomo(params):
                 crop_after_filter = None
 
             padding_width = setup_padding(pad, width, height, params.projection_padding_mode,
-                                          crop=crop_after_filter)
+                                          crop=crop_after_filter)[0]
 
             LOG.debug("Padding input to: {}x{} pixels".format(pad.props.width, pad.props.height))
 

@@ -611,6 +611,40 @@ SECTIONS['general-reconstruction'] = {
         'type': tupleize(num_items=2, conv=float),
         'help': "Minimum and maximum gray value mapping if store-type is integer-based"}}
 
+SECTIONS['find-large-spots'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+    'gauss-sigma': {
+        'default': 0.0,
+        'type': float,
+        'help': "Gaussian sigma for removing low frequencies (filter will be 1 - gauss window)"},
+    'blurred-output': {
+        'default': None,
+        'type': str,
+        'help': "Path where to store the blurred input"},
+    'spot-threshold': {
+        'default': 0.0,
+        'type': float,
+        'help': "Pixels with grey value larger than this are considered as spots"},
+    'spot-threshold-mode': {
+        'default': 'absolute',
+        'type': str,
+        'help': "Pixels must be either \"below\", \"above\" the spot threshold, or \
+                their \"absolute\" value can be compared",
+        'choices': ['below', 'above', 'absolute']},
+    'grow-threshold': {
+        'default': 0.0,
+        'type': float,
+        'help': "Spot growing threshold, if 0 it will be set to FWTM times noise standard deviation"},
+    'find-large-spots-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'repeat',
+        'help': "Padded values assignment for the filtered input image"},
+    }
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
@@ -622,7 +656,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess', 'Cone beam weight', 'General reconstruction')
+              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots')
 
 def get_config_name():
     """Get the command line --config option."""
