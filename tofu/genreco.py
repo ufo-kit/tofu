@@ -53,7 +53,7 @@ def genreco(args):
     gpus = gpus[gpu_indices]
     duration = 0
     for i, gpu in enumerate(gpus):
-        print 'Max mem for {}: {:.2f} GB'.format(i, gpu.get_info(0) / 2 ** 30)
+        print 'Max mem for {}: {:.2f} GB'.format(i, gpu.get_info(0) / 2. ** 30)
 
     runs = make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp,
                      slices_per_device=args.slices_per_device,
