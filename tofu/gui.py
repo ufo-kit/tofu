@@ -459,8 +459,10 @@ class ApplicationWindow(QtGui.QMainWindow):
     def on_compute_center(self):
         first_name = str(self.ui.path_line_0.text())
         second_name = str(self.ui.path_line_180.text())
-        first = tifffile.TiffFile(first_name).asarray().astype(np.float)
-        second = tifffile.TiffFile(second_name).asarray().astype(np.float)
+        with tifffile.TiffFile(first_name) as tif:
+            first = tif.pages[0].asarray().astype(np.float)
+        with tifffile.TiffFile(second_name) as tif:
+            second = tif.pages[-1].asarray().astype(np.float)
 
         if self.params.ffc_correction:
             # FIXME: we should of course use the pipelines we have ...
