@@ -40,7 +40,7 @@ def genreco(args):
     _fill_missing_args(args)
     _convert_angles_to_rad(args)
     set_projection_filter_scale(args)
-    x_region, y_region, z_region = get_reconstruction_regions(args, store=True)
+    x_region, y_region, z_region = get_reconstruction_regions(args, store=True, dtype=float)
     vol_shape = get_reconstructed_cube_shape(x_region, y_region, z_region)
     bpp = DTYPE_CL_SIZE[args.store_type]
     num_voxels = vol_shape[0] * vol_shape[1] * vol_shape[2]
@@ -421,7 +421,7 @@ class CTGeometry(object):
     def __init__(self, args):
         self.args = copy.deepcopy(args)
         determine_shape(self.args, self.args.projections, store=True)
-        get_reconstruction_regions(self.args, store=True)
+        get_reconstruction_regions(self.args, store=True, dtype=float)
         self.args.center_position_x = (self.args.center_position_x or [self.args.width / 2.])
         self.args.center_position_z = (self.args.center_position_z or [self.args.height / 2.])
 

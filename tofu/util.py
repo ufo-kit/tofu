@@ -241,9 +241,11 @@ def setup_padding(pad, width, height, mode, crop=None, pad_width=0, pad_height=0
     return (pad_width, pad_height)
 
 
-def make_region(n):
-    """Make region in such a way that in case of odd *n* it is centered around 0."""
-    return (-(n / 2), n / 2 + n % 2, 1)
+def make_region(n, dtype=int):
+    """Make region in such a way that in case of odd *n* it is centered around 0. Use *dtype* as
+    data type.
+    """
+    return (-dtype(n / 2), dtype(n / 2 + n % 2), dtype(1))
 
 
 def get_reconstructed_cube_shape(x_region, y_region, z_region):
@@ -260,8 +262,10 @@ def get_reconstructed_cube_shape(x_region, y_region, z_region):
     return slice_width, slice_height, num_slices
 
 
-def get_reconstruction_regions(params, store=False):
-    """Compute reconstruction regions along all three axes.."""
+def get_reconstruction_regions(params, store=False, dtype=int):
+    """Compute reconstruction regions along all three axes, use *dtype* for as data type for x and y
+    regions, z region is always float.
+    """
     width, height = determine_shape(params)
     if getattr(params, 'transpose_input', False):
         # In case down the pipeline there is a transpose task
@@ -270,15 +274,15 @@ def get_reconstruction_regions(params, store=False):
         height = tmp
 
     if params.x_region[1] == -1:
-        x_region = make_region(width)
+        x_region = make_region(width, dtype=dtype)
     else:
         x_region = params.x_region
     if params.y_region[1] == -1:
-        y_region = make_region(width)
+        y_region = make_region(width, dtype=dtype)
     else:
         y_region = params.y_region
     if params.region[1] == -1:
-        region = make_region(height)
+        region = make_region(height, dtype=float)
     else:
         region = params.region
     LOG.info('X region: {}'.format(x_region))
