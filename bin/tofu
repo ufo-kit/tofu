@@ -189,7 +189,7 @@ def main():
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
     ]
 
-    subparsers = parser.add_subparsers(title="Commands", metavar='')
+    subparsers = parser.add_subparsers(title="Commands", dest='commands', required=True)
 
     for cmd, func, sections, text in cmd_parsers:
         cmd_params = config.Params(sections=sections)
