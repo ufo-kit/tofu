@@ -711,7 +711,7 @@ def config_to_list(config_name=''):
         for name, opts in ((n, o) for n, o in list(SECTIONS[section].items()) if config.has_option(section, n)):
             value = config.get(section, name)
 
-            if value is not '' and value != 'None':
+            if value != '' and value != 'None':
                 action = opts.get('action', None)
 
                 if action == 'store_true' and value == 'True':
@@ -766,9 +766,9 @@ def write(config_file, args=None, sections=None):
                 if isinstance(value, list):
                     value = ', '.join(value)
             else:
-                value = opts['default'] if opts['default'] is not None else ''
+                value = opts['default'] if opts['default'] != None else ''
 
-            prefix = '# ' if value is '' else ''
+            prefix = '# ' if value == '' else ''
 
             if name != 'config':
                 config.set(section, prefix + name, value)
