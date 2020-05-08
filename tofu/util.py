@@ -101,9 +101,9 @@ def convert_filesize(value):
                         ('t', 2 ** 40)))
 
     if not value[-1].isdigit():
-        if value[-1] not in conv.keys():
+        if value[-1] not in list(conv.keys()):
             raise argparse.ArgumentTypeError('--output-bytes-per-file must either be a ' +
-                                             'number or end with {} '.format(conv.keys()) +
+                                             'number or end with {} '.format(list(conv.keys())) +
                                              'to indicate kilo, mega, giga or terabytes')
         multiplier = conv[value[-1]]
         value = value[:-1]

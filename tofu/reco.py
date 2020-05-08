@@ -74,7 +74,7 @@ def tomo(params):
 
     if params.projections is not None:
         if params.number:
-            count = len(range(params.start, params.start + params.number, params.step))
+            count = len(list(range(params.start, params.start + params.number, params.step)))
         else:
             count = len(get_filenames(params.projections))
 

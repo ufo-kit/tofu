@@ -47,7 +47,7 @@ def create_flat_correct_pipeline(args, graph, processing_node=None):
         setup_read_task(flat_after_reader, args.flats2, args)
         set_node_props(flat_after_reader, roi_args)
         num_files = len(get_filenames(args.projections))
-        can_read = len(range(args.start, num_files, args.step))
+        can_read = len(list(range(args.start, num_files, args.step)))
         number = args.number if args.number else num_files
         num_read = min(can_read, number)
         flat_interpolate = get_task('interpolate', processing_node=processing_node, number=num_read)
@@ -208,7 +208,7 @@ def create_sinogram_pipeline(args, graph):
 
     if args.number:
         region = (args.start, args.start + args.number, args.step)
-        num_projections = len(range(*region))
+        num_projections = len(list(range(*region)))
     else:
         num_projections = len(get_filenames(args.projections))
 
@@ -232,7 +232,7 @@ def run_sinogram_generation(args):
         args.height = determine_shape(args, args.projections)[1] - args.y
 
     step = args.y_step * args.pass_size if args.pass_size else args.height
-    starts = range(args.y, args.y + args.height, step) + [args.y + args.height]
+    starts = list(range(args.y, args.y + args.height, step)) + [args.y + args.height]
 
     def generate_partial(append=False):
         graph = Ufo.TaskGraph()
