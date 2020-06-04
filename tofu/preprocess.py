@@ -148,7 +148,11 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     crop_phase_retrieve.props.height = height
     phase_retrieve.props.method = args.retrieval_method
     phase_retrieve.props.energy = args.energy
-    phase_retrieve.props.distance = args.propagation_distance
+    if len(args.propagation_distance) == 1:
+        phase_retrieve.props.distance = args.propagation_distance[0]
+    else:
+        phase_retrieve.props.distance_x = args.propagation_distance[0]
+        phase_retrieve.props.distance_y = args.propagation_distance[1]
     phase_retrieve.props.pixel_size = args.pixel_size
     phase_retrieve.props.regularization_rate = args.regularization_rate
     phase_retrieve.props.thresholding_rate = args.thresholding_rate

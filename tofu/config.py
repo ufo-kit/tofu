@@ -158,8 +158,9 @@ SECTIONS['retrieve-phase'] = {
         'help': "X-ray energy [keV]"},
     'propagation-distance': {
         'default': None,
-        'type': float,
-        'help': "Sample <-> detector distance [m]"},
+        'type': tupleize(),
+        'help': ("Sample <-> detector distance (if one value, then use the same for x and y"
+                 "direction, otherwise first specifies x and second y direction) [m]")},
     'pixel-size': {
         'default': 1e-6,
         'type': float,
