@@ -85,7 +85,7 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
               slice_memory_coeff=0.8, data_splitting_policy='one', num_gpu_threads=1):
     gpu_indices = np.array(gpu_indices)
     def _add_region(runs, gpu_index, current, to_process, z_start, z_step):
-        current_per_thread = current / num_gpu_threads
+        current_per_thread = current // num_gpu_threads
         for i in range(num_gpu_threads):
             if i + 1 == num_gpu_threads:
                 current_per_thread += current % num_gpu_threads
@@ -110,11 +110,11 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
     max_slices_per_pass = sum(slices_per_device)
     if not max_slices_per_pass:
         raise RuntimeError('None of the available devices has enough memory to store any slices')
-    num_full_passes = num_slices / max_slices_per_pass
+    num_full_passes = num_slices // max_slices_per_pass
     LOG.debug('Number of slices: %d', num_slices)
     LOG.debug('Slices per device %s', slices_per_device)
     LOG.debug('Maximum slices on all GPUs per pass: %d', max_slices_per_pass)
-    LOG.debug('Number of passes with full workload: %d', num_slices / max_slices_per_pass)
+    LOG.debug('Number of passes with full workload: %d', num_slices // max_slices_per_pass)
     sorted_indices = np.argsort(slices_per_device)[-np.count_nonzero(slices_per_device):]
     runs = []
     z_start = z_region[0]
@@ -145,7 +145,7 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
                 # Current GPU will either process the maximum number of slices it can. If the number
                 # of slices per GPU based on even division between them cannot saturate the GPU, use
                 # this number. This way the work will be split evenly between the GPUs.
-                current = max(min(slices_per_device[i], (to_process - 1) / (num_gpus - j) + 1), 1)
+                current = max(min(slices_per_device[i], (to_process - 1) // (num_gpus - j) + 1), 1)
                 z_start, z_end, to_process = _add_region(runs, i, current, to_process,
                                                          z_start, z_step)
                 if not to_process:
