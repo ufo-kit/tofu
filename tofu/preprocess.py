@@ -149,7 +149,9 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     phase_retrieve.props.method = args.retrieval_method
     phase_retrieve.props.energy = args.energy
     if len(args.propagation_distance) == 1:
-        phase_retrieve.props.distance = args.propagation_distance[0]
+        # No multi-distance support yet, just use the first value
+        # TODO: for later multi-distance support, separate distance from distance_x and distance_y
+        phase_retrieve.props.distance = [args.propagation_distance[0]]
     else:
         phase_retrieve.props.distance_x = args.propagation_distance[0]
         phase_retrieve.props.distance_y = args.propagation_distance[1]
