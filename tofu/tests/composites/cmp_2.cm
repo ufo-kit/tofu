@@ -1,0 +1,77 @@
+{
+    "name": "cmp_2",
+    "caption": "cmp_2",
+    "models": {
+        "Dummy Data": {
+            "model": {
+                "caption": "Dummy Data",
+                "properties": {
+                    "width": [
+                        1,
+                        true
+                    ],
+                    "height": [
+                        1,
+                        true
+                    ],
+                    "depth": [
+                        1,
+                        true
+                    ],
+                    "number": [
+                        1,
+                        true
+                    ],
+                    "init": [
+                        0.0,
+                        true
+                    ],
+                    "metadata": [
+                        false,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 359.0,
+                "y": 357.0
+            },
+            "name": "dummy_data"
+        },
+        "Null": {
+            "model": {
+                "caption": "Null",
+                "properties": {
+                    "download": [
+                        false,
+                        true
+                    ],
+                    "finish": [
+                        false,
+                        true
+                    ],
+                    "durations": [
+                        false,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 859.0,
+                "y": 459.0
+            },
+            "name": "null"
+        }
+    },
+    "connections": [
+        [
+            "Dummy Data",
+            0,
+            "Null",
+            0
+        ]
+    ],
+    "links": []
+}

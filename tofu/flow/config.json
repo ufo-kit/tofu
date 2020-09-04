@@ -1,0 +1,118 @@
+{
+    "models": {
+        "average": {
+            "hidden-properties": [
+                "number"
+            ]
+        },
+        "flat-field-correct": {
+            "port-captions": {
+                "input": {
+                    "0": "radios",
+                    "1": "darks",
+                    "2": "flats"
+                },
+                "output": {
+                    "0": ""
+                }
+            },
+            "hidden-properties": [
+                "sinogram-input",
+                "dark-scale",
+                "flat-scale"
+            ]
+        },
+        "general-backproject": {
+            "hidden-properties": [
+                "z",
+                "burst",
+                "source-position-x",
+                "source-position-y",
+                "source-position-z",
+                "detector-position-x",
+                "detector-position-y",
+                "detector-position-z",
+                "detector-angle-x",
+                "detector-angle-y",
+                "detector-angle-z",
+                "axis-angle-x",
+                "axis-angle-y",
+                "axis-angle-z",
+                "volume-angle-x",
+                "volume-angle-y",
+                "volume-angle-z",
+                "compute-type",
+                "result-type",
+                "store-type",
+                "addressing-mode",
+                "gray-map-min",
+                "gray-map-max"
+            ],
+            "range-properties": {
+                "region": [3, true],
+                "x-region": [3, true],
+                "y-region": [3, true],
+                "center-position-x": [null, true],
+                "center-position-z": [null, true],
+                "source-position-x": [null, true],
+                "source-position-y": [null, true],
+                "source-position-z": [null, true],
+                "detector-position-x": [null, true],
+                "detector-position-y": [null, true],
+                "detector-position-z": [null, true],
+                "detector-angle-x": [null, true],
+                "detector-angle-y": [null, true],
+                "detector-angle-z": [null, true],
+                "axis-angle-x": [null, true],
+                "axis-angle-y": [null, true],
+                "axis-angle-z": [null, true],
+                "volume-angle-x": [null, true],
+                "volume-angle-y": [null, true],
+                "volume-angle-z": [null, true]
+            }
+        },
+        "horizontal-interpolate": {
+            "port-captions": {
+                "input": {
+                    "0": "image",
+                    "1": "mask"
+                },
+                "output": {
+                    "0": ""
+                }
+            }
+        },
+        "read": {
+            "hidden-properties": [
+                "start",
+                "step",
+                "y",
+                "height",
+                "y-step",
+                "convert",
+                "raw-width",
+                "raw-height",
+                "raw-bitdepth",
+                "raw-pre-offset",
+                "raw-post-offset",
+                "type",
+                "retries",
+                "retry-timeout"
+            ]
+        },
+        "write": {
+            "hidden-properties": [
+                "counter-start",
+                "counter-step",
+                "bytes-per-file",
+                "append",
+                "bits",
+                "minimum",
+                "maximum",
+                "rescale",
+                "jpeg-quality",
+                "tiff-bigtiff"
+            ]
+        }
+    }
+}
