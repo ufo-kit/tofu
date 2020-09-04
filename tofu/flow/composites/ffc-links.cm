@@ -1,0 +1,358 @@
+{
+    "name": "CFlatFieldCorrect",
+    "caption": "CFlatFieldCorrect",
+    "models": {
+        "Flat Field Correct": {
+            "model": {
+                "caption": "Flat Field Correct",
+                "properties": {
+                    "fix-nan-and-inf": [
+                        true,
+                        true
+                    ],
+                    "absorption-correct": [
+                        true,
+                        true
+                    ],
+                    "sinogram-input": [
+                        false,
+                        false
+                    ],
+                    "dark-scale": [
+                        1.0,
+                        false
+                    ],
+                    "flat-scale": [
+                        1.0,
+                        false
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 1253.0,
+                "y": 490.0
+            },
+            "name": "flat_field_correct"
+        },
+        "Read 2": {
+            "model": {
+                "caption": "Read 2",
+                "properties": {
+                    "path": [
+                        ".",
+                        true
+                    ],
+                    "start": [
+                        0,
+                        false
+                    ],
+                    "number": [
+                        4294967295,
+                        true
+                    ],
+                    "step": [
+                        1,
+                        false
+                    ],
+                    "y": [
+                        0,
+                        false
+                    ],
+                    "height": [
+                        0,
+                        false
+                    ],
+                    "y-step": [
+                        1,
+                        false
+                    ],
+                    "convert": [
+                        true,
+                        false
+                    ],
+                    "raw-width": [
+                        0,
+                        false
+                    ],
+                    "raw-height": [
+                        0,
+                        false
+                    ],
+                    "raw-bitdepth": [
+                        0,
+                        false
+                    ],
+                    "raw-pre-offset": [
+                        0,
+                        false
+                    ],
+                    "raw-post-offset": [
+                        0,
+                        false
+                    ],
+                    "type": [
+                        "unspecified",
+                        false
+                    ],
+                    "retries": [
+                        0,
+                        false
+                    ],
+                    "retry-timeout": [
+                        1,
+                        false
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 417.0,
+                "y": 504.0
+            },
+            "name": "read"
+        },
+        "Average": {
+            "model": {
+                "caption": "Average",
+                "properties": {
+                    "number": [
+                        4294967295,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 822.0,
+                "y": 508.0
+            },
+            "name": "average"
+        },
+        "Read 3": {
+            "model": {
+                "caption": "Read 3",
+                "properties": {
+                    "path": [
+                        ".",
+                        true
+                    ],
+                    "start": [
+                        0,
+                        false
+                    ],
+                    "number": [
+                        4294967295,
+                        true
+                    ],
+                    "step": [
+                        1,
+                        false
+                    ],
+                    "y": [
+                        0,
+                        false
+                    ],
+                    "height": [
+                        0,
+                        false
+                    ],
+                    "y-step": [
+                        1,
+                        false
+                    ],
+                    "convert": [
+                        true,
+                        false
+                    ],
+                    "raw-width": [
+                        0,
+                        false
+                    ],
+                    "raw-height": [
+                        0,
+                        false
+                    ],
+                    "raw-bitdepth": [
+                        0,
+                        false
+                    ],
+                    "raw-pre-offset": [
+                        0,
+                        false
+                    ],
+                    "raw-post-offset": [
+                        0,
+                        false
+                    ],
+                    "type": [
+                        "unspecified",
+                        false
+                    ],
+                    "retries": [
+                        0,
+                        false
+                    ],
+                    "retry-timeout": [
+                        1,
+                        false
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 413.0,
+                "y": 735.0
+            },
+            "name": "read"
+        },
+        "Average 2": {
+            "model": {
+                "caption": "Average 2",
+                "properties": {
+                    "number": [
+                        4294967295,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 822.0,
+                "y": 741.0
+            },
+            "name": "average"
+        },
+        "Read": {
+            "model": {
+                "caption": "Read",
+                "properties": {
+                    "path": [
+                        ".",
+                        true
+                    ],
+                    "start": [
+                        0,
+                        false
+                    ],
+                    "number": [
+                        23212,
+                        true
+                    ],
+                    "step": [
+                        1,
+                        false
+                    ],
+                    "y": [
+                        0,
+                        false
+                    ],
+                    "height": [
+                        0,
+                        false
+                    ],
+                    "y-step": [
+                        1,
+                        false
+                    ],
+                    "convert": [
+                        true,
+                        false
+                    ],
+                    "raw-width": [
+                        0,
+                        false
+                    ],
+                    "raw-height": [
+                        0,
+                        false
+                    ],
+                    "raw-bitdepth": [
+                        0,
+                        false
+                    ],
+                    "raw-pre-offset": [
+                        0,
+                        false
+                    ],
+                    "raw-post-offset": [
+                        0,
+                        false
+                    ],
+                    "type": [
+                        "unspecified",
+                        false
+                    ],
+                    "retries": [
+                        0,
+                        false
+                    ],
+                    "retry-timeout": [
+                        1,
+                        false
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 418.0,
+                "y": 245.0
+            },
+            "name": "read"
+        }
+    },
+    "connections": [
+        [
+            "Read",
+            0,
+            "Flat Field Correct",
+            0
+        ],
+        [
+            "Average",
+            0,
+            "Flat Field Correct",
+            1
+        ],
+        [
+            "Average 2",
+            0,
+            "Flat Field Correct",
+            2
+        ],
+        [
+            "Read 2",
+            0,
+            "Average",
+            0
+        ],
+        [
+            "Read 3",
+            0,
+            "Average 2",
+            0
+        ]
+    ],
+    "links": [
+        [
+            [
+                "Read 2",
+                "number"
+            ],
+            [
+                "Average",
+                "number"
+            ]
+        ],
+        [
+            [
+                "Read 3",
+                "number"
+            ],
+            [
+                "Average 2",
+                "number"
+            ]
+        ]
+    ]
+}

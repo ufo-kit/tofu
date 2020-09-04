@@ -1,0 +1,203 @@
+{
+    "name": "CPhaseRetrieve",
+    "caption": "CPhaseRetrieve",
+    "models": {
+        "Fft": {
+            "model": {
+                "caption": "Fft",
+                "properties": {
+                    "auto-zeropadding": [
+                        true,
+                        true
+                    ],
+                    "dimensions": [
+                        2,
+                        true
+                    ],
+                    "size-x": [
+                        1,
+                        true
+                    ],
+                    "size-y": [
+                        1,
+                        true
+                    ],
+                    "size-z": [
+                        1,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 112.0,
+                "y": 245.0
+            },
+            "name": "fft"
+        },
+        "Ifft": {
+            "model": {
+                "caption": "Ifft",
+                "properties": {
+                    "dimensions": [
+                        2,
+                        true
+                    ],
+                    "crop-width": [
+                        -1,
+                        true
+                    ],
+                    "crop-height": [
+                        -1,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 772.0,
+                "y": 250.0
+            },
+            "name": "ifft"
+        },
+        "Retrieve Phase": {
+            "model": {
+                "caption": "Retrieve Phase",
+                "num-inputs": 1,
+                "properties": {
+                    "method": [
+                        "tie",
+                        true
+                    ],
+                    "energy": [
+                        20.0,
+                        true
+                    ],
+                    "distance": [
+                        0.0,
+                        true
+                    ],
+                    "distance-x": [
+                        0.0,
+                        true
+                    ],
+                    "distance-y": [
+                        0.0,
+                        true
+                    ],
+                    "pixel-size": [
+                        7.500000265281415e-07,
+                        true
+                    ],
+                    "regularization-rate": [
+                        2.5,
+                        true
+                    ],
+                    "thresholding-rate": [
+                        0.10000000149011612,
+                        true
+                    ],
+                    "frequency-cutoff": [
+                        3.4028234663852886e+38,
+                        true
+                    ],
+                    "output-filter": [
+                        false,
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 544.0,
+                "y": 515.0
+            },
+            "name": "retrieve_phase"
+        },
+        "Pad": {
+            "model": {
+                "caption": "Pad",
+                "properties": {
+                    "width": [
+                        0,
+                        true
+                    ],
+                    "height": [
+                        0,
+                        true
+                    ],
+                    "x": [
+                        0,
+                        true
+                    ],
+                    "y": [
+                        0,
+                        true
+                    ],
+                    "addressing-mode": [
+                        "clamp",
+                        true
+                    ]
+                }
+            },
+            "visible": true,
+            "position": {
+                "x": 0.0,
+                "y": 570.0
+            },
+            "name": "pad"
+        }
+    },
+    "connections": [
+        [
+            "Pad",
+            0,
+            "Fft",
+            0
+        ],
+        [
+            "Fft",
+            0,
+            "Retrieve Phase",
+            0
+        ],
+        [
+            "Retrieve Phase",
+            0,
+            "Ifft",
+            0
+        ]
+    ],
+    "links": [
+        [
+            [
+                "Fft",
+                "dimensions"
+            ],
+            [
+                "Ifft",
+                "dimensions"
+            ]
+        ],
+        [
+            [
+                "Fft",
+                "size-x"
+            ],
+            [
+                "Pad",
+                "width"
+            ]
+        ],
+        [
+            [
+                "Fft",
+                "size-y"
+            ],
+            [
+                "Pad",
+                "height"
+            ]
+        ]
+    ]
+}

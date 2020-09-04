@@ -102,6 +102,11 @@ def gui(args):
         LOG.error(str(e))
 
 
+def run_flow(args):
+    from tofu.flow.main import main as flow_main
+    flow_main()
+
+
 def estimate(params):
     from tofu import reco
     center = reco.estimate_center(params)
@@ -183,6 +188,7 @@ def main():
                                                                         "reconstruction for tomographic/"
                                                                         "laminographic cone/parallel beam"),
         ('gui',         gui,            tomo_params + ('gui',),         "GUI for tomographic reconstruction"),
+        ('flow',        run_flow,       (),                             "Visual flow creation"),
         ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
@@ -211,7 +217,7 @@ def main():
 
     if args.log:
         file_handler = logging.FileHandler(args.log)
-        file_handler.setFormatter(logging.Formatter('%(name)s:%(levelname)s: %(message)s'))
+        file_handler.setFormatter(logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s'))
         LOG.addHandler(file_handler)
 
     try:
