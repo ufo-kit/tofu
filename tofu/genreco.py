@@ -185,7 +185,7 @@ def _run(resources, args, x_region, y_region, regions, run_number, vol_nbytes):
 
     if is_output_single_file(args):
         import tifffile
-        bigtiff = vol_nbytes > 2 ** 32
+        bigtiff = vol_nbytes > 2 ** 32 - 1
         LOG.debug('Writing BigTiff: %s', bigtiff)
         dirname = os.path.dirname(args.output)
         if dirname and not os.path.exists(dirname):
