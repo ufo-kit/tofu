@@ -336,3 +336,11 @@ class UfoScene(FlowScene):
         components = nx.weakly_connected_components(graph)
 
         return [nx.subgraph(graph, component) for component in components]
+
+    def set_enabled(self, enabled):
+        self.allow_node_creation = enabled
+        self.allow_node_deletion = enabled
+        for node in self.nodes.values():
+            node._graphics_obj.setEnabled(enabled)
+        for conn in self.connections:
+            conn._graphics_object.setEnabled(enabled)

@@ -306,10 +306,12 @@ class ApplicationWindow(QMainWindow):
             raise FlowError('Not all node ports are connected')
         self.executor.run(graphs[0])
         self.run_action.setEnabled(False)
+        self.ufo_scene.set_enabled(False)
 
     def on_execution_finished(self):
         self.progress_bar.reset()
         self.run_action.setEnabled(True)
+        self.ufo_scene.set_enabled(True)
 
 
 class GlobalExceptionHandler(QObject):
