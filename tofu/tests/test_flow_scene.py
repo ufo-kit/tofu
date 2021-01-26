@@ -331,3 +331,22 @@ class TestScene:
 
         add_nodes_to_scene(scene)
         assert len(scene.get_simple_node_graphs()) == 3
+
+    def test_set_enabled(self, qtbot, scene):
+        def check(enabled):
+            assert scene.allow_node_creation == enabled
+            assert scene.allow_node_deletion == enabled
+
+            for node in scene.nodes.values():
+                assert node._graphics_obj.isEnabled() == enabled
+            for conn in scene.connections:
+                assert conn._graphics_object.isEnabled() == enabled
+
+        nodes = add_nodes_to_scene(scene, model_names=['CFlatFieldCorrect', 'average'])
+
+        # Create a connection
+        scene.create_connection(nodes[0]['output'][0], nodes[1]['input'][0])
+        scene.set_enabled(False)
+        check(False)
+        scene.set_enabled(True)
+        check(True)
