@@ -349,7 +349,18 @@ class ImageViewer(QWidget):
                 self.screen_image.white_point = maximum
                 self.label.updateImage()
 
-        self._pg_window = pyqtgraph.ImageView()
+        def pg_mouse_moved(ev):
+            if self._pg_window.imageItem.sceneBoundingRect().contains(ev):
+                pos = self._pg_window.imageItem.mapFromScene(ev)
+                x = int(pos.x() + 0.5)
+                y = int(pos.y() + 0.5)
+                self._pg_window.view.setTitle('x={}, y={}, I={:g}'.format(x, y,
+                                              self._pg_window.imageItem.image[y, x]))
+            else:
+                self._pg_window.view.setTitle('')
+
+        self._pg_window = pyqtgraph.ImageView(view=pyqtgraph.PlotItem())
+        self._pg_window.imageItem.scene().sigMouseMoved.connect(pg_mouse_moved)
         self._pg_window.setWindowFlag(Qt.SubWindow, True)
         self._update_pg_window_images()
         self._update_pg_window_index()
