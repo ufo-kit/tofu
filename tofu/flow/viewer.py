@@ -324,6 +324,7 @@ class ImageViewer(QWidget):
 
     def popup(self):
         import pyqtgraph
+        pyqtgraph.setConfigOptions(antialias=True, imageAxisOrder='row-major')
         if self._pg_window is not None:
             if not self._pg_window.isVisible():
                 self._pg_window.show()
@@ -368,9 +369,9 @@ class ImageViewer(QWidget):
 
     def _update_pg_window_images(self):
         if self.images.shape[0] == 1:
-            im_to_set = self.images[0].T
+            im_to_set = self.images[0]
         else:
-            im_to_set = np.transpose(self.images, axes=(0, 2, 1))
+            im_to_set = self.images
 
         self._pg_window.setImage(im_to_set, autoLevels=False)
 
