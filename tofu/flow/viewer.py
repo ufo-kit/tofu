@@ -124,7 +124,7 @@ class ScreenImage:
         image = image.astype(np.uint8)
 
         qim = QtGui.QImage(image, image.shape[1], image.shape[0],
-                           QtGui.QImage.Format.Format_Grayscale8)
+                           image[0].nbytes, QtGui.QImage.Format.Format_Grayscale8)
 
         return QtGui.QPixmap.fromImage(qim)
 
