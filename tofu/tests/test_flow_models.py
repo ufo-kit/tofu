@@ -657,11 +657,25 @@ class TestBaseCompositeModel:
         assert (inner, inner['Average']) in graph.edges
         assert (inner['cpm'], inner['cpm']['Read']) in graph.edges
 
+    def test_contains_path(self, qtbot, composite_model, nodes):
+        assert composite_model.contains_path(['Average'])
+        assert composite_model.contains_path(['cpm'])
+        assert composite_model.contains_path(['cpm', 'Read'])
+        assert not composite_model.contains_path(['cpm', 'Read 2'])
+        assert not composite_model.contains_path(['foo'])
+
     def test_get_model_from_path(self, qtbot, composite_model, nodes):
         assert composite_model.get_model_from_path(['cpm', 'Read'])
 
         with pytest.raises(KeyError):
             composite_model.get_model_from_path(['foo'])
+
+    def test_is_model_inside(self, qtbot, composite_model, nodes):
+        model = composite_model.get_model_from_path(['cpm'])
+        assert composite_model.is_model_inside(model)
+        model = composite_model.get_model_from_path(['cpm', 'Read'])
+        assert composite_model.is_model_inside(model)
+        assert not composite_model.is_model_inside(nodes['read_2'].model)
 
     def test_get_path_from_model(self, qtbot, composite_model, nodes):
         cpm = composite_model['cpm']

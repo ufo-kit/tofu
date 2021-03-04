@@ -155,15 +155,117 @@ class TestApplicationWindow:
 
         assert node.model.is_editing
 
+    def test_on_create_composite(self, qtbot, monkeypatch, scene_with_composite, app_window):
+        monkeypatch.setattr(QInputDialog, "getText", lambda *args: ('cpm', True))
+        nodes = add_nodes_to_scene(app_window.ufo_scene, model_names=['read', 'pad'])
+
+        # Link a model to the slider
+        model = nodes[0].model
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', 'Read', model)
+
+        # Create a composite
+        for node in app_window.ufo_scene.nodes.values():
+            node.graphics_object.setSelected(True)
+        app_window.on_create_composite()
+        composite = list(app_window.ufo_scene.nodes.values())[0].model
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model == composite.get_model_from_path(['Read'])
+        assert prop_name == 'number'
+
+    def test_on_item_focus_in(self, qtbot, app_window, scene_with_composite):
+        read, pad = add_nodes_to_scene(app_window.ufo_scene, model_names=['read', 'pad'])
+
+        # Simple node
+        model = read.model
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', model.caption, model)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model == model
+        assert prop_name == 'number'
+
+        app_window.fix_run_slider.setChecked(False)
+        model = pad.model
+        view_item = model._view._properties['y'].view_item
+        app_window.on_item_focus_in(view_item, 'y', model.caption, model)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model == model
+        assert prop_name == 'y'
+
+        # Focus gets another widget, but the run slider must be linked to the one focused before the
+        # fix option is checked
+        app_window.fix_run_slider.setChecked(True)
+        model = read.model
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', model.caption, model)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model == pad.model
+        assert prop_name == 'y'
+
+    def test_on_node_deleted(self, qtbot, monkeypatch, app_window, scene_with_composite):
+        app_window.ufo_scene = scene_with_composite
+        cpm, cpm_2, read = add_nodes_to_scene(app_window.ufo_scene,
+                                              model_names=['cpm', 'cpm', 'read'])
+
+        # Simple node
+        model = read.model
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', model.caption, model)
+        # remove in the scene doesn't seem to emit the signal, so use the window
+        app_window.on_node_deleted(read)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model is None
+        assert prop_name is None
+
+        # Composite node
+        model = cpm.model.get_model_from_path(['Read'])
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', 'cpm->Read', model)
+        # remove in the scene doesn't seem to emit the signal, so use the window
+        app_window.on_node_deleted(cpm)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model is None
+        assert prop_name is None
+
+        # Nested composite node
+        cpm_2.graphics_object.setSelected(True)
+        monkeypatch.setattr(QInputDialog, "getText", lambda *args: ('parent', True))
+        app_window.on_create_composite()
+        node = app_window.ufo_scene.selected_nodes()[0]
+        model = node.model.get_model_from_path(['cpm 2', 'Read'])
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', 'parent->cpm 2->Read', model)
+        # remove in the scene doesn't seem to emit the signal, so use the window
+        app_window.on_node_deleted(node)
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model is None
+        assert prop_name is None
+
     def test_on_expand_composite(self, qtbot, scene_with_composite, app_window):
         app_window.ufo_scene = scene_with_composite
         nodes = add_nodes_to_scene(app_window.ufo_scene, model_names=['cpm', 'cpm'])
+
         for node in nodes:
             node.graphics_object.setSelected(True)
 
         app_window.on_expand_composite()
         captions = {node.model.caption for node in app_window.ufo_scene.nodes.values()}
         assert captions == {'Read 2', 'Pad 2', 'Read', 'Pad'}
+
+        # Run slider
+        # Create yet another composite and select a reader inside
+        node = add_nodes_to_scene(app_window.ufo_scene, model_names=['cpm'])[0]
+        model = node.model.get_model_from_path(['Read'])
+        view_item = model._view._properties['number'].view_item
+        app_window.on_item_focus_in(view_item, 'number', 'cpm->Read', model)
+
+        node.graphics_object.setSelected(True)
+        app_window.on_expand_composite()
+
+        # After expansion, the reader's index will be 3
+        slider_model, prop_name = app_window.run_slider_key
+        assert slider_model.caption == 'Read 3'
+        assert prop_name == 'number'
 
     def test_on_import_composites(self, qtbot, monkeypatch, app_window):
         tests_directory = pkg_resources.resource_filename(__name__, 'composites')

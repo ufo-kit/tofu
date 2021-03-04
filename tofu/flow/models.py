@@ -42,6 +42,12 @@ class UfoIntValidator(QValidator):
         self.minimum = minimum
         self.maximum = maximum
 
+    def bottom(self):
+        return self.minimum
+
+    def top(self):
+        return self.maximum
+
     def validate(self, input_str, pos):
         try:
             if self.minimum <= int(input_str) <= self.maximum:
@@ -117,6 +123,7 @@ class ViewItem(QObject):
     def __init__(self, widget, default_value=None, tooltip=''):
         super().__init__(parent=None)
         self.widget = widget
+        self.focus_info = False
         if tooltip:
             self.widget.setToolTip(tooltip)
         if default_value is not None:
@@ -168,11 +175,32 @@ class ComboBoxViewItem(ViewItem):
         self.widget.setCurrentText(value)
 
 
+class FocusInterceptQLineEdit(QLineEdit):
+    focus_in = Signal(QObject)
+
+    def focusInEvent(self, event):
+        self.focus_in.emit(self)
+        return super().focusInEvent(event)
+
+
 class QLineEditViewItem(ViewItem):
-    def __init__(self, default_value=None, tooltip=''):
-        widget = QLineEdit()
+    focus_in = Signal(QObject)
+
+    def __init__(self, default_value=None, tooltip='', intercept_focus=False):
+        if intercept_focus:
+            widget = FocusInterceptQLineEdit()
+            widget.focus_in.connect(self.on_focus_in)
+        else:
+            widget = QLineEdit()
+
         super().__init__(widget, default_value=default_value, tooltip=tooltip)
+
+        if intercept_focus:
+            self.focus_info = True
         widget.textEdited.connect(self.on_changed)
+
+    def on_focus_in(self, widget):
+        self.focus_in.emit(self)
 
     def get(self):
         return self.widget.text()
@@ -186,7 +214,7 @@ class NumberQLineEditViewItem(QLineEditViewItem):
         if default_value < minimum or default_value > maximum:
             raise ValueError(f'default value {default_value} not in limits [{minimum}, {maximum}]')
         tooltip += ' (range: {} - {})'.format(minimum, maximum)
-        super().__init__(default_value=default_value, tooltip=tooltip)
+        super().__init__(default_value=default_value, tooltip=tooltip, intercept_focus=True)
         validator = QDoubleValidator(float(minimum), float(maximum), 100)
         self.widget.setValidator(validator)
 
@@ -199,7 +227,7 @@ class IntQLineEditViewItem(QLineEditViewItem):
         if default_value < minimum or default_value > maximum:
             raise ValueError(f'default value {default_value} not in limits [{minimum}, {maximum}]')
         tooltip += ' (range: {} - {})'.format(minimum, maximum)
-        super().__init__(default_value=default_value, tooltip=tooltip)
+        super().__init__(default_value=default_value, tooltip=tooltip, intercept_focus=True)
         validator = UfoIntValidator(minimum, maximum)
         self.widget.setValidator(validator)
 
@@ -209,7 +237,7 @@ class IntQLineEditViewItem(QLineEditViewItem):
 
 class RangeQLineEditViewItem(QLineEditViewItem):
     def __init__(self, default_value='', tooltip='', num_items=None, is_float=True):
-        super().__init__(default_value=default_value, tooltip=tooltip)
+        super().__init__(default_value=default_value, tooltip=tooltip, intercept_focus=True)
         validator = UfoRangeValidator(num_items=num_items, is_float=is_float)
         self.widget.setValidator(validator)
 
@@ -284,6 +312,7 @@ class MultiPropertyViewRecord:
 
 class PropertyView(QWidget):
     property_changed = Signal(str, object)
+    item_focus_in = Signal(ViewItem, str)
 
     def __init__(self, properties=None, parent=None, scrollable=True):
         super().__init__(parent=parent)
@@ -303,6 +332,8 @@ class PropertyView(QWidget):
                 self._properties[name] = PropertyViewRecord(item, label, active)
                 self.set_property_visible(name, active)
                 item.property_changed.connect(self.on_property_changed)
+                if item.focus_info:
+                    item.focus_in.connect(self.on_item_focus_in)
 
         if scrollable:
             widget = QWidget()
@@ -326,6 +357,9 @@ class PropertyView(QWidget):
     def set_property(self, name, value):
         return self._properties[name].view_item.set(value)
 
+    def get_record(self, name):
+        return self._properties[name]
+
     def on_property_changed(self, item):
         # Get item's name
         for (name, record) in self._properties.items():
@@ -333,6 +367,12 @@ class PropertyView(QWidget):
                 break
 
         self.property_changed.emit(name, item.get())
+
+    def on_item_focus_in(self, view_item):
+        for (name, it) in self._properties.items():
+            if it.view_item.widget == view_item.widget:
+                self.item_focus_in.emit(view_item, name)
+                break
 
     def is_property_visible(self, name):
         return self._properties[name].visible
@@ -474,6 +514,7 @@ class UfoModel(NodeDataModel):
     """The root parent of all other models in tofu flow."""
 
     data_type = UFO_DATA_TYPE
+    item_focus_in = Signal(QObject, str, str, NodeDataModel)
 
     def __init__(self, style=None, parent=None):
         super().__init__(style=style, parent=parent)
@@ -509,6 +550,7 @@ class PropertyModel(UfoModel):
             self.properties = list(properties.keys())
             self._view = PropertyView(properties=properties, scrollable=scrollable)
             self._view.property_changed.connect(self.on_property_changed)
+            self._view.item_focus_in.connect(self.on_item_focus_in)
         else:
             self.properties = []
             self._view = None
@@ -525,8 +567,14 @@ class PropertyModel(UfoModel):
     def __iter__(self):
         return iter(self.properties)
 
+    def get_view_item(self, name):
+        return self._view.get_record(name).view_item
+
     def on_property_changed(self, name, value):
         self.property_changed.emit(self, name, value)
+
+    def on_item_focus_in(self, item, name):
+        self.item_focus_in.emit(item, name, self.caption, self)
 
     def make_properties(self):
         """*properties* is a dictionary of name: ViewItem items."""
@@ -717,6 +765,7 @@ class BaseCompositeModel(UfoModel):
             model.restore(state)
             self._models[model] = position
             groups[model] = visible
+            model.item_focus_in.connect(self.on_item_focus_in)
             for port_type in ['input', 'output']:
                 for index in range(model.num_ports[port_type]):
                     side = (model.caption, port_type, index)
@@ -763,6 +812,9 @@ class BaseCompositeModel(UfoModel):
     def resizable(self):
         return True
 
+    def on_item_focus_in(self, item, name, caption, model):
+        self.item_focus_in.emit(item, name, self.caption + '->' + caption, model)
+
     @property
     def is_editing(self):
         """Is wubwindow open."""
@@ -779,6 +831,17 @@ class BaseCompositeModel(UfoModel):
             if isinstance(model, BaseCompositeModel):
                 model.property_links_model = plm
 
+    def contains_path(self, path):
+        """Is there a caption *path* inside this model."""
+        model = self
+        for caption in path:
+            if caption in model:
+                model = model[caption]
+            else:
+                return False
+
+        return True
+
     def get_model_from_path(self, path):
         """*path* is caption path (str)."""
         model = self
@@ -786,6 +849,16 @@ class BaseCompositeModel(UfoModel):
             model = model[caption]
 
         return model
+
+    def is_model_inside(self, model):
+        """Return True if *model* is inside at any level."""
+        paths = self.get_leaf_paths()
+        for path in paths:
+            for item in path:
+                if item == model:
+                    return True
+
+        return False
 
     def get_path_from_model(self, model):
         """*model* must be inside this composite model."""

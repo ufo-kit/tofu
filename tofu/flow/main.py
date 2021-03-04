@@ -4,7 +4,7 @@ import os
 import sys
 from qtpy.QtCore import Qt, QLocale, QObject, QPoint, Signal
 from qtpy.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
-                            QMessageBox, QProgressBar, QMainWindow, QStyle)
+                            QMessageBox, QProgressBar, QMainWindow, QSlider, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
 from xdg import HOME, XDG_DATA_HOME
 
@@ -15,6 +15,7 @@ from tofu.flow.models import (BaseCompositeModel, get_composite_model_classes_fr
                               UfoReadModel, UfoRetrievePhaseModel, UfoWriteModel)
 from tofu.flow.scene import UfoScene
 from tofu.flow.propertylinkswidget import PropertyLinks
+from tofu.flow.runslider import RunSlider
 from tofu.flow.util import FlowError
 
 
@@ -28,9 +29,13 @@ class ApplicationWindow(QMainWindow):
         self.property_links_widget = PropertyLinks(ufo_scene.node_model,
                                                    ufo_scene.property_links_model,
                                                    parent=self)
+        self.run_slider = RunSlider(parent=self)
         self.executor = UfoExecutor()
         self.console = None
+        self.run_slider_key = (None, None)
         self.last_dirs = {'scene': None, 'composite': None}
+        self._creating_composite = False
+        self._expanding_composite = False
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -44,7 +49,7 @@ class ApplicationWindow(QMainWindow):
         flow_menu = menu_bar.addMenu('Flow')
         new_action = flow_menu.addAction("New")
         new_action.setShortcut('Ctrl+N')
-        new_action.triggered.connect(self.ufo_scene.clear_scene)
+        new_action.triggered.connect(self.on_new)
         save_action = flow_menu.addAction("Save")
         save_action.setShortcut('Ctrl+S')
         save_action.triggered.connect(self.on_save)
@@ -74,7 +79,7 @@ class ApplicationWindow(QMainWindow):
         # Composite
         create_composite_action = selection_menu.addAction("Create Composite")
         create_composite_action.setShortcut('Ctrl+Shift+C')
-        create_composite_action.triggered.connect(self.ufo_scene.create_composite)
+        create_composite_action.triggered.connect(self.on_create_composite)
         import_composites_action = selection_menu.addAction("Import Composites")
         import_composites_action.setToolTip('Import one or more composite nodes '
                                             'from a file or files')
@@ -98,6 +103,12 @@ class ApplicationWindow(QMainWindow):
         console_action = view_menu.addAction("Open Python Console")
         console_action.setShortcut('Ctrl+Shift+P')
         console_action.triggered.connect(self.on_console_action)
+        run_slider_action = view_menu.addAction("Run Slider")
+        run_slider_action.setShortcut('Ctrl+Shift+S')
+        run_slider_action.triggered.connect(self.on_run_slider_action)
+        self.fix_run_slider = view_menu.addAction("Fix Run Slider")
+        self.fix_run_slider.setCheckable(True)
+        self.fix_run_slider.setShortcut('Ctrl+Alt+Shift+S')
 
         main_layout.addWidget(menu_bar)
         main_layout.addWidget(self.flow_view)
@@ -112,7 +123,10 @@ class ApplicationWindow(QMainWindow):
         self.executor.execution_finished.connect(self.on_execution_finished)
         self.executor.number_of_inputs_changed.connect(self.on_number_of_inputs_changed)
         self.executor.processed_signal.connect(self.on_processed)
+        self.ufo_scene.node_deleted.connect(self.on_node_deleted)
         self.ufo_scene.nodes_duplicated.connect(self.on_nodes_duplicated)
+        self.ufo_scene.item_focus_in.connect(self.on_item_focus_in)
+        self.run_slider.value_changed.connect(self.on_run_slider_value_changed)
 
     def on_save(self):
         if self.last_dirs['scene']:
@@ -130,6 +144,10 @@ class ApplicationWindow(QMainWindow):
             self.last_dirs['scene'] = os.path.dirname(file_name)
             self.ufo_scene.save(file_name)
 
+    def on_new(self):
+        self.run_slider.reset()
+        self.ufo_scene.clear_scene()
+
     def on_open(self):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
@@ -146,6 +164,7 @@ class ApplicationWindow(QMainWindow):
         if file_name:
             self.last_dirs['scene'] = os.path.dirname(file_name)
             self.ufo_scene.load(file_name)
+            self.run_slider.reset()
 
     def on_exception_occured(self, text):
         msg = QMessageBox(parent=self)
@@ -159,6 +178,18 @@ class ApplicationWindow(QMainWindow):
 
     def on_processed(self, value):
         self.progress_bar.setValue(value + 1)
+
+    def on_node_deleted(self, node):
+        slider_model, prop_name = self.run_slider_key
+        if slider_model:
+            if (isinstance(node.model, BaseCompositeModel)
+                and node.model.is_model_inside(slider_model)
+                    and not (self._expanding_composite or self._creating_composite)):
+                self.run_slider.reset()
+                self.run_slider_key = (None, None)
+            elif node.model == slider_model and not self._creating_composite:
+                self.run_slider.reset()
+                self.run_slider_key = (None, None)
 
     def on_nodes_duplicated(self, selected_nodes, new_nodes):
         min_y = float('inf')
@@ -175,6 +206,12 @@ class ApplicationWindow(QMainWindow):
             dy = node.graphics_object.y() - min_y
             new_pos = QPoint(node.graphics_object.x(), dy + y_1 + 100)
             new_nodes[node].graphics_object.setPos(new_pos)
+
+    def on_item_focus_in(self, item, prop_name, caption, model):
+        if not self.fix_run_slider.isChecked() or not self.run_slider.view_item:
+            if self.run_slider.setup(item):
+                self.run_slider_key = (model, prop_name)
+                self.run_slider.setWindowTitle(f'{caption}->{prop_name}')
 
     def on_selection_menu_about_to_show(self):
         composites = False
@@ -194,10 +231,76 @@ class ApplicationWindow(QMainWindow):
             node = self.ufo_scene.selected_nodes()[0]
             node.model.edit_in_window(self)
 
+    def on_create_composite(self):
+        self._creating_composite = True
+        try:
+            path = None
+            prop_name = self.run_slider_key[1]
+            if self.run_slider_key[0]:
+                for node in self.ufo_scene.selected_nodes():
+                    if isinstance(node.model, BaseCompositeModel):
+                        if node.model.is_model_inside(self.run_slider_key[0]):
+                            path = node.model.get_path_from_model(self.run_slider_key[0])
+                    elif node.model == self.run_slider_key[0]:
+                        path = [self.run_slider_key[0]]
+
+            composite_model = self.ufo_scene.create_composite().model
+
+            if path:
+                str_path = [model.caption for model in path]
+                new_model = composite_model.get_model_from_path(str_path)
+                new_view_item = new_model.get_view_item(prop_name)
+                # Do not make complete setup, that would reset limits, just update the view item
+                self.run_slider.view_item = new_view_item
+                self.run_slider_key = (new_model, prop_name)
+                title = '->'.join([composite_model.caption] + str_path + [prop_name])
+                self.run_slider.setWindowTitle(title)
+        finally:
+            self._creating_composite = False
+
     def on_expand_composite(self):
-        for node in self.ufo_scene.selected_nodes():
-            if isinstance(node.model, BaseCompositeModel):
-                self.ufo_scene.expand_composite(node)
+        self._expanding_composite = True
+        try:
+            slider_model, prop_name = self.run_slider_key
+            for node in self.ufo_scene.selected_nodes():
+                if isinstance(node.model, BaseCompositeModel):
+                    if slider_model:
+                        str_path = None
+                        if node.model.is_model_inside(slider_model):
+                            str_path = [model.caption for model in
+                                        node.model.get_path_from_model(slider_model)]
+
+                    new_nodes = self.ufo_scene.expand_composite(node)[0]
+
+                    # Pass the new node to the run slider if it was contained in this composite
+                    if slider_model and str_path:
+                        if slider_model.caption in new_nodes:
+                            # runslider linked to a simple node after expanstion
+                            slider_model = new_nodes[slider_model.caption].model
+                            self.run_slider_key = (slider_model, prop_name)
+                            new_view_item = slider_model.get_view_item(prop_name)
+                            # Do not make complete setup, that would reset limits, just update the
+                            # view item
+                            self.run_slider.view_item = new_view_item
+                            self.run_slider.setWindowTitle(f'{slider_model.caption}->{prop_name}')
+                        else:
+                            # runslider linked to another composite node (nesting) after expanstion
+                            for node in new_nodes.values():
+                                if isinstance(node.model, BaseCompositeModel):
+                                    if node.model.contains_path(str_path[2:]):
+                                        new_model = node.model.get_model_from_path(str_path[2:])
+                                        self.run_slider_key = (new_model, prop_name)
+                                        new_view_item = new_model.get_view_item(prop_name)
+                                        # Do not make complete setup, that would reset limits, just
+                                        # update the view item
+                                        self.run_slider.view_item = new_view_item
+                                        title = '->'.join(str_path[1:] + [prop_name])
+                                        self.run_slider.setWindowTitle(title)
+                                        self.run_slider_key = (new_model, prop_name)
+                                        break
+
+        finally:
+            self._expanding_composite = False
 
     def on_import_composites(self):
         if self.last_dirs['composite']:
@@ -298,6 +401,21 @@ class ApplicationWindow(QMainWindow):
             LOG.error(e, exc_info=True)
             self.on_exception_occured(str(e))
 
+    def on_run_slider_action(self):
+        if not self.run_slider.view_item:
+            msg = QMessageBox(parent=self)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('Click on an input field in the flow to connect the slider')
+            msg.exec_()
+        else:
+            self.run_slider.show()
+            # Make sure it goes to the front if it is currently burried under other windows
+            self.run_slider.raise_()
+
+    def on_run_slider_value_changed(self, value):
+        if self.run_action.isEnabled():
+            self.on_run()
+
     def on_run(self):
         graphs = self.ufo_scene.get_simple_node_graphs()
         if len(graphs) != 1:
@@ -358,7 +476,7 @@ def main():
     QLocale.setDefault(QLocale.English)
     app = QApplication(sys.argv)
     scene = UfoScene(registry=get_filled_registry())
-    # scene.load('/home/tomas/bar.flow')
+    scene.load('/home/tomas/.local/share/tofu/flows/tofu-paper-beetle-reco.flow')
     # scene.load('/home/tomas/Documents/flows/tomo-504-axis-more-runs-links.flow')
     main_window = ApplicationWindow(scene)
 

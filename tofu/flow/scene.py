@@ -1,9 +1,9 @@
 import logging
 import numpy as np
 import networkx as nx
-from qtpy.QtCore import Signal
+from qtpy.QtCore import Signal, QObject
 from qtpy.QtWidgets import QInputDialog
-from qtpynodeeditor import FlowScene, PortType, opposite_port
+from qtpynodeeditor import FlowScene, NodeDataModel, PortType, opposite_port
 
 from tofu.flow.models import (BaseCompositeModel, PropertyModel, get_composite_model_class,
                               get_composite_model_classes_from_json)
@@ -16,6 +16,8 @@ LOG = logging.getLogger(__name__)
 
 class UfoScene(FlowScene):
     nodes_duplicated = Signal(list, dict)
+    # view item, its name and model name
+    item_focus_in = Signal(QObject, str, str, NodeDataModel)
 
     def __init__(self, registry=None, style=None, parent=None,
                  allow_node_creation=True, allow_node_deletion=True):
@@ -76,11 +78,15 @@ class UfoScene(FlowScene):
 
         return node
 
+    def on_item_focus_in(self, view_item, prop_name, caption, model):
+        self.item_focus_in.emit(view_item, prop_name, caption, model)
+
     def _setup_new_node(self, node):
         self._set_unique_caption(node)
         self.node_model.add_node(node)
         if isinstance(node.model, BaseCompositeModel):
             node.model.property_links_model = self.property_links_model
+        node.model.item_focus_in.connect(self.on_item_focus_in)
 
     def _set_unique_caption(self, new_node):
         caption = new_node.model.caption
@@ -257,7 +263,8 @@ class UfoScene(FlowScene):
     def expand_composite(self, node):
         name = node.model.name
         original_nodes = self._composite_nodes.get(name, None)
-        node.model.expand_into_scene(self, node, original_nodes=original_nodes)
+
+        return node.model.expand_into_scene(self, node, original_nodes=original_nodes)
 
     def is_fully_connected(self):
         """Are all the ports in all nodes connected?"""
