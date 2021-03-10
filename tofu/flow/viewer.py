@@ -1,8 +1,9 @@
 import logging
 import numpy as np
+import os
 from qtpy import QtGui
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
+from qtpy.QtWidgets import QFileDialog, QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
 from tofu.flow.util import FlowError
 
 
@@ -158,6 +159,7 @@ class ImageViewer(QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._images = None
+        self._last_save_dir = '.'
         # Pyqtgraph popped up window
         self._pg_window = None
         self.screen_image = ScreenImage()
@@ -206,7 +208,6 @@ class ImageViewer(QWidget):
         mainLayout.addWidget(self.max_slider_edit, 3, 0)
         mainLayout.addWidget(self.max_slider, 3, 1)
         self.setLayout(mainLayout)
-        self._images = None
 
     def contextMenuEvent(self, event):
         contextMenu = QMenu(self)
@@ -222,12 +223,35 @@ class ImageViewer(QWidget):
                 pop_action = contextMenu.addAction('Pop Up')
         except:
             LOG.debug('pyqtgraph not installed, pop up option disabled')
+        try:
+            import imageio
+            if self._images is not None:
+                save_action = contextMenu.addAction('Save')
+        except:
+            LOG.debug('imageio not installed, save option disabled')
 
         action = contextMenu.exec_(self.mapToGlobal(event.pos()))
         if not action:
             return
 
-        if action == reset_action:
+        if action == save_action:
+            file_name, _ = QFileDialog.getSaveFileName(None,
+                                                       "Select File Name",
+                                                       self._last_save_dir,
+                                                       "Images (*.tif *.png *.jpg)")
+            if file_name:
+                if not os.path.splitext(file_name)[1]:
+                    file_name += '.tif'
+                self._last_save_dir = os.path.dirname(file_name)
+                if self._images.shape[0] == 1:
+                    imageio.imsave(file_name, self._images[0])
+                else:
+                    if os.path.splitext(file_name)[1] != '.tif':
+                        raise ImageViewingError('3D data can be stored only in tif format')
+                    # bigtiff size from tifffile
+                    imageio.volsave(file_name, self._images,
+                                    bigtiff=self._images.nbytes > 2 ** 32 - 2 ** 25)
+        elif action == reset_action:
             self.reset_clim()
         elif action == auto_levels_action:
             self.reset_clim(auto=True)
