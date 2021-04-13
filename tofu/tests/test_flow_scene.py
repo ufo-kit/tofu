@@ -303,6 +303,12 @@ class TestScene:
         scene.remove_node(read)
         assert not scene.is_fully_connected()
 
+    def test_are_all_ufo_tasks(self, qtbot, scene):
+        add_nodes_to_scene(scene, model_names=['read', 'pad', 'crop', 'null'])
+        assert scene.are_all_ufo_tasks()
+        scene.create_node(scene.registry.create('memory_out'))
+        assert not scene.are_all_ufo_tasks()
+
     def test_get_simple_node_graphs(self, qtbot, scene, monkeypatch):
         def connect(read, pad, crop, null):
             scene.create_connection(read['output'][0], pad['input'][0])
