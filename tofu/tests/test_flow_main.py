@@ -420,6 +420,43 @@ class TestApplicationWindow:
         assert self.ran
         assert not app_window.run_action.isEnabled()
 
+    def test_on_save_json(self, qtbot, monkeypatch, app_window):
+        import gi
+        gi.require_version('Ufo', '0.0')
+        from gi.repository import Ufo
+
+        # Don't pop up file dialog
+        def getSaveFileName(inst, header, path, fltr):
+            return (os.path.join(path, 'flow.json'), True)
+        monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileName)
+
+        # Don't actually write to disk
+        monkeypatch.setattr(Ufo.TaskGraph, "save_to_json", lambda *args: None)
+
+        # Empty scene
+        with pytest.raises(FlowError):
+            app_window.on_save_json()
+
+        # Wrong data types
+        app_window.ufo_scene.clear_scene()
+        read, mem_out, viewer = add_nodes_to_scene(app_window.ufo_scene,
+                                                   model_names=['read', 'memory_out',
+                                                                'image_viewer'])
+        app_window.ufo_scene.create_connection(read['output'][0], mem_out['input'][0])
+        app_window.ufo_scene.create_connection(mem_out['output'][0], viewer['input'][0])
+        with pytest.raises(FlowError):
+            app_window.on_save_json()
+
+        # Not connected
+        app_window.ufo_scene.clear_scene()
+        read, null = add_nodes_to_scene(app_window.ufo_scene, model_names=['read', 'null'])
+        with pytest.raises(FlowError):
+            app_window.on_save_json()
+
+        # This must pass
+        app_window.ufo_scene.create_connection(read['output'][0], null['input'][0])
+        app_window.on_save_json()
+
     def test_on_execution_finished(self, qtbot, app_window):
         app_window.run_action.setEnabled(False)
         app_window.progress_bar.setMaximum(100)
