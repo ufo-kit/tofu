@@ -125,8 +125,8 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     last = crop_phase_retrieve
     width = args.width
     height = args.height
-    default_padded_width = next_power_of_two(width)
-    default_padded_height = next_power_of_two(height)
+    default_padded_width = next_power_of_two(width + 64)
+    default_padded_height = next_power_of_two(height + 64)
 
     if not args.retrieval_padded_width:
         args.retrieval_padded_width = default_padded_width
