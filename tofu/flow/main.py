@@ -1,12 +1,13 @@
 import json
 import logging
 import os
+import pathlib
 import sys
 from qtpy.QtCore import Qt, QLocale, QObject, QPoint, Signal
 from qtpy.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
                             QMessageBox, QProgressBar, QMainWindow, QSlider, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
-from xdg import HOME, XDG_DATA_HOME
+from xdg import xdg_data_home
 
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.models import (BaseCompositeModel, get_composite_model_classes_from_json,
@@ -132,7 +133,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
         else:
-            path = os.path.join(XDG_DATA_HOME, 'tofu', 'flows')
+            path = os.path.join(xdg_data_home(), 'tofu', 'flows')
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -152,9 +153,9 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
         else:
-            path = os.path.join(XDG_DATA_HOME, 'tofu', 'flows')
+            path = os.path.join(xdg_data_home(), 'tofu', 'flows')
             if not os.path.exists(path):
-                path = HOME
+                path = pathlib.Path.home()
 
         file_name, _ = QFileDialog.getOpenFileName(self,
                                                    "Open Flow Scene",
@@ -306,9 +307,9 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['composite']:
             path = self.last_dirs['composite']
         else:
-            path = os.path.join(XDG_DATA_HOME, 'tofu', 'flow-composites')
+            path = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
             if not os.path.exists(path):
-                path = HOME
+                path = pathlib.Path.home()
 
         file_names, _ = QFileDialog.getOpenFileNames(self,
                                                      "Select File Names",
@@ -355,7 +356,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['composite']:
             path = self.last_dirs['composite']
         else:
-            path = os.path.join(XDG_DATA_HOME, 'tofu', 'flow-composites')
+            path = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
             if not os.path.exists(path):
                 os.makedirs(path)
 
