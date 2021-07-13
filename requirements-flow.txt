@@ -2,6 +2,7 @@ PyGObject
 imageio
 numpy
 networkx
+PySide2
 QtPy
 pyqtconsole
 xdg
