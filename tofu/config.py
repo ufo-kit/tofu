@@ -1,7 +1,7 @@
 import argparse
 import sys
 import logging
-import ConfigParser as configparser
+import configparser as configparser
 from collections import OrderedDict
 from tofu.util import convert_filesize, restrict_value, tupleize, range_list
 
@@ -708,10 +708,10 @@ def config_to_list(config_name=''):
         return []
 
     for section in SECTIONS:
-        for name, opts in ((n, o) for n, o in SECTIONS[section].items() if config.has_option(section, n)):
+        for name, opts in ((n, o) for n, o in list(SECTIONS[section].items()) if config.has_option(section, n)):
             value = config.get(section, name)
 
-            if value is not '' and value != 'None':
+            if value != '' and value != 'None':
                 action = opts.get('action', None)
 
                 if action == 'store_true' and value == 'True':
@@ -759,16 +759,16 @@ def write(config_file, args=None, sections=None):
 
     for section in SECTIONS:
         config.add_section(section)
-        for name, opts in SECTIONS[section].items():
+        for name, opts in list(SECTIONS[section].items()):
             if args and sections and section in sections and hasattr(args, name.replace('-', '_')):
                 value = getattr(args, name.replace('-', '_'))
 
                 if isinstance(value, list):
                     value = ', '.join(value)
             else:
-                value = opts['default'] if opts['default'] is not None else ''
+                value = opts['default'] if opts['default'] != None else ''
 
-            prefix = '# ' if value is '' else ''
+            prefix = '# ' if value == '' else ''
 
             if name != 'config':
                 config.set(section, prefix + name, value)
@@ -786,7 +786,7 @@ def log_values(args):
     args = args.__dict__
 
     for section, name in zip(SECTIONS, NICE_NAMES):
-        entries = sorted((k for k in args.keys() if k.replace('_', '-') in SECTIONS[section]))
+        entries = sorted((k for k in list(args.keys()) if k.replace('_', '-') in SECTIONS[section]))
 
         if entries:
             LOG.debug(name)

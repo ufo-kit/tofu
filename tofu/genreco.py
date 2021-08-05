@@ -9,11 +9,11 @@ import time
 import numpy as np
 from multiprocessing.pool import ThreadPool
 from gi.repository import Ufo
-from preprocess import create_preprocessing_pipeline
-from util import (get_filtering_padding, get_reconstructed_cube_shape,
+from .preprocess import create_preprocessing_pipeline
+from .util import (get_filtering_padding, get_reconstructed_cube_shape,
                   get_reconstruction_regions, get_filenames, determine_shape,
                   get_scarray_value, Vector)
-from tasks import get_task, get_writer
+from .tasks import get_task, get_writer
 
 
 LOG = logging.getLogger(__name__)
@@ -48,13 +48,13 @@ def genreco(args):
 
     resources = [Ufo.Resources()]
     gpus = np.array(resources[0].get_gpu_nodes())
-    gpu_indices = np.array(args.gpus or range(len(gpus)))
+    gpu_indices = np.array(args.gpus or list(range(len(gpus))))
     if min(gpu_indices) < 0 or max(gpu_indices) > len(gpus) - 1:
         raise ValueError('--gpus contains invalid indices')
     gpus = gpus[gpu_indices]
     duration = 0
     for i, gpu in enumerate(gpus):
-        print 'Max mem for {}: {:.2f} GB'.format(i, gpu.get_info(0) / 2. ** 30)
+        print('Max mem for {}: {:.2f} GB'.format(i, gpu.get_info(0) / 2. ** 30))
 
     runs = make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp,
                      slices_per_device=args.slices_per_device,
@@ -85,7 +85,7 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
               slice_memory_coeff=0.8, data_splitting_policy='one', num_gpu_threads=1):
     gpu_indices = np.array(gpu_indices)
     def _add_region(runs, gpu_index, current, to_process, z_start, z_step):
-        current_per_thread = current / num_gpu_threads
+        current_per_thread = current // num_gpu_threads
         for i in range(num_gpu_threads):
             if i + 1 == num_gpu_threads:
                 current_per_thread += current % num_gpu_threads
@@ -110,11 +110,11 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
     max_slices_per_pass = sum(slices_per_device)
     if not max_slices_per_pass:
         raise RuntimeError('None of the available devices has enough memory to store any slices')
-    num_full_passes = num_slices / max_slices_per_pass
+    num_full_passes = num_slices // max_slices_per_pass
     LOG.debug('Number of slices: %d', num_slices)
     LOG.debug('Slices per device %s', slices_per_device)
     LOG.debug('Maximum slices on all GPUs per pass: %d', max_slices_per_pass)
-    LOG.debug('Number of passes with full workload: %d', num_slices / max_slices_per_pass)
+    LOG.debug('Number of passes with full workload: %d', num_slices // max_slices_per_pass)
     sorted_indices = np.argsort(slices_per_device)[-np.count_nonzero(slices_per_device):]
     runs = []
     z_start = z_region[0]
@@ -145,7 +145,7 @@ def make_runs(gpus, gpu_indices, x_region, y_region, z_region, bpp, slices_per_d
                 # Current GPU will either process the maximum number of slices it can. If the number
                 # of slices per GPU based on even division between them cannot saturate the GPU, use
                 # this number. This way the work will be split evenly between the GPUs.
-                current = max(min(slices_per_device[i], (to_process - 1) / (num_gpus - j) + 1), 1)
+                current = max(min(slices_per_device[i], (to_process - 1) // (num_gpus - j) + 1), 1)
                 z_start, z_end, to_process = _add_region(runs, i, current, to_process,
                                                          z_start, z_step)
                 if not to_process:
@@ -181,7 +181,7 @@ def _run(resources, args, x_region, y_region, regions, run_number, vol_nbytes):
 
     st = time.time()
     pool = ThreadPool(processes=len(regions))
-    result = pool.map_async(start_one, range(len(regions)))
+    result = pool.map_async(start_one, list(range(len(regions))))
 
     if is_output_single_file(args):
         import tifffile
@@ -338,8 +338,7 @@ def _fill_missing_args(args):
 def _convert_angles_to_rad(args):
     names = ['detector_angle', 'axis_angle', 'volume_angle']
     coords = ['x', 'y', 'z']
-    angular_z_params = map(lambda x: x[0].replace('_', '-') + '-' + x[1],
-                           itertools.product(names, coords))
+    angular_z_params = [x[0].replace('_', '-') + '-' + x[1] for x in itertools.product(names, coords)]
     args.overall_angle = np.deg2rad(args.overall_angle)
     if args.z_parameter in angular_z_params:
         LOG.debug('Converting z parameter values to radians')
@@ -494,7 +493,7 @@ class CTGeometry(object):
             indices = np.round(indices).astype(np.int).tolist()
         else:
             LOG.debug('Computing optimal projection region from all angles')
-            indices = range(self.args.number)
+            indices = list(range(self.args.number))
 
         for i in indices:
             extrema_0 = self._compute_one_parameter(region[0], i)
