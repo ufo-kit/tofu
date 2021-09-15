@@ -5,7 +5,8 @@ from qtpy.QtCore import Signal, QObject
 from qtpy.QtWidgets import QInputDialog
 from qtpynodeeditor import FlowScene, NodeDataModel, PortType, opposite_port
 
-from tofu.flow.models import (BaseCompositeModel, PropertyModel, get_composite_model_class,
+from tofu.flow.models import (BaseCompositeModel, ImageViewerModel, PropertyModel,
+                              UFO_DATA_TYPE, get_composite_model_class,
                               get_composite_model_classes_from_json)
 from tofu.flow.util import CompositeConnection, FlowError, saved_kwargs
 from tofu.flow.propertylinksmodels import PropertyLinksModel, NodeTreeModel
@@ -117,6 +118,25 @@ class UfoScene(FlowScene):
             result = isinstance(nodes[0].model, BaseCompositeModel)
 
         return result
+
+    def skip_nodes(self):
+        selected_nodes = self.selected_nodes()
+        # First check if the selected nodes may be skipped
+        for node in selected_nodes:
+            if (node.model.num_ports[PortType.input] != 1
+                    or node.model.num_ports[PortType.output] != 1):
+                raise FlowError('Only nodes with one input and one output can be skipped')
+            ports = list(node.state.ports)
+            if ports[0].data_type != UFO_DATA_TYPE or ports[1].data_type != UFO_DATA_TYPE:
+                raise FlowError('Only tasks with UFO input and output can be skipped')
+
+        # And only if all is fine, then skip them
+        for node in selected_nodes:
+            node.model.skip = not node.model.skip
+            opacity = 0.5 if node.model.skip else 1
+            node.state.input_connections[0].graphics_object.setOpacity(opacity)
+            node.state.output_connections[0].graphics_object.setOpacity(opacity)
+            node.graphics_object.setOpacity(opacity)
 
     def auto_fill(self):
         for node in self.nodes.values():
@@ -327,10 +347,21 @@ class UfoScene(FlowScene):
         # many outputs which can lead to a same destination node.
         graph = nx.MultiDiGraph()
         for node in self.nodes.values():
-            graph.add_node(node.model)
+            if not node.model.skip:
+                graph.add_node(node.model)
 
         for conn in self.connections:
             p_dest, p_source = conn.ports
+            if p_dest.node.model.skip:
+                LOG.debug(f'Skiping connection {p_source.node.model.name} -> '
+                          f'{p_dest.node.model.name}')
+                continue
+            while p_source.node.model.skip:
+                LOG.debug(f'Skiping connection {p_source.node.model.name} -> '
+                          f'{p_dest.node.model.name}')
+                previous_conn = p_source.node.state.input_connections[0]
+                previous_node = previous_conn.output_node
+                p_source = list(previous_node.state.output_ports)[0]
             graph.add_edge(p_source.node.model, p_dest.node.model, input=p_dest.index,
                            output=p_source.index)
 

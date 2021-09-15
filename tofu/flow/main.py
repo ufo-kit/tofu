@@ -72,6 +72,9 @@ class ApplicationWindow(QMainWindow):
         selection_menu = menu_bar.addMenu('Nodes')
         selection_menu.setToolTipsVisible(True)
         selection_menu.aboutToShow.connect(self.on_selection_menu_about_to_show)
+        self.skip_action = selection_menu.addAction('Skip Toggle')
+        self.skip_action.setShortcut('S')
+        self.skip_action.triggered.connect(self.ufo_scene.skip_nodes)
         auto_fill_action = selection_menu.addAction('Auto fill')
         auto_fill_action.triggered.connect(self.ufo_scene.auto_fill)
         copy_action = selection_menu.addAction("Duplicate")
@@ -225,6 +228,7 @@ class ApplicationWindow(QMainWindow):
         self.edit_composite_action.setEnabled(num_selected == 1 and composites)
         self.export_composite_action.setEnabled(num_selected == 1 and composites)
         self.expand_composite_action.setEnabled(composites)
+        self.skip_action.setEnabled(self.ufo_scene.selected_nodes() != [])
 
     def on_edit_composite(self):
         if self.ufo_scene.is_selected_one_composite():

@@ -521,6 +521,7 @@ class UfoModel(NodeDataModel):
         # This is the caption model wants to have when it's instantiated, however, it might
         # get a different caption from the scene because the captions must be unique within
         self.base_caption = self.caption
+        self.skip = False
 
     def restore(self, state, restore_caption=False):
         if restore_caption:
