@@ -1,10 +1,11 @@
 import glob
 import os
+import pathlib
 import pkg_resources
 import pytest
 import sys
 from qtpy.QtWidgets import QFileDialog, QInputDialog, QMessageBox
-from xdg import HOME, XDG_DATA_HOME
+from xdg import xdg_data_home
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.main import ApplicationWindow, get_filled_registry, GlobalExceptionHandler
 from tofu.flow.scene import UfoScene
@@ -38,7 +39,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileNameDefault)
         app_window.on_save()
-        directory = os.path.join(XDG_DATA_HOME, 'tofu', 'flows')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flows')
         assert os.path.exists(directory)
         assert app_window.last_dirs['scene'] == directory
 
@@ -65,9 +66,9 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getOpenFileName", getOpenFileNameDefault)
         app_window.on_open()
-        directory = os.path.join(XDG_DATA_HOME, 'tofu', 'flows')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flows')
         if not os.path.exists(directory):
-            directory = HOME
+            directory = pathlib.Path.home()
         assert app_window.last_dirs['scene'] == directory
 
         # When user picks a different directory it must be remembered
@@ -292,9 +293,9 @@ class TestApplicationWindow:
 
         # Default directory
         monkeypatch.setattr(QFileDialog, "getOpenFileNames", getOpenFileNamesDefault)
-        directory = os.path.join(XDG_DATA_HOME, 'tofu', 'flow-composites')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
         if not os.path.exists(directory):
-            directory = HOME
+            directory = pathlib.Path.home()
         try:
             app_window.on_import_composites()
         except FileNotFoundError:
@@ -341,7 +342,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileNameDefault)
         self.file_name = 'composite'
-        directory = os.path.join(XDG_DATA_HOME, 'tofu', 'flow-composites')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
         app_window.on_export_composite()
         assert self.final_file_name.endswith('.cm') and not self.final_file_name.endswith('.cm.cm')
         assert os.path.exists(directory)
