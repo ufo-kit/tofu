@@ -27,6 +27,7 @@ class UfoScene(FlowScene):
                          allow_node_creation=allow_node_creation,
                          allow_node_deletion=allow_node_deletion)
         self._composite_nodes = {}
+        self._selected_nodes_on_disabled = []
         self.node_model = NodeTreeModel()
         self.node_model.setColumnCount(1)
         self.property_links_model = PropertyLinksModel(self.node_model)
@@ -345,9 +346,21 @@ class UfoScene(FlowScene):
         return [nx.subgraph(graph, component) for component in components]
 
     def set_enabled(self, enabled):
+        selected_nodes = self.selected_nodes()
         self.allow_node_creation = enabled
         self.allow_node_deletion = enabled
         for node in self.nodes.values():
-            node._graphics_obj.setEnabled(enabled)
+            if not isinstance(node.model, ImageViewerModel):
+                node.graphics_object.setEnabled(enabled)
+                if enabled:
+                    if node in self._selected_nodes_on_disabled:
+                        node.graphics_object.setSelected(True)
+                else:
+                    if node in selected_nodes:
+                        self._selected_nodes_on_disabled.append(node)
+
         for conn in self.connections:
             conn._graphics_object.setEnabled(enabled)
+
+        if enabled:
+            self._selected_nodes_on_disabled = []
