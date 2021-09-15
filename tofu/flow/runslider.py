@@ -20,7 +20,6 @@ class RunSlider(QWidget):
         self.min_edit.editingFinished.connect(self.on_min_edit_editing_finished)
         self.current_edit = QLineEdit()
         self.current_edit.setToolTip('Current value')
-        self.current_edit.setMaximumWidth(80)
         self.current_edit.editingFinished.connect(self.on_current_edit_editing_finished)
         self.max_edit = QLineEdit()
         self.max_edit.setToolTip('Maximum')
@@ -32,7 +31,7 @@ class RunSlider(QWidget):
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
         main_layout = QGridLayout()
-        main_layout.addWidget(self.current_edit, 0, 1, Qt.AlignHCenter)
+        main_layout.addWidget(self.current_edit, 0, 0, 1, 3, Qt.AlignHCenter)
         main_layout.addWidget(self.min_edit, 1, 0)
         main_layout.addWidget(self.slider, 1, 1)
         main_layout.addWidget(self.max_edit, 1, 2)
