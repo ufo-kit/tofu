@@ -343,6 +343,7 @@ class TestScene:
                 assert conn._graphics_object.isEnabled() == enabled
 
         nodes = add_nodes_to_scene(scene, model_names=['CFlatFieldCorrect', 'average'])
+        nodes[0].graphics_object.setSelected(True)
 
         # Create a connection
         scene.create_connection(nodes[0]['output'][0], nodes[1]['input'][0])
@@ -350,3 +351,4 @@ class TestScene:
         check(False)
         scene.set_enabled(True)
         check(True)
+        assert nodes[0].graphics_object.isSelected()
