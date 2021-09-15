@@ -149,6 +149,29 @@ class TestScene:
             node.graphics_object.setSelected(True)
         assert not scene.is_selected_one_composite()
 
+    def test_skip_nodes(self, qtbot, scene):
+        nodes = add_nodes_to_scene(scene, model_names=['read', 'pad', 'crop', 'null'])
+        read, pad, crop, null = nodes
+        scene.create_connection(read['output'][0], pad['input'][0])
+        scene.create_connection(pad['output'][0], crop['input'][0])
+        scene.create_connection(crop['output'][0], null['input'][0])
+        read.graphics_object.setSelected(True)
+
+        # Only fully connected nodes can be disabled
+        with pytest.raises(FlowError):
+            scene.skip_nodes()
+        read.graphics_object.setSelected(False)
+        null.graphics_object.setSelected(True)
+        with pytest.raises(FlowError):
+            scene.skip_nodes()
+        null.graphics_object.setSelected(False)
+
+        pad.graphics_object.setSelected(True)
+        scene.skip_nodes()
+        assert pad.model.skip
+        scene.skip_nodes()
+        assert not pad.model.skip
+
     # Deprecation warning coming from imageio
     @pytest.mark.filterwarnings('ignore::DeprecationWarning')
     def test_auto_fill(self, qtbot, scene):
@@ -331,6 +354,23 @@ class TestScene:
 
         add_nodes_to_scene(scene)
         assert len(scene.get_simple_node_graphs()) == 3
+
+        # Test disabling nodes
+        scene.clear_scene()
+        nodes = add_nodes_to_scene(scene, model_names=['read', 'pad', 'crop', 'null'])
+        read, pad, crop, null = nodes
+        connect(read, pad, crop, null)
+        # Disable padding, the generated flow must be read -> crop -> null
+        pad.graphics_object.setSelected(True)
+        scene.skip_nodes()
+        graph = scene.get_simple_node_graphs()[0]
+        assert len(graph.edges) == 2
+        edges = list(graph.edges)
+        src, dst = edges[0][:-1]
+        assert dst == crop.model
+        src, dst = edges[1][:-1]
+        assert src == crop.model
+        assert dst == null.model
 
     def test_set_enabled(self, qtbot, scene):
         def check(enabled):

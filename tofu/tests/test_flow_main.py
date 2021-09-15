@@ -147,6 +147,21 @@ class TestApplicationWindow:
         assert app_window.expand_composite_action.isEnabled()
         assert not app_window.export_composite_action.isEnabled()
 
+    def test_skip_action(self, qtbot, app_window):
+        # No nodes selected, menu item must be disabled
+        app_window.on_selection_menu_about_to_show()
+        assert not app_window.skip_action.isEnabled()
+
+        # Add some nodes, conect them and disable one
+        nodes = add_nodes_to_scene(app_window.ufo_scene, model_names=['read', 'average', 'null'])
+        app_window.ufo_scene.create_connection(nodes[0]['output'][0], nodes[1]['input'][0])
+        app_window.ufo_scene.create_connection(nodes[1]['output'][0], nodes[2]['input'][0])
+        average = nodes[1]
+        average.graphics_object.setSelected(True)
+        app_window.on_selection_menu_about_to_show()
+        # Nodes selected, menu item must be enabled
+        assert app_window.skip_action.isEnabled()
+
     def test_on_edit_composite(self, qtbot, scene_with_composite, app_window):
         app_window.ufo_scene = scene_with_composite
         node = add_nodes_to_scene(app_window.ufo_scene, model_names=['cpm'])[0]
