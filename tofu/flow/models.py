@@ -23,6 +23,7 @@ from qtpynodeeditor import (NodeData, NodeDataModel, NodeDataType, FlowScene, Fl
 from threading import Lock
 from tofu.flow.util import (CompositeConnection, FlowError, get_config_key, MODEL_ROLE, NODE_ROLE,
                             PROPERTY_ROLE, saved_kwargs)
+from tofu.flow.filedirdialog import FileDirDialog
 
 
 LOG = logging.getLogger(__name__)
@@ -1324,10 +1325,9 @@ class UfoReadModel(UfoTaskModel):
             current_path = os.path.dirname(current_path)
         if not current_path:
             current_path = QtCore.QDir.homePath()
-        file_name = QFileDialog.getExistingDirectory(None, "Select File Name",
-                                                     current_path)
-        if file_name:
-            self['path'] = file_name
+        dialog = FileDirDialog()
+        if dialog.exec_():
+            self['path'] = dialog.selectedFiles()[0]
 
     def _setup_ufo_task(self, ufo_task, region=None):
         for prop in self:

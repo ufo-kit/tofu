@@ -1178,8 +1178,11 @@ class TestUfoReadModel:
         assert read_model.num_ports['input'] == 0
         assert read_model.num_ports['output'] == 1
 
-    def test_double_clicked(self, monkeypatch, read_model):
-        monkeypatch.setattr(QFileDialog, "getExistingDirectory", lambda *args: 'foobarbaz')
+    def test_double_clicked(self, qtbot, monkeypatch, read_model):
+        from tofu.flow.filedirdialog import FileDirDialog
+
+        monkeypatch.setattr(FileDirDialog, "exec_", lambda *args: 1)
+        monkeypatch.setattr(FileDirDialog, "selectedFiles", lambda *args: ['foobarbaz'])
         read_model.double_clicked(None)
         assert read_model['path'] == 'foobarbaz'
 
