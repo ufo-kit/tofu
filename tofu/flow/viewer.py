@@ -217,6 +217,7 @@ class ImageViewer(QWidget):
         new_image_auto_levels.setCheckable(True)
         new_image_auto_levels.setChecked(self.new_image_auto_levels)
         pop_action = None
+        save_action = None
         try:
             import pyqtgraph
             if self._images is not None and not self.popup_visible:
