@@ -66,7 +66,7 @@ class PropertyLinks(QWidget):
     """Widget displaying nodes in the scene and their property links in one window."""
 
     def __init__(self, node_model, table_model, parent=None):
-        super().__init__(parent=parent, f=Qt.Window)
+        super().__init__(parent=parent, flags=Qt.Window)
         self.setWindowTitle('Property Links')
         self.resize(600, 800)
 

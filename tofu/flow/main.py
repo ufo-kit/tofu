@@ -3,7 +3,7 @@ import logging
 import os
 import pathlib
 import sys
-from qtpy.QtCore import Qt, QLocale, QObject, QPoint, Signal
+from qtpy.QtCore import Qt, QObject, QPoint, Signal
 from qtpy.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
                             QMessageBox, QProgressBar, QMainWindow, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
@@ -477,8 +477,6 @@ def get_filled_registry():
 
 
 def main():
-    # We want QDoubleValidator to accept dot as decimal point, not comma
-    QLocale.setDefault(QLocale.English)
     app = QApplication(sys.argv)
     scene = UfoScene(registry=get_filled_registry())
     scene.load('/home/tomas/.local/share/tofu/flows/tofu-paper-beetle-reco.flow')

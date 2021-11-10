@@ -149,8 +149,6 @@ class ImageLabel(QLabel):
     def resizeEvent(self, event):
         self.updateImage()
 
-        return True
-
 
 class ImageViewer(QWidget):
     edit_height = 16

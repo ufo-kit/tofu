@@ -2,8 +2,7 @@ PyGObject
 imageio
 numpy
 networkx
-PySide2
-QtPy
+PyQt5
 pyqtconsole
 xdg
 qtpynodeeditor

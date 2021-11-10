@@ -10,7 +10,7 @@ class RunSlider(QWidget):
     value_changed = Signal(float)
 
     def __init__(self, parent=None):
-        super().__init__(parent=parent, f=Qt.Window)
+        super().__init__(parent=parent, flags=Qt.Window)
         self.setWindowFlag(Qt.WindowStaysOnTopHint)
         self.setMaximumHeight(20)
         self.setMinimumWidth(600)
