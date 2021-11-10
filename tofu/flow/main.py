@@ -5,7 +5,7 @@ import pathlib
 import sys
 from qtpy.QtCore import Qt, QLocale, QObject, QPoint, Signal
 from qtpy.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
-                            QMessageBox, QProgressBar, QMainWindow, QSlider, QStyle)
+                            QMessageBox, QProgressBar, QMainWindow, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
 from xdg import xdg_data_home
 
