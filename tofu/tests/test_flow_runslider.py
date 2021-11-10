@@ -102,7 +102,7 @@ class TestRunSlider:
         old = runslider.slider.value()
         current = old + 10
         runslider.slider.setValue(current)
-        with qtbot.waitSignal(runslider.value_changed, 1000):
+        with qtbot.waitSignal(runslider.value_changed, timeout=1000):
             assert runslider.slider.value() == current
 
     def test_int(self, qtbot, runslider, scene):
