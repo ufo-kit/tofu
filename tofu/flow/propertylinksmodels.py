@@ -62,6 +62,14 @@ class NodeTreeModel(QStandardItemModel):
                 self.removeRow(j)
                 break
 
+    def clear(self):
+        """In PyQt5, clear doesn't emit the rowsAboutToBeRemoved signal and this does effectively
+        the same.
+        """
+        self.removeRows(0, self.rowCount())
+        self.removeColumns(0, self.columnCount())
+        self.rowCount(), self.columnCount()
+
     def set_nodes(self, nodes):
         self.clear()
         for node in nodes:
