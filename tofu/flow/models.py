@@ -13,11 +13,11 @@ import os
 import re
 gi.require_version('Ufo', '0.0')
 from gi.repository import Ufo
-from qtpy import QtCore
-from qtpy.QtCore import QObject, Qt, Signal
-from qtpy.QtGui import QDoubleValidator, QValidator
-from qtpy.QtWidgets import (QCheckBox, QComboBox, QGroupBox, QInputDialog, QLabel, QLineEdit,
-                            QScrollArea, QWidget, QFileDialog, QFormLayout, QVBoxLayout, QMenu)
+from PyQt5 import QtCore
+from PyQt5.QtCore import QObject, Qt, pyqtSignal
+from PyQt5.QtGui import QDoubleValidator, QValidator
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGroupBox, QInputDialog, QLabel, QLineEdit,
+                             QScrollArea, QWidget, QFileDialog, QFormLayout, QVBoxLayout, QMenu)
 from qtpynodeeditor import (NodeData, NodeDataModel, NodeDataType, FlowScene, FlowView, Port,
                             PortType, opposite_port)
 from threading import Lock
@@ -119,7 +119,7 @@ class UfoRangeValidator(QValidator):
 
 
 class ViewItem(QObject):
-    property_changed = Signal(QObject)
+    property_changed = pyqtSignal(QObject)
 
     def __init__(self, widget, default_value=None, tooltip=''):
         super().__init__(parent=None)
@@ -177,7 +177,7 @@ class ComboBoxViewItem(ViewItem):
 
 
 class FocusInterceptQLineEdit(QLineEdit):
-    focus_in = Signal(QObject)
+    focus_in = pyqtSignal(QObject)
 
     def focusInEvent(self, event):
         self.focus_in.emit(self)
@@ -185,7 +185,7 @@ class FocusInterceptQLineEdit(QLineEdit):
 
 
 class QLineEditViewItem(ViewItem):
-    focus_in = Signal(QObject)
+    focus_in = pyqtSignal(QObject)
 
     def __init__(self, default_value=None, tooltip='', intercept_focus=False):
         if intercept_focus:
@@ -312,8 +312,8 @@ class MultiPropertyViewRecord:
 
 
 class PropertyView(QWidget):
-    property_changed = Signal(str, object)
-    item_focus_in = Signal(ViewItem, str)
+    property_changed = pyqtSignal(str, object)
+    item_focus_in = pyqtSignal(ViewItem, str)
 
     def __init__(self, properties=None, parent=None, scrollable=True):
         super().__init__(parent=parent)
@@ -515,7 +515,7 @@ class UfoModel(NodeDataModel):
     """The root parent of all other models in tofu flow."""
 
     data_type = UFO_DATA_TYPE
-    item_focus_in = Signal(QObject, str, str, NodeDataModel)
+    item_focus_in = pyqtSignal(QObject, str, str, NodeDataModel)
 
     def __init__(self, style=None, parent=None):
         super().__init__(style=style, parent=parent)
@@ -542,7 +542,7 @@ class UfoModel(NodeDataModel):
 
 
 class PropertyModel(UfoModel):
-    property_changed = Signal(UfoModel, str, object)
+    property_changed = pyqtSignal(UfoModel, str, object)
 
     def __init__(self, style=None, parent=None, scrollable=True):
         """*properties* is a dictionary of name: ViewItem items."""
@@ -1393,7 +1393,7 @@ class UfoWriteModel(UfoTaskModel):
 
 class _Batch(QObject):
 
-    finished = Signal(int)
+    finished = pyqtSignal(int)
 
     def __init__(self, ufo_task, shape, batch_id):
         super().__init__(parent=None)

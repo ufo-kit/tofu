@@ -1,9 +1,9 @@
 import logging
 import numpy as np
 import os
-from qtpy import QtGui
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QFileDialog, QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
+from PyQt5 import QtGui
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFileDialog, QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
 from tofu.flow.util import FlowError
 
 

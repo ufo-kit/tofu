@@ -1,7 +1,7 @@
 import contextlib
 import json
 import pkg_resources
-from qtpy.QtCore import Qt
+from PyQt5.QtCore import Qt
 from qtpynodeeditor import PortType
 
 

@@ -4,7 +4,7 @@ import pathlib
 import pkg_resources
 import pytest
 import sys
-from qtpy.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 from xdg import xdg_data_home
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.main import ApplicationWindow, get_filled_registry, GlobalExceptionHandler

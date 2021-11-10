@@ -1,13 +1,13 @@
 from functools import partial
-from qtpy.QtCore import Qt, Signal, QTimer
-from qtpy import QtGui
-from qtpy.QtWidgets import QGridLayout, QLineEdit, QWidget, QSlider
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5 import QtGui
+from PyQt5.QtWidgets import QGridLayout, QLineEdit, QWidget, QSlider
 from tofu.flow.models import IntQLineEditViewItem, RangeQLineEditViewItem, UfoIntValidator
 from tofu.flow.util import FlowError
 
 
 class RunSlider(QWidget):
-    value_changed = Signal(float)
+    value_changed = pyqtSignal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent, flags=Qt.Window)

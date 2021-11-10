@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from qtpy.QtCore import Qt
-from qtpy.QtGui import QValidator
-from qtpy.QtWidgets import QFileDialog, QInputDialog, QLineEdit
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QValidator
+from PyQt5.QtWidgets import QFileDialog, QInputDialog, QLineEdit
 from tofu.flow.main import get_filled_registry
 from tofu.flow.models import (CheckBoxViewItem, ComboBoxViewItem, get_composite_model_class,
                               get_composite_model_classes, get_composite_model_classes_from_json,

@@ -1,5 +1,5 @@
 import pytest
-from qtpy.QtWidgets import QInputDialog
+from PyQt5.QtWidgets import QInputDialog
 from tofu.flow.util import CompositeConnection, get_config_key, saved_kwargs
 from tofu.flow.main import get_filled_registry
 

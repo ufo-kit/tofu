@@ -1,5 +1,5 @@
 import pytest
-from qtpy.QtCore import Qt, QItemSelectionModel
+from PyQt5.QtCore import Qt, QItemSelectionModel
 from tofu.flow.propertylinkswidget import NodesView, PropertyLinks, PropertyLinksView
 from tofu.tests.flow_util import get_index_from_treemodel, populate_link_model
 

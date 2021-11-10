@@ -1,8 +1,8 @@
 import logging
 import numpy as np
 import networkx as nx
-from qtpy.QtCore import Signal, QObject
-from qtpy.QtWidgets import QInputDialog
+from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtWidgets import QInputDialog
 from qtpynodeeditor import FlowScene, NodeDataModel, PortType, opposite_port
 
 from tofu.flow.models import (BaseCompositeModel, ImageViewerModel, PropertyModel,
@@ -16,9 +16,9 @@ LOG = logging.getLogger(__name__)
 
 
 class UfoScene(FlowScene):
-    nodes_duplicated = Signal(list, dict)
+    nodes_duplicated = pyqtSignal(list, dict)
     # view item, its name and model name
-    item_focus_in = Signal(QObject, str, str, NodeDataModel)
+    item_focus_in = pyqtSignal(QObject, str, str, NodeDataModel)
 
     def __init__(self, registry=None, style=None, parent=None,
                  allow_node_creation=True, allow_node_deletion=True):

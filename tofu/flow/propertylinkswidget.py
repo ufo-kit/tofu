@@ -1,6 +1,6 @@
-from qtpy.QtCore import QMimeData, Qt, QDataStream, QByteArray, QIODevice, QModelIndex
-from qtpy.QtGui import QDrag
-from qtpy.QtWidgets import QAbstractItemView, QLabel, QTableView, QTreeView, QVBoxLayout, QWidget
+from PyQt5.QtCore import QMimeData, Qt, QDataStream, QByteArray, QIODevice, QModelIndex
+from PyQt5.QtGui import QDrag
+from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView, QTreeView, QVBoxLayout, QWidget
 
 
 def _encode_mime_data(index: QModelIndex):

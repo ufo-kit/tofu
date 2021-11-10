@@ -1,6 +1,6 @@
 import logging
-from qtpy.QtCore import QDataStream, Signal
-from qtpy.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import QDataStream, pyqtSignal
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from tofu.flow.models import PropertyModel, BaseCompositeModel
 from tofu.flow.util import MODEL_ROLE, NODE_ROLE, PROPERTY_ROLE
 
@@ -102,7 +102,7 @@ class PropertyLinksModel(QStandardItemModel):
 
     """Links model representing property links between nodes in the scene."""
 
-    restored = Signal()
+    restored = pyqtSignal()
 
     def __init__(self, node_model):
         super().__init__()
@@ -380,7 +380,7 @@ class PropertyLinksModel(QStandardItemModel):
                   f'{sig_property_name}, {value}')
         sig_key = (sig_model, sig_property_name)
         if sig_key in self._silent:
-            # Signal came from a composite subwindow, get root model from the silent slave
+            # pyqtSignal came from a composite subwindow, get root model from the silent slave
             root_key = self._silent[sig_key]
             root_key[0][root_key[1]] = value
         else:

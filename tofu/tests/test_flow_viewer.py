@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qtpy.QtGui import QValidator
+from PyQt5.QtGui import QValidator
 from tofu.flow.viewer import ImageLabel, ImageViewingError, ScreenImage, ImageViewer
 
 

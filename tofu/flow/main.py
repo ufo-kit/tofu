@@ -3,9 +3,9 @@ import logging
 import os
 import pathlib
 import sys
-from qtpy.QtCore import Qt, QObject, QPoint, Signal
-from qtpy.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
-                            QMessageBox, QProgressBar, QMainWindow, QStyle)
+from PyQt5.QtCore import Qt, QObject, QPoint, pyqtSignal
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
+                             QMessageBox, QProgressBar, QMainWindow, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
 from xdg import xdg_data_home
 
@@ -443,7 +443,7 @@ class GlobalExceptionHandler(QObject):
     error message should be shown to the user so that e.g. a message can be shown in the main
     thread.
     """
-    exception_occured = Signal(str)
+    exception_occured = pyqtSignal(str)
 
     def excepthook(self, exc_type, exc_value, exc_traceback):
         LOG.error(exc_value, exc_info=(exc_type, exc_value, exc_traceback))

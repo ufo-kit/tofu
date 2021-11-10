@@ -3,7 +3,7 @@ import logging
 import networkx as nx
 gi.require_version('Ufo', '0.0')
 from gi.repository import Ufo
-from qtpy.QtCore import QObject, Signal
+from PyQt5.QtCore import QObject, pyqtSignal
 from qtpynodeeditor import PortType
 from threading import Thread
 from tofu.flow.models import ARRAY_DATA_TYPE, UFO_DATA_TYPE, UfoTaskModel
@@ -17,11 +17,11 @@ class UfoExecutor(QObject):
 
     """Class holding GPU resources and organizing UFO graph execution."""
 
-    number_of_inputs_changed = Signal(int)  # Number of inputs has been determined
-    processed_signal = Signal(int)  # Image has been processed
-    execution_started = Signal()  # Graph execution started
-    execution_finished = Signal()  # Graph execution finished
-    exception_occured = Signal(str)
+    number_of_inputs_changed = pyqtSignal(int)  # Number of inputs has been determined
+    processed_signal = pyqtSignal(int)  # Image has been processed
+    execution_started = pyqtSignal()  # Graph execution started
+    execution_finished = pyqtSignal()  # Graph execution finished
+    exception_occured = pyqtSignal(str)
 
     def __init__(self):
         super().__init__(parent=None)
