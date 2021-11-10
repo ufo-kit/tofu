@@ -98,13 +98,6 @@ class TestRunSlider:
         with pytest.raises(RunSliderError):
             runslider.on_current_edit_editing_finished()
 
-    def test_on_slider_value_changed(self, qtbot, runslider):
-        old = runslider.slider.value()
-        current = old + 10
-        runslider.slider.setValue(current)
-        with qtbot.waitSignal(runslider.value_changed, timeout=1000):
-            assert runslider.slider.value() == current
-
     def test_int(self, qtbot, runslider, scene):
         node = scene.create_node(scene.registry.create('read'))
         runslider.setup(node.model._view._properties['y'].view_item)
