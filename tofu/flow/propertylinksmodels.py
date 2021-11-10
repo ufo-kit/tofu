@@ -263,13 +263,13 @@ class PropertyLinksModel(QStandardItemModel):
                         self.add_silent(slave_model, slave_property_name, new_model, prop_name)
 
     def on_node_rows_about_to_be_removed(self, parent, first, last):
-        node = self._node_model.item(first, 0).data(role=NODE_ROLE)
-
-        for j in range(self.rowCount()):
-            for i in range(self.columnCount()):
-                item = self.item(j, i)
-                if item and item.data(role=NODE_ROLE) == node:
-                    self.remove_item(self.indexFromItem(item))
+        for k in range(first, last + 1):
+            node = self._node_model.item(k, 0).data(role=NODE_ROLE)
+            for j in range(self.rowCount()):
+                for i in range(self.columnCount()):
+                    item = self.item(j, i)
+                    if item and item.data(role=NODE_ROLE) == node:
+                        self.remove_item(self.indexFromItem(item))
 
         self.compact()
 
