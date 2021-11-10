@@ -208,7 +208,7 @@ class ApplicationWindow(QMainWindow):
 
         for node in selected_nodes:
             dy = node.graphics_object.y() - min_y
-            new_pos = QPoint(node.graphics_object.x(), dy + y_1 + 100)
+            new_pos = QPoint(int(node.graphics_object.x()), int(dy + y_1 + 100))
             new_nodes[node].graphics_object.setPos(new_pos)
 
     def on_item_focus_in(self, item, prop_name, caption, model):
