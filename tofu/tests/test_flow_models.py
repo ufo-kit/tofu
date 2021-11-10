@@ -639,6 +639,7 @@ class TestBaseCompositeModel:
         assert (composite_model, average) in graph.edges
         assert (cpm, cpm['Read']) in graph.edges
         assert (cpm, cpm['Pad']) in graph.edges
+        composite_model._other_view.close()
 
         # Create outer composite with foobar inside, get_descendant_graph with in_subwindow=True
         # when outer is being edited and foobar not must return outer subwindow models and foobar's
@@ -656,6 +657,7 @@ class TestBaseCompositeModel:
         assert (outer, inner) in graph.edges
         assert (inner, inner['Average']) in graph.edges
         assert (inner['cpm'], inner['cpm']['Read']) in graph.edges
+        outer._other_view.close()
 
     def test_contains_path(self, qtbot, composite_model, nodes):
         assert composite_model.contains_path(['Average'])
@@ -844,6 +846,7 @@ class TestBaseCompositeModel:
 
         # No new connections allowed
         assert len(composite_model._other_scene.connections) == num_connections
+        composite_model._other_view.close()
 
     def test_on_connection_deleted(self, qtbot, composite_model):
         composite_model.edit_in_window()
@@ -853,6 +856,7 @@ class TestBaseCompositeModel:
 
         # No connection deletions
         assert len(composite_model._other_scene.connections) == num_connections
+        composite_model._other_view.close()
 
     def test_double_clicked(self, qtbot, composite_model):
         composite_model.double_clicked(None)
@@ -952,6 +956,9 @@ class TestBaseCompositeModel:
                    outer.model['foobar']['cpm']['Read'], 'number', link_model)
         crosscheck(cpm._window_nodes['Pad'].model,
                    outer.model['foobar']['cpm']['Pad'], 'height', link_model)
+        cpm._other_view.close()
+        node_sub.model._other_view.close()
+        outer.model._other_view.close()
 
     def test_edit_in_window(self, qtbot, nodes):
         composite_model = nodes['cpm'].model
@@ -974,6 +981,8 @@ class TestBaseCompositeModel:
         node.model.edit_in_window()
         qtbot.addWidget(node.model._other_view)
         assert node.model._window_nodes['cpm'].model.window_parent == node.model
+        node.model._other_view.close()
+        composite_model._other_view.close()
 
     def test_view_close_event(self, qtbot, nodes):
         composite_model = nodes['cpm'].model

@@ -182,6 +182,7 @@ class TestImageViewer:
         assert validator.validate('2000', 0)[0] == QValidator.Invalid
         assert viewer.min_slider_edit.validator().bottom() == viewer.images[0].min()
         assert viewer.min_slider_edit.validator().top() == viewer.images[0].max()
+        viewer._pg_window.close()
 
     def test_append(self, qtbot):
         viewer = ImageViewer()
@@ -236,12 +237,14 @@ class TestImageViewer:
 
         # Pop up window must be updated
         assert viewer._pg_window.getLevels() == pytest.approx((si.black_point, si.white_point))
+        viewer._pg_window.close()
 
     def test_on_slider_value_changed(self, viewer):
         viewer.slider.setValue(5)
 
         assert viewer._pg_window.currentIndex == 5
         assert viewer.slider_edit.text() == '5'
+        viewer._pg_window.close()
 
     def test_on_slider_edit_return_pressed(self, viewer):
         viewer.slider_edit.setText('5')
@@ -249,6 +252,7 @@ class TestImageViewer:
 
         assert viewer.slider.value() == 5
         assert viewer._pg_window.currentIndex == 5
+        viewer._pg_window.close()
 
     def test_on_min_slider_edit_return_pressed(self, viewer):
         viewer.images = np.arange(256).reshape(16, 16)
@@ -257,6 +261,7 @@ class TestImageViewer:
         assert viewer.screen_image.black_point == pytest.approx(100)
         assert viewer.min_slider.value() == pytest.approx(100)
         assert viewer._pg_window.getLevels()[0] == pytest.approx(100)
+        viewer._pg_window.close()
 
     def test_on_max_slider_edit_return_pressed(self, viewer):
         viewer.images = np.arange(256).reshape(16, 16)
@@ -265,6 +270,7 @@ class TestImageViewer:
         assert viewer.screen_image.white_point == pytest.approx(100)
         assert viewer.max_slider.value() == pytest.approx(100)
         assert viewer._pg_window.getLevels()[1] == pytest.approx(100)
+        viewer._pg_window.close()
 
     def test_on_min_slider_value_changed(self, viewer):
         viewer.images = np.arange(256).reshape(16, 16)
@@ -272,6 +278,7 @@ class TestImageViewer:
         assert viewer.screen_image.black_point == pytest.approx(100)
         assert float(viewer.min_slider_edit.text()) == pytest.approx(100)
         assert viewer._pg_window.getLevels()[0] == pytest.approx(100)
+        viewer._pg_window.close()
 
     def test_on_max_slider_value_changed(self, viewer):
         viewer.images = np.arange(256).reshape(16, 16)
@@ -279,6 +286,7 @@ class TestImageViewer:
         assert viewer.screen_image.white_point == pytest.approx(100)
         assert float(viewer.max_slider_edit.text()) == pytest.approx(100)
         assert viewer._pg_window.getLevels()[1] == pytest.approx(100)
+        viewer._pg_window.close()
 
     def test_popup(self, qtbot, viewer):
         # Close and another popup call must show the widget
@@ -291,3 +299,5 @@ class TestImageViewer:
         other.popup()
         qtbot.addWidget(other._pg_window)
         assert other._pg_window is not None
+        viewer._pg_window.close()
+        other._pg_window.close()
