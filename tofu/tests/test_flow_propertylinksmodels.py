@@ -57,6 +57,14 @@ class TestNodeTreeModel:
         for (i, key) in enumerate(names):
             assert node_model.item(i).data(role=NODE_ROLE) == nodes[key]
 
+    def test_clear(self, qtbot, node_model, nodes):
+        node_model.set_nodes(nodes.values())
+        assert node_model.rowCount() > 0
+        assert node_model.columnCount() > 0
+        node_model.clear()
+        assert node_model.rowCount() == 0
+        assert node_model.columnCount() == 0
+
 
 class TestPropertyLinksModel:
     def test_add_item(self, qtbot, link_model, nodes):
