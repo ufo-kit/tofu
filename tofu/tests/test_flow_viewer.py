@@ -161,9 +161,9 @@ class TestImageViewer:
 
         # Test viewer and popup window equality
         viewer.popup()
+        qtbot.addWidget(viewer._pg_window)
         np.testing.assert_almost_equal(viewer.images, 1)
         np.testing.assert_almost_equal(viewer._pg_window.image, 1)
-        qtbot.addWidget(viewer._pg_window)
 
         # 3D
         viewer.images = np.ones((5, 16, 16)) * 5
