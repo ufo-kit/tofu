@@ -472,7 +472,10 @@ SECTIONS['general-reconstruction'] = {
     'slice-memory-coeff': {
         'default': 0.8,
         'type': restrict_value((0.01, 0.95)),
-        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]"},
+        'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]. "
+                "The total amount of consumed memory will be larger depending on the "
+                "complexity of the graph. In case of OpenCL memory allocation errors, "
+                "try reducing this value."},
     'num-gpu-threads': {
         'default': 1,
         'type': restrict_value((1, None), dtype=int),
