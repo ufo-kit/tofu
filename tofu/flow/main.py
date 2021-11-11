@@ -132,6 +132,8 @@ class ApplicationWindow(QMainWindow):
         self.ufo_scene.item_focus_in.connect(self.on_item_focus_in)
         self.run_slider.value_changed.connect(self.on_run_slider_value_changed)
 
+        self.setWindowTitle('tofu flow')
+
     def on_save(self):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
@@ -151,6 +153,7 @@ class ApplicationWindow(QMainWindow):
     def on_new(self):
         self.run_slider.reset()
         self.ufo_scene.clear_scene()
+        self.setWindowTitle('tofu flow')
 
     def on_open(self):
         if self.last_dirs['scene']:
@@ -169,6 +172,7 @@ class ApplicationWindow(QMainWindow):
             self.last_dirs['scene'] = os.path.dirname(file_name)
             self.ufo_scene.load(file_name)
             self.run_slider.reset()
+            self.setWindowTitle(file_name)
 
     def on_exception_occured(self, text):
         msg = QMessageBox(parent=self)
