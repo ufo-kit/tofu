@@ -483,8 +483,6 @@ def get_filled_registry():
 def main():
     app = QApplication(sys.argv)
     scene = UfoScene(registry=get_filled_registry())
-    scene.load('/home/tomas/.local/share/tofu/flows/tofu-paper-beetle-reco.flow')
-    # scene.load('/home/tomas/Documents/flows/tomo-504-axis-more-runs-links.flow')
     main_window = ApplicationWindow(scene)
 
     # Exception interception
