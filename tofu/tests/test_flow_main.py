@@ -308,7 +308,7 @@ class TestApplicationWindow:
 
         # Default directory
         monkeypatch.setattr(QFileDialog, "getOpenFileNames", getOpenFileNamesDefault)
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
         if not os.path.exists(directory):
             directory = pathlib.Path.home()
         try:
@@ -357,7 +357,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileNameDefault)
         self.file_name = 'composite'
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flow-composites')
+        directory = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
         app_window.on_export_composite()
         assert self.final_file_name.endswith('.cm') and not self.final_file_name.endswith('.cm.cm')
         assert os.path.exists(directory)
