@@ -5,6 +5,10 @@ import getpass
 
 from tofu.ez.Helpers.stitch_funcs import main_sti_mp, main_conc_mp, main_360_mp_depth1
 
+
+LOG = logging.getLogger(__name__)
+
+
 class EZStitchGroup(QGroupBox):
     def __init__(self):
         super().__init__()
@@ -252,99 +256,99 @@ class EZStitchGroup(QGroupBox):
 
     def set_rButton(self):
         if self.interpolate_regions_rButton.isChecked():
-            logging.debug("Interpolate regions")
+            LOG.debug("Interpolate regions")
             self.e_ipol = 0
         elif self.concatenate_rButton.isChecked():
-            logging.debug("Concatenate only")
+            LOG.debug("Concatenate only")
             self.e_ipol = 1
         elif self.half_acquisition_rButton.isChecked():
-            logging.debug("Half-acquisition mode")
+            LOG.debug("Half-acquisition mode")
             self.e_ipol = 2
 
     def input_button_pressed(self):
-        logging.debug("Input button pressed")
+        LOG.debug("Input button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.input_dir_entry.setText(directory)
         self.e_input = directory
 
     def set_input_entry(self):
-        logging.debug("Input: " + str(self.input_dir_entry.text()))
+        LOG.debug("Input: " + str(self.input_dir_entry.text()))
         self.e_input = str(self.input_dir_entry.text())
 
     def temp_button_pressed(self):
-        logging.debug("Temp button pressed")
+        LOG.debug("Temp button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.tmp_dir_entry.setText(directory)
         self.e_tmpdir = directory
 
     def set_temp_entry(self):
-        logging.debug("Temp: " + str(self.tmp_dir_entry.text()))
+        LOG.debug("Temp: " + str(self.tmp_dir_entry.text()))
         self.e_tmpdir = str(self.tmp_dir_entry.text())
 
     def output_button_pressed(self):
-        logging.debug("Output button pressed")
+        LOG.debug("Output button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.output_dir_entry.setText(directory)
         self.e_output = directory
 
     def set_output_entry(self):
-        logging.debug("Output: " + str(self.output_dir_entry.text()))
+        LOG.debug("Output: " + str(self.output_dir_entry.text()))
         self.e_output = str(self.output_dir_entry.text())
 
     def set_type_images(self):
-        logging.debug("Type of images: " + str(self.types_of_images_entry.text()))
+        LOG.debug("Type of images: " + str(self.types_of_images_entry.text()))
         self.e_typ = str(self.types_of_images_entry.text())
 
     def set_stitch_checkbox(self):
-        logging.debug("Stitch orthogonal: " + str(self.orthogonal_checkbox.isChecked()))
+        LOG.debug("Stitch orthogonal: " + str(self.orthogonal_checkbox.isChecked()))
         self.e_ort = bool(self.orthogonal_checkbox.isChecked())
 
     def set_start_stop_step(self):
-        logging.debug("Images to be stitched: " + str(self.start_stop_step_entry.text()))
+        LOG.debug("Images to be stitched: " + str(self.start_stop_step_entry.text()))
         self.e_slices = str(self.start_stop_step_entry.text())
 
     def set_sample_moved_down(self):
-        logging.debug("Sample moved down: " + str(self.sample_moved_down_checkbox.isChecked()))
+        LOG.debug("Sample moved down: " + str(self.sample_moved_down_checkbox.isChecked()))
         self.e_flip = bool(self.sample_moved_down_checkbox.isChecked())
 
     def set_overlap(self):
-        logging.debug("Num overlapping rows: " + str(self.num_overlaps_entry.text()))
+        LOG.debug("Num overlapping rows: " + str(self.num_overlaps_entry.text()))
         self.e_reprows = int(self.num_overlaps_entry.text())
 
     def set_histogram_checkbox(self):
-        logging.debug("Clip histogram:  " + str(self.clip_histogram_checkbox.isChecked()))
+        LOG.debug("Clip histogram:  " + str(self.clip_histogram_checkbox.isChecked()))
         self.e_gray256 = bool(self.clip_histogram_checkbox.isChecked())
 
     def set_min_value(self):
-        logging.debug("Min value: " + str(self.min_value_entry.text()))
+        LOG.debug("Min value: " + str(self.min_value_entry.text()))
         self.e_hmin = float(self.min_value_entry.text())
 
     def set_max_value(self):
-        logging.debug("Max value: " + str(self.max_value_entry.text()))
+        LOG.debug("Max value: " + str(self.max_value_entry.text()))
         self.e_hmax = float(self.max_value_entry.text())
 
     def set_first_row(self):
-        logging.debug("First row: " + str(self.first_row_entry.text()))
+        LOG.debug("First row: " + str(self.first_row_entry.text()))
         self.e_r1 = int(self.first_row_entry.text())
 
     def set_last_row(self):
-        logging.debug("Last row: " + str(self.last_row_entry.text()))
+        LOG.debug("Last row: " + str(self.last_row_entry.text()))
         self.e_r2 = int(self.last_row_entry.text())
 
     def set_axis_column(self):
-        logging.debug("Column of axis: " + str(self.column_of_axis_entry.text()))
+        LOG.debug("Column of axis: " + str(self.column_of_axis_entry.text()))
         self.e_ax = int(self.column_of_axis_entry.text())
 
     def stitch_button_pressed(self):
-        logging.debug("Stitch button pressed")
+        LOG.debug("Stitch button pressed")
         args = tk_args(self.e_input, self.e_output, self.e_tmpdir,
                        self.e_typ, self.e_ort, self.e_slices, self.e_flip, self.e_ipol,
                        self.e_reprows, self.e_gray256, self.e_hmin, self.e_hmax,
                        self.e_r1, self.e_r2, self.e_ax)
-        logging.debug(args)
+        LOG.debug(args)
 
         if os.path.exists(self.e_tmpdir):
             os.system('rm -r {}'.format(self.e_tmpdir))
@@ -365,13 +369,13 @@ class EZStitchGroup(QGroupBox):
         print("==== Waiting for Next Task ====")
 
     def delete_button_pressed(self):
-        logging.debug("Delete button pressed")
+        LOG.debug("Delete button pressed")
         if os.path.exists(self.e_output):
             os.system('rm -r {}'.format(self.e_output))
             print(" - Directory with reconstructed data was removed")
 
     def help_button_pressed(self):
-        logging.debug("Help button pressed")
+        LOG.debug("Help button pressed")
         h = "Stitches images vertically\n"
         h += "Directory structure is, f.i., Input/000, Input/001,...Input/00N\n"
         h += "Each 000, 001, ... 00N directory must have identical subdirectory \"Type\"\n"

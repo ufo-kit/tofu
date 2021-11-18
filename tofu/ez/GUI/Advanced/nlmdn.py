@@ -7,6 +7,10 @@ from PyQt5.QtCore import Qt
 import tofu.ez.GUI.params as parameters
 from tofu.ez.main_nlm import main_tk
 
+
+LOG = logging.getLogger(__name__)
+
+
 class NLMDNGroup(QGroupBox):
     """
     Non-local means de-noising settings
@@ -143,7 +147,7 @@ class NLMDNGroup(QGroupBox):
         self.sigma_checkbox.setChecked(bool(parameters.params['e_nlmdn_autosig']))
 
     def set_apply_to_reco(self):
-        logging.debug("Apply NLMDN to reconstructed slices checkbox: " + str(self.apply_to_reco_checkbox.isChecked()))
+        LOG.debug("Apply NLMDN to reconstructed slices checkbox: " + str(self.apply_to_reco_checkbox.isChecked()))
         parameters.params['e_nlmdn_apply_after_reco'] = bool(self.apply_to_reco_checkbox.isChecked())
         if self.apply_to_reco_checkbox.isChecked():
             self.input_dir_button.setDisabled(True)
@@ -166,7 +170,7 @@ class NLMDNGroup(QGroupBox):
         """
         Saves directory specified by user in file-dialog for input tomographic data
         """
-        logging.debug("Select input directory pressed")
+        LOG.debug("Select input directory pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.input_dir_entry.setText(directory)
@@ -176,11 +180,11 @@ class NLMDNGroup(QGroupBox):
         parameters.params['e_nlmdn_input_is_file'] = False
 
     def set_indir_entry(self):
-        logging.debug("Indir entry: " + str(self.input_dir_entry.text()))
+        LOG.debug("Indir entry: " + str(self.input_dir_entry.text()))
         parameters.params['e_nlmdn_indir'] = str(self.input_dir_entry.text())
 
     def select_image(self):
-        logging.debug("Select one image button pressed")
+        LOG.debug("Select one image button pressed")
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, 'Open .tif Image File', "", "Tiff Files (*.tif *.tiff)",
                                                   options=options)
@@ -194,85 +198,85 @@ class NLMDNGroup(QGroupBox):
             parameters.params['e_nlmdn_input_is_file'] = True
 
     def set_outdir_button(self):
-        logging.debug("Select output directory pressed")
+        LOG.debug("Select output directory pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.output_dir_entry.setText(directory)
         parameters.params['e_nlmdn_outdir'] = directory
 
     def set_save_bigtif(self):
-        logging.debug("Save bigtif checkbox: " + str(self.save_bigtif_checkbox.isChecked()))
+        LOG.debug("Save bigtif checkbox: " + str(self.save_bigtif_checkbox.isChecked()))
         parameters.params['e_nlmdn_bigtif'] = bool(self.save_bigtif_checkbox.isChecked())
 
     def set_outdir_entry(self):
-        logging.debug("Outdir entry: " + str(self.output_dir_entry.text()))
+        LOG.debug("Outdir entry: " + str(self.output_dir_entry.text()))
         parameters.params['e_nlmdn_outdir'] = str(self.output_dir_entry.text())
 
     def set_rad_sim_entry(self):
-        logging.debug("Radius for similarity: " + str(self.similarity_radius_entry.text()))
+        LOG.debug("Radius for similarity: " + str(self.similarity_radius_entry.text()))
         parameters.params['e_nlmdn_r'] = str(self.similarity_radius_entry.text())
 
     def set_rad_patch_entry(self):
-        logging.debug("Radius of patches: " + str(self.patch_radius_entry.text()))
+        LOG.debug("Radius of patches: " + str(self.patch_radius_entry.text()))
         parameters.params['e_nlmdn_dx'] = str(self.patch_radius_entry.text())
 
     def set_smoothing_entry(self):
-        logging.debug("Smoothing control: " + str(self.smoothing_entry.text()))
+        LOG.debug("Smoothing control: " + str(self.smoothing_entry.text()))
         parameters.params['e_nlmdn_h'] = str(self.smoothing_entry.text())
 
     def set_noise_entry(self):
-        logging.debug("Noise std: " + str(self.noise_std_entry.text()))
+        LOG.debug("Noise std: " + str(self.noise_std_entry.text()))
         parameters.params['e_nlmdn_sig'] = str(self.noise_std_entry.text())
 
     def set_window_entry(self):
-        logging.debug("Window: " + str(self.window_entry.text()))
+        LOG.debug("Window: " + str(self.window_entry.text()))
         parameters.params['e_nlmdn_w'] = str(self.window_entry.text())
 
     def set_fast_checkbox(self):
-        logging.debug("Fast: " + str(self.fast_checkbox.isChecked()))
+        LOG.debug("Fast: " + str(self.fast_checkbox.isChecked()))
         parameters.params['e_nlmdn_fast'] = bool(self.fast_checkbox.isChecked())
 
     def set_sigma_checkbox(self):
-        logging.debug("Estimate sigma: " + str(self.sigma_checkbox.isChecked()))
+        LOG.debug("Estimate sigma: " + str(self.sigma_checkbox.isChecked()))
         parameters.params['e_nlmdn_autosig'] = bool(self.sigma_checkbox.isChecked())
 
     def help_button_pressed(self):
-        logging.debug("Help Button Pressed")
+        LOG.debug("Help Button Pressed")
         h = ""
         h += "Note4: set to \"flats\" if \"flats2\" exist but you need to ignore them; \n"
         h += "SerG, BMIT CLS, Dec. 2020."
         QMessageBox.information(self, "Help", h)
 
     def delete_button_pressed(self):
-        logging.debug("Delete Reco Button Pressed")
+        LOG.debug("Delete Reco Button Pressed")
         """
         Deletes the directory that contains reconstructed data
         """
-        logging.debug("DELETE")
+        LOG.debug("DELETE")
         msg = "Delete directory with reconstructed data?"
         dialog = QMessageBox.warning(self, "Warning: data can be lost", msg, QMessageBox.Yes | QMessageBox.No)
 
         if dialog == QMessageBox.Yes:
             if os.path.exists(str(parameters.params['e_nlmdn_outdir'])):
-                logging.debug("YES")
+                LOG.debug("YES")
                 if parameters.params['e_nlmdn_outdir'] == parameters.params['e_nlmdn_indir']:
-                    logging.debug("Cannot delete: output directory is the same as input")
+                    LOG.debug("Cannot delete: output directory is the same as input")
                 else:
                     os.system( 'rm -rf {}'.format(parameters.params['e_nlmdn_outdir']))
-                    logging.debug("Directory with reconstructed data was removed")
+                    LOG.debug("Directory with reconstructed data was removed")
             else:
-                logging.debug("Directory does not exist")
+                LOG.debug("Directory does not exist")
         else:
-            logging.debug("NO")
+            LOG.debug("NO")
 
     def dry_button_pressed(self):
-        logging.debug("Dry Run Button Pressed")
+        LOG.debug("Dry Run Button Pressed")
         parameters.params['e_nlmdn_dryrun'] = True
         self.apply_button_pressed()
         parameters.params['e_nlmdn_dryrun'] = False
 
     def apply_button_pressed(self):
-        logging.debug("Apply Filter Button Pressed")
+        LOG.debug("Apply Filter Button Pressed")
         args = tk_args(parameters.params['e_nlmdn_apply_after_reco'],
                        parameters.params['e_nlmdn_indir'], parameters.params['e_nlmdn_input_is_file'],
                        parameters.params['e_nlmdn_outdir'], parameters.params['e_nlmdn_bigtif'],
@@ -280,7 +284,7 @@ class NLMDNGroup(QGroupBox):
                        parameters.params['e_nlmdn_h'], parameters.params['e_nlmdn_sig'],
                        parameters.params['e_nlmdn_w'], parameters.params['e_nlmdn_fast'],
                        parameters.params['e_nlmdn_autosig'], parameters.params['e_nlmdn_dryrun'])
-        logging.debug(args.args)
+        LOG.debug(args.args)
         if os.path.exists(args.outdir) and not args.dryrun:
             title_text = "Warning: files can be overwritten"
             text1 = "Output directory exists. Files can be overwritten. Proceed?"

@@ -3,6 +3,10 @@ from qtpy.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEd
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class CentreOfRotationGroup(QGroupBox):
     """
     Centre of Rotation settings
@@ -100,13 +104,13 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_rButton(self):
         if self.auto_correlate_rButton.isChecked():
-            logging.debug("Auto Correlate")
+            LOG.debug("Auto Correlate")
             parameters.params['e_ax'] = 1
         elif self.auto_minimize_rButton.isChecked():
-            logging.debug("Auto Minimize")
+            LOG.debug("Auto Minimize")
             parameters.params['e_ax'] = 2
         elif self.define_axis_rButton.isChecked():
-            logging.debug("Define axis")
+            LOG.debug("Define axis")
             parameters.params['e_ax'] = 3
 
     def set_rButton_from_params(self):
@@ -124,21 +128,21 @@ class CentreOfRotationGroup(QGroupBox):
             self.define_axis_rButton.setChecked(True)
 
     def set_search_rotation(self):
-        logging.debug(self.search_rotation_entry.text())
+        LOG.debug(self.search_rotation_entry.text())
         parameters.params['e_ax_range'] = self.search_rotation_entry.text()
 
     def set_search_slice(self):
-        logging.debug(self.search_in_slice_entry.text())
+        LOG.debug(self.search_in_slice_entry.text())
         parameters.params['e_ax_row'] = self.search_in_slice_entry.text()
 
     def set_side_of_reco(self):
-        logging.debug(self.side_of_recon_entry.text())
+        LOG.debug(self.side_of_recon_entry.text())
         parameters.params['e_ax_p_size'] = self.side_of_recon_entry.text()
 
     def set_axis_col(self):
-        logging.debug(self.axis_col_entry.text())
+        LOG.debug(self.axis_col_entry.text())
         parameters.params['e_ax_fix'] = self.axis_col_entry.text()
 
     def set_axis_inc(self):
-        logging.debug(self.inc_axis_entry.text())
+        LOG.debug(self.inc_axis_entry.text())
         parameters.params['e_dax'] = self.inc_axis_entry.text()

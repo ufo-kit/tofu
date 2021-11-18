@@ -26,6 +26,10 @@ from tofu.ez.GUI.login_dialog import Login
 
 from tofu.ez.GUI.StitchTools.auto_horizontal_stitch_gui import AutoHorizontalStitchGUI
 
+
+LOG = logging.getLogger(__name__)
+
+
 class GUI(qtw.QWidget):
     """
     Creates main GUI
@@ -203,8 +207,8 @@ class GUI(qtw.QWidget):
         """
         Updates displayed values when loaded in from external .yaml file of parameters
         """
-        logging.debug("Update Values from Params")
-        logging.debug(parameters.params)
+        LOG.debug("Update Values from Params")
+        LOG.debug(parameters.params)
         self.centre_of_rotation_group.set_values_from_params()
         self.filters_group.set_values_from_params()
         self.ffc_group.set_values_from_params()
@@ -222,7 +226,7 @@ class GUI(qtw.QWidget):
         Automatically loads images from the output reconstruction directory for viewing
         """
         if parameters.params['e_openIV'] is True:
-            logging.debug("Switch to Image Tab")
+            LOG.debug("Switch to Image Tab")
             self.tabs.setCurrentWidget(self.tab2)
             if os.path.isdir(str(parameters.params['e_outdir'] + '/sli')):
                 files = os.listdir(str(parameters.params['e_outdir'] + '/sli'))
@@ -244,7 +248,7 @@ class GUI(qtw.QWidget):
         Creates verification message box
         Cleans up temporary directories when user quits application
         """
-        logging.debug("QUIT")
+        LOG.debug("QUIT")
         reply = qtw.QMessageBox.question(self, 'Quit', 'Are you sure you want to quit?',
         qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
         if reply == qtw.QMessageBox.Yes:

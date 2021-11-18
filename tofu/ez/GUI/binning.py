@@ -5,6 +5,9 @@ from qtpy.QtCore import Qt
 import tofu.ez.GUI.params as parameters
 
 
+LOG = logging.getLogger(__name__)
+
+
 class BinningGroup(QGroupBox):
     """
     Binning settings
@@ -164,61 +167,61 @@ class BinningGroup(QGroupBox):
         self.rotate_vol_entry.setText(str(parameters.params['e_a0']))
 
     def set_select_rows(self):
-        logging.debug("Select rows: " + str(self.select_rows_checkbox.isChecked()))
+        LOG.debug("Select rows: " + str(self.select_rows_checkbox.isChecked()))
         parameters.params['e_vcrop'] = bool(self.select_rows_checkbox.isChecked())
 
     def set_first_row(self):
-        logging.debug(self.first_row_entry.text())
+        LOG.debug(self.first_row_entry.text())
         parameters.params['e_y'] = str(self.first_row_entry.text())
 
     def set_num_rows(self):
-        logging.debug(self.num_rows_entry.text())
+        LOG.debug(self.num_rows_entry.text())
         parameters.params['e_yheight'] = str(self.num_rows_entry.text())
 
     def set_reco_nth_rows(self):
-        logging.debug(self.nth_row_entry.text())
+        LOG.debug(self.nth_row_entry.text())
         parameters.params['e_ystep'] = str(self.nth_row_entry.text())
 
     def set_clip_histo(self):
-        logging.debug("Clip histo: " + str(self.clip_histo_checkbox.isChecked()))
+        LOG.debug("Clip histo: " + str(self.clip_histo_checkbox.isChecked()))
         parameters.params['e_gray256'] = bool(self.clip_histo_checkbox.isChecked())
 
     def set_bitdepth(self):
         if self.eight_bit_rButton.isChecked():
-            logging.debug("8 bit")
+            LOG.debug("8 bit")
             parameters.params['e_bit'] = str(8)
         elif self.sixteen_bit_rButton.isChecked():
-            logging.debug("16 bit")
+            LOG.debug("16 bit")
             parameters.params['e_bit'] = str(16)
 
     def set_min_val(self):
-        logging.debug(self.min_val_entry.text())
+        LOG.debug(self.min_val_entry.text())
         parameters.params['e_hmin'] = str(self.min_val_entry.text())
 
     def set_max_val(self):
-        logging.debug(self.max_val_entry.text())
+        LOG.debug(self.max_val_entry.text())
         parameters.params['e_hmax'] = str(self.max_val_entry.text())
 
     def set_crop_slices(self):
-        logging.debug("Crop slices: " + str(self.crop_slices_checkbox.isChecked()))
+        LOG.debug("Crop slices: " + str(self.crop_slices_checkbox.isChecked()))
         parameters.params['e_crop'] = bool(self.crop_slices_checkbox.isChecked())
 
     def set_x(self):
-        logging.debug(self.x_val_entry.text())
+        LOG.debug(self.x_val_entry.text())
         parameters.params['e_x0'] = str(self.x_val_entry.text())
 
     def set_width(self):
-        logging.debug(self.width_val_entry.text())
+        LOG.debug(self.width_val_entry.text())
         parameters.params['e_dx'] = str(self.width_val_entry.text())
 
     def set_y(self):
-        logging.debug(self.y_val_entry.text())
+        LOG.debug(self.y_val_entry.text())
         parameters.params['e_y0'] = str(self.y_val_entry.text())
 
     def set_height(self):
-        logging.debug(self.height_val_entry.text())
+        LOG.debug(self.height_val_entry.text())
         parameters.params['e_dy'] = str(self.height_val_entry.text())
 
     def set_rotate_volume(self):
-        logging.debug(self.rotate_vol_entry.text())
+        LOG.debug(self.rotate_vol_entry.text())
         parameters.params['e_a0'] = str(self.rotate_vol_entry.text())

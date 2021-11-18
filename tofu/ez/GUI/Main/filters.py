@@ -4,6 +4,10 @@ from PyQt5.QtCore import Qt
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class FiltersGroup(QGroupBox):
     """
     Filter settings
@@ -191,57 +195,57 @@ class FiltersGroup(QGroupBox):
         self.SNR_entry.setText(str(parameters.params['e_rr_srp_snr']))
 
     def set_remove_spots(self):
-        logging.debug("Remove large spots:" + str(self.remove_spots_checkBox.isChecked()))
+        LOG.debug("Remove large spots:" + str(self.remove_spots_checkBox.isChecked()))
         parameters.params['e_inp'] = bool(self.remove_spots_checkBox.isChecked())
 
     def set_threshold(self):
-        logging.debug(self.threshold_entry.text())
+        LOG.debug(self.threshold_entry.text())
         parameters.params['e_inp_thr'] = str(self.threshold_entry.text())
 
     def set_spot_blur(self):
-        logging.debug(self.spot_blur_entry.text())
+        LOG.debug(self.spot_blur_entry.text())
         parameters.params['e_inp_sig'] = str(self.spot_blur_entry.text())
 
     def set_ring_removal(self):
-        logging.debug("RR: " + str(self.enable_RR_checkbox.isChecked()))
+        LOG.debug("RR: " + str(self.enable_RR_checkbox.isChecked()))
         parameters.params['e_RR'] = bool(self.enable_RR_checkbox.isChecked())
 
     def select_rButton(self):
         if self.use_LPF_rButton.isChecked():
-            logging.debug("Use LPF")
+            LOG.debug("Use LPF")
             parameters.params['e_RR_ufo'] = bool(True)
         elif self.sarepy_rButton.isChecked():
-            logging.debug("Use Sarepy")
+            LOG.debug("Use Sarepy")
             parameters.params['e_RR_ufo'] = bool(False)
 
     def select_dimens_rButton(self):
         if self.one_dimens_rButton.isChecked():
-            logging.debug("One dimension")
+            LOG.debug("One dimension")
             parameters.params['e_RR_ufo_1d'] = bool(True)
         elif self.two_dimens_rButton.isChecked():
-            logging.debug("Two dimensions")
+            LOG.debug("Two dimensions")
             parameters.params['e_RR_ufo_1d'] = bool(False)
 
     def set_sigma_horizontal(self):
-        logging.debug(self.sigma_horizontal_entry.text())
+        LOG.debug(self.sigma_horizontal_entry.text())
         parameters.params['e_RR_sig_hor'] = str(self.sigma_horizontal_entry.text())
 
     def set_sigma_vertical(self):
-        logging.debug(self.sigma_vertical_entry.text())
+        LOG.debug(self.sigma_vertical_entry.text())
         parameters.params['e_RR_sig_ver'] = str(self.sigma_vertical_entry.text())
 
     def set_window_size(self):
-        logging.debug(self.wind_size_entry.text())
+        LOG.debug(self.wind_size_entry.text())
         parameters.params['e_rr_srp_wind_sort'] = str(self.wind_size_entry.text())
 
     def set_remove_wide(self):
-        logging.debug("Wide: " + str(self.remove_wide_checkbox.isChecked()))
+        LOG.debug("Wide: " + str(self.remove_wide_checkbox.isChecked()))
         parameters.params['e_rr_srp_wide'] = bool(self.remove_wide_checkbox.isChecked())
 
     def set_wind(self):
-        logging.debug(self.remove_wide_entry.text())
+        LOG.debug(self.remove_wide_entry.text())
         parameters.params['e_rr_srp_wind_wide'] = str(self.remove_wide_entry.text())
 
     def set_SNR(self):
-        logging.debug(self.SNR_entry.text())
+        LOG.debug(self.SNR_entry.text())
         parameters.params['e_rr_srp_snr'] = str(self.SNR_entry.text())

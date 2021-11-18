@@ -23,6 +23,9 @@ from tofu.ez.util import *
 #from tofu.util import get_filenames
 
 
+LOG = logging.getLogger(__name__)
+
+
 def get_CTdirs_list(inpath, fdt_names, args):
     """
     Determines whether directories containing CT data are valid.
@@ -38,17 +41,17 @@ def get_CTdirs_list(inpath, fdt_names, args):
     W.findCTdirs()
     # If "Use common flats/darks across multiple experiments" is enabled
     if args.common_darks_flats:
-        logging.debug("Use common darks/flats")
-        logging.debug("Path to darks: " + str(args.common_darks))
-        logging.debug("Path to flats: " + str(args.common_flats))
-        logging.debug("Path to flats2: " + str(args.common_flats2))
-        logging.debug("Use flats2: " + str(args.use_common_flats2))
+        LOG.debug("Use common darks/flats")
+        LOG.debug("Path to darks: " + str(args.common_darks))
+        LOG.debug("Path to flats: " + str(args.common_flats))
+        LOG.debug("Path to flats2: " + str(args.common_flats2))
+        LOG.debug("Use flats2: " + str(args.use_common_flats2))
         # Determine whether paths to common flats/darks/flats2 exist
         if not W.checkCommonFDT():
             print("Invalid path to common flats/darks")
             return W.ctsets, W.lvl0
         else:
-            logging.debug("Paths to common flats/darks exist")
+            LOG.debug("Paths to common flats/darks exist")
             # Check whether directories contain only .tif files
             if not W.checkCommonFDTFiles():
                 return W.ctsets, W.lvl0
@@ -58,7 +61,7 @@ def get_CTdirs_list(inpath, fdt_names, args):
                 return W.ctsets, W.lvl0
     # If "Use common flats/darks across multiple experiments" is not enabled
     else:
-        logging.debug("Use flats/darks in same directory as tomo")
+        LOG.debug("Use flats/darks in same directory as tomo")
     # Check if common flats/darks/flats2 are type 3 or 4
         W.checkCTdirs()
     # Need to check if common flats/darks contain only .tif files
@@ -270,7 +273,7 @@ def main_tk(args, fdt_names):
             # tmp = "Number of projections: {}, dimensions: {}".format(nviews, WH)
             # cmds.append("echo \"{}\"".format(tmp))
             if args.nlmdn_apply_after_reco:
-                logging.debug("Using Non-Local Means Denoising")
+                LOG.debug("Using Non-Local Means Denoising")
                 nlmdn_input = out_pattern
                 head, tail = os.path.split(out_pattern)
                 nlmdn_output = os.path.join(head, 'sli-nlmdn')

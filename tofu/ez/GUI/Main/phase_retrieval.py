@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class PhaseRetrievalGroup(QGroupBox):
     """
     Phase Retrieval settings
@@ -74,21 +78,21 @@ class PhaseRetrievalGroup(QGroupBox):
         self.delta_beta_ratio_entry.setText(str(parameters.params['e_log10db']))
 
     def set_PR(self):
-        logging.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))
+        LOG.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))
         parameters.params['e_PR'] = bool(self.enable_PR_checkBox.isChecked())
 
     def set_photon_energy(self):
-        logging.debug(self.photon_energy_entry.text())
+        LOG.debug(self.photon_energy_entry.text())
         parameters.params['e_energy'] = str(self.photon_energy_entry.text())
 
     def set_pixel_size(self):
-        logging.debug(self.pixel_size_entry.text())
+        LOG.debug(self.pixel_size_entry.text())
         parameters.params['e_pixel'] = str(self.pixel_size_entry.text())
 
     def set_detector_distance(self):
-        logging.debug(self.detector_distance_entry.text())
+        LOG.debug(self.detector_distance_entry.text())
         parameters.params['e_z'] = str(self.detector_distance_entry.text())
 
     def set_delta_beta(self):
-        logging.debug(self.delta_beta_ratio_entry.text())
+        LOG.debug(self.delta_beta_ratio_entry.text())
         parameters.params['e_log10db'] = str(self.delta_beta_ratio_entry.text())

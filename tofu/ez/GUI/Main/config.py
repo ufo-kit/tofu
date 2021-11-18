@@ -11,6 +11,10 @@ from tofu.ez.GUI.yaml_in_out import Yaml_IO
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class ConfigGroup(QGroupBox):
     """
     Setup and configuration settings
@@ -325,7 +329,7 @@ class ConfigGroup(QGroupBox):
 
 
     def set_input_dir(self):
-        logging.debug(str(self.input_dir_entry.text()))
+        LOG.debug(str(self.input_dir_entry.text()))
         parameters.params['e_indir'] = str(self.input_dir_entry.text())
 
     def select_output_dir(self):
@@ -340,85 +344,85 @@ class ConfigGroup(QGroupBox):
         parameters.params['e_outdir'] = dir
 
     def set_output_dir(self):
-        logging.debug(str(self.output_dir_entry.text()))
+        LOG.debug(str(self.output_dir_entry.text()))
         parameters.params['e_outdir'] = str(self.output_dir_entry.text())
 
     def set_big_tiff(self):
-        logging.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
+        LOG.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
         parameters.params['e_bigtif'] = bool(self.bigtiff_checkbox.isChecked())
 
     def set_preproc(self):
-        logging.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
+        LOG.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
         parameters.params['e_pre'] = bool(self.preproc_checkbox.isChecked())
 
     def set_preproc_entry(self):
-        logging.debug(self.preproc_entry.text())
+        LOG.debug(self.preproc_entry.text())
         parameters.params['e_pre_cmd'] = str(self.preproc_entry.text())
 
     def set_open_image_after_reco(self):
-        logging.debug("Switch to Image Viewer After Reco: " + str(self.open_image_after_reco_checkbox.isChecked()))
+        LOG.debug("Switch to Image Viewer After Reco: " + str(self.open_image_after_reco_checkbox.isChecked()))
         parameters.params['e_openIV'] = bool(self.open_image_after_reco_checkbox.isChecked())
 
     def set_darks(self):
-        logging.debug(self.darks_entry.text())
+        LOG.debug(self.darks_entry.text())
         self.e_DIRTYP[0] = str(self.darks_entry.text())
         parameters.params['e_darks'] = str(self.darks_entry.text())
 
     def set_flats(self):
-        logging.debug(self.flats_entry.text())
+        LOG.debug(self.flats_entry.text())
         self.e_DIRTYP[1] = str(self.flats_entry.text())
         parameters.params['e_flats'] = str(self.flats_entry.text())
 
     def set_tomo(self):
-        logging.debug(self.tomo_entry.text())
+        LOG.debug(self.tomo_entry.text())
         self.e_DIRTYP[2] = str(self.tomo_entry.text())
         parameters.params['e_tomo'] = str(self.tomo_entry.text())
 
     def set_flats2(self):
-        logging.debug(self.flats2_entry.text())
+        LOG.debug(self.flats2_entry.text())
         self.e_DIRTYP[3] = str(self.flats2_entry.text())
         parameters.params['e_flats2'] = str(self.flats2_entry.text())
 
     def set_flats_darks_checkbox(self):
-        logging.debug("Use same flats/darks across multiple experiments: "
+        LOG.debug("Use same flats/darks across multiple experiments: "
                       + str(self.use_common_flats_darks_checkbox.isChecked()))
         parameters.params['e_common_darks_flats'] = bool(self.use_common_flats_darks_checkbox.isChecked())
 
     def select_darks_button_pressed(self):
-        logging.debug("Select path to darks pressed")
+        LOG.debug("Select path to darks pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory(directory=parameters.params['e_indir'])
         self.darks_absolute_entry.setText(directory)
         parameters.params['e_common_darks'] = directory
 
     def select_flats_button_pressed(self):
-        logging.debug("Select path to flats pressed")
+        LOG.debug("Select path to flats pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory(directory=parameters.params['e_indir'])
         self.flats_absolute_entry.setText(directory)
         parameters.params['e_common_flats'] = directory
 
     def select_flats2_button_pressed(self):
-        logging.debug("Select path to flats2 pressed")
+        LOG.debug("Select path to flats2 pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory(directory=parameters.params['e_indir'])
         self.flats2_absolute_entry.setText(directory)
         parameters.params['e_common_flats2'] = directory
 
     def set_common_darks(self):
-        logging.debug("Common darks path: " + str(self.darks_absolute_entry.text()))
+        LOG.debug("Common darks path: " + str(self.darks_absolute_entry.text()))
         parameters.params['e_common_darks'] = str(self.darks_absolute_entry.text())
 
     def set_common_flats(self):
-        logging.debug("Common flats path: " + str(self.flats_absolute_entry.text()))
+        LOG.debug("Common flats path: " + str(self.flats_absolute_entry.text()))
         parameters.params['e_common_flats'] = str(self.flats_absolute_entry.text())
 
     def set_use_flats2(self):
-        logging.debug("Use common flats2 checkbox: " + str(self.use_flats2_checkbox.isChecked()))
+        LOG.debug("Use common flats2 checkbox: " + str(self.use_flats2_checkbox.isChecked()))
         parameters.params['e_use_common_flats2'] = bool(self.use_flats2_checkbox.isChecked())
 
     def set_common_flats2(self):
-        logging.debug("Common flats2 path: " + str(self.flats2_absolute_entry.text()))
+        LOG.debug("Common flats2 path: " + str(self.flats2_absolute_entry.text()))
         parameters.params['e_common_flats2'] = str(self.flats2_absolute_entry.text())
 
     def select_temp_dir(self):
@@ -427,18 +431,18 @@ class ConfigGroup(QGroupBox):
         self.temp_dir_entry.setText(tmp_dir)
 
     def set_temp_dir(self):
-        logging.debug(str(self.temp_dir_entry.text()))
+        LOG.debug(str(self.temp_dir_entry.text()))
         parameters.params['e_tmpdir'] = str(self.temp_dir_entry.text())
 
     def set_keep_tmp_data(self):
-        logging.debug("Keep tmp: " + str(self.keep_tmp_data_checkbox.isChecked()))
+        LOG.debug("Keep tmp: " + str(self.keep_tmp_data_checkbox.isChecked()))
         parameters.params['e_keep_tmp'] = bool(self.keep_tmp_data_checkbox.isChecked())
 
     def quit_button_pressed(self):
         """
         Displays confirmation dialog and cleans temporary directories
         """
-        logging.debug("QUIT")
+        LOG.debug("QUIT")
         reply = QMessageBox.question(self, 'Quit', 'Are you sure you want to quit?',
         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
@@ -454,7 +458,7 @@ class ConfigGroup(QGroupBox):
         """
         Displays pop-up help information
         """
-        logging.debug("HELP")
+        LOG.debug("HELP")
         h = "This utility provides an interface to the ufo-kit software package.\n"
         h += "Use it for batch processing and optimization of reconstruction parameters.\n"
         h += "It creates a list of paths to all CT directories in the _input_ directory.\n"
@@ -475,35 +479,35 @@ class ConfigGroup(QGroupBox):
         """
         Deletes the directory that contains reconstructed data
         """
-        logging.debug("DELETE")
+        LOG.debug("DELETE")
         msg = "Delete directory with reconstructed data?"
         dialog = QMessageBox.warning(self, "Warning: data can be lost", msg, QMessageBox.Yes | QMessageBox.No)
 
         if dialog == QMessageBox.Yes:
             if os.path.exists(str(parameters.params['e_outdir'])):
-                logging.debug("YES")
+                LOG.debug("YES")
                 if parameters.params['e_outdir'] == parameters.params['e_indir']:
-                    logging.debug("Cannot delete: output directory is the same as input")
+                    LOG.debug("Cannot delete: output directory is the same as input")
                 else:
                     os.system( 'rm -rf {}'.format(parameters.params['e_outdir']))
-                    logging.debug("Directory with reconstructed data was removed")
+                    LOG.debug("Directory with reconstructed data was removed")
             else:
-                logging.debug("Directory does not exist")
+                LOG.debug("Directory does not exist")
         else:
-            logging.debug("NO")
+            LOG.debug("NO")
 
     def dryrun_button_pressed(self):
         """
         Sets the dry-run parameter for Tofu to True
         and calls reconstruction
         """
-        logging.debug("DRY")
+        LOG.debug("DRY")
         parameters.params['e_dryrun'] = str(True)
         self.reco_button_pressed()
         parameters.params['e_dryrun'] = bool(False)
 
     def set_save_args(self):
-        logging.debug("Save args: " + str(self.save_params_checkbox.isChecked()))
+        LOG.debug("Save args: " + str(self.save_params_checkbox.isChecked()))
         parameters.params['e_parfile'] = bool(self.save_params_checkbox.isChecked())
 
     def export_settings_button_pressed(self):
@@ -511,11 +515,11 @@ class ConfigGroup(QGroupBox):
         Saves currently displayed GUI settings
         to an external .yaml file specified by user
         """
-        logging.debug("Save settings pressed")
+        LOG.debug("Save settings pressed")
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "YAML Files (*.yaml);; All Files (*)", options=options)
         if fileName:
-            logging.debug("Export YAML Path: " + fileName)
+            LOG.debug("Export YAML Path: " + fileName)
         file_extension = os.path.splitext(fileName)
         if file_extension[-1] == "":
             fileName = fileName + '.yaml'
@@ -527,11 +531,11 @@ class ConfigGroup(QGroupBox):
         Loads external settings from .yaml file specified by user
         Signal is sent to enable updating of displayed GUI values
         """
-        logging.debug("Import settings pressed")
+        LOG.debug("Import settings pressed")
         options = QFileDialog.Options()
         filePath, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', "", "YAML Files (*.yaml);; All Files (*)", options=options)
         if filePath:
-            logging.debug("Import YAML Path: " + filePath)
+            LOG.debug("Import YAML Path: " + filePath)
             yaml_data = self.yaml_io.read_yaml(filePath)
             parameters.params = dict(yaml_data)
             self.signal_update_vals_from_params.emit(parameters.params)
@@ -541,8 +545,8 @@ class ConfigGroup(QGroupBox):
         Gets the settings set by the user in the GUI
         These are then passed to main_tk
         """
-        logging.debug("RECO")
-        logging.debug(parameters.params)
+        LOG.debug("RECO")
+        LOG.debug(parameters.params)
         self.run_reconstruction(parameters.params, batch_run=False)
 
     def run_reconstruction(self, params, batch_run):
@@ -737,8 +741,8 @@ class ConfigGroup(QGroupBox):
         DIRTYP = []
         for i in self.e_DIRTYP:
             DIRTYP.append(i)
-        logging.debug("Result of get_fdt_names")
-        logging.debug(DIRTYP)
+        LOG.debug("Result of get_fdt_names")
+        LOG.debug(DIRTYP)
         return DIRTYP
 
 class tk_args():
@@ -938,8 +942,8 @@ class tk_args():
         self.args['adv_slices_per_device'] = str(e_adv_slices_per_device)
         setattr(self, 'adv_slices_per_device', self.args['adv_slices_per_device'])
 
-        logging.debug("Contents of arg dict: ")
-        logging.debug(self.args.items())
+        LOG.debug("Contents of arg dict: ")
+        LOG.debug(self.args.items())
 
 class InvalidInputError(Exception):
     """

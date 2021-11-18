@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineE
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class AdvancedGroup(QGroupBox):
     """
     Advanced Tofu Reco settings
@@ -102,29 +106,29 @@ class AdvancedGroup(QGroupBox):
         self.flat_scale_entry.setText(str(parameters.params['e_adv_flat_scale']))
 
     def set_lamino_group(self):
-        logging.debug("Lamino: " + str(self.lamino_group.isChecked()))
+        LOG.debug("Lamino: " + str(self.lamino_group.isChecked()))
         parameters.params['e_adv_lamino_group'] = bool(self.lamino_group.isChecked())
 
     def set_lamino_angle(self):
-        logging.debug(self.lamino_angle_entry.text())
+        LOG.debug(self.lamino_angle_entry.text())
         parameters.params['e_adv_lamino_angle'] = str(self.lamino_angle_entry.text())
 
     def set_overall_rotation(self):
-        logging.debug(self.overall_rotation_entry.text())
+        LOG.debug(self.overall_rotation_entry.text())
         parameters.params['e_adv_overall_rotation'] = str(self.overall_rotation_entry.text())
 
     def set_center_position_z(self):
-        logging.debug(self.center_position_z_entry.text())
+        LOG.debug(self.center_position_z_entry.text())
         parameters.params['e_adv_center_pos_z'] = str(self.center_position_z_entry.text())
 
     def set_rotation_about_beam(self):
-        logging.debug(self.axis_rotation_y_entry.text())
+        LOG.debug(self.axis_rotation_y_entry.text())
         parameters.params['e_adv_axis_rotation_y'] = str(self.axis_rotation_y_entry.text())
 
     def set_dark_scale(self):
-        logging.debug(self.dark_scale_entry.text())
+        LOG.debug(self.dark_scale_entry.text())
         parameters.params['e_adv_dark_scale'] = str(self.dark_scale_entry.text())
 
     def set_flat_scale(self):
-        logging.debug(self.flat_scale_entry.text())
+        LOG.debug(self.flat_scale_entry.text())
         parameters.params['e_adv_flat_scale'] = str(self.flat_scale_entry.text())

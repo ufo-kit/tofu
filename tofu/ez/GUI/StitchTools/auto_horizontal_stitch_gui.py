@@ -9,13 +9,13 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QLineEdi
 from tofu.ez.GUI.StitchTools.auto_horizontal_stitch_funcs import AutoHorizontalStitchFunctions
 
 
+LOG = logging.getLogger(__name__)
+
+
 class AutoHorizontalStitchGUI(QGroupBox):
     def __init__(self):
         super().__init__()
         self.setTitle('Auto Horizontal Stitch')
-
-        #logger = logging.getLogger()
-        #logger.setLevel(logging.DEBUG)
 
         self.parameters = {'parameters_type': 'auto_horizontal_stitch'}
         self.auto_horizontal_stitch_funcs = None
@@ -121,7 +121,7 @@ class AutoHorizontalStitchGUI(QGroupBox):
         self.parameters['dry_run'] = False
 
     def update_parameters(self, new_parameters):
-        logging.debug("Update parameters")
+        LOG.debug("Update parameters")
         # Update parameters dictionary (which is passed to auto_stitch_funcs)
         self.parameters = new_parameters
         # Update displayed parameters for GUI
@@ -135,66 +135,66 @@ class AutoHorizontalStitchGUI(QGroupBox):
         self.dry_run_checkbox.setChecked(bool(self.parameters['dry_run']))
 
     def input_button_pressed(self):
-        logging.debug("Input Button Pressed")
+        LOG.debug("Input Button Pressed")
         dir_explore = QFileDialog(self)
         input_dir = dir_explore.getExistingDirectory()
         self.input_entry.setText(input_dir)
         self.parameters['input_dir'] = input_dir
 
     def set_input_entry(self):
-        logging.debug("Input Entry: " + str(self.input_entry.text()))
+        LOG.debug("Input Entry: " + str(self.input_entry.text()))
         self.parameters['input_dir'] = str(self.input_entry.text())
 
     def output_button_pressed(self):
-        logging.debug("Output Button Pressed")
+        LOG.debug("Output Button Pressed")
         dir_explore = QFileDialog(self)
         output_dir = dir_explore.getExistingDirectory()
         self.output_entry.setText(output_dir)
         self.parameters['output_dir'] = output_dir
 
     def set_output_entry(self):
-        logging.debug("Output Entry: " + str(self.output_entry.text()))
+        LOG.debug("Output Entry: " + str(self.output_entry.text()))
         self.parameters['output_dir'] = str(self.output_entry.text())
 
     def set_flats_darks_group(self):
-        logging.debug("Use Common Flats/Darks: " + str(self.flats_darks_group.isChecked()))
+        LOG.debug("Use Common Flats/Darks: " + str(self.flats_darks_group.isChecked()))
         if self.parameters['common_flats_darks'] is True:
             self.parameters['common_flats_darks'] = False
         else:
             self.parameters['common_flats_darks'] = True
 
     def flats_button_pressed(self):
-        logging.debug("Flats Button Pressed")
+        LOG.debug("Flats Button Pressed")
         dir_explore = QFileDialog(self)
         flats_dir = dir_explore.getExistingDirectory()
         self.flats_entry.setText(flats_dir)
         self.parameters['flats_dir'] = flats_dir
 
     def set_flats_entry(self):
-        logging.debug("Flats Entry: " + str(self.flats_entry.text()))
+        LOG.debug("Flats Entry: " + str(self.flats_entry.text()))
         self.parameters['flats_dir'] = str(self.flats_entry.text())
 
     def darks_button_pressed(self):
-        logging.debug("Darks Button Pressed")
+        LOG.debug("Darks Button Pressed")
         dir_explore = QFileDialog(self)
         darks_dir = dir_explore.getExistingDirectory()
         self.darks_entry.setText(darks_dir)
         self.parameters['darks_dir'] = darks_dir
 
     def set_darks_entry(self):
-        logging.debug("Darks Entry: " + str(self.darks_entry.text()))
+        LOG.debug("Darks Entry: " + str(self.darks_entry.text()))
         self.parameters['darks_dir'] = str(self.darks_entry.text())
 
     def set_overlap_region_entry(self):
-        logging.debug("Overlap Region: " + str(self.overlap_region_entry.text()))
+        LOG.debug("Overlap Region: " + str(self.overlap_region_entry.text()))
         self.parameters['overlap_region'] = str(self.overlap_region_entry.text())
 
     def set_sample_on_right_checkbox(self):
-        logging.debug("Sample is on right side of the image: " + str(self.sample_on_right_checkbox.isChecked()))
+        LOG.debug("Sample is on right side of the image: " + str(self.sample_on_right_checkbox.isChecked()))
         self.parameters['sample_on_right'] = self.sample_on_right_checkbox.isChecked()
 
     def save_params_button_clicked(self):
-        logging.debug("Save params button clicked")
+        LOG.debug("Save params button clicked")
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getSaveFileName(filter="*.yaml")
         garbage, file_name = os.path.split(params_file_path[0])
@@ -212,7 +212,7 @@ class AutoHorizontalStitchGUI(QGroupBox):
             print("You need to select a directory and use a valid file name")
 
     def import_params_button_clicked(self):
-        logging.debug("Import params button clicked")
+        LOG.debug("Import params button clicked")
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getOpenFileName(filter="*.yaml")
         try:
@@ -224,7 +224,7 @@ class AutoHorizontalStitchGUI(QGroupBox):
             print("You need to select a valid input file")
 
     def help_button_pressed(self):
-        logging.debug("Help Button Pressed")
+        LOG.debug("Help Button Pressed")
         h = "Auto-Stitch is used to automatically find the axis of rotation" \
             " in order to stitch pairs of images gathered in half-acquisition mode.\n\n"
         h += "The input directory must contain at least one directory named 'tomo' containing .tiff image files.\n\n"
@@ -244,7 +244,7 @@ class AutoHorizontalStitchGUI(QGroupBox):
         QMessageBox.information(self, "Help", h)
 
     def delete_button_pressed(self):
-        logging.debug("Delete Output Directory Button Pressed")
+        LOG.debug("Delete Output Directory Button Pressed")
         delete_dialog = QMessageBox.question(self, 'Quit', 'Are you sure you want to delete the output directory?',
                                              QMessageBox.Yes | QMessageBox.No)
         if delete_dialog == QMessageBox.Yes:
@@ -256,12 +256,12 @@ class AutoHorizontalStitchGUI(QGroupBox):
                 print("Directory does not exist: " + self.parameters['output_dir'])
 
     def stitch_button_pressed(self):
-        logging.debug("Stitch Button Pressed")
+        LOG.debug("Stitch Button Pressed")
         self.auto_horizontal_stitch_funcs = AutoHorizontalStitchFunctions(self.parameters)
         self.auto_horizontal_stitch_funcs.run_horizontal_auto_stitch()
 
     def set_dry_run_checkbox(self):
-        logging.debug("Dry Run Checkbox: " + str(self.dry_run_checkbox.isChecked()))
+        LOG.debug("Dry Run Checkbox: " + str(self.dry_run_checkbox.isChecked()))
         self.parameters['dry_run'] = self.dry_run_checkbox.isChecked()
 
 '''

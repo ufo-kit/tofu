@@ -4,6 +4,10 @@ import os
 import getpass
 from tofu.ez.Helpers.stitch_funcs import main_360_mp_depth2
 
+
+LOG = logging.getLogger(__name__)
+
+
 class MultiStitch360Group(QGroupBox):
 
     def __init__(self):
@@ -111,52 +115,52 @@ class MultiStitch360Group(QGroupBox):
         self.e_ax = self.e_ax1
 
     def input_button_pressed(self):
-        logging.debug("Input button pressed")
+        LOG.debug("Input button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.input_dir_entry.setText(directory)
         self.e_input = directory
 
     def set_input_entry(self):
-        logging.debug("Input directory: " + str(self.input_dir_entry.text()))
+        LOG.debug("Input directory: " + str(self.input_dir_entry.text()))
         self.e_input = str(self.input_dir_entry.text())
 
     def temp_button_pressed(self):
-        logging.debug("Temp button pressed")
+        LOG.debug("Temp button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.temp_dir_entry.setText(directory)
         self.e_tmpdir = directory
 
     def set_temp_entry(self):
-        logging.debug("Temp directory: " + str(self.temp_dir_entry.text()))
+        LOG.debug("Temp directory: " + str(self.temp_dir_entry.text()))
         self.e_tmpdir = str(self.temp_dir_entry.text())
 
     def output_button_pressed(self):
-        logging.debug("Output button pressed")
+        LOG.debug("Output button pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
         self.output_dir_entry.setText(directory)
         self.e_output = directory
 
     def set_output_entry(self):
-        logging.debug("Output directory: " + str(self.output_dir_entry.text()))
+        LOG.debug("Output directory: " + str(self.output_dir_entry.text()))
         self.e_output = str(self.output_dir_entry.text())
 
     def set_crop_projections_checkbox(self):
-        logging.debug("Crop projections: " + str(self.crop_checkbox.isChecked()))
+        LOG.debug("Crop projections: " + str(self.crop_checkbox.isChecked()))
         self.e_crop = bool(self.crop_checkbox.isChecked())
 
     def set_axis_bottom(self):
-        logging.debug("Axis Bottom : " + str(self.axis_bottom_entry.text()))
+        LOG.debug("Axis Bottom : " + str(self.axis_bottom_entry.text()))
         self.e_ax1 = int(self.axis_bottom_entry.text())
 
     def set_axis_top(self):
-        logging.debug("Axis Top: " + str(self.axis_top_entry.text()))
+        LOG.debug("Axis Top: " + str(self.axis_top_entry.text()))
         self.e_ax2 = int(self.axis_top_entry.text())
 
     def stitch_button_pressed(self):
-        logging.debug("Stitch button pressed")
+        LOG.debug("Stitch button pressed")
         args = tk_args(self.e_input, self.e_output, self.e_tmpdir, self.e_ax1, self.e_ax2, self.e_ax, self.e_crop)
 
         if os.path.exists(self.e_tmpdir):
@@ -175,13 +179,13 @@ class MultiStitch360Group(QGroupBox):
     #TODO Add JRavs dropdown menu option
 
     def delete_button_pressed(self):
-        logging.debug("Delete button pressed")
+        LOG.debug("Delete button pressed")
         if os.path.exists(self.e_output):
             os.system('rm -r {}'.format(self.e_output))
             print(" - Directory with reconstructed data was removed")
 
     def help_button_pressed(self):
-        logging.debug("Help button pressed")
+        LOG.debug("Help button pressed")
         h = "Stitches images horizontally\n"
         h += "Directory structure is, f.i., Input/000, Input/001,...Input/00N\n"
         h += "Each 000, 001, ... 00N directory must have identical subdirectory \"Type\"\n"

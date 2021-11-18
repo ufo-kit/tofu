@@ -10,6 +10,10 @@ from tofu.ez.GUI.yaml_in_out import Yaml_IO
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class ConfigGroup(QGroupBox):
     """
     Setup and configuration settings
@@ -201,7 +205,7 @@ class ConfigGroup(QGroupBox):
         parameters.params['e_outdir'] = dir + "-rec"
 
     def set_input_dir(self):
-        logging.debug(str(self.input_dir_entry.text()))
+        LOG.debug(str(self.input_dir_entry.text()))
         parameters.params['e_indir'] = str(self.input_dir_entry.text())
 
     def select_output_dir(self):
@@ -211,38 +215,38 @@ class ConfigGroup(QGroupBox):
         parameters.params['e_outdir'] = dir
 
     def set_output_dir(self):
-        logging.debug(str(self.output_dir_entry.text()))
+        LOG.debug(str(self.output_dir_entry.text()))
         parameters.params['e_outdir'] = str(self.output_dir_entry.text())
 
     def set_big_tiff(self):
-        logging.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
+        LOG.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
         parameters.params['e_bigtif'] = bool(self.bigtiff_checkbox.isChecked())
 
     def set_preproc(self):
-        logging.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
+        LOG.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
         parameters.params['e_pre'] = bool(self.preproc_checkbox.isChecked())
 
     def set_preproc_entry(self):
-        logging.debug(self.preproc_entry.text())
+        LOG.debug(self.preproc_entry.text())
         parameters.params['e_pre_cmd'] = str(self.preproc_entry.text())
 
     def set_darks(self):
-        logging.debug(self.darks_entry.text())
+        LOG.debug(self.darks_entry.text())
         self.e_DIRTYP[0] = str(self.darks_entry.text())
         parameters.params['e_darks'] = str(self.darks_entry.text())
 
     def set_flats(self):
-        logging.debug(self.flats_entry.text())
+        LOG.debug(self.flats_entry.text())
         self.e_DIRTYP[1] = str(self.flats_entry.text())
         parameters.params['e_flats'] = str(self.flats_entry.text())
 
     def set_tomo(self):
-        logging.debug(self.tomo_entry.text())
+        LOG.debug(self.tomo_entry.text())
         self.e_DIRTYP[2] = str(self.tomo_entry.text())
         parameters.params['e_tomo'] = str(self.tomo_entry.text())
 
     def set_flats2(self):
-        logging.debug(self.flats2_entry.text())
+        LOG.debug(self.flats2_entry.text())
         self.e_DIRTYP[3] = str(self.flats2_entry.text())
         parameters.params['e_flats2'] = str(self.flats2_entry.text())
 
@@ -252,15 +256,15 @@ class ConfigGroup(QGroupBox):
         self.temp_dir_entry.setText(dir)
 
     def set_temp_dir(self):
-        logging.debug(str(self.temp_dir_entry.text()))
+        LOG.debug(str(self.temp_dir_entry.text()))
         parameters.params['e_tmpdir'] = str(self.temp_dir_entry.text())
 
     def set_keep_tmp_data(self):
-        logging.debug("Keep tmp: " + str(self.keep_tmp_data_checkbox.isChecked()))
+        LOG.debug("Keep tmp: " + str(self.keep_tmp_data_checkbox.isChecked()))
         parameters.params['e_keep_tmp'] = bool(self.keep_tmp_data_checkbox.isChecked())
 
     def quit_button_pressed(self):
-        logging.debug("QUIT")
+        LOG.debug("QUIT")
         reply = QMessageBox.question(self, 'Quit', 'Are you sure you want to quit?',
         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
@@ -273,7 +277,7 @@ class ConfigGroup(QGroupBox):
             pass
 
     def help_button_pressed(self):
-        logging.debug("HELP")
+        LOG.debug("HELP")
         h = "This utility provides an interface to the ufo-kit software package.\n"
         h += "Use it for batch processing and optimization of reconstruction parameters.\n"
         h += "It creates a list of paths to all CT directories in the _input_ directory.\n"
@@ -291,55 +295,55 @@ class ConfigGroup(QGroupBox):
         QMessageBox.information(self, "Help", h)
 
     def delete_button_pressed(self):
-        logging.debug("DELETE")
+        LOG.debug("DELETE")
         msg = "Delete directory with reconstructed data?"
         dialog = QMessageBox.warning(self, "Warning: data can be lost", msg, QMessageBox.Yes | QMessageBox.No)
 
         if dialog == QMessageBox.Yes:
             if os.path.exists(str(parameters.params['e_outdir'])):
-                logging.debug("YES")
+                LOG.debug("YES")
                 if parameters.params['e_outdir'] == parameters.params['e_indir']:
                     QMessageBox.warning("Cannot delete: output directory is the same as input")
                 else:
                     os.system( 'rm -rf {}'.format(parameters.params['e_outdir']))
-                    logging.debug("Directory with reconstructed data was removed")
+                    LOG.debug("Directory with reconstructed data was removed")
             else:
-                logging.debug("Directory does not exist")
+                LOG.debug("Directory does not exist")
         else:
-            logging.debug("NO")
+            LOG.debug("NO")
 
     def dryrun_button_pressed(self):
-        logging.debug("DRY")
+        LOG.debug("DRY")
         parameters.params['e_dryrun'] = str(True)
         self.reco_button_pressed()
         parameters.params['e_dryrun'] = str(False)
 
     def set_save_args(self):
-        logging.debug("Save args: " + str(self.save_args_checkbox.isChecked()))
+        LOG.debug("Save args: " + str(self.save_args_checkbox.isChecked()))
         parameters.params['e_parfile'] = bool(self.save_args_checkbox.isChecked())
 
     def export_settings_button_pressed(self):
-        logging.debug("Save settings pressed")
+        LOG.debug("Save settings pressed")
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "YAML Files (*.yaml);; All Files (*)", options=options)
         if fileName:
-            logging.debug("Export YAML Path: " + fileName)
+            LOG.debug("Export YAML Path: " + fileName)
         #Create and write to YAML file based on given fileName
         self.yaml_io.write_yaml(fileName, parameters.params)
 
     def import_settings_button_pressed(self):
-        logging.debug("Import settings pressed")
+        LOG.debug("Import settings pressed")
         options = QFileDialog.Options()
         filePath, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', "", "YAML Files (*.yaml);; All Files (*)", options=options)
         if filePath:
-            logging.debug("Import YAML Path: " + filePath)
+            LOG.debug("Import YAML Path: " + filePath)
             yaml_data = self.yaml_io.read_yaml(filePath)
             parameters.params = dict(yaml_data)
             self.signal_update_vals_from_params.emit(parameters.params)
 
     def reco_button_pressed(self):
-        logging.debug("RECO")
-        logging.debug(parameters.params)
+        LOG.debug("RECO")
+        LOG.debug(parameters.params)
 
         try:
             self.validate_input()
@@ -471,8 +475,8 @@ class ConfigGroup(QGroupBox):
         DIRTYP = []
         for i in self.e_DIRTYP:
             DIRTYP.append(i)
-        logging.debug("Result of get_fdt_names")
-        logging.debug(DIRTYP)
+        LOG.debug("Result of get_fdt_names")
+        LOG.debug(DIRTYP)
         return DIRTYP
 
 class tk_args():
@@ -590,8 +594,8 @@ class tk_args():
         self.args['keep_tmp']=bool(e_keep_tmp)
         setattr(self,'keep_tmp',self.args['keep_tmp'])
 
-        logging.debug("Contents of arg dict: ")
-        logging.debug(self.args.items())
+        LOG.debug("Contents of arg dict: ")
+        LOG.debug(self.args.items())
 
 
 class InvalidInputError(Exception):

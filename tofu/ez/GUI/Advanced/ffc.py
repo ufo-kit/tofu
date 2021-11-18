@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
 
 import tofu.ez.GUI.params as parameters
 
+
+LOG = logging.getLogger(__name__)
+
+
 class FFCGroup(QGroupBox):
     """
     Flat Field Correction Settings
@@ -79,30 +83,30 @@ class FFCGroup(QGroupBox):
         self.downsample_entry.setText(str(parameters.params['e_sinFFCDowns']))
 
     def set_sinFFC(self):
-        logging.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))
+        LOG.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))
         parameters.params['e_sinFFC'] = bool(self.enable_sinFFC_checkbox.isChecked())
 
     def set_pcoReps(self):
-        logging.debug("PCO Reps: " + str(self.eigen_pco_repetitions_entry.text()))
+        LOG.debug("PCO Reps: " + str(self.eigen_pco_repetitions_entry.text()))
         parameters.params['e_sinFFCEigenReps'] = str(self.eigen_pco_repetitions_entry.text())
 
     def set_pcoDowns(self):
-        logging.debug("PCO Downsample: " + str(self.eigen_pco_downsample_entry.text()))
+        LOG.debug("PCO Downsample: " + str(self.eigen_pco_downsample_entry.text()))
         parameters.params['e_sinFFCEigenDowns'] = str(self.eigen_pco_downsample_entry.text())
 
     def set_downsample(self):
-        logging.debug("Downsample: " + str(self.downsample_entry.text()))
+        LOG.debug("Downsample: " + str(self.downsample_entry.text()))
         parameters.params['e_sinFFCDowns'] = str(self.downsample_entry.text())
 
     def set_method(self):
         if self.eigen_rButton.isChecked():
-            logging.debug("Method: Eigen")
+            LOG.debug("Method: Eigen")
             parameters.params['e_sinFFC_method'] = "eigen"
         elif self.average_rButton.isChecked():
-            logging.debug("Method: Average")
+            LOG.debug("Method: Average")
             parameters.params['e_sinFFC_method'] = "average"
         elif self.ssim_rButton.isChecked():
-            logging.debug("Method: SSIM")
+            LOG.debug("Method: SSIM")
             parameters.params['e_sinFFC_method'] = "ssim"
 
     def set_method_from_params(self):
