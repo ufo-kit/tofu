@@ -1,4 +1,13 @@
-from PyQt5.QtWidgets import QGroupBox, QPushButton, QCheckBox, QLabel, QLineEdit, QGridLayout, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import (
+    QGroupBox,
+    QPushButton,
+    QCheckBox,
+    QLabel,
+    QLineEdit,
+    QGridLayout,
+    QFileDialog,
+    QMessageBox,
+)
 import logging
 import os
 import getpass
@@ -9,7 +18,6 @@ LOG = logging.getLogger(__name__)
 
 
 class MultiStitch360Group(QGroupBox):
-
     def __init__(self):
         super().__init__()
 
@@ -24,7 +32,7 @@ class MultiStitch360Group(QGroupBox):
         self.e_crop = 0
 
         self.setTitle("360 Multi Stitch")
-        self.setStyleSheet('QGroupBox {color: red;}')
+        self.setStyleSheet("QGroupBox {color: red;}")
 
         self.input_dir_button = QPushButton()
         self.input_dir_button.setText("Select input directory")
@@ -48,7 +56,9 @@ class MultiStitch360Group(QGroupBox):
         self.output_dir_entry.textChanged.connect(self.set_output_entry)
 
         self.crop_checkbox = QCheckBox()
-        self.crop_checkbox.setText("Crop all projections to match the width of smallest stitched projection")
+        self.crop_checkbox.setText(
+            "Crop all projections to match the width of smallest stitched projection"
+        )
         self.crop_checkbox.clicked.connect(self.set_crop_projections_checkbox)
 
         self.axis_bottom_label = QLabel()
@@ -104,8 +114,8 @@ class MultiStitch360Group(QGroupBox):
         tmp = os.path.join("/data", "tmp-ezstitch-" + getpass.getuser())
         self.temp_dir_entry.setText(tmp)
         self.e_tmpdir = tmp
-        self.output_dir_entry.setText(os.getcwd() + '-stitched')
-        self.e_output = os.getcwd() + '-stitched'
+        self.output_dir_entry.setText(os.getcwd() + "-stitched")
+        self.e_output = os.getcwd() + "-stitched"
         self.crop_checkbox.setChecked(True)
         self.e_crop = True
         self.axis_bottom_entry.setText("245")
@@ -161,57 +171,66 @@ class MultiStitch360Group(QGroupBox):
 
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
-        args = tk_args(self.e_input, self.e_output, self.e_tmpdir, self.e_ax1, self.e_ax2, self.e_ax, self.e_crop)
+        args = tk_args(
+            self.e_input,
+            self.e_output,
+            self.e_tmpdir,
+            self.e_ax1,
+            self.e_ax2,
+            self.e_ax,
+            self.e_crop,
+        )
 
         if os.path.exists(self.e_tmpdir):
-            os.system('rm -r {}'.format(self.e_tmpdir))
+            os.system("rm -r {}".format(self.e_tmpdir))
 
         if os.path.exists(self.e_output):
-            raise ValueError('Output directory exists')
+            raise ValueError("Output directory exists")
 
         print("")
         print("======= Begin 360 Multi-Stitch =======")
         main_360_mp_depth2(args)
         print("==== Waiting for Next Task ====")
 
-    #TODO Call cleanup function if application is closed
+    # TODO Call cleanup function if application is closed
 
-    #TODO Add JRavs dropdown menu option
+    # TODO Add JRavs dropdown menu option
 
     def delete_button_pressed(self):
         LOG.debug("Delete button pressed")
         if os.path.exists(self.e_output):
-            os.system('rm -r {}'.format(self.e_output))
+            os.system("rm -r {}".format(self.e_output))
             print(" - Directory with reconstructed data was removed")
 
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
         h = "Stitches images horizontally\n"
         h += "Directory structure is, f.i., Input/000, Input/001,...Input/00N\n"
-        h += "Each 000, 001, ... 00N directory must have identical subdirectory \"Type\"\n"
-        h += "Selected range of images from \"Type\" directory will be stitched vertically\n"
+        h += 'Each 000, 001, ... 00N directory must have identical subdirectory "Type"\n'
+        h += 'Selected range of images from "Type" directory will be stitched vertically\n'
         h += "across all subdirectories in the Input directory"
         h += "to be added as options:\n"
         h += "(1) orthogonal reslicing, (2) interpolation, (3) horizontal stitching"
         QMessageBox.information(self, "Help", h)
 
-class tk_args():
+
+class tk_args:
     def __init__(self, e_input, e_output, e_tmpdir, e_ax1, e_ax2, e_ax, e_crop):
 
-        self.args={}
+        self.args = {}
         # directories
-        self.args['input'] = str(e_input)
-        setattr(self, 'input', self.args['input'])
-        self.args['output'] = str(e_output)
-        setattr(self, 'output', self.args['output'])
-        self.args['tmpdir'] = str(e_tmpdir)
-        setattr(self, 'tmpdir', self.args['tmpdir'])
-        #hor stitch half acq mode
-        self.args['ax1'] = int(e_ax1)
-        setattr(self, 'ax1', self.args['ax1'])
-        self.args['ax2'] = int(e_ax2)
-        setattr(self, 'ax2', self.args['ax2'])
-        self.args['ax'] = int(e_ax)
-        setattr(self, 'ax', self.args['ax'])
-        self.args['crop'] = int(e_crop)
-        setattr(self, 'crop', self.args['crop'])
+        self.args["input"] = str(e_input)
+        setattr(self, "input", self.args["input"])
+        self.args["output"] = str(e_output)
+        setattr(self, "output", self.args["output"])
+        self.args["tmpdir"] = str(e_tmpdir)
+        setattr(self, "tmpdir", self.args["tmpdir"])
+        # hor stitch half acq mode
+        self.args["ax1"] = int(e_ax1)
+        setattr(self, "ax1", self.args["ax1"])
+        self.args["ax2"] = int(e_ax2)
+        setattr(self, "ax2", self.args["ax2"])
+        self.args["ax"] = int(e_ax)
+        setattr(self, "ax", self.args["ax"])
+        self.args["crop"] = int(e_crop)
+        setattr(self, "crop", self.args["crop"])

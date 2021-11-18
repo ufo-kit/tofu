@@ -5,8 +5,7 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-class Yaml_IO():
-
+class Yaml_IO:
     def read_yaml(self, filePath):
         with open(filePath) as f:
             data = yaml.load(f, Loader=yaml.FullLoader)

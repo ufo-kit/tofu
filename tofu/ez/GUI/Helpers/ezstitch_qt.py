@@ -1,5 +1,17 @@
 import os
-from PyQt5.QtWidgets import QGroupBox, QPushButton, QCheckBox, QLabel, QLineEdit, QGridLayout, QVBoxLayout, QHBoxLayout, QRadioButton, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import (
+    QGroupBox,
+    QPushButton,
+    QCheckBox,
+    QLabel,
+    QLineEdit,
+    QGridLayout,
+    QVBoxLayout,
+    QHBoxLayout,
+    QRadioButton,
+    QFileDialog,
+    QMessageBox,
+)
 import logging
 import getpass
 
@@ -31,7 +43,7 @@ class EZStitchGroup(QGroupBox):
         self.e_ax = 0
 
         self.setTitle("EZ Stitch")
-        self.setStyleSheet('QGroupBox {color: purple;}')
+        self.setStyleSheet("QGroupBox {color: purple;}")
 
         self.input_dir_button = QPushButton()
         self.input_dir_button.setText("Select input directory")
@@ -55,7 +67,9 @@ class EZStitchGroup(QGroupBox):
         self.output_dir_entry.textChanged.connect(self.set_output_entry)
 
         self.types_of_images_label = QLabel()
-        self.types_of_images_label.setText("Type of images to stitch (e.g. sli, tomo, proj-pr, etc.)")
+        self.types_of_images_label.setText(
+            "Type of images to stitch (e.g. sli, tomo, proj-pr, etc.)"
+        )
 
         self.types_of_images_entry = QLineEdit()
         self.types_of_images_entry.textChanged.connect(self.set_type_images)
@@ -74,7 +88,9 @@ class EZStitchGroup(QGroupBox):
         self.sample_moved_down_checkbox.stateChanged.connect(self.set_sample_moved_down)
 
         self.interpolate_regions_rButton = QRadioButton()
-        self.interpolate_regions_rButton.setText("Interpolate overlapping regions and equalize intensity")
+        self.interpolate_regions_rButton.setText(
+            "Interpolate overlapping regions and equalize intensity"
+        )
         self.interpolate_regions_rButton.clicked.connect(self.set_rButton)
 
         self.num_overlaps_label = QLabel()
@@ -83,7 +99,9 @@ class EZStitchGroup(QGroupBox):
         self.num_overlaps_entry.textChanged.connect(self.set_overlap)
 
         self.clip_histogram_checkbox = QCheckBox()
-        self.clip_histogram_checkbox.setText("Clip histogram and convert slices to 8-bit before saving")
+        self.clip_histogram_checkbox.setText(
+            "Clip histogram and convert slices to 8-bit before saving"
+        )
         self.clip_histogram_checkbox.stateChanged.connect(self.set_histogram_checkbox)
 
         self.min_value_label = QLabel()
@@ -136,7 +154,7 @@ class EZStitchGroup(QGroupBox):
 
     def set_layout(self):
         layout = QGridLayout()
-        '''
+        """
         layout.addWidget(self.input_dir_button, 0, 0, 1, 4)
         layout.addWidget(self.input_dir_entry, 1, 0, 1, 4)
         layout.addWidget(self.tmp_dir_button, 2, 0, 1, 4)
@@ -169,7 +187,7 @@ class EZStitchGroup(QGroupBox):
         layout.addWidget(self.delete_button, 19, 1, 1, 1)
         layout.addWidget(self.stitch_button, 19, 2, 1, 2)
 
-        '''
+        """
         vbox1 = QVBoxLayout()
         vbox1.addWidget(self.input_dir_button)
         vbox1.addWidget(self.input_dir_entry)
@@ -224,7 +242,7 @@ class EZStitchGroup(QGroupBox):
         self.e_input = indir
         tmpdir = os.path.join("/data", "tmp-ezstitch-" + getpass.getuser())
         self.tmp_dir_entry.setText(tmpdir)
-        outdir = os.getcwd() + '-stitched'
+        outdir = os.getcwd() + "-stitched"
         self.output_dir_entry.setText(outdir)
         self.e_output = outdir
         self.types_of_images_entry.setText("sli")
@@ -344,17 +362,30 @@ class EZStitchGroup(QGroupBox):
 
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
-        args = tk_args(self.e_input, self.e_output, self.e_tmpdir,
-                       self.e_typ, self.e_ort, self.e_slices, self.e_flip, self.e_ipol,
-                       self.e_reprows, self.e_gray256, self.e_hmin, self.e_hmax,
-                       self.e_r1, self.e_r2, self.e_ax)
+        args = tk_args(
+            self.e_input,
+            self.e_output,
+            self.e_tmpdir,
+            self.e_typ,
+            self.e_ort,
+            self.e_slices,
+            self.e_flip,
+            self.e_ipol,
+            self.e_reprows,
+            self.e_gray256,
+            self.e_hmin,
+            self.e_hmax,
+            self.e_r1,
+            self.e_r2,
+            self.e_ax,
+        )
         LOG.debug(args)
 
         if os.path.exists(self.e_tmpdir):
-            os.system('rm -r {}'.format(self.e_tmpdir))
+            os.system("rm -r {}".format(self.e_tmpdir))
 
         if os.path.exists(self.e_output):
-            raise ValueError('Output directory exists')
+            raise ValueError("Output directory exists")
 
         print("======= Begin Stitching =======")
         # Interpolate overlapping regions and equalize intensity
@@ -371,61 +402,76 @@ class EZStitchGroup(QGroupBox):
     def delete_button_pressed(self):
         LOG.debug("Delete button pressed")
         if os.path.exists(self.e_output):
-            os.system('rm -r {}'.format(self.e_output))
+            os.system("rm -r {}".format(self.e_output))
             print(" - Directory with reconstructed data was removed")
 
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
         h = "Stitches images vertically\n"
         h += "Directory structure is, f.i., Input/000, Input/001,...Input/00N\n"
-        h += "Each 000, 001, ... 00N directory must have identical subdirectory \"Type\"\n"
-        h += "Selected range of images from \"Type\" directory will be stitched vertically\n"
+        h += 'Each 000, 001, ... 00N directory must have identical subdirectory "Type"\n'
+        h += 'Selected range of images from "Type" directory will be stitched vertically\n'
         h += "across all subdirectories in the Input directory"
         h += "to be added as options:\n"
         h += "(1) orthogonal reslicing, (2) interpolation, (3) horizontal stitching"
         QMessageBox.information(self, "Help", h)
 
-        #TODO CLEAN and quit when app closed
+        # TODO CLEAN and quit when app closed
 
-class tk_args():
-    def __init__(self, e_input, e_output, e_tmpdir,
-                    e_typ, e_ort, e_slices, e_flip, e_ipol,
-                    e_reprows, e_gray256, e_hmin, e_hmax,
-                    e_r1, e_r2, e_ax):
 
-        self.args={}
+class tk_args:
+    def __init__(
+        self,
+        e_input,
+        e_output,
+        e_tmpdir,
+        e_typ,
+        e_ort,
+        e_slices,
+        e_flip,
+        e_ipol,
+        e_reprows,
+        e_gray256,
+        e_hmin,
+        e_hmax,
+        e_r1,
+        e_r2,
+        e_ax,
+    ):
+
+        self.args = {}
         # directories
-        self.args['input'] = str(e_input)
-        setattr(self, 'input', self.args['input'])
-        self.args['output'] = str(e_output)
-        setattr(self, 'output', self.args['output'])
-        self.args['tmpdir'] = str(e_tmpdir)
-        setattr(self, 'tmpdir', self.args['tmpdir'])
+        self.args["input"] = str(e_input)
+        setattr(self, "input", self.args["input"])
+        self.args["output"] = str(e_output)
+        setattr(self, "output", self.args["output"])
+        self.args["tmpdir"] = str(e_tmpdir)
+        setattr(self, "tmpdir", self.args["tmpdir"])
         # parameters
-        self.args['typ'] = str(e_typ)
-        setattr(self, 'typ', self.args['typ'])
-        self.args['slices'] = str(e_slices)
-        setattr(self, 'slices', self.args['slices'])
-        self.args['flip'] = bool(int(e_flip))
-        setattr(self, 'flip', self.args['flip'])
-        self.args['ipol'] = int(e_ipol)
-        setattr(self, 'ipol', self.args['ipol'])
-        self.args['ort'] = bool(int(e_ort))
-        setattr(self, 'ort', self.args['ort'])
+        self.args["typ"] = str(e_typ)
+        setattr(self, "typ", self.args["typ"])
+        self.args["slices"] = str(e_slices)
+        setattr(self, "slices", self.args["slices"])
+        self.args["flip"] = bool(int(e_flip))
+        setattr(self, "flip", self.args["flip"])
+        self.args["ipol"] = int(e_ipol)
+        setattr(self, "ipol", self.args["ipol"])
+        self.args["ort"] = bool(int(e_ort))
+        setattr(self, "ort", self.args["ort"])
         # vert stitch with interp and normalization
-        self.args['reprows'] = int(e_reprows)
-        setattr(self, 'reprows', self.args['reprows'])
-        self.args['gray256'] = bool(int(e_gray256))
-        setattr(self, 'gray256', self.args['gray256'])
-        self.args['hmin'] = float(e_hmin)
-        setattr(self, 'hmin', self.args['hmin'])
-        self.args['hmax'] = float(e_hmax)
-        setattr(self, 'hmax', self.args['hmax'])
-        #simple vert stitch
-        self.args['r2'] = int(e_r2)
-        setattr(self, 'r2', self.args['r2'])
-        self.args['r1'] = int(e_r1)
-        setattr(self, 'r1', self.args['r1'])
-        #hor stitch half acq mode
-        self.args['ax'] = int(e_ax)
-        setattr(self, 'ax', self.args['ax'])
+        self.args["reprows"] = int(e_reprows)
+        setattr(self, "reprows", self.args["reprows"])
+        self.args["gray256"] = bool(int(e_gray256))
+        setattr(self, "gray256", self.args["gray256"])
+        self.args["hmin"] = float(e_hmin)
+        setattr(self, "hmin", self.args["hmin"])
+        self.args["hmax"] = float(e_hmax)
+        setattr(self, "hmax", self.args["hmax"])
+        # simple vert stitch
+        self.args["r2"] = int(e_r2)
+        setattr(self, "r2", self.args["r2"])
+        self.args["r1"] = int(e_r1)
+        setattr(self, "r1", self.args["r1"])
+        # hor stitch half acq mode
+        self.args["ax"] = int(e_ax)
+        setattr(self, "ax", self.args["ax"])

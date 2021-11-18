@@ -19,8 +19,9 @@ def validate_files_path(files_path: str, supported_file_types: list) -> bool:
     :return: True if path exists and contains at least one file of supported type, else False
     """
     try:
-        valid_files_list = get_valid_files_list(files_path=files_path,
-                                                supported_file_types=supported_file_types)
+        valid_files_list = get_valid_files_list(
+            files_path=files_path, supported_file_types=supported_file_types
+        )
     except InvalidDataSetError:
         return False
     return len(valid_files_list) > 0
@@ -85,13 +86,17 @@ def write_all_images(tiff_arr: np.ndarray, target_directory: str, data_type=np.f
     length_str = str(tiff_arr.shape[0])
     num_digits = len(length_str)
     for image in tiff_arr:
-        write_image(image, target_directory, "Image_" + str(index).zfill(num_digits + 1) + ".tif", data_type)
+        write_image(
+            image, target_directory, "Image_" + str(index).zfill(num_digits + 1) + ".tif", data_type
+        )
         index += 1
 
     print("Finished Writing Images to Directory")
 
 
-def read_all_images(image_files_path: str, supported_image_types: list, data_type=np.float32) -> np.ndarray:
+def read_all_images(
+    image_files_path: str, supported_image_types: list, data_type=np.float32
+) -> np.ndarray:
     """
     Reads all images of the supported type from specified directory
     :param supported_image_types: List of supported extensions
@@ -99,11 +104,14 @@ def read_all_images(image_files_path: str, supported_image_types: list, data_typ
     :param data_type: Data type to store the images
     :return: 3-dimensional numpy.ndarray of specified type, first index being image index
     """
-    valid_files_list = get_valid_files_list(files_path=image_files_path,
-                                            supported_file_types=supported_image_types)
+    valid_files_list = get_valid_files_list(
+        files_path=image_files_path, supported_file_types=supported_image_types
+    )
     if len(valid_files_list) == 0:
-        raise InvalidDataSetError(f"Directory {image_files_path} "
-                                  f"does not contain files of supported types {supported_image_types}")
+        raise InvalidDataSetError(
+            f"Directory {image_files_path} "
+            f"does not contain files of supported types {supported_image_types}"
+        )
 
     data_array = imread(valid_files_list).astype(dtype=data_type)
     return np.array(data_array)

@@ -36,21 +36,21 @@ class GUI(qtw.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(GUI, self).__init__(*args, **kwargs)
-        self.setWindowTitle('EZ-UFO')
+        self.setWindowTitle("EZ-UFO")
 
         self.setStyleSheet("font: 10pt; font-family: Arial")
 
         # Call login dialog
-        #self.login_parameters = {}
-        #QTimer.singleShot(0, self.login)
+        # self.login_parameters = {}
+        # QTimer.singleShot(0, self.login)
 
         # Read in default parameter settings from yaml file
         try:
-            settings_path = os.path.dirname(os.path.abspath(__file__)) + '/default_settings.yaml'
+            settings_path = os.path.dirname(os.path.abspath(__file__)) + "/default_settings.yaml"
             self.yaml_io = Yaml_IO()
             self.yaml_data = self.yaml_io.read_yaml(settings_path)
             parameters.params = dict(self.yaml_data)
-            parameters.params['parameters_type'] = 'ez_ufo_reco'
+            parameters.params["parameters_type"] = "ez_ufo_reco"
         except FileNotFoundError:
             print("Could not load default settings from: " + str(settings_path))
 
@@ -118,7 +118,7 @@ class GUI(qtw.QWidget):
         #######################################################
 
         self.set_layout()
-        self.resize(0, 0) #window to minimum size
+        self.resize(0, 0)  # window to minimum size
 
         # When new settings are imported signal is sent and this catches it to update params for each GUI object
         self.config_group.signal_update_vals_from_params.connect(self.update_values_from_params)
@@ -224,21 +224,31 @@ class GUI(qtw.QWidget):
         when checkbox "Load images and open viewer after reconstruction" is enabled
         Automatically loads images from the output reconstruction directory for viewing
         """
-        if parameters.params['e_openIV'] is True:
+        if parameters.params["e_openIV"] is True:
             LOG.debug("Switch to Image Tab")
             self.tabs.setCurrentWidget(self.tab2)
-            if os.path.isdir(str(parameters.params['e_outdir'] + '/sli')):
-                files = os.listdir(str(parameters.params['e_outdir'] + '/sli'))
-                #Start thread here to load images
+            if os.path.isdir(str(parameters.params["e_outdir"] + "/sli")):
+                files = os.listdir(str(parameters.params["e_outdir"] + "/sli"))
+                # Start thread here to load images
 
                 ##CHECK IF ONLY SINGLE IMAGE THEN USE OPEN IMAGE -- OTHERWISE OPEN STACK
                 if len(files) == 1:
-                    print("Only one file in {}: Opening single image {}".format(parameters.params['e_outdir'] + '/sli', files[0]))
-                    filePath = str(parameters.params['e_outdir'] + '/sli/' + str(files[0]))
+                    print(
+                        "Only one file in {}: Opening single image {}".format(
+                            parameters.params["e_outdir"] + "/sli", files[0]
+                        )
+                    )
+                    filePath = str(parameters.params["e_outdir"] + "/sli/" + str(files[0]))
                     self.image_group.open_image_from_filepath(filePath)
                 else:
-                    print("Multiple files in {}: Opening stack of images".format(str(parameters.params['e_outdir'] + '/sli')))
-                    self.image_group.open_stack_from_path(str(parameters.params['e_outdir'] + '/sli'))
+                    print(
+                        "Multiple files in {}: Opening stack of images".format(
+                            str(parameters.params["e_outdir"] + "/sli")
+                        )
+                    )
+                    self.image_group.open_stack_from_path(
+                        str(parameters.params["e_outdir"] + "/sli")
+                    )
             else:
                 print("No output directory found")
 
@@ -248,13 +258,18 @@ class GUI(qtw.QWidget):
         Cleans up temporary directories when user quits application
         """
         LOG.debug("QUIT")
-        reply = qtw.QMessageBox.question(self, 'Quit', 'Are you sure you want to quit?',
-        qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
+        reply = qtw.QMessageBox.question(
+            self,
+            "Quit",
+            "Are you sure you want to quit?",
+            qtw.QMessageBox.Yes | qtw.QMessageBox.No,
+            qtw.QMessageBox.No,
+        )
         if reply == qtw.QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(parameters.params['e_tmpdir'], self.config_group.get_fdt_names())
+            clean_tmp_dirs(parameters.params["e_tmpdir"], self.config_group.get_fdt_names())
             # remove axis-search dir too
-            tmp = os.path.join(parameters.params['e_tmpdir'], 'axis-search')
+            tmp = os.path.join(parameters.params["e_tmpdir"], "axis-search")
             event.accept()
         else:
             event.ignore()
@@ -264,12 +279,12 @@ class GUI(qtw.QWidget):
         if login_dialog.exec_() != qtw.QDialog.Accepted:
             self.exit()
         else:
-            #self.file_writer_group.root_dir_entry.setText(self.login_parameters['expdir'])
-            self.config_group.input_dir_entry.setText(self.login_parameters['expdir'] + "/raw")
+            # self.file_writer_group.root_dir_entry.setText(self.login_parameters['expdir'])
+            self.config_group.input_dir_entry.setText(self.login_parameters["expdir"] + "/raw")
             self.config_group.set_input_dir()
-            self.config_group.output_dir_entry.setText(self.login_parameters['expdir'] + "/rec")
+            self.config_group.output_dir_entry.setText(self.login_parameters["expdir"] + "/rec")
             self.config_group.set_output_dir()
-            '''
+            """
             td = date.today()
             tdstr = "{}.{}.{}".format(td.year, td.month, td.day)
             logfname = os.path.join(self.login_parameters['expdir'], 'exp-log-' + tdstr + '.log')
@@ -282,7 +297,7 @@ class GUI(qtw.QWidget):
                 warning_message('Cannot create log file in the selected directory. \n'
                                 'Check permissions and restart.')
                 self.exit()
-            '''
+            """
 
     def exit(self):
         self.close()

@@ -1,13 +1,13 @@
-'''
+"""
 Created on Apr 5, 2018
 
 @author: gasilos
-'''
+"""
 
 import os
 
 
-class WalkCTdirs():
+class WalkCTdirs:
     """
     Walks in the directory structure and creates list of paths to CT folders
     Determines flats before/after
@@ -21,7 +21,7 @@ class WalkCTdirs():
         self.types = []
         self.ctsets = []
         self.typ = []
-        self.total = 0 
+        self.total = 0
         self.good = 0
         self.verb = verb
         self._fdt_names = fdt_names
@@ -29,10 +29,10 @@ class WalkCTdirs():
         self.common_darks = args.common_darks
         self.common_flats2 = args.common_flats2
         self.use_common_flats2 = args.use_common_flats2
-    
+
     def print_tree(self):
-        print('We start in {}'.format(self.lvl0))
-        
+        print("We start in {}".format(self.lvl0))
+
     def findCTdirs(self):
         """
         Walks directories rooted at "Input Directory" location
@@ -52,15 +52,21 @@ class WalkCTdirs():
         """
         for ctdir in self.ctdirs:
             # flats/darks and no flats2 or flats2==flats -> type 3
-            if ( os.path.exists(os.path.join(ctdir, self._fdt_names[1])) \
-                     and os.path.exists(os.path.join(ctdir, self._fdt_names[0])) \
-                     and (not os.path.exists(os.path.join(ctdir, self._fdt_names[3])) \
-                            or self._fdt_names[1]==self._fdt_names[3]) ):
+            if (
+                os.path.exists(os.path.join(ctdir, self._fdt_names[1]))
+                and os.path.exists(os.path.join(ctdir, self._fdt_names[0]))
+                and (
+                    not os.path.exists(os.path.join(ctdir, self._fdt_names[3]))
+                    or self._fdt_names[1] == self._fdt_names[3]
+                )
+            ):
                 self.typ.append(3)
             # flats/darks/flats2 -> type4
-            elif ( os.path.exists(os.path.join(ctdir, self._fdt_names[1])) \
-                     and os.path.exists(os.path.join(ctdir, self._fdt_names[0])) \
-                     and os.path.exists(os.path.join(ctdir, self._fdt_names[3])) ):
+            elif (
+                os.path.exists(os.path.join(ctdir, self._fdt_names[1]))
+                and os.path.exists(os.path.join(ctdir, self._fdt_names[0]))
+                and os.path.exists(os.path.join(ctdir, self._fdt_names[3]))
+            ):
                 self.typ.append(4)
             else:
                 print(os.path.basename(ctdir))
@@ -78,13 +84,14 @@ class WalkCTdirs():
                 self.typ.append(3)
 
         if self.use_common_flats2 is True:
-            if (os.path.exists(self.common_flats)
-                    and os.path.exists(self.common_darks)
-                    and os.path.exists(self.common_flats2)):
+            if (
+                os.path.exists(self.common_flats)
+                and os.path.exists(self.common_darks)
+                and os.path.exists(self.common_flats2)
+            ):
                 return True
         elif self.use_common_flats2 is False:
-            if (os.path.exists(self.common_flats)
-                    and os.path.exists(self.common_darks)):
+            if os.path.exists(self.common_flats) and os.path.exists(self.common_darks):
                 return True
         return False
 
@@ -110,7 +117,6 @@ class WalkCTdirs():
                 return False
             return True
 
-
     def checkCTfiles(self):
         """
         Checks whether each ctdir is of type 3 or 4 by comparing index of self.typ[] to corresponding index of ctdir[]
@@ -118,20 +124,24 @@ class WalkCTdirs():
         If it contains invalid data then typ[] is set to 0 for corresponding index location
         """
         for i, ctdir in enumerate(self.ctdirs):
-            if ( self.typ[i] == 3 and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[1])) and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[0])) and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[2])) ):
+            if (
+                self.typ[i] == 3
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[1]))
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[0]))
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[2]))
+            ):
                 continue
-            elif  ( self.typ[i] == 4 and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[1])) and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[0])) and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[2]))and \
-                    self._checkTifs(os.path.join(ctdir, self._fdt_names[3])) ):
+            elif (
+                self.typ[i] == 4
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[1]))
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[0]))
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[2]))
+                and self._checkTifs(os.path.join(ctdir, self._fdt_names[3]))
+            ):
                 continue
-            else: 
+            else:
                 self.typ[i] = 0
-    
+
     def _checkTifs(self, tmpath):
         """
         Checks each whether item in directory tmppath is a .tif file
@@ -141,10 +151,10 @@ class WalkCTdirs():
         for i in os.listdir(tmpath):
             if os.path.isdir(i):
                 return 0
-            if i.split('.')[-1] != 'tif':
+            if i.split(".")[-1] != "tif":
                 return 0
         return 1
-            
+
     def SortBadGoodSets(self):
         """
         Reduces type of all directories to either
@@ -157,18 +167,16 @@ class WalkCTdirs():
 
         tmp = len(self.lvl0)
         if self.verb:
-            print('Total folders {}, good folders {}'.format(self.total, self.good))
-            print('{:>20}\t{}'.format("Path to CT set", "Typ: 0 bad, 3 no flats2, 4 with flats2"))
+            print("Total folders {}, good folders {}".format(self.total, self.good))
+            print("{:>20}\t{}".format("Path to CT set", "Typ: 0 bad, 3 no flats2, 4 with flats2"))
             for ctdir in self.ctsets:
                 msg1 = ctdir[0][tmp:]
-                if msg1 == '':
-                    msg1 = '.'
-                print('{:>20}\t{}'.format(msg1, ctdir[1]))
+                if msg1 == "":
+                    msg1 = "."
+                print("{:>20}\t{}".format(msg1, ctdir[1]))
 
-        #keep paths to directories with good ct data only:
+        # keep paths to directories with good ct data only:
         self.ctsets = [q for q in self.ctsets if int(q[1] > 0)]
-
 
     def Getlvl0(self):
         return self.lvl0
-

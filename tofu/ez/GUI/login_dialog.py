@@ -1,8 +1,15 @@
 import re
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QLineEdit, QPushButton, QLabel, QGridLayout, \
-    QFileDialog, QComboBox
+from PyQt5.QtWidgets import (
+    QDialog,
+    QLineEdit,
+    QPushButton,
+    QLabel,
+    QGridLayout,
+    QFileDialog,
+    QComboBox,
+)
 from tofu.ez.GUI.message_dialog import error_message
 import os
 
@@ -31,7 +38,7 @@ class Login(QDialog):
         self.prompt_label_expdir = QLabel()
         self.prompt_label_expdir.setText("OR select the path to the working directory")
         self.expdir_entry = QLineEdit()
-        #self.expdir_entry.setText("/data/gui-test")
+        # self.expdir_entry.setText("/data/gui-test")
         self.expdir_entry.setReadOnly(True)
         self.expdir_select_button = QPushButton("...")
         self.expdir_select_button.clicked.connect(self.select_expdir_func)
@@ -63,17 +70,17 @@ class Login(QDialog):
     def select_expdir_func(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        root_dir = QFileDialog.getExistingDirectory(self, "Select working directory",
-                                                    "/data/gui-test", options=options)
+        root_dir = QFileDialog.getExistingDirectory(
+            self, "Select working directory", "/data/gui-test", options=options
+        )
         if root_dir:
             self.expdir_entry.setText(root_dir)
-
 
     def uppercase_project_entry(self):
         self.proj_entry.setText(self.proj_entry.text().upper())
 
     def strip_spaces_from_user_entry(self):
-        self.user_entry.setText(self.user_entry.text().replace(' ', ''))
+        self.user_entry.setText(self.user_entry.text().replace(" ", ""))
 
     @property
     def project_name(self):
@@ -93,40 +100,43 @@ class Login(QDialog):
 
     def validate_entries(self):
         self.uppercase_project_entry()
-        #self.strip_spaces_from_user_entry()
+        # self.strip_spaces_from_user_entry()
         project_valid = bool(re.match(r"^[0-9]{2}[A-Z][0-9]{5}$", self.project_name))
-        #username_valid = bool(re.match(r"^[a-zA-Z0-9]*$", self.user_name))
-        #return project_valid, username_valid
+        # username_valid = bool(re.match(r"^[a-zA-Z0-9]*$", self.user_name))
+        # return project_valid, username_valid
         return project_valid
 
     def validate_dir(self, pdr):
         return os.access(pdr, os.W_OK)
 
     def on_login_button_clicked(self):
-        #project_valid, username_valid = self.validate_entries()
-        if self.project_name != '':
-            prj_dir_name = os.path.join("/beamlinedata/BMIT/projects/prj"+
-                               self.project_name, "raw")
+        # project_valid, username_valid = self.validate_entries()
+        if self.project_name != "":
+            prj_dir_name = os.path.join(
+                "/beamlinedata/BMIT/projects/prj" + self.project_name, "raw"
+            )
             project_valid = self.validate_entries()
             can_write = self.validate_dir(prj_dir_name)
             if project_valid and can_write:
-                self.login_parameters_dict.update({'bl': self.bl_name})
-                self.login_parameters_dict.update({'project': self.project_name})
+                self.login_parameters_dict.update({"bl": self.bl_name})
+                self.login_parameters_dict.update({"project": self.project_name})
                 # add fileExistsError exception later in Py3
-                self.login_parameters_dict.update({'expdir': prj_dir_name})
+                self.login_parameters_dict.update({"expdir": prj_dir_name})
                 self.accept()
-            #elif not username_valid:
+            # elif not username_valid:
             #    error_message("Username should be alpha-numeric ")
             elif not project_valid:
-                error_message("The project should be in format: CCTNNNNN, \n"
-                              "where CC is cycle number, "
-                              "T is one-letter type, "
-                              "and NNNNN is project number")
+                error_message(
+                    "The project should be in format: CCTNNNNN, \n"
+                    "where CC is cycle number, "
+                    "T is one-letter type, "
+                    "and NNNNN is project number"
+                )
             elif not can_write:
                 error_message("Cannot write in the project directory")
-        elif self.expdir_name != '':
+        elif self.expdir_name != "":
             if self.validate_dir(self.expdir_entry.text()):
-                self.login_parameters_dict.update({'expdir': self.expdir_name})
+                self.login_parameters_dict.update({"expdir": self.expdir_name})
                 self.accept()
             else:
                 error_message("Cannot write in the selected directory")

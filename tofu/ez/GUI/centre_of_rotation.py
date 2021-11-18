@@ -16,7 +16,7 @@ class CentreOfRotationGroup(QGroupBox):
         super().__init__()
 
         self.setTitle("Centre of Rotation")
-        self.setStyleSheet('QGroupBox {color: green;}')
+        self.setStyleSheet("QGroupBox {color: green;}")
 
         self.auto_correlate_rButton = QRadioButton()
         self.auto_correlate_rButton.setText("Auto: Correlate first/last projections")
@@ -60,10 +60,10 @@ class CentreOfRotationGroup(QGroupBox):
         self.inc_axis_entry.textChanged.connect(self.set_axis_inc)
         self.inc_axis_entry.setStyleSheet("background-color:white")
 
-        #self.setStyleSheet('background-color:lightcoral')
+        # self.setStyleSheet('background-color:lightcoral')
 
         self.set_layout()
-        #self.init_values()
+        # self.init_values()
 
     def set_layout(self):
         layout = QGridLayout()
@@ -96,53 +96,53 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_values_from_params(self):
         self.set_rButton_from_params()
-        self.search_rotation_entry.setText(str(parameters.params['e_ax_range']))
-        self.search_in_slice_entry.setText(str(parameters.params['e_ax_row']))
-        self.side_of_recon_entry.setText(str(parameters.params['e_ax_p_size']))
-        self.axis_col_entry.setText(str(parameters.params['e_ax_fix']))
-        self.inc_axis_entry.setText(str(parameters.params['e_dax']))
+        self.search_rotation_entry.setText(str(parameters.params["e_ax_range"]))
+        self.search_in_slice_entry.setText(str(parameters.params["e_ax_row"]))
+        self.side_of_recon_entry.setText(str(parameters.params["e_ax_p_size"]))
+        self.axis_col_entry.setText(str(parameters.params["e_ax_fix"]))
+        self.inc_axis_entry.setText(str(parameters.params["e_dax"]))
 
     def set_rButton(self):
         if self.auto_correlate_rButton.isChecked():
             LOG.debug("Auto Correlate")
-            parameters.params['e_ax'] = 1
+            parameters.params["e_ax"] = 1
         elif self.auto_minimize_rButton.isChecked():
             LOG.debug("Auto Minimize")
-            parameters.params['e_ax'] = 2
+            parameters.params["e_ax"] = 2
         elif self.define_axis_rButton.isChecked():
             LOG.debug("Define axis")
-            parameters.params['e_ax'] = 3
+            parameters.params["e_ax"] = 3
 
     def set_rButton_from_params(self):
-        if parameters.params['e_ax'] == 1:
+        if parameters.params["e_ax"] == 1:
             self.auto_correlate_rButton.setChecked(True)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
-        elif parameters.params['e_ax'] == 2:
+        elif parameters.params["e_ax"] == 2:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(True)
             self.define_axis_rButton.setChecked(False)
-        elif parameters.params['e_ax'] == 3:
+        elif parameters.params["e_ax"] == 3:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(True)
 
     def set_search_rotation(self):
         LOG.debug(self.search_rotation_entry.text())
-        parameters.params['e_ax_range'] = self.search_rotation_entry.text()
+        parameters.params["e_ax_range"] = self.search_rotation_entry.text()
 
     def set_search_slice(self):
         LOG.debug(self.search_in_slice_entry.text())
-        parameters.params['e_ax_row'] = self.search_in_slice_entry.text()
+        parameters.params["e_ax_row"] = self.search_in_slice_entry.text()
 
     def set_side_of_reco(self):
         LOG.debug(self.side_of_recon_entry.text())
-        parameters.params['e_ax_p_size'] = self.side_of_recon_entry.text()
+        parameters.params["e_ax_p_size"] = self.side_of_recon_entry.text()
 
     def set_axis_col(self):
         LOG.debug(self.axis_col_entry.text())
-        parameters.params['e_ax_fix'] = self.axis_col_entry.text()
+        parameters.params["e_ax_fix"] = self.axis_col_entry.text()
 
     def set_axis_inc(self):
         LOG.debug(self.inc_axis_entry.text())
-        parameters.params['e_dax'] = self.inc_axis_entry.text()
+        parameters.params["e_dax"] = self.inc_axis_entry.text()

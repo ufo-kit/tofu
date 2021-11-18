@@ -3,8 +3,18 @@ import logging
 import pyqtgraph as pg
 import numpy as np
 import tifffile
-from PyQt5.QtWidgets import QPushButton, QGroupBox, QLabel, QDoubleSpinBox, QRadioButton, QScrollBar, \
-                            QVBoxLayout, QGridLayout, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import (
+    QPushButton,
+    QGroupBox,
+    QLabel,
+    QDoubleSpinBox,
+    QRadioButton,
+    QScrollBar,
+    QVBoxLayout,
+    QGridLayout,
+    QFileDialog,
+    QMessageBox,
+)
 from PyQt5.QtCore import Qt
 import tofu.ez.GUI.image_read_write as image_read_write
 
@@ -133,8 +143,9 @@ class ImageViewerGroup(QGroupBox):
         """
         LOG.debug("Open image button pressed")
         options = QFileDialog.Options()
-        filePath, _ = QFileDialog.getOpenFileName(self, 'Open .tif Image File', "", "Tiff Files (*.tif *.tiff)",
-                                                  options=options)
+        filePath, _ = QFileDialog.getOpenFileName(
+            self, "Open .tif Image File", "", "Tiff Files (*.tif *.tiff)", options=options
+        )
         if filePath:
             LOG.debug("Import image path: " + filePath)
             self.img_arr = image_read_write.read_image(filePath)
@@ -161,16 +172,24 @@ class ImageViewerGroup(QGroupBox):
         """
         LOG.debug("Save image to file")
         options = QFileDialog.Options()
-        filepath, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options)
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
+        )
         if filepath:
             LOG.debug(filepath)
             bit_depth_string = self.check_bit_depth(self.bit_depth)
             img = self.image_window.imageItem.qimage
             # https://www.programmersought.com/article/73475006380/
             size = img.size()
-            s = img.bits().asstring(size.width() * size.height() * img.depth() // 8)  # format 0xffRRGGBB
-            arr = np.fromstring(s, dtype=np.uint8).reshape((size.height(), size.width(), img.depth() // 8))
-            image_read_write.write_image(arr.T[0].T, os.path.dirname(filepath), os.path.basename(filepath), bit_depth_string)
+            s = img.bits().asstring(
+                size.width() * size.height() * img.depth() // 8
+            )  # format 0xffRRGGBB
+            arr = np.fromstring(s, dtype=np.uint8).reshape(
+                (size.height(), size.width(), img.depth() // 8)
+            )
+            image_read_write.write_image(
+                arr.T[0].T, os.path.dirname(filepath), os.path.basename(filepath), bit_depth_string
+            )
 
     def open_stack_from_directory(self):
         """
@@ -249,8 +268,9 @@ class ImageViewerGroup(QGroupBox):
         """
         LOG.debug("Open big tiff button pressed")
         options = QFileDialog.Options()
-        filePath, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', "", "All Files (*)",
-                                                  options=options)
+        filePath, _ = QFileDialog.getOpenFileName(
+            self, "QFileDialog.getOpenFileName()", "", "All Files (*)", options=options
+        )
         if filePath:
             LOG.debug("Import image path: " + filePath)
             msg = QMessageBox()
@@ -275,14 +295,16 @@ class ImageViewerGroup(QGroupBox):
         LOG.debug("Saving with bitdepth: " + str(self.bit_depth))
         dir_explore = QFileDialog()
         options = QFileDialog.Options()
-        filepath, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options)
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
+        )
         if filepath:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to BigTiff")
             msg.show()
-            #self.apply_histogram_to_images()
+            # self.apply_histogram_to_images()
             bit_depth_string = self.check_bit_depth(self.bit_depth)
             tifffile.imwrite(filepath, self.tiff_arr, bigtiff=True, dtype=bit_depth_string)
             msg.close()

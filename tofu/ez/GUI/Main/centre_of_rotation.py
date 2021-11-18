@@ -16,7 +16,7 @@ class CentreOfRotationGroup(QGroupBox):
         super().__init__()
 
         self.setTitle("Centre of Rotation")
-        self.setStyleSheet('QGroupBox {color: green;}')
+        self.setStyleSheet("QGroupBox {color: green;}")
 
         self.auto_correlate_rButton = QRadioButton()
         self.auto_correlate_rButton.setText("Auto: Correlate first/last projections")
@@ -24,8 +24,9 @@ class CentreOfRotationGroup(QGroupBox):
 
         self.auto_minimize_rButton = QRadioButton()
         self.auto_minimize_rButton.setText("Auto: Minimize STD of a slice")
-        self.auto_minimize_rButton.setToolTip("Reconstructed patches are saved \n"
-                                              "in your-temporary-data-folder\\axis-search")
+        self.auto_minimize_rButton.setToolTip(
+            "Reconstructed patches are saved \nin your-temporary-data-folder\\axis-search"
+        )
         self.auto_minimize_rButton.clicked.connect(self.set_rButton)
 
         self.define_axis_rButton = QRadioButton()
@@ -66,7 +67,7 @@ class CentreOfRotationGroup(QGroupBox):
         self.image_midpoint_rButton.setText("Use image midpoint (for half-acquisition)")
         self.image_midpoint_rButton.clicked.connect(self.set_rButton)
 
-        #TODO Used for proper spacing - should be a better way
+        # TODO Used for proper spacing - should be a better way
         self.blank_label = QLabel("                                ")
         self.blank_label2 = QLabel("                                ")
 
@@ -104,47 +105,48 @@ class CentreOfRotationGroup(QGroupBox):
         self.size_of_recon_entry.setText("256")
         self.axis_col_entry.setText("0.0")
         self.inc_axis_entry.setText("0.0")
-       #self.bypass_checkbox.setChecked(False)
+
+    # self.bypass_checkbox.setChecked(False)
 
     def set_values_from_params(self):
         self.set_rButton_from_params()
-        self.search_rotation_entry.setText(str(parameters.params['e_ax_range']))
-        self.search_in_slice_entry.setText(str(parameters.params['e_ax_row']))
-        self.size_of_recon_entry.setText(str(parameters.params['e_ax_p_size']))
-        self.axis_col_entry.setText(str(parameters.params['e_ax_fix']))
-        self.inc_axis_entry.setText(str(parameters.params['e_dax']))
+        self.search_rotation_entry.setText(str(parameters.params["e_ax_range"]))
+        self.search_in_slice_entry.setText(str(parameters.params["e_ax_row"]))
+        self.size_of_recon_entry.setText(str(parameters.params["e_ax_p_size"]))
+        self.axis_col_entry.setText(str(parameters.params["e_ax_fix"]))
+        self.inc_axis_entry.setText(str(parameters.params["e_dax"]))
 
     def set_rButton(self):
         if self.auto_correlate_rButton.isChecked():
             LOG.debug("Auto Correlate")
-            parameters.params['e_ax'] = 1
+            parameters.params["e_ax"] = 1
         elif self.auto_minimize_rButton.isChecked():
             LOG.debug("Auto Minimize")
-            parameters.params['e_ax'] = 2
+            parameters.params["e_ax"] = 2
         elif self.define_axis_rButton.isChecked():
             LOG.debug("Define axis")
-            parameters.params['e_ax'] = 3
+            parameters.params["e_ax"] = 3
         elif self.image_midpoint_rButton.isChecked():
             LOG.debug("Use image midpoint")
-            parameters.params['e_ax'] = 4
+            parameters.params["e_ax"] = 4
 
     def set_rButton_from_params(self):
-        if parameters.params['e_ax'] == 1:
+        if parameters.params["e_ax"] == 1:
             self.auto_correlate_rButton.setChecked(True)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params['e_ax'] == 2:
+        elif parameters.params["e_ax"] == 2:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(True)
             self.define_axis_rButton.setChecked(False)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params['e_ax'] == 3:
+        elif parameters.params["e_ax"] == 3:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(True)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params['e_ax'] == 4:
+        elif parameters.params["e_ax"] == 4:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
@@ -152,20 +154,20 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_search_rotation(self):
         LOG.debug(self.search_rotation_entry.text())
-        parameters.params['e_ax_range'] = str(self.search_rotation_entry.text())
+        parameters.params["e_ax_range"] = str(self.search_rotation_entry.text())
 
     def set_search_slice(self):
         LOG.debug(self.search_in_slice_entry.text())
-        parameters.params['e_ax_row'] = str(self.search_in_slice_entry.text())
+        parameters.params["e_ax_row"] = str(self.search_in_slice_entry.text())
 
     def set_size_of_reco(self):
         LOG.debug(self.size_of_recon_entry.text())
-        parameters.params['e_ax_p_size'] = str(self.size_of_recon_entry.text())
+        parameters.params["e_ax_p_size"] = str(self.size_of_recon_entry.text())
 
     def set_axis_col(self):
         LOG.debug(self.axis_col_entry.text())
-        parameters.params['e_ax_fix'] = str(self.axis_col_entry.text())
+        parameters.params["e_ax_fix"] = str(self.axis_col_entry.text())
 
     def set_axis_inc(self):
         LOG.debug(self.inc_axis_entry.text())
-        parameters.params['e_dax'] = str(self.inc_axis_entry.text())
+        parameters.params["e_dax"] = str(self.inc_axis_entry.text())

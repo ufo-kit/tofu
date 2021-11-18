@@ -55,11 +55,18 @@ class BatchProcessGroup(QGroupBox):
 
     def set_info_label(self):
         info_str = "EZ Batch Process allows for batch reconstruction and processing of images.\n\n"
-        info_str += "The program reads a list of .yaml parameter files from the input directory and executes\n" \
-                    "them sequentially in alpha-numeric order.\n"
-        info_str += "It is the user's responsibility to name files so that they are executed in the desired order.\n"
-        info_str += "It is suggested to prepend descriptive filenames with numbers to indicate the order.\n" \
-                    "For example: \n\n"
+        info_str += (
+            "The program reads a list of .yaml parameter files from the input directory and"
+            " executes\nthem sequentially in alpha-numeric order.\n"
+        )
+        info_str += (
+            "It is the user's responsibility to name files so that they are executed in the desired"
+            " order.\n"
+        )
+        info_str += (
+            "It is suggested to prepend descriptive filenames with numbers to indicate the order.\n"
+            "For example: \n\n"
+        )
         info_str += "00_horizontal_stitch_params.yaml\n"
         info_str += "01_ezufo_params.yaml\n"
         info_str += "02_vertical_stitch_params.yaml\n"
@@ -70,18 +77,23 @@ class BatchProcessGroup(QGroupBox):
         dir_explore = QFileDialog(self)
         input_dir = dir_explore.getExistingDirectory()
         self.input_dir_entry.setText(input_dir)
-        self.parameters['input_dir'] = input_dir
+        self.parameters["input_dir"] = input_dir
 
     def set_input_entry(self):
         LOG.debug("Input Entry: " + str(self.input_dir_entry.text()))
-        self.parameters['input_dir'] = str(self.input_dir_entry.text())
+        self.parameters["input_dir"] = str(self.input_dir_entry.text())
 
     def batch_proc_button_pressed(self):
         LOG.debug("Batch Process Button Pressed")
         try:
-            param_files_list = sorted(glob.glob(os.path.join(self.parameters['input_dir'], "*.yaml")))
+            param_files_list = sorted(
+                glob.glob(os.path.join(self.parameters["input_dir"], "*.yaml"))
+            )
             if len(param_files_list) == 0:
-                print("=> Error: Did not find any .yaml files in the input directory. Please try again.")
+                print(
+                    "=> Error: Did not find any .yaml files in the input directory. Please try"
+                    " again."
+                )
             else:
                 print("*************************************************************************")
                 print("************************** Begin Batch Process **************************")
@@ -91,11 +103,11 @@ class BatchProcessGroup(QGroupBox):
                     print("-->  " + file)
                     # Open .yaml file and store the parameters
                     try:
-                        file_in = open(file, 'r')
+                        file_in = open(file, "r")
                         params = yaml.load(file_in, Loader=yaml.FullLoader)
                     except FileNotFoundError:
                         print("Something went wrong")
-                    params_type = params['parameters_type']
+                    params_type = params["parameters_type"]
                     print("       type: " + params_type)
                     if params_type == "auto_horizontal_stitch":
                         # Call functions to begin auto horizontal stitch and pass params

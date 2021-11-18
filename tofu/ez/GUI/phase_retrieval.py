@@ -11,11 +11,12 @@ class PhaseRetrievalGroup(QGroupBox):
     """
     Phase Retrieval settings
     """
+
     def __init__(self):
         super().__init__()
 
         self.setTitle("Phase Retrieval")
-        self.setStyleSheet('QGroupBox {color: blue;}')
+        self.setStyleSheet("QGroupBox {color: blue;}")
 
         self.enable_PR_checkBox = QCheckBox()
         self.enable_PR_checkBox.setText("Enable Paganin/TIE phase retrieval")
@@ -64,35 +65,35 @@ class PhaseRetrievalGroup(QGroupBox):
 
     def init_values(self):
         self.enable_PR_checkBox.setChecked(False)
-        parameters.params['e_PR'] = False
+        parameters.params["e_PR"] = False
         self.photon_energy_entry.setText("20")
         self.pixel_size_entry.setText("3.6")
         self.detector_distance_entry.setText("0.1")
         self.delta_beta_ratio_entry.setText("200")
 
     def set_values_from_params(self):
-        self.enable_PR_checkBox.setChecked(parameters.params['e_PR'])
-        self.photon_energy_entry.setText(str(parameters.params['e_energy']))
-        self.pixel_size_entry.setText(str(parameters.params['e_pixel']))
-        self.detector_distance_entry.setText(str(parameters.params['e_z']))
-        self.delta_beta_ratio_entry.setText(str(parameters.params['e_log10db']))
+        self.enable_PR_checkBox.setChecked(parameters.params["e_PR"])
+        self.photon_energy_entry.setText(str(parameters.params["e_energy"]))
+        self.pixel_size_entry.setText(str(parameters.params["e_pixel"]))
+        self.detector_distance_entry.setText(str(parameters.params["e_z"]))
+        self.delta_beta_ratio_entry.setText(str(parameters.params["e_log10db"]))
 
     def set_PR(self):
         LOG.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))
-        parameters.params['e_PR'] = bool(self.enable_PR_checkBox.isChecked())
+        parameters.params["e_PR"] = bool(self.enable_PR_checkBox.isChecked())
 
     def set_photon_energy(self):
         LOG.debug(self.photon_energy_entry.text())
-        parameters.params['e_energy'] = str(self.photon_energy_entry.text())
+        parameters.params["e_energy"] = str(self.photon_energy_entry.text())
 
     def set_pixel_size(self):
         LOG.debug(self.pixel_size_entry.text())
-        parameters.params['e_pixel'] = str(self.pixel_size_entry.text())
+        parameters.params["e_pixel"] = str(self.pixel_size_entry.text())
 
     def set_detector_distance(self):
         LOG.debug(self.detector_distance_entry.text())
-        parameters.params['e_z'] = str(self.detector_distance_entry.text())
+        parameters.params["e_z"] = str(self.detector_distance_entry.text())
 
     def set_delta_beta(self):
         LOG.debug(self.delta_beta_ratio_entry.text())
-        parameters.params['e_log10db'] = str(self.delta_beta_ratio_entry.text())
+        parameters.params["e_log10db"] = str(self.delta_beta_ratio_entry.text())

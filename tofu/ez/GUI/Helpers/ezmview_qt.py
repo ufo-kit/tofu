@@ -1,6 +1,15 @@
 import os
 import logging
-from PyQt5.QtWidgets import QGroupBox, QPushButton, QLineEdit, QLabel, QCheckBox, QGridLayout, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import (
+    QGroupBox,
+    QPushButton,
+    QLineEdit,
+    QLabel,
+    QCheckBox,
+    QGridLayout,
+    QFileDialog,
+    QMessageBox,
+)
 from tofu.ez.Helpers.mview_main import main_prep
 
 
@@ -8,7 +17,6 @@ LOG = logging.getLogger(__name__)
 
 
 class EZMViewGroup(QGroupBox):
-
     def __init__(self):
         super().__init__()
 
@@ -22,7 +30,7 @@ class EZMViewGroup(QGroupBox):
         self.e_Andor = False
 
         self.setTitle("EZMView")
-        self.setStyleSheet('QGroupBox {color: green;}')
+        self.setStyleSheet("QGroupBox {color: green;}")
 
         self.input_dir_button = QPushButton()
         self.input_dir_button.setText("Select directory with a CT sequence")
@@ -145,34 +153,37 @@ class EZMViewGroup(QGroupBox):
         self.e_noflats2 = bool(self.no_trailing_flats_darks_checkbox.isChecked())
 
     def set_file_names_checkbox(self):
-        LOG.debug("File names without zero padding: " + str(self.filenames_without_padding_checkbox.isChecked()))
+        LOG.debug(
+            "File names without zero padding: "
+            + str(self.filenames_without_padding_checkbox.isChecked())
+        )
         self.e_Andor = bool(self.filenames_without_padding_checkbox.isChecked())
 
     def convert_button_pressed(self):
         LOG.debug("Convert button pressed")
-        self.args['input'] = str(self.e_indir)
-        setattr(self, 'input', self.args['input'])
-        self.args['output'] = str(self.e_indir)
-        setattr(self, 'output', self.args['output'])
-        self.args['nproj'] = int(self.e_nproj)
-        setattr(self, 'nproj', self.args['nproj'])
-        self.args['nflats'] = int(self.e_nflats)
-        setattr(self, 'nflats', self.args['nflats'])
-        self.args['ndarks'] = int(self.e_ndarks)
-        setattr(self, 'ndarks', self.args['ndarks'])
-        self.args['nviews'] = int(self.e_nviews)
-        setattr(self, 'nviews', self.args['nviews'])
-        self.args['noflats2'] = bool(int(self.e_noflats2))
-        setattr(self, 'noflats2', self.args['noflats2'])
-        self.args['Andor'] = bool(int(self.e_Andor))
-        setattr(self, 'Andor', self.args['Andor'])
+        self.args["input"] = str(self.e_indir)
+        setattr(self, "input", self.args["input"])
+        self.args["output"] = str(self.e_indir)
+        setattr(self, "output", self.args["output"])
+        self.args["nproj"] = int(self.e_nproj)
+        setattr(self, "nproj", self.args["nproj"])
+        self.args["nflats"] = int(self.e_nflats)
+        setattr(self, "nflats", self.args["nflats"])
+        self.args["ndarks"] = int(self.e_ndarks)
+        setattr(self, "ndarks", self.args["ndarks"])
+        self.args["nviews"] = int(self.e_nviews)
+        setattr(self, "nviews", self.args["nviews"])
+        self.args["noflats2"] = bool(int(self.e_noflats2))
+        setattr(self, "noflats2", self.args["noflats2"])
+        self.args["Andor"] = bool(int(self.e_Andor))
+        setattr(self, "Andor", self.args["Andor"])
 
         LOG.debug(self.args)
         main_prep(self)
 
     def undo_button_pressed(self):
         LOG.debug("Undo button pressed")
-        cmd = "find {} -type f -name \"*.tif\" -exec mv -t {} {{}} +"
+        cmd = 'find {} -type f -name "*.tif" -exec mv -t {} {{}} +'
         cmd = cmd.format(str(self.e_indir), str(self.e_indir))
         os.system(cmd)
 
@@ -180,29 +191,28 @@ class EZMViewGroup(QGroupBox):
         LOG.debug("Help button pressed")
         h = "Distributes a sequence of CT frames in flats/darks/tomo/flats2 directories\n"
         h += "assuming that acqusition sequence is flats->darks->tomo->flats2\n"
-        h += 'Use only for sequences with flat fields acquired at 0 and 180!\n'
+        h += "Use only for sequences with flat fields acquired at 0 and 180!\n"
         h += "Conversions happens in-place but can be undone"
         QMessageBox.information(self, "Help", h)
 
-class tk_args():
+
+class tk_args:
     def __init__(self, e_input, e_output, e_tmpdir, e_ax1, e_ax2, e_ax, e_crop):
 
-        self.args={}
+        self.args = {}
         # directories
-        self.args['input']=str(e_input.get())
-        setattr(self, 'input', self.args['input'])
-        self.args['output'] = str(e_output.get())
-        setattr(self, 'output', self.args['output'])
-        self.args['tmpdir'] = str(e_tmpdir.get())
-        setattr(self, 'tmpdir', self.args['tmpdir'])
-        #hor stitch half acq mode
-        self.args['ax1'] = int(e_ax1.get())
-        setattr(self, 'ax1', self.args['ax1'])
-        self.args['ax2'] = int(e_ax2.get())
-        setattr(self, 'ax2', self.args['ax2'])
-        self.args['ax'] = int(e_ax.get())
-        setattr(self, 'ax', self.args['ax'])
-        self.args['crop'] = int(e_crop.get())
-        setattr(self, 'crop', self.args['crop'])
-
-
+        self.args["input"] = str(e_input.get())
+        setattr(self, "input", self.args["input"])
+        self.args["output"] = str(e_output.get())
+        setattr(self, "output", self.args["output"])
+        self.args["tmpdir"] = str(e_tmpdir.get())
+        setattr(self, "tmpdir", self.args["tmpdir"])
+        # hor stitch half acq mode
+        self.args["ax1"] = int(e_ax1.get())
+        setattr(self, "ax1", self.args["ax1"])
+        self.args["ax2"] = int(e_ax2.get())
+        setattr(self, "ax2", self.args["ax2"])
+        self.args["ax"] = int(e_ax.get())
+        setattr(self, "ax", self.args["ax"])
+        self.args["crop"] = int(e_crop.get())
+        setattr(self, "crop", self.args["crop"])

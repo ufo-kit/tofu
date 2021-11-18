@@ -16,7 +16,7 @@ class OptimizationGroup(QGroupBox):
         super().__init__()
 
         self.setTitle("Optimization Settings")
-        self.setStyleSheet('QGroupBox {color: orange;}')
+        self.setStyleSheet("QGroupBox {color: orange;}")
 
         self.verbose_switch = QCheckBox("Enable verbose console output")
         self.verbose_switch.stateChanged.connect(self.set_verbose_switch)
@@ -40,7 +40,7 @@ class OptimizationGroup(QGroupBox):
 
         layout.addWidget(self.verbose_switch, 0, 0)
 
-        gpu_group = QGroupBox('GPU optimization')
+        gpu_group = QGroupBox("GPU optimization")
         gpu_group.setCheckable(True)
         gpu_group.setChecked(False)
         gpu_layout = QGridLayout()
@@ -58,32 +58,32 @@ class OptimizationGroup(QGroupBox):
 
     def init_values(self):
         self.verbose_switch.setChecked(False)
-        parameters.params['e_adv_verbose'] = False
+        parameters.params["e_adv_verbose"] = False
         self.slice_memory_entry.setText("0.5")
-        parameters.params['e_adv_slice_mem_coeff'] = "0.5"
+        parameters.params["e_adv_slice_mem_coeff"] = "0.5"
         self.num_GPU_entry.setText("")
-        parameters.params['e_adv_num_gpu'] = ""
+        parameters.params["e_adv_num_gpu"] = ""
         self.slices_per_device_entry.setText("")
-        parameters.params['e_adv_slices_per_device'] = ""
+        parameters.params["e_adv_slices_per_device"] = ""
 
     def set_values_from_params(self):
-        self.verbose_switch.setChecked(bool(parameters.params['e_adv_verbose']))
-        self.slice_memory_entry.setText(str(parameters.params['e_adv_slice_mem_coeff']))
-        self.num_GPU_entry.setText(str(parameters.params['e_adv_num_gpu']))
-        self.slices_per_device_entry.setText(str(parameters.params['e_adv_slices_per_device']))
+        self.verbose_switch.setChecked(bool(parameters.params["e_adv_verbose"]))
+        self.slice_memory_entry.setText(str(parameters.params["e_adv_slice_mem_coeff"]))
+        self.num_GPU_entry.setText(str(parameters.params["e_adv_num_gpu"]))
+        self.slices_per_device_entry.setText(str(parameters.params["e_adv_slices_per_device"]))
 
     def set_verbose_switch(self):
         LOG.debug("Verbose: " + str(self.verbose_switch.isChecked()))
-        parameters.params['e_adv_verbose'] = bool(self.verbose_switch.isChecked())
+        parameters.params["e_adv_verbose"] = bool(self.verbose_switch.isChecked())
 
     def set_slice(self):
         LOG.debug(self.slice_memory_entry.text())
-        parameters.params['e_adv_slice_mem_coeff'] = str(self.slice_memory_entry.text())
+        parameters.params["e_adv_slice_mem_coeff"] = str(self.slice_memory_entry.text())
 
     def set_num_gpu(self):
         LOG.debug(self.num_GPU_entry.text())
-        parameters.params['e_adv_num_gpu'] = str(self.num_GPU_entry.text())
+        parameters.params["e_adv_num_gpu"] = str(self.num_GPU_entry.text())
 
     def set_slices_per_device(self):
         LOG.debug(self.slices_per_device_entry.text())
-        parameters.params['e_adv_slices_per_device'] = str(self.slices_per_device_entry.text())
+        parameters.params["e_adv_slices_per_device"] = str(self.slices_per_device_entry.text())

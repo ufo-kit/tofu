@@ -1,5 +1,13 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox, QRadioButton, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QLabel,
+    QGroupBox,
+    QLineEdit,
+    QCheckBox,
+    QRadioButton,
+    QHBoxLayout,
+)
 
 import tofu.ez.GUI.params as parameters
 
@@ -11,11 +19,12 @@ class FFCGroup(QGroupBox):
     """
     Flat Field Correction Settings
     """
+
     def __init__(self):
         super().__init__()
 
         self.setTitle("Flat Field Correction")
-        self.setStyleSheet('QGroupBox {color: indigo;}')
+        self.setStyleSheet("QGroupBox {color: indigo;}")
 
         self.method_label = QLabel("Method:")
 
@@ -28,7 +37,9 @@ class FFCGroup(QGroupBox):
         self.eigen_rButton = QRadioButton("Eigen")
         self.eigen_rButton.clicked.connect(self.set_method)
 
-        self.enable_sinFFC_checkbox = QCheckBox("Use Smart Intensity Normalization Flat Field Correction")
+        self.enable_sinFFC_checkbox = QCheckBox(
+            "Use Smart Intensity Normalization Flat Field Correction"
+        )
         self.enable_sinFFC_checkbox.stateChanged.connect(self.set_sinFFC)
 
         self.eigen_pco_repetitions_label = QLabel("Eigen PCO Repetitions")
@@ -69,56 +80,56 @@ class FFCGroup(QGroupBox):
         self.eigen_rButton.setChecked(True)
         self.average_rButton.setChecked(False)
         self.ssim_rButton.setChecked(False)
-        parameters.params['e_sinFFC_method'] = "eigen"
+        parameters.params["e_sinFFC_method"] = "eigen"
         self.enable_sinFFC_checkbox.setChecked(False)
         self.eigen_pco_repetitions_entry.setText("4")
         self.eigen_pco_downsample_entry.setText("2")
         self.downsample_entry.setText("4")
 
     def set_values_from_params(self):
-        self.enable_sinFFC_checkbox.setChecked(parameters.params['e_sinFFC'])
+        self.enable_sinFFC_checkbox.setChecked(parameters.params["e_sinFFC"])
         self.set_method_from_params()
-        self.eigen_pco_repetitions_entry.setText(str(parameters.params['e_sinFFCEigenReps']))
-        self.eigen_pco_downsample_entry.setText(str(parameters.params['e_sinFFCEigenDowns']))
-        self.downsample_entry.setText(str(parameters.params['e_sinFFCDowns']))
+        self.eigen_pco_repetitions_entry.setText(str(parameters.params["e_sinFFCEigenReps"]))
+        self.eigen_pco_downsample_entry.setText(str(parameters.params["e_sinFFCEigenDowns"]))
+        self.downsample_entry.setText(str(parameters.params["e_sinFFCDowns"]))
 
     def set_sinFFC(self):
         LOG.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))
-        parameters.params['e_sinFFC'] = bool(self.enable_sinFFC_checkbox.isChecked())
+        parameters.params["e_sinFFC"] = bool(self.enable_sinFFC_checkbox.isChecked())
 
     def set_pcoReps(self):
         LOG.debug("PCO Reps: " + str(self.eigen_pco_repetitions_entry.text()))
-        parameters.params['e_sinFFCEigenReps'] = str(self.eigen_pco_repetitions_entry.text())
+        parameters.params["e_sinFFCEigenReps"] = str(self.eigen_pco_repetitions_entry.text())
 
     def set_pcoDowns(self):
         LOG.debug("PCO Downsample: " + str(self.eigen_pco_downsample_entry.text()))
-        parameters.params['e_sinFFCEigenDowns'] = str(self.eigen_pco_downsample_entry.text())
+        parameters.params["e_sinFFCEigenDowns"] = str(self.eigen_pco_downsample_entry.text())
 
     def set_downsample(self):
         LOG.debug("Downsample: " + str(self.downsample_entry.text()))
-        parameters.params['e_sinFFCDowns'] = str(self.downsample_entry.text())
+        parameters.params["e_sinFFCDowns"] = str(self.downsample_entry.text())
 
     def set_method(self):
         if self.eigen_rButton.isChecked():
             LOG.debug("Method: Eigen")
-            parameters.params['e_sinFFC_method'] = "eigen"
+            parameters.params["e_sinFFC_method"] = "eigen"
         elif self.average_rButton.isChecked():
             LOG.debug("Method: Average")
-            parameters.params['e_sinFFC_method'] = "average"
+            parameters.params["e_sinFFC_method"] = "average"
         elif self.ssim_rButton.isChecked():
             LOG.debug("Method: SSIM")
-            parameters.params['e_sinFFC_method'] = "ssim"
+            parameters.params["e_sinFFC_method"] = "ssim"
 
     def set_method_from_params(self):
-        if parameters.params['e_sinFFC_method'] == 1:
+        if parameters.params["e_sinFFC_method"] == 1:
             self.eigen_rButton.setChecked(True)
             self.average_rButton.setChecked(False)
             self.ssim_rButton.setChecked(False)
-        elif parameters.params['e_sinFFC_method'] == 2:
+        elif parameters.params["e_sinFFC_method"] == 2:
             self.eigen_rButton.setChecked(False)
             self.average_rButton.setChecked(True)
             self.ssim_rButton.setChecked(False)
-        elif parameters.params['e_sinFFC_method'] == 3:
+        elif parameters.params["e_sinFFC_method"] == 3:
             self.eigen_rButton.setChecked(False)
             self.average_rButton.setChecked(False)
             self.ssim_rButton.setChecked(True)
