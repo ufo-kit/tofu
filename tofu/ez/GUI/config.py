@@ -602,4 +602,3 @@ class InvalidInputError(Exception):
     """
     Error to be raised when input values from GUI are out of range or invalid
     """
-    pass

@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from PyQt5 import QtWidgets as qtw
-from datetime import date
 
 from tofu.ez.GUI.Main.centre_of_rotation import CentreOfRotationGroup
 from tofu.ez.GUI.Main.filters import FiltersGroup

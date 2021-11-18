@@ -4,7 +4,6 @@ Created on Aug 3, 2018
 
 @author: SGasilov
 '''
-import glob
 import os
 import argparse
 from tofu.util import read_image

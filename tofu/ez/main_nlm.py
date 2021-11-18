@@ -3,12 +3,8 @@ Created on Dec 1, 2020
 @author: sergei gasilov
 '''
 
-import argparse
-import glob
 import os
-import time
 import warnings
-from shutil import rmtree
 from tofu.ez.ctdir_walker import WalkCTdirs
 from tofu.ez.util import *
 from tofu.util import get_filenames

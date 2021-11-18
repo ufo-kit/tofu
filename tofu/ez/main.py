@@ -3,13 +3,10 @@ Created on Apr 5, 2018
 @author: sergei gasilov
 '''
 
-import argparse
-import glob
 import logging
 import os
 from tofu.util import get_filenames, read_image
 import warnings
-import math
 
 warnings.filterwarnings("ignore")
 import time

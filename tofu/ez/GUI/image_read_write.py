@@ -9,7 +9,6 @@ class InvalidDataSetError(Exception):
     """
     Error to be raised on attempt to read data from empty or non-existing data set
     """
-    pass
 
 
 def validate_files_path(files_path: str, supported_file_types: list) -> bool:

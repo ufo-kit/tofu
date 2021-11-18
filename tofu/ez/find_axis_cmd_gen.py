@@ -6,8 +6,6 @@ Created on Apr 6, 2018
 '''
 import glob
 import os
-import argparse
-import sys
 import numpy as np
 from tofu.ez.evaluate_sharpness import process as process_metrics
 from tofu.ez.util import enquote

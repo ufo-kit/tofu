@@ -1,11 +1,7 @@
 #!/bin/python
-import glob
 import os
-import argparse
-import sys
 import numpy
 from tofu.util import get_filenames
-import shutil
 import re
 
 def check_folders(p,noflats2):

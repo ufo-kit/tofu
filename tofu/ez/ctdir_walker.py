@@ -4,7 +4,6 @@ Created on Apr 5, 2018
 @author: gasilos
 '''
 
-import glob
 import os
 
 
