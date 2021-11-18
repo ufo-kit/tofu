@@ -1570,18 +1570,22 @@ def get_composite_model_classes_from_json(state):
 
 
 def get_composite_model_classes():
-    composite_lists = []
-    path = pkg_resources.resource_filename(__name__, 'composites')
-    file_names = sorted(glob.glob(os.path.join(path, '*.cm')))
+    from xdg import xdg_data_home
 
-    for file_name in file_names:
-        LOG.debug(f'Loading composite from {file_name}')
-        try:
-            with open(file_name, 'r') as f:
-                state = json.load(f)
-            composite_lists.append(get_composite_model_classes_from_json(state))
-        except Exception as e:
-            LOG.error(e, exc_info=True)
+    composite_lists = []
+    paths = [pkg_resources.resource_filename(__name__, 'composites'),
+             os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')]
+
+    for path in paths:
+        file_names = sorted(glob.glob(os.path.join(path, '*.cm')))
+        for file_name in file_names:
+            LOG.debug(f'Loading composite from {file_name}')
+            try:
+                with open(file_name, 'r') as f:
+                    state = json.load(f)
+                composite_lists.append(get_composite_model_classes_from_json(state))
+            except Exception as e:
+                LOG.error(e, exc_info=True)
 
     return composite_lists
 
