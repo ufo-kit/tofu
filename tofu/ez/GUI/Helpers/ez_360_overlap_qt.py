@@ -241,7 +241,7 @@ class qt_args:
         setattr(self, "overlap_min", self.args["overlap_min"])
         self.args["overlap_max"] = int(e_overlap_max)
         setattr(self, "overlap_max", self.args["overlap_max"])
-        self.args["overlap_increment"] = int(e_overlap_increment)
+        self.args["overlap_increment"] = float(e_overlap_increment)
         setattr(self, "overlap_increment", self.args["overlap_increment"])
         self.args["axis_on_left"] = bool(e_axis_on_left)
         setattr(self, "axis_on_left", self.args["axis_on_left"])

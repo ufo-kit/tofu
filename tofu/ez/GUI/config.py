@@ -467,7 +467,9 @@ class ConfigGroup(QGroupBox):
             raise InvalidInputError("Value out of range for: Axis is in column No [pixel]")
 
         # Increment axis: e_dax
-        if float(parameters.params["e_dax"]) < 0:
+        try:
+            tmp = float(parameters.params['e_dax'])
+        except ValueError:
             raise InvalidInputError("Value out of range for: Increment axis every reconstruction")
 
         # Threshold: e_inp_thr
