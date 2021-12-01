@@ -385,6 +385,9 @@ class PropertyView(QWidget):
 
     def restore_properties(self, values):
         for prop in self._properties:
+            if prop not in values:
+                LOG.debug(f'Property {prop} not stored, using default')
+                continue
             value, visible = values[prop]
             self.set_property(prop, value)
             self.set_property_visible(prop, visible)
