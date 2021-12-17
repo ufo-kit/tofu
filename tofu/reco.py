@@ -95,7 +95,8 @@ def tomo(params):
     if params.method == 'fbp':
         fft = get_task('fft', dimensions=1)
         ifft = get_task('ifft', dimensions=1)
-        fltr = get_task('filter', filter=params.projection_filter)
+        fltr = get_task('filter', filter=params.projection_filter,
+                        cutoff=params.projection_filter_cutoff)
         bp = get_task('backproject', axis_pos=axis)
         last_node = bp
 

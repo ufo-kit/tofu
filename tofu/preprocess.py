@@ -268,6 +268,7 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     ifft.props.dimensions = 1
     fltr.props.filter = args.projection_filter
     fltr.props.scale = args.projection_filter_scale
+    fltr.props.cutoff = args.projection_filter_cutoff
 
     graph.connect_nodes(pad, fft)
     graph.connect_nodes(fft, fltr)

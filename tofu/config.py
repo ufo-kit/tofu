@@ -225,7 +225,11 @@ SECTIONS['reconstruction'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3']},
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3', 'hamming']},
+    'projection-filter-cutoff': {
+        'default': 0.5,
+        'type': float,
+        'help': "Relative cutoff frequency"},
     'projection-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'clamp_to_edge',
@@ -422,7 +426,11 @@ SECTIONS['preprocess'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['none', 'ramp', 'ramp-fromreal', 'butterworth', 'faris-byer']},
+        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3', 'hamming']},
+    'projection-filter-cutoff': {
+        'default': 0.5,
+        'type': float,
+        'help': "Relative cutoff frequency"},
     'projection-filter-scale': {
         'default': 1.,
         'type': float,
