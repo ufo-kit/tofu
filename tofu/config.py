@@ -426,7 +426,7 @@ SECTIONS['preprocess'] = {
         'default': 'ramp-fromreal',
         'type': str,
         'help': "Projection filter",
-        'choices': ['ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3', 'hamming']},
+        'choices': ['none', 'ramp', 'ramp-fromreal', 'butterworth', 'faris-byer', 'bh3', 'hamming']},
     'projection-filter-cutoff': {
         'default': 0.5,
         'type': float,
