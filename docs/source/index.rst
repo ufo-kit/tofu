@@ -29,6 +29,7 @@ Usage
 .. toctree::
 	:maxdepth: 2
 
+	usage/genreco
 	usage/flow
 
 
