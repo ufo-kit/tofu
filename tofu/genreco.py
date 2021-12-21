@@ -215,13 +215,13 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
         tmp = width
         width = height
         height = tmp
-    if args.projection_crop_after == 'backprojection':
+    if args.projection_filter != 'none' and args.projection_crop_after == 'backprojection':
         # Take projection padding into account
         padding = get_filtering_padding(width)
         args.center_position_x = [pos + padding / 2 for pos in args.center_position_x]
         if args.z_parameter == 'center-position-x':
             region = [region[0] + padding / 2, region[1] + padding / 2, region[2]]
-    LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
+        LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
 
     backproject.props.parameter = args.z_parameter
     if args.burst:
