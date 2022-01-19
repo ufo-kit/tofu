@@ -22,6 +22,13 @@ though:
 
 ## Usage
 
+### Flow
+
+`tofu flow` is a visual flow programming tool. You can create a flow by using any task from [ufo-filters](https://github.com/ufo-kit/ufo-filters) and execute it. In includes visualization of 2D and 3D results, so you can quickly check the output of your flow, which is useful for finding algorithm parameters.
+
+![flow](https://user-images.githubusercontent.com/2648829/150096902-fdbf1b7e-b34e-4368-98ac-c924cad8a6cd.jpg)
+
+
 ### Reconstruction
 
 To do a tomographic reconstruction you simply call
