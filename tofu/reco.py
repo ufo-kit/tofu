@@ -129,8 +129,8 @@ def tomo(params):
                 g.connect_nodes(crop, bp)
             else:
                 bp.props.axis_pos = axis + padding_width / 2
-                crop.props.x = padding_width / 2
-                crop.props.y = padding_width / 2
+                crop.props.x = padding_width // 2
+                crop.props.y = padding_width // 2
                 crop.props.width = width
                 crop.props.height = width
                 g.connect_nodes(ifft, bp)
@@ -233,7 +233,7 @@ def estimate_center_by_reconstruction(params):
         raise RuntimeError("No sinograms found in {}".format(params.sinograms))
 
     # Use a sinogram that probably has some interesting data
-    filename = sinos[len(sinos) / 2]
+    filename = sinos[len(sinos) // 2]
     sinogram = read_image(filename)
     initial_width = sinogram.shape[1]
     m0 = np.mean(np.sum(sinogram, axis=1))

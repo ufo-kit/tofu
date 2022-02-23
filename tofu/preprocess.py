@@ -135,8 +135,8 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     fmt = 'Phase retrieval padding: {}x{} -> {}x{}'
     LOG.debug(fmt.format(width, height, args.retrieval_padded_width,
                          args.retrieval_padded_height))
-    x = (args.retrieval_padded_width - width) / 2
-    y = (args.retrieval_padded_height - height) / 2
+    x = (args.retrieval_padded_width - width) // 2
+    y = (args.retrieval_padded_height - height) // 2
     pad_phase_retrieve.props.x = x
     pad_phase_retrieve.props.y = y
     pad_phase_retrieve.props.width = args.retrieval_padded_width
