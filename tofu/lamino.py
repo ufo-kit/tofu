@@ -30,7 +30,7 @@ def lamino(params):
     for i in range(0, len(regions), num_gpus):
         z_subregion = regions[i:min(i + num_gpus, len(regions))]
         LOG.info('Computing slices {}..{}'.format(z_subregion[0][0], z_subregion[-1][1]))
-        proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i / num_gpus))
+        proc = Process(target=_run, args=(params, x_region, y_region, z_subregion, i // num_gpus))
         proc.start()
         proc.join()
 

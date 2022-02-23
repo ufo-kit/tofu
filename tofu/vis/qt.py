@@ -142,7 +142,7 @@ class OverlapViewer(QtGui.QWidget):
             LOG.warn("No images set yet")
         else:
             pos = self.slider.value()
-            moved = np.roll(self.second, self.second.shape[0] / 2 - pos, axis=0)
+            moved = np.roll(self.second, self.second.shape[0] // 2 - pos, axis=0)
             
             if self.subtract:
                 self.image_item.setImage(moved - self.first)

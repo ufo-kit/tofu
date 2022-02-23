@@ -225,8 +225,8 @@ def setup_padding(pad, width, height, mode, crop=None, pad_width=0, pad_height=0
         pad_width = get_filtering_padding(width)
     pad.props.width = width + pad_width
     pad.props.height = height + pad_height
-    pad.props.x = pad_width / 2
-    pad.props.y = pad_height / 2
+    pad.props.x = pad_width // 2
+    pad.props.y = pad_height // 2
     pad.props.addressing_mode = mode
     LOG.debug('Padded size: ({}, {})'.format(width + pad_width, height + pad_height))
     LOG.debug('Padding mode: {}'.format(mode))
@@ -235,8 +235,8 @@ def setup_padding(pad, width, height, mode, crop=None, pad_width=0, pad_height=0
         # crop to original width after filtering
         crop.props.width = width
         crop.props.height = height
-        crop.props.x = pad_width / 2
-        crop.props.y = pad_height / 2
+        crop.props.x = pad_width // 2
+        crop.props.y = pad_height // 2
 
     return (pad_width, pad_height)
 
