@@ -96,4 +96,5 @@ al.](http://dx.doi.org/10.1364/JOSAA.23.001048) is used to determine the center.
 
 If you use this software for publishing your data, we kindly ask to cite the article below.
 
-Vogelgesang, Matthias, et al. "Real-time image-content-based beamline control for smart 4D X-ray imaging." Journal of synchrotron radiation 23.5 (2016): 1254-1263.
+Faragó, T., Gasilov, S., Emslie, I., Zuber, M., Helfen, L., Vogelgesang, M. & Baumbach, T. (2022). J. Synchrotron Rad.
+29, https://doi.org/10.1107/S160057752200282X
