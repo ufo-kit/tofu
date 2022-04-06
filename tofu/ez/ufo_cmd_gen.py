@@ -50,19 +50,19 @@ class ufo_cmds(object):
         """
         indir = []
         # If using flats/darks/flats2 in same dir as tomo
-        if not args.common_darks_flats:
+        if not args.main_config_common_flats_darks:
             for i in self._fdt_names[:3]:
                 indir.append(os.path.join(lvl0, i))
             if flats2 - 3:
                 indir.append(os.path.join(lvl0, self._fdt_names[3]))
             return indir
         # If using common flats/darks/flats2 across multiple reconstructions
-        elif args.common_darks_flats:
-            indir.append(args.common_darks)
-            indir.append(args.common_flats)
+        elif args.main_config_common_flats_darks:
+            indir.append(args.main_config_darks_path)
+            indir.append(args.main_config_flats_path)
             indir.append(os.path.join(lvl0, self._fdt_names[2]))
-            if args.use_common_flats2:
-                indir.append(args.common_flats2)
+            if args.main_config_flats2_checkbox:
+                indir.append(args.main_config_flats2_path)
             return indir
 
     def check_vcrop(self, cmd, vcrop, y, yheight, ystep):
@@ -76,49 +76,51 @@ class ufo_cmds(object):
         return cmd
 
     def get_pr_ufo_cmd(self, args, nviews, WH):
-        # in_proj_dir, out_pattern = fmt_in_out_path(args.tmpdir,args.indir,self._fdt_names[2])
-        in_proj_dir, out_pattern = fmt_in_out_path(args.tmpdir, "quatsch", self._fdt_names[2])
+        # in_proj_dir, out_pattern = fmt_in_out_path(args.main_config_temp_dir,args.main_config_input_dir,self._fdt_names[2])
+        in_proj_dir, out_pattern = fmt_in_out_path(args.main_config_temp_dir,
+                                                   "quatsch", self._fdt_names[2])
         cmds = []
         pad_width = next_power_of_two(WH[1] + 50)
         pad_height = next_power_of_two(WH[0] + 50)
         pad_x = (pad_width - WH[1]) / 2
         pad_y = (pad_height - WH[0]) / 2
-        cmd = "ufo-launch read path={} height={} number={}".format(in_proj_dir, WH[0], nviews)
-        cmd += " ! pad x={} width={} y={} height={}".format(pad_x, pad_width, pad_y, pad_height)
-        cmd += " addressing-mode=clamp_to_edge"
-        cmd += " ! fft dimensions=2 ! retrieve-phase"
-        cmd += " energy={} distance={} pixel-size={} regularization-rate={:0.2f}".format(
-            args.energy, args.z, args.pixel, args.log10db
-        )
-        cmd += " ! ifft dimensions=2 crop-width={} crop-height={}".format(pad_width, pad_height)
-        cmd += " ! crop x={} width={} y={} height={}".format(pad_x, WH[1], pad_y, WH[0])
-        cmd += " ! opencl kernel='absorptivity' ! opencl kernel='fix_nan_and_inf' !"
-        cmd += " write filename={}".format(enquote(out_pattern))
+        cmd = 'ufo-launch read path={} height={} number={}'.format(in_proj_dir, WH[0], nviews)
+        cmd += ' ! pad x={} width={} y={} height={}'.format(pad_x, pad_width, pad_y, pad_height)
+        cmd += ' addressing-mode=clamp_to_edge'
+        cmd += ' ! fft dimensions=2 ! retrieve-phase'
+        cmd += ' energy={} distance={} pixel-size={} regularization-rate={:0.2f}' \
+            .format(args.main_pr_photon_energy, args.main_pr_detector_distance,
+                    args.main_pr_pixel_size, args.main_pr_delta_beta_ratio)
+        cmd += ' ! ifft dimensions=2 crop-width={} crop-height={}' \
+            .format(pad_width, pad_height)
+        cmd += ' ! crop x={} width={} y={} height={}'.format(pad_x, WH[1], pad_y, WH[0])
+        cmd += ' ! opencl kernel=\'absorptivity\' ! opencl kernel=\'fix_nan_and_inf\' !'
+        cmd += ' write filename={}'.format(enquote(out_pattern))
         cmds.append(cmd)
-        if not args.keep_tmp:
-            cmds.append("rm -rf {}".format(in_proj_dir))
+        if not args.main_config_keep_temp:
+            cmds.append('rm -rf {}'.format(in_proj_dir))
         return cmds
 
     def get_filter1d_sinos_cmd(self, tmpdir, RR, nviews):
-        sin_in = os.path.join(tmpdir, "sinos")
-        out_pattern = os.path.join(tmpdir, "sinos-filt/sin-%04i.tif")
-        pad_height = next_power_of_two(nviews + 50)
+        sin_in = os.path.join(tmpdir, 'sinos')
+        out_pattern = os.path.join(tmpdir, 'sinos-filt/sin-%04i.tif')
+        pad_height = next_power_of_two(nviews + 500)
         pad_y = (pad_height - nviews) / 2
-        cmd = "ufo-launch read path={}".format(sin_in)
-        cmd += " ! pad y={} height={}".format(pad_y, pad_height)
-        cmd += " addressing-mode=clamp_to_edge"
-        cmd += " ! transpose ! fft dimensions=1 !  filter-stripes1d strength={}".format(RR)
-        cmd += " ! ifft dimensions=1 ! transpose"
-        cmd += " ! crop y={} height={}".format(pad_y, nviews)
-        cmd += " ! write filename={}".format(enquote(out_pattern))
+        cmd = 'ufo-launch read path={}'.format(sin_in)
+        cmd += ' ! pad y={} height={}'.format(pad_y, pad_height)
+        cmd += ' addressing-mode=clamp_to_edge'
+        cmd += ' ! transpose ! fft dimensions=1 !  filter-stripes1d strength={}'.format(RR)
+        cmd += ' ! ifft dimensions=1 ! transpose'
+        cmd += ' ! crop y={} height={}'.format(pad_y, nviews)
+        cmd += ' ! write filename={}'.format(enquote(out_pattern))
         return cmd
 
     def get_filter2d_sinos_cmd(self, tmpdir, sig_hor, sig_ver, nviews, w):
         sin_in = os.path.join(tmpdir, "sinos")
         out_pattern = os.path.join(tmpdir, "sinos-filt/sin-%04i.tif")
-        pad_height = next_power_of_two(nviews + 50)
+        pad_height = next_power_of_two(nviews + 500)
         pad_y = (pad_height - nviews) / 2
-        pad_width = next_power_of_two(w + 50)
+        pad_width = next_power_of_two(w + 500)
         pad_x = (pad_width - w) / 2
         cmd = "ufo-launch read path={}".format(sin_in)
         cmd += " ! pad x={} width={} y={} height={}".format(pad_x, pad_width, pad_y, pad_height)
@@ -157,63 +159,67 @@ class ufo_cmds(object):
         ######### CREATE MASK #########
         mask_file = os.path.join(tmpdir, "mask.tif")
         # generate mask
-        cmd = "tofu find-large-spots --images {}".format(any_flat)
-        cmd += " --spot-threshold {} --gauss-sigma {}".format(args.inp_thr, args.inp_sig)
-        cmd += " --output {} --output-bytes-per-file 0".format(mask_file)
+        cmd = 'tofu find-large-spots --images {}'.format(any_flat)
+        cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
+                        args.main_filters_remove_spots_threshold,
+                        args.main_filters_remove_spots_blur_sigma)
+        cmd += ' --output {} --output-bytes-per-file 0'.format(mask_file)
         cmds.append(cmd)
         ######### FLAT-CORRECT #########
-        in_proj_dir, out_pattern = fmt_in_out_path(args.tmpdir, ctset[0], self._fdt_names[2])
-        if args.sinFFC:
-            cmd = "bmit_sin --fix-nan"
-            cmd += " --darks {} --flats {}".format(indir[0], indir[1])
-            cmd += " --projections {}".format(in_proj_dir)
-            cmd += " --output {}".format(os.path.dirname(out_pattern))
-            cmd += " --multiprocessing"
-            # cmd += ' --output {}'.format(out_pattern)
+        in_proj_dir, out_pattern = fmt_in_out_path(args.main_config_temp_dir, ctset[0], self._fdt_names[2])
+        if args.advanced_ffc_sinFFC:
+            cmd = 'bmit_sin --fix-nan'
+            cmd += ' --darks {} --flats {}'.format(indir[0], indir[1])
+            cmd += ' --projections {}'.format(in_proj_dir)
+            cmd += ' --output {}'.format(os.path.dirname(out_pattern))
+            cmd += ' --multiprocessing'
+            #cmd += ' --output {}'.format(out_pattern)
             if ctset[1] == 4:
-                cmd += " --flats2 {}".format(indir[3])
+                cmd += ' --flats2 {}'.format(indir[3])
             # Add options for eigen-pco-repetitions etc.
-            cmd += " --eigen-pco-repetitions {}".format(args.sinFFCEigenReps)
-            cmd += " --eigen-pco-downsample {}".format(args.sinFFCEigenDowns)
-            cmd += " --downsample {}".format(args.sinFFCDowns)
-            # if not args.PR:
+            cmd += ' --eigen-pco-repetitions {}'.format(args.advanced_ffc_eigen_pco_reps)
+            cmd += ' --eigen-pco-downsample {}'.format(args.advanced_ffc_eigen_pco_downsample)
+            cmd += ' --downsample {}'.format(args.advanced_ffc_downsample)
+            #if not args.main_pr_phase_retrieval:
             #    cmd += ' --absorptivity'
             cmds.append(cmd)
-        elif not args.sinFFC:
-            cmd = "tofu flatcorrect --fix-nan-and-inf"
-            cmd += " --darks {} --flats {}".format(indir[0], indir[1])
-            cmd += " --projections {}".format(in_proj_dir)
-            cmd += " --output {}".format(out_pattern)
+        elif not args.advanced_ffc_sinFFC:
+            cmd = 'tofu flatcorrect --fix-nan-and-inf'
+            cmd += ' --darks {} --flats {}'.format(indir[0], indir[1])
+            cmd += ' --projections {}'.format(in_proj_dir)
+            cmd += ' --output {}'.format(out_pattern)
             if ctset[1] == 4:
-                cmd += " --flats2 {}".format(indir[3])
-            if not args.PR:
-                cmd += " --absorptivity"
-            if not args.adv_dark_scale == "":
-                cmd += " --dark-scale {}".format(args.adv_dark_scale)
-            if not args.adv_flat_scale == "":
-                cmd += " --flat-scale {}".format(args.adv_flat_scale)
+                cmd += ' --flats2 {}'.format(indir[3])
+            if not args.main_pr_phase_retrieval:
+                cmd += ' --absorptivity'
+            if not args.advanced_advtofu_aux_ffc_dark_scale == "":
+                cmd += ' --dark-scale {}'.format(args.advanced_advtofu_aux_ffc_dark_scale)
+            if not args.advanced_advtofu_aux_ffc_flat_scale == "":
+                cmd += ' --flat-scale {}'.format(args.advanced_advtofu_aux_ffc_flat_scale)
             cmds.append(cmd)
-        if not args.keep_tmp and args.pre:
-            cmds.append("rm -rf {}".format(indir[0]))
-            cmds.append("rm -rf {}".format(indir[1]))
-            cmds.append("rm -rf {}".format(in_proj_dir))
+        if not args.main_config_keep_temp and args.main_config_preprocess:
+            cmds.append('rm -rf {}'.format(indir[0]))
+            cmds.append('rm -rf {}'.format(indir[1]))
+            cmds.append('rm -rf {}'.format(in_proj_dir))
             if len(indir) > 3:
                 cmds.append("rm -rf {}".format(indir[3]))
         ######### INPAINT #########
-        in_proj_dir, out_pattern = fmt_in_out_path(args.tmpdir, ctset[0], self._fdt_names[2])
+        in_proj_dir, out_pattern = fmt_in_out_path(args.main_config_temp_dir, ctset[0], self._fdt_names[2])
         cmd = "ufo-launch [read path={} height={} number={}".format(in_proj_dir, N, nviews)
         cmd += ", read path={}]".format(mask_file)
         cmd += " ! horizontal-interpolate ! "
         cmd += "write filename={}".format(enquote(out_pattern))
         cmds.append(cmd)
-        if not args.keep_tmp:
+        if not args.main_config_keep_temp:
             cmds.append("rm -rf {}".format(in_proj_dir))
         return cmds
 
     def get_crop_sli(self, out_pattern, args):
-        cmd = "ufo-launch read path={}/*.tif ! ".format(os.path.dirname(out_pattern))
-        cmd += "crop x={} width={} y={} height={} ! ".format(args.x0, args.dx, args.y0, args.dy)
-        cmd += "write filename={}".format(out_pattern)
-        if args.gray256:
-            cmd += " bits=8 rescale=False"
+        cmd = 'ufo-launch read path={}/*.tif ! '.format(os.path.dirname(out_pattern))
+        cmd += 'crop x={} width={} y={} height={} ! '. \
+            format(args.main_region_crop_x, args.main_region_crop_width,
+                   args.main_region_crop_y, args.main_region_crop_height)
+        cmd += 'write filename={}'.format(out_pattern)
+        if args.main_region_clip_histogram:
+            cmd += ' bits=8 rescale=False'
         return cmd

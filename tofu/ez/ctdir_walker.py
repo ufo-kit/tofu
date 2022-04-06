@@ -25,10 +25,10 @@ class WalkCTdirs:
         self.good = 0
         self.verb = verb
         self._fdt_names = fdt_names
-        self.common_flats = args.common_flats
-        self.common_darks = args.common_darks
-        self.common_flats2 = args.common_flats2
-        self.use_common_flats2 = args.use_common_flats2
+        self.common_flats = args.main_config_flats_path
+        self.common_darks = args.main_config_darks_path
+        self.common_flats2 = args.main_config_flats2_path
+        self.use_common_flats2 = args.main_config_flats2_checkbox
 
     def print_tree(self):
         print("We start in {}".format(self.lvl0))
@@ -91,7 +91,8 @@ class WalkCTdirs:
             ):
                 return True
         elif self.use_common_flats2 is False:
-            if os.path.exists(self.common_flats) and os.path.exists(self.common_darks):
+            if (os.path.exists(self.common_flats)
+                    and os.path.exists(self.common_darks)):
                 return True
         return False
 

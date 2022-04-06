@@ -16,8 +16,9 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 from PyQt5.QtCore import Qt
-import tofu.ez.GUI.image_read_write as image_read_write
+import tofu.ez.image_read_write as image_read_write
 
+#TODO Integrate axis search tab ob tofu gui into this interface
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +27,10 @@ class ImageViewerGroup(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.tiff_arr = np.empty([0, 0, 0])
+        #TODO: initialize on every opening with explicit data type
+        #mmatching the data format being opened.
+        #must check that there is enough RAM before loading!!
+        self.tiff_arr = np.empty([0, 0, 0]) # float32
         self.img_arr = np.empty([0, 0])
         self.bit_depth = 32
 
@@ -75,12 +79,12 @@ class ImageViewerGroup(QGroupBox):
         self.hist_max_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self.hist_min_input = QDoubleSpinBox()
-        self.hist_min_input.setDecimals(6)
-        self.hist_min_input.setRange(-100000, 100000)
+        self.hist_min_input.setDecimals(12)
+        self.hist_min_input.setRange(-10, 10)
         self.hist_min_input.valueChanged.connect(self.min_spin_changed)
         self.hist_max_input = QDoubleSpinBox()
-        self.hist_max_input.setDecimals(6)
-        self.hist_max_input.setRange(-100000, 100000)
+        self.hist_max_input.setDecimals(12)
+        self.hist_max_input.setRange(-10, 10)
         self.hist_max_input.valueChanged.connect(self.max_spin_changed)
 
         self.apply_histogram_button = QPushButton("Apply Histogram to Image Stack")
@@ -212,7 +216,7 @@ class ImageViewerGroup(QGroupBox):
                 self.scroller.setEnabled(True)
                 self.image_window.setImage(self.tiff_arr[0].T)
                 msg.close()
-                mid_index = self.tiff_arr.shape[0] / 2
+                mid_index = self.tiff_arr.shape[0] // 2
                 self.scroller.setValue(mid_index)
             except image_read_write.InvalidDataSetError:
                 print("Invalid Data Set")
@@ -235,7 +239,7 @@ class ImageViewerGroup(QGroupBox):
             self.scroller.setEnabled(True)
             self.image_window.setImage(self.tiff_arr[0].T)
             msg.close()
-            mid_index = self.tiff_arr.shape[0] / 2
+            mid_index = self.tiff_arr.shape[0] // 2
             self.scroller.setValue(mid_index)
         except image_read_write.InvalidDataSetError:
             print("Invalid Data Set")
@@ -283,7 +287,7 @@ class ImageViewerGroup(QGroupBox):
             self.scroller.setEnabled(True)
             self.image_window.setImage(self.tiff_arr[0].T)
             msg.close()
-            mid_index = self.tiff_arr.shape[0] / 2
+            mid_index = self.tiff_arr.shape[0] // 2
             self.scroller.setValue(mid_index)
 
     def save_stack_to_big_tiff(self):

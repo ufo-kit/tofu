@@ -1,8 +1,10 @@
 #!/usr/bin/env python2
 """
 Created on Aug 3, 2018
-
 @author: SGasilov
+Initially it has been simplest median sorting
+Replaced by non-FFT based methods proposed by
+Nghia T. Vo and published in https://doi.org/10.1364/OE.26.028396
 """
 import os
 import argparse

@@ -1,7 +1,7 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
 
-import tofu.ez.GUI.params as parameters
+import tofu.ez.params as parameters
 
 
 LOG = logging.getLogger(__name__)
@@ -23,15 +23,20 @@ class OptimizationGroup(QGroupBox):
 
         self.slice_memory_label = QLabel("Slice memory coefficient")
         self.slice_memory_entry = QLineEdit()
-        self.slice_memory_entry.textChanged.connect(self.set_slice)
+        tmpstr="Fraction of VRAM which will be used to store images \n" \
+               "Reserve ~2 GB of VRAM for computation \n" \
+               "Decrease the coefficient if you have very large data and start getting errors"
+        self.slice_memory_entry.setToolTip(tmpstr)
+        self.slice_memory_label.setToolTip(tmpstr)
+        self.slice_memory_entry.editingFinished.connect(self.set_slice)
 
         self.num_GPU_label = QLabel("Number of GPUs")
         self.num_GPU_entry = QLineEdit()
-        self.num_GPU_entry.textChanged.connect(self.set_num_gpu)
+        self.num_GPU_entry.editingFinished.connect(self.set_num_gpu)
 
         self.slices_per_device_label = QLabel("Slices per device")
         self.slices_per_device_entry = QLineEdit()
-        self.slices_per_device_entry.textChanged.connect(self.set_slices_per_device)
+        self.slices_per_device_entry.editingFinished.connect(self.set_slices_per_device)
 
         self.set_layout()
 
@@ -58,32 +63,33 @@ class OptimizationGroup(QGroupBox):
 
     def init_values(self):
         self.verbose_switch.setChecked(False)
-        parameters.params["e_adv_verbose"] = False
-        self.slice_memory_entry.setText("0.5")
-        parameters.params["e_adv_slice_mem_coeff"] = "0.5"
+        parameters.params['advanced_optimize_verbose_console'] = False
+        parameters.params['advanced_optimize_slice_mem_coeff'] = 0.7
+        self.slice_memory_entry.setText(
+            str(parameters.params['advanced_optimize_slice_mem_coeff']))
         self.num_GPU_entry.setText("")
-        parameters.params["e_adv_num_gpu"] = ""
+        parameters.params['advanced_optimize_num_gpus'] = ""
         self.slices_per_device_entry.setText("")
-        parameters.params["e_adv_slices_per_device"] = ""
+        parameters.params['advanced_optimize_slices_per_device'] = ""
 
     def set_values_from_params(self):
-        self.verbose_switch.setChecked(bool(parameters.params["e_adv_verbose"]))
-        self.slice_memory_entry.setText(str(parameters.params["e_adv_slice_mem_coeff"]))
-        self.num_GPU_entry.setText(str(parameters.params["e_adv_num_gpu"]))
-        self.slices_per_device_entry.setText(str(parameters.params["e_adv_slices_per_device"]))
+        self.verbose_switch.setChecked(bool(parameters.params['advanced_optimize_verbose_console']))
+        self.slice_memory_entry.setText(str(parameters.params['advanced_optimize_slice_mem_coeff']))
+        self.num_GPU_entry.setText(str(parameters.params['advanced_optimize_num_gpus']))
+        self.slices_per_device_entry.setText(str(parameters.params['advanced_optimize_slices_per_device']))
 
     def set_verbose_switch(self):
         LOG.debug("Verbose: " + str(self.verbose_switch.isChecked()))
-        parameters.params["e_adv_verbose"] = bool(self.verbose_switch.isChecked())
+        parameters.params['advanced_optimize_verbose_console'] = bool(self.verbose_switch.isChecked())
 
     def set_slice(self):
         LOG.debug(self.slice_memory_entry.text())
-        parameters.params["e_adv_slice_mem_coeff"] = str(self.slice_memory_entry.text())
+        parameters.params['advanced_optimize_slice_mem_coeff'] = str(self.slice_memory_entry.text())
 
     def set_num_gpu(self):
         LOG.debug(self.num_GPU_entry.text())
-        parameters.params["e_adv_num_gpu"] = str(self.num_GPU_entry.text())
+        parameters.params['advanced_optimize_num_gpus'] = str(self.num_GPU_entry.text())
 
     def set_slices_per_device(self):
         LOG.debug(self.slices_per_device_entry.text())
-        parameters.params["e_adv_slices_per_device"] = str(self.slices_per_device_entry.text())
+        parameters.params['advanced_optimize_slices_per_device'] = str(self.slices_per_device_entry.text())
