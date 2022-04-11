@@ -100,7 +100,7 @@ class FiltersGroup(QGroupBox):
         self.sigma_vertical_label = QLabel()
         self.sigma_vertical_label.setText("sigma vertical")
         self.sigma_vertical_label.setToolTip(
-            "Width [pixels] of Gaussian-shaped high-pass filterin frequency domain"
+            "Width [pixels] of Gaussian-shaped high-pass filter in frequency domain"
         )
         self.sigma_vertical_entry = QLineEdit()
         self.sigma_vertical_entry.editingFinished.connect(self.set_sigma_vertical)
@@ -172,8 +172,12 @@ class FiltersGroup(QGroupBox):
         self.remove_wide_checkbox.setChecked(False)
         self.set_remove_spots()
         parameters.params['main_filters_remove_spots'] = False
-        self.threshold_entry.setText("1000")
-        self.spot_blur_entry.setText("2")
+        self.threshold_entry.setText(
+            str(parameters.params['main_filters_remove_spots_threshold'])
+        )
+        self.spot_blur_entry.setText(
+            str(parameters.params['main_filters_remove_spots_blur_sigma'])
+        )
         self.enable_RR_checkbox.setChecked(False)
         self.set_ring_removal()
         parameters.params['main_filters_ring_removal'] = False
@@ -182,8 +186,13 @@ class FiltersGroup(QGroupBox):
         self.sarepy_rButton.setChecked(False)
         self.two_dimens_rButton.setChecked(True)
         parameters.params['main_filters_ring_removal_ufo_lpf_1d_or_2d'] = False
-        self.sigma_horizontal_entry.setText("60")
-        self.sigma_vertical_entry.setText("1")
+        self.sigma_horizontal_entry.setText(
+            str(parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'])
+        )
+        self.sigma_vertical_entry.setText(
+            str(parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'])
+        )
+
         self.wind_size_entry.setText("21")
         self.remove_wide_checkbox.setChecked(False)
         parameters.params['main_filters_ring_removal_sarepy_wide'] = False
@@ -246,11 +255,13 @@ class FiltersGroup(QGroupBox):
 
     def set_sigma_horizontal(self):
         LOG.debug(self.sigma_horizontal_entry.text())
-        parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'] = str(self.sigma_horizontal_entry.text())
+        parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'] = \
+            str(self.sigma_horizontal_entry.text())
 
     def set_sigma_vertical(self):
         LOG.debug(self.sigma_vertical_entry.text())
-        parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = str(self.sigma_vertical_entry.text())
+        parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = \
+            str(self.sigma_vertical_entry.text())
 
     def set_window_size(self):
         LOG.debug(self.wind_size_entry.text())

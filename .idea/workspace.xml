@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="c5a1586a-2578-4018-8267-13fabf6ab25e" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/tofu/ez/GUI/Main/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/tofu/ez/GUI/Main/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tofu/ez/GUI/default_settings.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/tofu/ez/GUI/default_settings.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="21QVLcWTgt68lCXpQbD9y3hzLms" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../ez_ufo" />
+    <property name="two.files.diff.last.used.file" value="$PROJECT_DIR$/../ez_ufo/ez_ufo_qt/main.py" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/tofu/ez/" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.ezufo_launcher">
+    <configuration name="ezufo_launcher" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="tofu" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tofu/ez/GUI" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tofu/ez/GUI/ezufo_launcher.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="tofu" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="tofu" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/bin" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/bin/tofu" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.ezufo_launcher" />
+        <item itemvalue="Python.tofu" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c5a1586a-2578-4018-8267-13fabf6ab25e" name="Default Changelist" comment="" />
+      <created>1637873253425</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1637873253425</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="1126" y="339" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1648843174075">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state x="1126" y="339" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.1920.1080@0.0.1920.1080" timestamp="1648843174075" />
+    <state x="1501" y="452" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.2560.1440@0.0.2560.1440" timestamp="1648238377518" />
+    <state x="-281" y="71" width="1846" height="913" key="DiffContextDialog" timestamp="1648850059841">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state x="-281" y="71" width="1846" height="913" key="DiffContextDialog/0.0.1920.1080@0.0.1920.1080" timestamp="1648850059841" />
+    <state x="220" y="192" width="2051" height="1048" key="DiffContextDialog/0.0.2560.1440@0.0.2560.1440" timestamp="1648244248523" />
+    <state x="1054" y="473" key="FileChooserDialogImpl" timestamp="1649095595721">
+      <screen x="0" y="0" width="2560" height="1440" />
+    </state>
+    <state x="791" y="355" key="FileChooserDialogImpl/0.0.1920.1080@0.0.1920.1080" timestamp="1648849156910" />
+    <state x="1054" y="473" key="FileChooserDialogImpl/0.0.2560.1440@0.0.2560.1440" timestamp="1649095595721" />
+    <state width="1899" height="237" key="GridCell.Tab.0.bottom" timestamp="1649708895098">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1899" height="237" key="GridCell.Tab.0.bottom/0.0.1920.1080@0.0.1920.1080" timestamp="1649708895098" />
+    <state width="2539" height="326" key="GridCell.Tab.0.bottom/0.0.2560.1440@0.0.2560.1440" timestamp="1649260531271" />
+    <state width="1899" height="237" key="GridCell.Tab.0.center" timestamp="1649708895089">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1899" height="237" key="GridCell.Tab.0.center/0.0.1920.1080@0.0.1920.1080" timestamp="1649708895089" />
+    <state width="2539" height="326" key="GridCell.Tab.0.center/0.0.2560.1440@0.0.2560.1440" timestamp="1649260531249" />
+    <state width="1899" height="237" key="GridCell.Tab.0.left" timestamp="1649708895087">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1899" height="237" key="GridCell.Tab.0.left/0.0.1920.1080@0.0.1920.1080" timestamp="1649708895087" />
+    <state width="2539" height="326" key="GridCell.Tab.0.left/0.0.2560.1440@0.0.2560.1440" timestamp="1649260531239" />
+    <state width="1899" height="237" key="GridCell.Tab.0.right" timestamp="1649708895092">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1899" height="237" key="GridCell.Tab.0.right/0.0.1920.1080@0.0.1920.1080" timestamp="1649708895092" />
+    <state width="2539" height="326" key="GridCell.Tab.0.right/0.0.2560.1440@0.0.2560.1440" timestamp="1649260531260" />
+    <state x="702" y="263" key="RollbackChangesDialog" timestamp="1648842258197">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state x="702" y="263" key="RollbackChangesDialog/0.0.1920.1080@0.0.1920.1080" timestamp="1648842258197" />
+    <state x="754" y="466" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1648840622802">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state x="754" y="466" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1080@0.0.1920.1080" timestamp="1648840622802" />
+    <state x="545" y="269" width="853" height="688" key="find.popup" timestamp="1649708077611">
+      <screen x="0" y="0" width="1920" height="1080" />
+    </state>
+    <state x="545" y="269" width="853" height="688" key="find.popup/0.0.1920.1080@0.0.1920.1080" timestamp="1649708077611" />
+    <state x="750" y="280" width="1533" height="1029" key="find.popup/0.0.2560.1440@0.0.2560.1440" timestamp="1649257449369" />
+  </component>
+</project>

@@ -1,0 +1,9 @@
+360overlap_axis_on_left: true
+360overlap_increment: 1
+360overlap_input_dir: /data/TestCT360
+360overlap_lower_limit: 49
+360overlap_output_dir: ~/del-del
+360overlap_row: 200
+360overlap_temp_dir: /data/tmp-360axis-search-gasilos
+360overlap_upper_limit: 53
+parameters_type: 360_overlap

@@ -23,7 +23,7 @@ main_filters_ring_removal: false
 main_filters_ring_removal_ufo_lpf: true
 main_filters_ring_removal_ufo_lpf_1d_or_2d: true
 main_filters_ring_removal_ufo_lpf_sigma_horizontal: 3
-main_filters_ring_removal_ufo_lpf_sigma_vertical: 2
+main_filters_ring_removal_ufo_lpf_sigma_vertical: 1
 main_filters_ring_removal_sarepy_window_size: 21
 main_filters_ring_removal_sarepy_wide: false
 main_filters_ring_removal_sarepy_window: 91
