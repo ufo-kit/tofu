@@ -1,7 +1,7 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit
 
-import tofu.ez.GUI.params as parameters
+import tofu.ez.params as parameters
 
 
 LOG = logging.getLogger(__name__)
@@ -36,31 +36,31 @@ class CentreOfRotationGroup(QGroupBox):
         self.search_rotation_label = QLabel()
         self.search_rotation_label.setText("Search rotation axis in [start, stop, step] interval")
         self.search_rotation_entry = QLineEdit()
-        self.search_rotation_entry.textChanged.connect(self.set_search_rotation)
+        self.search_rotation_entry.editingFinished.connect(self.set_search_rotation)
         self.search_rotation_entry.setStyleSheet("background-color:white")
 
         self.search_in_slice_label = QLabel()
         self.search_in_slice_label.setText("Search in slice from row number")
         self.search_in_slice_entry = QLineEdit()
-        self.search_in_slice_entry.textChanged.connect(self.set_search_slice)
+        self.search_in_slice_entry.editingFinished.connect(self.set_search_slice)
         self.search_in_slice_entry.setStyleSheet("background-color:white")
 
         self.size_of_recon_label = QLabel()
         self.size_of_recon_label.setText("Size of reconstructed patch [pixel]")
         self.size_of_recon_entry = QLineEdit()
-        self.size_of_recon_entry.textChanged.connect(self.set_size_of_reco)
+        self.size_of_recon_entry.editingFinished.connect(self.set_size_of_reco)
         self.size_of_recon_entry.setStyleSheet("background-color:white")
 
         self.axis_col_label = QLabel()
         self.axis_col_label.setText("Axis is in column No [pixel]")
         self.axis_col_entry = QLineEdit()
-        self.axis_col_entry.textChanged.connect(self.set_axis_col)
+        self.axis_col_entry.editingFinished.connect(self.set_axis_col)
         self.axis_col_entry.setStyleSheet("background-color:white")
 
         self.inc_axis_label = QLabel()
         self.inc_axis_label.setText("Increment axis every reconstruction")
         self.inc_axis_entry = QLineEdit()
-        self.inc_axis_entry.textChanged.connect(self.set_axis_inc)
+        self.inc_axis_entry.editingFinished.connect(self.set_axis_inc)
         self.inc_axis_entry.setStyleSheet("background-color:white")
 
         self.image_midpoint_rButton = QRadioButton()
@@ -110,43 +110,43 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_values_from_params(self):
         self.set_rButton_from_params()
-        self.search_rotation_entry.setText(str(parameters.params["e_ax_range"]))
-        self.search_in_slice_entry.setText(str(parameters.params["e_ax_row"]))
-        self.size_of_recon_entry.setText(str(parameters.params["e_ax_p_size"]))
-        self.axis_col_entry.setText(str(parameters.params["e_ax_fix"]))
-        self.inc_axis_entry.setText(str(parameters.params["e_dax"]))
+        self.search_rotation_entry.setText(str(parameters.params['main_cor_axis_search_interval']))
+        self.search_in_slice_entry.setText(str(parameters.params['main_cor_search_row_start']))
+        self.size_of_recon_entry.setText(str(parameters.params['main_cor_recon_patch_size']))
+        self.axis_col_entry.setText(str(parameters.params['main_cor_axis_column']))
+        self.inc_axis_entry.setText(str(parameters.params['main_cor_axis_increment_step']))
 
     def set_rButton(self):
         if self.auto_correlate_rButton.isChecked():
             LOG.debug("Auto Correlate")
-            parameters.params["e_ax"] = 1
+            parameters.params['main_cor_axis_search_method'] = 1
         elif self.auto_minimize_rButton.isChecked():
             LOG.debug("Auto Minimize")
-            parameters.params["e_ax"] = 2
+            parameters.params['main_cor_axis_search_method'] = 2
         elif self.define_axis_rButton.isChecked():
             LOG.debug("Define axis")
-            parameters.params["e_ax"] = 3
+            parameters.params['main_cor_axis_search_method'] = 3
         elif self.image_midpoint_rButton.isChecked():
             LOG.debug("Use image midpoint")
-            parameters.params["e_ax"] = 4
+            parameters.params['main_cor_axis_search_method'] = 4
 
     def set_rButton_from_params(self):
-        if parameters.params["e_ax"] == 1:
+        if parameters.params['main_cor_axis_search_method'] == 1:
             self.auto_correlate_rButton.setChecked(True)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params["e_ax"] == 2:
+        elif parameters.params['main_cor_axis_search_method'] == 2:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(True)
             self.define_axis_rButton.setChecked(False)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params["e_ax"] == 3:
+        elif parameters.params['main_cor_axis_search_method'] == 3:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(True)
             self.image_midpoint_rButton.setChecked(False)
-        elif parameters.params["e_ax"] == 4:
+        elif parameters.params['main_cor_axis_search_method'] == 4:
             self.auto_correlate_rButton.setChecked(False)
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
@@ -154,20 +154,20 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_search_rotation(self):
         LOG.debug(self.search_rotation_entry.text())
-        parameters.params["e_ax_range"] = str(self.search_rotation_entry.text())
+        parameters.params['main_cor_axis_search_interval'] = str(self.search_rotation_entry.text())
 
     def set_search_slice(self):
         LOG.debug(self.search_in_slice_entry.text())
-        parameters.params["e_ax_row"] = str(self.search_in_slice_entry.text())
+        parameters.params['main_cor_search_row_start'] = str(self.search_in_slice_entry.text())
 
     def set_size_of_reco(self):
         LOG.debug(self.size_of_recon_entry.text())
-        parameters.params["e_ax_p_size"] = str(self.size_of_recon_entry.text())
+        parameters.params['main_cor_recon_patch_size'] = str(self.size_of_recon_entry.text())
 
     def set_axis_col(self):
         LOG.debug(self.axis_col_entry.text())
-        parameters.params["e_ax_fix"] = str(self.axis_col_entry.text())
+        parameters.params['main_cor_axis_column'] = str(self.axis_col_entry.text())
 
     def set_axis_inc(self):
         LOG.debug(self.inc_axis_entry.text())
-        parameters.params["e_dax"] = str(self.inc_axis_entry.text())
+        parameters.params['main_cor_axis_increment_step'] = str(self.inc_axis_entry.text())

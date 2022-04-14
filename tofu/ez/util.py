@@ -7,9 +7,9 @@ import os
 import tifffile
 import yaml
 import numpy as np
-import tofu.ez.GUI.params as parameters
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image
 
+import tofu.ez.params as parameters
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -80,12 +80,12 @@ def enquote(string, escape=False):
 
 
 def save_params(args, ctsetname, ax, nviews, WH):
-    if not args.dryrun and not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    tmp = os.path.join(args.outdir, ctsetname)
-    if not args.dryrun and not os.path.exists(tmp):
+    if not args.main_config_dry_run and not os.path.exists(args.main_config_output_dir):
+        os.makedirs(args.main_config_output_dir)
+    tmp = os.path.join(args.main_config_output_dir, ctsetname)
+    if not args.main_config_dry_run and not os.path.exists(tmp):
         os.makedirs(tmp)
-    if not args.dryrun and args.parfile:
+    if not args.main_config_dry_run and args.main_config_save_params:
         # Dump the params .yaml file
         try:
             yaml_output_filepath = os.path.join(tmp, "parameters.yaml")
@@ -95,82 +95,85 @@ def save_params(args, ctsetname, ax, nviews, WH):
             print("Something went wrong when exporting the .yaml parameters file")
 
         # Dump the reco.params output file
-        fname = os.path.join(tmp, "reco.params")
-        f = open(fname, "w")
-        f.write("*** General ***\n")
-        f.write("Input directory {}\n".format(args.indir))
-        if ctsetname == "":
-            ctsetname = "."
-        f.write("CT set {}\n".format(ctsetname))
-        if args.ax == 1 or args.ax == 2:
-            f.write("Center of rotation {} (auto estimate)\n".format(ax))
+        fname = os.path.join(tmp, 'reco.params')
+        f = open(fname, 'w')
+        f.write('*** General ***\n')
+        f.write('Input directory {}\n'.format(args.main_config_input_dir))
+        if ctsetname == '':
+            ctsetname = '.'
+        f.write('CT set {}\n'.format(ctsetname))
+        if args.main_cor_axis_search_method == 1 or args.main_cor_axis_search_method == 2:
+            f.write('Center of rotation {} (auto estimate)\n'.format(ax))
         else:
-            f.write("Center of rotation {} (user defined)\n".format(ax))
-        f.write("Dimensions of projections {} x {} (height x width)\n".format(WH[0], WH[1]))
-        f.write("Number of projections {}\n".format(nviews))
-        f.write("*** Preprocessing ***\n")
-        tmp = "None"
-        if args.pre:
-            tmp = args.pre_cmd
-        f.write("  " + tmp + "\n")
-        f.write("*** Image filters ***\n")
-        if args.inp:
-            f.write(" Remove large spots enabled\n")
-            f.write("  threshold {}\n".format(args.inp_thr))
-            f.write("  sigma {}\n".format(args.inp_sig))
+            f.write('Center of rotation {} (user defined)\n'.format(ax))
+        f.write('Dimensions of projections {} x {} (height x width)\n'.format(WH[0], WH[1]))
+        f.write('Number of projections {}\n'.format(nviews))
+        f.write('*** Preprocessing ***\n')
+        tmp = 'None'
+        if args.main_config_preprocess:
+            tmp = args.main_config_preprocess_command
+        f.write('  '+tmp+'\n')
+        f.write('*** Image filters ***\n')
+        if args.main_filters_remove_spots:
+            f.write(' Remove large spots enabled\n')
+            f.write('  threshold {}\n'.format(args.main_filters_remove_spots_threshold))
+            f.write('  sigma {}\n'.format(args.main_filters_remove_spots_blur_sigma))
         else:
-            f.write("  Remove large spots disabled\n")
-        if args.PR:
-            f.write(" Phase retreival enabled\n")
-            f.write("  energy {} keV\n".format(args.energy))
-            f.write("  pixel size {:0.1f} um\n".format(args.pixel * 1e6))
-            f.write("  sample-detector distance {} m\n".format(args.z))
-            f.write("  delta/beta ratio {:0.0f}\n".format(10 ** args.log10db))
+            f.write('  Remove large spots disabled\n')
+        if args.main_pr_phase_retrieval:
+            f.write(' Phase retrieval enabled\n')
+            f.write('  energy {} keV\n'.format(args.main_pr_photon_energy))
+            f.write('  pixel size {:0.1f} um\n'.format(args.main_pr_pixel_size * 1e6))
+            f.write('  sample-detector distance {} m\n'.format(args.main_pr_detector_distance))
+            f.write('  delta/beta ratio {:0.0f}\n'.format(10 ** args.main_pr_delta_beta_ratio))
         else:
-            f.write("  Phase retreival disabled\n")
-        f.write("*** Ring removal ***\n")
-        if args.RR:
-            if args.RR_ufo:
-                tmp = "2D"
-                if args.RR_ufo_1d:
-                    tmp = "1D"
-                f.write("  RR with ufo {} stripes filter\n".format(tmp))
-                f.write(f"   sigma horizontal {args.RR_sig_hor}")
-                f.write(f"   sigma vertical {args.RR_sig_ver}")
+            f.write('  Phase retrieval disabled\n')
+        f.write('*** Ring removal ***\n')
+        if args.main_filters_ring_removal:
+            if args.main_filters_ring_removal_ufo_lpf:
+                tmp = '2D'
+                if args.main_filters_ring_removal_ufo_lpf_1d_or_2d:
+                    tmp = '1D'
+                f.write('  RR with ufo {} stripes filter\n'.format(tmp))
+                f.write(f'   sigma horizontal {args.main_filters_ring_removal_ufo_lpf_sigma_horizontal}')
+                f.write(f'   sigma vertical {args.main_filters_ring_removal_ufo_lpf_sigma_vertical}')
             else:
-                if args.RR_srp_wide:
-                    tmp = "  RR with ufo sarepy remove wide filter, "
-                    tmp += "window {}, SNR {}\n".format(args.RR_srp_wide_wind, args.RR_srp_wide_snr)
+                if args.main_filters_ring_removal_sarepy_wide:
+                    tmp = '  RR with ufo sarepy remove wide filter, '
+                    tmp += 'window {}, SNR {}\n'.format(
+                        args.main_filters_ring_removal_sarepy_window,
+                        args.main_filters_ring_removal_sarepy_SNR)
                     f.write(tmp)
-                f.write(
-                    "  RR with ufo sarepy sorting filter, window {}\n".format(args.RR_srp_wind_sort)
-                )
+                f.write('  '
+                        'RR with ufo sarepy sorting filter, window {}\n'.
+                        format(args.main_filters_ring_removal_sarepy_window_size)
+                        )
         else:
-            f.write("RR disabled\n")
-        f.write("*** Region of interest ***\n")
-        if args.vcrop:
-            f.write("Vertical ROI defined\n")
-            f.write("  first row {}\n".format(args.y))
-            f.write("  height {}\n".format(args.yheight))
-            f.write("  reconstruct every {}th row\n".format(args.ystep))
+            f.write('RR disabled\n')
+        f.write('*** Region of interest ***\n')
+        if args.main_region_select_rows:
+            f.write('Vertical ROI defined\n')
+            f.write('  first row {}\n'.format(args.main_region_first_row))
+            f.write('  height {}\n'.format(args.main_region_number_rows))
+            f.write('  reconstruct every {}th row\n'.format(args.main_region_nth_row))
         else:
-            f.write("Vertical ROI: all rows\n")
-        if args.crop:
-            f.write("ROI in slice plane defined\n")
-            f.write("  x {}\n".format(args.x0))
-            f.write("  width {}\n".format(args.dx))
-            f.write("  y {}\n".format(args.y0))
-            f.write("  height {}\n".format(args.dy))
+            f.write('Vertical ROI: all rows\n')
+        if args.main_region_crop_slices:
+            f.write('ROI in slice plane defined\n')
+            f.write('  x {}\n'.format(args.main_region_crop_x))
+            f.write('  width {}\n'.format(args.main_region_crop_width))
+            f.write('  y {}\n'.format(args.main_region_crop_y))
+            f.write('  height {}\n'.format(args.main_region_crop_height))
         else:
-            f.write("ROI in slice plane not defined\n")
-        f.write("*** Reconstructed values ***\n")
-        if args.gray256:
-            f.write("  {} bit\n".format(args.bit))
-            f.write("  Min value in 32-bit histogram {}\n".format(args.hmin))
-            f.write("  Max value in 32-bit histogram {}\n".format(args.hmax))
+            f.write('ROI in slice plane not defined\n')
+        f.write('*** Reconstructed values ***\n')
+        if args.main_region_clip_histogram:
+            f.write('  {} bit\n'.format(args.main_region_bit_depth))
+            f.write('  Min value in 32-bit histogram {}\n'.format(args.main_region_histogram_min))
+            f.write('  Max value in 32-bit histogram {}\n'.format(args.main_region_histogram_max))
         else:
-            f.write("  32bit, histogram untouched\n")
-        f.write("*** Optional reco parameters ***\n")
-        if args.a0 > 0:
-            f.write("  Rotate volume by: {:0.3f} deg\n".format(args.a0))
+            f.write('  32bit, histogram untouched\n')
+        f.write('*** Optional reco parameters ***\n')
+        if args.main_region_rotate_volume_clock > 0:
+            f.write('  Rotate volume by: {:0.3f} deg\n'.format(args.main_region_rotate_volume_clock))
         f.close()
