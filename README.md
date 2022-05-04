@@ -9,6 +9,7 @@ tomographic data sets.
 
 Run
 
+    pip install -r requirements-guis.txt  # If you want to use flow or ez
     python setup.py install
 
 in a prepared virtualenv or as root for system-wide installation. Note, that if
