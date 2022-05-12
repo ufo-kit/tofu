@@ -7,11 +7,13 @@ setup(
     version=__version__,
     author='Matthias Vogelgesang',
     author_email='matthias.vogelgesang@kit.edu',
-    url='http://ufo.kit.edu',
+    url='http://github.com/ufo-kit/tofu',
+    license='LGPL',
     packages=find_packages(),
     package_data={'tofu': ['gui.ui', 'ez/GUI/default_settings.yaml'],
                   'tofu.flow': ['composites/*.cm', 'config.json']},
     scripts=['bin/tofu'],
+    exclude_package_data={'': ['README.rst']},
     install_requires= [
         'PyGObject',
         'imageio',
@@ -22,5 +24,7 @@ setup(
         'xdg',
         'qtpynodeeditor'
     ],
+    description="A fast, versatile and user-friendly image "\
+                "processing toolkit for computed tomography",
     long_description=open('README.md').read(),
 )
