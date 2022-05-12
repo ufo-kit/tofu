@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from tofu import __version__
 
 setup(
-    name='tofu',
+    name='ufo-tofu',
     python_requires='>=3',
     version=__version__,
     author='Matthias Vogelgesang',
@@ -27,4 +27,5 @@ setup(
     description="A fast, versatile and user-friendly image "\
                 "processing toolkit for computed tomography",
     long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
 )
