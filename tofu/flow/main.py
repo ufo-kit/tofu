@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt, QObject, QPoint, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
                              QMessageBox, QProgressBar, QMainWindow, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
-from xdg import xdg_data_home
+import xdg.BaseDirectory
 
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.models import (BaseCompositeModel, get_composite_model_classes_from_json,
@@ -138,7 +138,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
         else:
-            path = os.path.join(xdg_data_home(), 'tofu', 'flows')
+            path = xdg.BaseDirectory.save_data_path('tofu', 'flows')
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -159,7 +159,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['scene']:
             path = self.last_dirs['scene']
         else:
-            path = os.path.join(xdg_data_home(), 'tofu', 'flows')
+            path = xdg.BaseDirectory.save_data_path('tofu', 'flows')
             if not os.path.exists(path):
                 path = pathlib.Path.home()
 
@@ -315,7 +315,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['composite']:
             path = self.last_dirs['composite']
         else:
-            path = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
+            path = xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')
             if not os.path.exists(path):
                 path = pathlib.Path.home()
 
@@ -364,7 +364,7 @@ class ApplicationWindow(QMainWindow):
         if self.last_dirs['composite']:
             path = self.last_dirs['composite']
         else:
-            path = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
+            path = xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')
             if not os.path.exists(path):
                 os.makedirs(path)
 
