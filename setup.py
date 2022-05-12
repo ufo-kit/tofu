@@ -12,6 +12,15 @@ setup(
     package_data={'tofu': ['gui.ui', 'ez/GUI/default_settings.yaml'],
                   'tofu.flow': ['composites/*.cm', 'config.json']},
     scripts=['bin/tofu'],
-    install_requires=['tifffile'],
+    install_requires= [
+        'PyGObject',
+        'imageio',
+        'numpy',
+        'networkx',
+        'PyQt5',
+        'pyqtconsole',
+        'xdg',
+        'qtpynodeeditor'
+    ],
     long_description=open('README.md').read(),
 )
