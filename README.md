@@ -1,5 +1,8 @@
 ## About
 
+[![PyPI version](https://badge.fury.io/py/ufo-tofu.png)](http://badge.fury.io/py/ufo-tofu)
+[![Documentation status](https://readthedocs.org/projects/tofu/badge/?version=latest)](http://tofu.readthedocs.io/en/latest/?badge=latest)
+
 This repository contains Python data processing scripts to be used with the UFO
 framework. At the moment they are targeted at high-performance reconstruction of
 tomographic data sets.
