@@ -1573,11 +1573,11 @@ def get_composite_model_classes_from_json(state):
 
 
 def get_composite_model_classes():
-    from xdg import xdg_data_home
+    import xdg.BaseDirectory
 
     composite_lists = []
     paths = [pkg_resources.resource_filename(__name__, 'composites'),
-             os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')]
+             xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')]
 
     for path in paths:
         file_names = sorted(glob.glob(os.path.join(path, '*.cm')))

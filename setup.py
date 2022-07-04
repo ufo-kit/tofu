@@ -21,7 +21,7 @@ setup(
         'networkx',
         'PyQt5',
         'pyqtconsole',
-        'xdg',
+        'pyxdg',
         'qtpynodeeditor'
     ],
     description="A fast, versatile and user-friendly image "\
