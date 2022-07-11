@@ -4,8 +4,8 @@ import pathlib
 import pkg_resources
 import pytest
 import sys
+import xdg.BaseDirectory
 from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
-from xdg import xdg_data_home
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.main import ApplicationWindow, get_filled_registry, GlobalExceptionHandler
 from tofu.flow.scene import UfoScene
@@ -39,7 +39,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileNameDefault)
         app_window.on_save()
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flows')
+        directory = xdg.BaseDirectory.save_data_path('tofu', 'flows')
         assert os.path.exists(directory)
         assert app_window.last_dirs['scene'] == directory
 
@@ -66,7 +66,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getOpenFileName", getOpenFileNameDefault)
         app_window.on_open()
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flows')
+        directory = xdg.BaseDirectory.save_data_path('tofu', 'flows')
         if not os.path.exists(directory):
             directory = pathlib.Path.home()
         assert app_window.last_dirs['scene'] == directory
@@ -308,7 +308,7 @@ class TestApplicationWindow:
 
         # Default directory
         monkeypatch.setattr(QFileDialog, "getOpenFileNames", getOpenFileNamesDefault)
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
+        directory = xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')
         if not os.path.exists(directory):
             directory = pathlib.Path.home()
         try:
@@ -357,7 +357,7 @@ class TestApplicationWindow:
         # Default directory
         monkeypatch.setattr(QFileDialog, "getSaveFileName", getSaveFileNameDefault)
         self.file_name = 'composite'
-        directory = os.path.join(xdg_data_home(), 'tofu', 'flows', 'composites')
+        directory = xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')
         app_window.on_export_composite()
         assert self.final_file_name.endswith('.cm') and not self.final_file_name.endswith('.cm.cm')
         assert os.path.exists(directory)
