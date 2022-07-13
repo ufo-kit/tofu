@@ -59,7 +59,10 @@ def make_copy_of_flat(flatdir, flat_copy_name, dryrun):
         if dryrun:
             cmd = 'echo Will save a copy of flat into "{}"'.format(flat_copy_name)
         else:
-            tifffile.imsave(flat_copy_name, flat)
+            tifffile.imwrite(flat_copy_name, flat)
+
+    # something isn't right in this logic? It used to work but then
+    # stopped to create a copy of flat correctly. Going to point to all flats simply
     return cmd
 
 

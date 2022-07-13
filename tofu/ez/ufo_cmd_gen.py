@@ -40,6 +40,7 @@ class ufo_cmds(object):
 
     def __init__(self, fol):
         self._fdt_names = fol
+        self.common_fd_used = False
 
     def make_inpaths(self, lvl0, flats2, args):
         """
@@ -50,20 +51,32 @@ class ufo_cmds(object):
         """
         indir = []
         # If using flats/darks/flats2 in same dir as tomo
-        if not args.main_config_common_flats_darks:
-            for i in self._fdt_names[:3]:
-                indir.append(os.path.join(lvl0, i))
-            if flats2 - 3:
-                indir.append(os.path.join(lvl0, self._fdt_names[3]))
-            return indir
+        for i in self._fdt_names[:3]:
+            indir.append(os.path.join(lvl0, i))
+        if flats2 - 3:
+            indir.append(os.path.join(lvl0, self._fdt_names[3]))
         # If using common flats/darks/flats2 across multiple reconstructions
-        elif args.main_config_common_flats_darks:
-            indir.append(args.main_config_darks_path)
-            indir.append(args.main_config_flats_path)
-            indir.append(os.path.join(lvl0, self._fdt_names[2]))
+        if args.main_config_common_flats_darks and not self.common_fd_used:
+            indir[0] = args.main_config_darks_path
+            indir[1] = args.main_config_flats_path
             if args.main_config_flats2_checkbox:
-                indir.append(args.main_config_flats2_path)
-            return indir
+                indir[3] = args.main_config_flats2_path
+            self.common_fd_used = True
+        return indir
+
+    def make_outpaths(self, lvl0, flats2):
+        """
+        Creates a list of paths to flats/darks/tomo directories
+        :param lvl0: Root of directory containing flats/darks/tomo
+        :param flats2: The type of directory: 3 contains flats/darks/tomo 4 contains flats/darks/tomo/flats2
+        :return: List of paths to the directories containing darks/flats/tomo and flats2 (if used)
+        """
+        indir = []
+        for i in self._fdt_names[:3]:
+            indir.append(os.path.join(lvl0, i))
+        if flats2 - 3:
+            indir.append(os.path.join(lvl0, self._fdt_names[3]))
+        return indir
 
     def check_vcrop(self, cmd, vcrop, y, yheight, ystep):
         if vcrop:
@@ -135,7 +148,7 @@ class ufo_cmds(object):
 
     def get_pre_cmd(self, ctset, pre_cmd, tmpdir, dryrun, args):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
-        outdir = self.make_inpaths(tmpdir, ctset[1], args)
+        outdir = self.make_outpaths(tmpdir, ctset[1])
         # add index to the name of the output directory with projections
         # if enabled preprocessing is always the first step
         outdir[2] = os.path.join(tmpdir, "proj-step1")
@@ -152,14 +165,14 @@ class ufo_cmds(object):
             cmds[i] += " ! write filename={}".format(enquote(out_pattern))
         return cmds
 
-    def get_inp_cmd(self, ctset, tmpdir, args, N, nviews, any_flat):
+    def get_inp_cmd(self, ctset, tmpdir, args, N, nviews):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
-        outdir = self.make_inpaths(tmpdir, ctset[1], args)
         cmds = []
         ######### CREATE MASK #########
         mask_file = os.path.join(tmpdir, "mask.tif")
         # generate mask
-        cmd = 'tofu find-large-spots --images {}'.format(any_flat)
+        # cmd = 'tofu find-large-spots --images {}'.format(any_flat)
+        cmd = 'tofu find-large-spots --images {}'.format(indir[1])
         cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
                         args.main_filters_remove_spots_threshold,
                         args.main_filters_remove_spots_blur_sigma)

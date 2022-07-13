@@ -109,7 +109,7 @@ def find_overlap(parameters):
             A = stitch_float32_output(
                 tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro)
             print(A.shape[1])
-            tifffile.imsave(os.path.join(
+            tifffile.imwrite(os.path.join(
                 sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
 
             # perform reconstructions for each sinogram and save to output folder

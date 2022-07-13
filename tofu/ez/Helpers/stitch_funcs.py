@@ -113,10 +113,10 @@ def exec_sti_mp(start, step, N, Nnew, Vsteps, indir, dx, M, parameters, ramp, hm
                         ctdir,
                         parameters['ezstitch_type_image']+'-sti-{:>04}.tif'.format(index))
     if not parameters['ezstitch_clip_histo']:
-        tifffile.imsave(pout, Large.astype(indtype))
+        tifffile.imwrite(pout, Large.astype(indtype))
     else:
         Large = 255.0/(hmax-hmin) * (np.clip(Large, hmin, hmax) - hmin)
-        tifffile.imsave(pout, Large.astype(np.uint8))
+        tifffile.imwrite(pout, Large.astype(np.uint8))
 
 def main_sti_mp(parameters):
     #Check whether indir is CTdir or parent containing CTdirs
@@ -208,7 +208,7 @@ def exec_conc_mp(start, step, example_im, l, parameters, zfold, indir, ctdir, j)
 
     pout = os.path.join(parameters['ezstitch_output_dir'], ctdir, parameters['ezstitch_type_image']+'-sti-{:>04}.tif'.format(index))
     #print "input data type {:}".format(dtype)
-    tifffile.imsave(pout, Large)
+    tifffile.imwrite(pout, Large)
 
 
 def main_conc_mp(parameters):
