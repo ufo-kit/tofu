@@ -90,6 +90,9 @@ def restrict_value(limits, dtype=float):
 
         return result
 
+    check.dtype = dtype
+    check.limits = limits
+
     return check
 
 
@@ -130,6 +133,8 @@ def tupleize(num_items=None, conv=float, dtype=tuple):
             raise argparse.ArgumentTypeError('Expected {} items'.format(num_items))
 
         return result
+
+    split_values.dtype = conv
 
     return split_values
 

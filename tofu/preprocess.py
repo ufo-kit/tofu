@@ -19,7 +19,7 @@ def create_flat_correct_pipeline(args, graph, processing_node=None):
     """
     pm = Ufo.PluginManager()
 
-    if args.projections is None or args.flats is None or args.darks is None:
+    if args.projections is None or not args.flats or not args.darks:
         raise RuntimeError("You must specify --projections, --flats and --darks.")
 
     reader = get_task('read')
