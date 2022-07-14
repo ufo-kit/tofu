@@ -159,7 +159,7 @@ SECTIONS['retrieve-phase'] = {
     'propagation-distance': {
         'default': None,
         'type': tupleize(),
-        'help': ("Sample <-> detector distance (if one value, then use the same for x and y"
+        'help': ("Sample <-> detector distance (if one value, then use the same for x and y "
                  "direction, otherwise first specifies x and second y direction) [m]")},
     'pixel-size': {
         'default': 1e-6,
@@ -449,19 +449,21 @@ SECTIONS['cone-beam-weight'] = {
     'source-position-y': {
         'default': "-Inf",
         'type': tupleize(dtype=list),
-        'help': "Y source position (along beam direction) in global coordinates [pixels]"},
+        'help': "Y source position (along beam direction) in global coordinates [pixels] "
+                "(multiple of detector pixel size)"},
     'detector-position-y': {
         'default': "0",
         'type': tupleize(dtype=list),
-        'help': "Y detector position (along beam direction) in global coordinates [pixels]"},
+        'help': "Y detector position (along beam direction) in global coordinates [pixels] "
+                "(multiple of detector pixel size)"},
     'center-position-x': {
         'default': None,
         'type': tupleize(),
-        'help': "X rotation axis position on a projection"},
+        'help': "X rotation axis position on a projection [pixels]"},
     'center-position-z': {
         'default': None,
         'type': tupleize(),
-        'help': "Z rotation axis position on a projection"},
+        'help': "Z rotation axis position on a projection [pixels]"},
     'axis-angle-x': {
         'default': "0",
         'type': tupleize(dtype=list),
