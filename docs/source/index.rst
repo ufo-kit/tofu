@@ -8,29 +8,9 @@ Welcome to Tofu's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-
-Application Programming Interface
-=================================
-
-.. toctree::
-   :maxdepth: 2
-
-   api/preprocessing
-   api/genreco
-   api/util
-
-
-Usage
-=====
-
-
-.. toctree::
-	:maxdepth: 2
-
-	usage/genreco
-	usage/flow
+   usage
+   api
 
 
 Indices and tables
