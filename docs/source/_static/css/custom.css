@@ -1,0 +1,6 @@
+@import url("theme.css");
+
+.wy-nav-content {
+    min-width: 50%;
+    max-width: 55%;
+}
