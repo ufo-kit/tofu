@@ -304,6 +304,22 @@ def get_scarray_value(scarray, index):
     return scarray[index]
 
 
+def run_scheduler(scheduler, graph):
+    from threading import Thread
+
+    thread = Thread(target=scheduler.run, args=(graph,))
+    thread.setDaemon(True)
+    thread.start()
+
+    try:
+        thread.join()
+        return True
+    except KeyboardInterrupt:
+        LOG.info('Processing interrupted')
+        scheduler.abort()
+        return False
+
+
 class Vector(object):
 
     """A vector based on axis-angle representation."""

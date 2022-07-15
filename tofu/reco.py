@@ -7,7 +7,7 @@ import numpy as np
 from gi.repository import Ufo
 from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
-                       read_image, determine_shape, setup_padding)
+                       read_image, determine_shape, setup_padding, run_scheduler)
 from tofu.tasks import get_task, get_writer
 
 
@@ -207,7 +207,8 @@ def tomo(params):
         LOG.debug("Use tracing: {}".format(params.enable_tracing))
         scheduler.props.enable_tracing = params.enable_tracing
 
-    scheduler.run(g)
+    if not run_scheduler(scheduler, g):
+        return
     duration = scheduler.props.time
     LOG.info("Execution time: {} s".format(duration))
 
