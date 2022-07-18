@@ -107,6 +107,7 @@ def restrict_value(limits, dtype=float):
         return result
 
     check.dtype = dtype
+    check.limits = limits
 
     return check
 
