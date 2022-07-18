@@ -76,14 +76,8 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     swiPR = args.main_pr_phase_retrieval  # PR is an optional operation
 
     ####### PREPROCESSING #########
-    flat_file_for_mask = os.path.join(args.main_config_temp_dir, 'flat.tif')
-    if args.main_filters_remove_spots:
-        if not args.main_config_common_flats_darks:
-            flatdir = os.path.join(ctset[0], Tofu._fdt_names[1])
-        elif args.main_config_common_flats_darks:
-            flatdir = args.main_config_flats_path
-        cmd = make_copy_of_flat(flatdir, flat_file_for_mask, args.main_config_dry_run)
-        cmds.append(cmd)
+    Ufo.common_fd_used = False
+    Tofu.common_fd_used = False
     if args.main_config_preprocess:
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = Ufo.get_pre_cmd(ctset, args.main_config_preprocess_command,
@@ -92,12 +86,16 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
         cmds.extend(cmds_prepro)
         # reset location of input data
         ctset = (args.main_config_temp_dir, ctset[1])
+        Ufo.common_fd_used = True
+        Tofu.common_fd_used = True
     ###################################################
     if args.main_filters_remove_spots:  # generate commands to remove sci. spots from projections
         cmds.append('echo " - Flat-correcting and removing large spots"')
-        cmds_inpaint = Ufo.get_inp_cmd(ctset, args.main_config_temp_dir, args, WH[0], nviews, flat_file_for_mask)
+        cmds_inpaint = Ufo.get_inp_cmd(ctset, args.main_config_temp_dir, args, WH[0], nviews)
         # reset location of input data
         ctset = (args.main_config_temp_dir, ctset[1])
+        Ufo.common_fd_used = True
+        Tofu.common_fd_used = True
         cmds.extend(cmds_inpaint)
         swiFFC = False  # no need to do FFC anymore
 
@@ -111,6 +109,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
                 cmds.append(Tofu.get_pr_tofu_cmd_sinFFC(ctset, args, nviews, WH))
             elif not args.advanced_ffc_sinFFC:
                 cmds.append(Tofu.get_pr_tofu_cmd(ctset, args, nviews, WH[0]))
+            Tofu.common_fd_used = True
         else:  # Inpaint Yes
             cmds.append('echo " - Phase retrieval from flat-corrected projections"')
             cmds.extend(Ufo.get_pr_ufo_cmd(args, nviews, WH))

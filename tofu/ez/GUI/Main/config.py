@@ -451,6 +451,7 @@ class ConfigGroup(QGroupBox):
         dir_explore = QFileDialog(self)
         tmp_dir = dir_explore.getExistingDirectory(directory=self.temp_dir_entry.text())
         self.temp_dir_entry.setText(tmp_dir)
+        parameters.params['main_config_temp_dir'] = tmp_dir
 
     def set_temp_dir(self):
         LOG.debug(str(self.temp_dir_entry.text()))

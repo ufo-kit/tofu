@@ -15,17 +15,7 @@ import multiprocessing as mp
 from functools import partial
 from scipy.ndimage import median_filter
 from scipy.ndimage import binary_dilation
-import tifffile
-
-
-def write_tiff(file_name, data):
-    """
-    The default TIFF writer which uses :py:mod:`tifffile` module.
-    Return the written file name.
-    """
-    tifffile.imsave(file_name, data)
-
-    return file_name
+from tifffile import imwrite
 
 
 def parse_args():
@@ -43,12 +33,12 @@ def RR_wide_sort(mws, mws2, snr, odir, fname):
     im = read_image(fname).astype(np.float32)
     im = remove_large_stripe(im, snr, mws2)
     im = remove_stripe_based_sorting(im, mws)
-    write_tiff(filt_sin_name, im.astype(np.float32))
+    imwrite(filt_sin_name, im.astype(np.float32))
 
 
 def RR_sort(mws, odir, fname):
     filt_sin_name = os.path.join(odir, os.path.split(fname)[1])
-    write_tiff(
+    imwrite(
         filt_sin_name,
         remove_stripe_based_sorting(read_image(fname).astype(np.float32), mws).astype(np.float32),
     )

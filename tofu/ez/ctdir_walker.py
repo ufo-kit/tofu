@@ -43,6 +43,7 @@ class WalkCTdirs:
                 if name == self._fdt_names[2]:
                     self.ctdirs.append(root)
         self.ctdirs = list(set(self.ctdirs))
+        self.ctdirs.sort()
 
     def checkCTdirs(self):
         """

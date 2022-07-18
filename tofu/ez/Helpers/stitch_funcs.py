@@ -29,6 +29,7 @@ def findCTdirs(root: str, tomo_name: str):
         for name in dirs:
             if name == tomo_name:
                 ctdirs.append(root)
+    ctdirs.sort()
     return ctdirs, lvl0
 
 def prepare(parameters, dir_type: int, ctdir: str):
@@ -112,10 +113,10 @@ def exec_sti_mp(start, step, N, Nnew, Vsteps, indir, dx, M, parameters, ramp, hm
                         ctdir,
                         parameters['ezstitch_type_image']+'-sti-{:>04}.tif'.format(index))
     if not parameters['ezstitch_clip_histo']:
-        tifffile.imsave(pout, Large.astype(indtype))
+        tifffile.imwrite(pout, Large.astype(indtype))
     else:
         Large = 255.0/(hmax-hmin) * (np.clip(Large, hmin, hmax) - hmin)
-        tifffile.imsave(pout, Large.astype(np.uint8))
+        tifffile.imwrite(pout, Large.astype(np.uint8))
 
 def main_sti_mp(parameters):
     #Check whether indir is CTdir or parent containing CTdirs
@@ -207,7 +208,7 @@ def exec_conc_mp(start, step, example_im, l, parameters, zfold, indir, ctdir, j)
 
     pout = os.path.join(parameters['ezstitch_output_dir'], ctdir, parameters['ezstitch_type_image']+'-sti-{:>04}.tif'.format(index))
     #print "input data type {:}".format(dtype)
-    tifffile.imsave(pout, Large)
+    tifffile.imwrite(pout, Large)
 
 
 def main_conc_mp(parameters):
@@ -290,7 +291,7 @@ def stitch(first, second, axis, crop):
 
 ############################## HALF ACQ ##############################
 def stitch_float32_output(first, second, axis, crop):
-    print(f"Stitching two halves with axis {axis}")
+    print(f"Stitching two halves with axis {axis}, cropping by {crop}")
     h, w = first.shape
     if axis > w / 2:
         dx = int(2 * (w - axis) + 0.5)
@@ -364,7 +365,6 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
 
 
 def main_360_mp_depth2(parameters):
-
     ctdirs, lvl0 = findCTdirs(parameters['360multi_input_dir'], glob_parameters.params['main_config_tomo_dir_name'])
     num_sets = len(ctdirs)
 
@@ -384,16 +384,17 @@ def main_360_mp_depth2(parameters):
     tmp = len(parameters['360multi_input_dir'])
     ctdirs_rel_paths = []
     for i in range(num_sets):
-        ctdirs_rel_paths.append(ctdirs[i][tmp + 1: len(ctdirs[i])])
+        ctdirs_rel_paths.append(ctdirs[i][tmp+1:len(ctdirs[i])])
     print(f"Found the {num_sets} directories in the input with relative paths: {ctdirs_rel_paths}")
 
     # prepare axis and crop arrays
     dax = np.round(np.linspace(parameters['360multi_bottom_axis'], parameters['360multi_top_axis'], num_sets))
     if parameters['360multi_manual_axis']:
-        print(parameters['360multi_axis_dict'])
+        #print(parameters['360multi_axis_dict'])
         dax = np.array(list(parameters['360multi_axis_dict'].values()))
     print(dax)
     cra = np.max(dax)-dax
+    print(cra)
 
     for i, ctdir in enumerate(ctdirs):
         print("================================================================")

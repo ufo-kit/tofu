@@ -38,7 +38,6 @@ def find_overlap(parameters):
     print("Finding CTDirs...")
     ctdirs, lvl0 = findCTdirs(parameters['360overlap_input_dir'],
                               glob_parameters.params['main_config_tomo_dir_name'])
-    ctdirs.sort()
     print(ctdirs)
 
     # concatenate images end-to-end and generate a sinogram
@@ -104,18 +103,19 @@ def find_overlap(parameters):
         sin_tmp_dir = os.path.join(parameters['360overlap_temp_dir'], index_dir)
         os.makedirs(sin_tmp_dir)
         for axis in range(parameters['360overlap_lower_limit'],
-                          parameters['360overlap_upper_limit'],
+                          parameters['360overlap_upper_limit']+parameters['360overlap_increment'],
                           parameters['360overlap_increment']):
             cro = parameters['360overlap_upper_limit'] - axis
             A = stitch_float32_output(
                 tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro)
-            tifffile.imsave(os.path.join(
+            print(A.shape[1])
+            tifffile.imwrite(os.path.join(
                 sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
 
             # perform reconstructions for each sinogram and save to output folder
 
         print('Reconstructing slices...')
-        reco_axis = M-parameters['360overlap_upper_limit']
+        reco_axis = M-parameters['360overlap_upper_limit'] # equivalently half-width
         cmd = f'tofu tomo --axis {reco_axis} --sinograms {sin_tmp_dir}'
         cmd +=' --output '+os.path.join(os.path.join(
             parameters['360overlap_output_dir'], f"{index_dir}-sli.tif"))

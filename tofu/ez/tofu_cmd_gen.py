@@ -16,6 +16,7 @@ class tofu_cmds(object):
 
     def __init__(self, fol):
         self._fdt_names = fol
+        self.common_fd_used = False
 
     def make_inpaths(self, lvl0, flats2, args):
         """
@@ -26,20 +27,18 @@ class tofu_cmds(object):
         """
         indir = []
         # If using flats/darks/flats2 in same dir as tomo
-        if not args.main_config_common_flats_darks:
-            for i in self._fdt_names[:3]:
-                indir.append(os.path.join(lvl0, i))
-            if flats2 - 3:
-                indir.append(os.path.join(lvl0, self._fdt_names[3]))
-            return indir
+        for i in self._fdt_names[:3]:
+            indir.append(os.path.join(lvl0, i))
+        if flats2 - 3:
+            indir.append(os.path.join(lvl0, self._fdt_names[3]))
         # If using common flats/darks/flats2 across multiple reconstructions
-        elif args.main_config_common_flats_darks:
-            indir.append(args.main_config_darks_path)
-            indir.append(args.main_config_flats_path)
-            indir.append(os.path.join(lvl0, self._fdt_names[2]))
+        if args.main_config_common_flats_darks and not self.common_fd_used:
+            indir[0] = args.main_config_darks_path
+            indir[1] = args.main_config_flats_path
             if args.main_config_flats2_checkbox:
-                indir.append(args.main_config_flats2_path)
-            return indir
+                indir[3] = args.main_config_flats2_path
+            self.common_fd_used = True
+        return indir
 
     def check_lamino(self, cmd, args):
         cmd += 'tofu reco'
