@@ -36,6 +36,6 @@ def get_writer(params):
     if hasattr (writer.props, 'bytes_per_file'):
         writer.props.bytes_per_file = params.output_bytes_per_file
     if hasattr(writer.props, 'tiff_bigtiff'):
-        writer.props.tiff_bigtiff = params.output_bytes_per_file > 2 ** 32
+        writer.props.tiff_bigtiff = params.output_bytes_per_file > 2 ** 32 - 2 ** 25
 
     return writer
