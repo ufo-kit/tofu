@@ -4,7 +4,7 @@ import logging
 from gi.repository import Ufo
 from tofu.util import (get_filenames, set_node_props, make_subargs,
                        determine_shape, setup_read_task,
-                       setup_padding, next_power_of_two)
+                       setup_padding, next_power_of_two, run_scheduler)
 from tofu.tasks import get_task, get_writer
 
 
@@ -198,7 +198,7 @@ def run_flat_correct(args):
     out_task = get_writer(args)
     flat_task = create_flat_correct_pipeline(args, graph)
     graph.connect_nodes(flat_task, out_task)
-    sched.run(graph)
+    run_scheduler(sched, graph)
 
 
 def create_sinogram_pipeline(args, graph):
@@ -243,12 +243,15 @@ def run_sinogram_generation(args):
 
         sinos = create_sinogram_pipeline(args, graph)
         graph.connect_nodes(sinos, writer)
-        sched.run(graph)
+
+        return run_scheduler(sched, graph)
 
     for i in range(len(starts) - 1):
         args.y = starts[i]
         args.height = starts[i + 1] - starts[i]
-        generate_partial(append=i != 0)
+        if not generate_partial(append=i != 0):
+            # We were interrupted
+            break
 
 
 def create_projection_filtering_pipeline(args, graph, processing_node=None):
@@ -366,4 +369,4 @@ def run_preprocessing(args):
     current = create_preprocessing_pipeline(args, graph)
     graph.connect_nodes(current, out_task)
 
-    sched.run(graph)
+    run_scheduler(sched, graph)

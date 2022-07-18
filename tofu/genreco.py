@@ -8,6 +8,7 @@ import os
 import time
 import numpy as np
 from multiprocessing.pool import ThreadPool
+from threading import Event, Thread
 from gi.repository import Ufo
 from .preprocess import create_preprocessing_pipeline
 from .util import (get_filtering_padding, get_reconstructed_cube_shape,
@@ -170,30 +171,55 @@ def _run(resources, args, x_region, y_region, regions, run_number, vol_nbytes):
     thread per GPU and optimize the read projection regions.
     """
     executors = []
+    writer = None
+    last = None
+
+    if is_output_single_file(args):
+        import tifffile
+        bigtiff = vol_nbytes > 2 ** 32 - 2 ** 25
+        LOG.debug('Writing BigTiff: %s', bigtiff)
+        dirname = os.path.dirname(args.output)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+        writer = tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=bigtiff)
+
     for index in range(len(regions)):
         gpu_index, region = regions[index]
         region_index = run_number * len(resources) + index
-        executors.append(Executor(resources[index], args, region, x_region, y_region,
-                                  gpu_index, region_index))
+        executors.append(
+            Executor(
+                resources[index],
+                args,
+                region,
+                x_region,
+                y_region,
+                gpu_index,
+                region_index,
+                writer=writer
+            )
+        )
+        if last:
+            # Chain up waiting events of subsequent executors
+            executors[-1].wait_event = last.finished
+        last = executors[-1]
 
     def start_one(index):
         return executors[index].process()
 
     st = time.time()
-    pool = ThreadPool(processes=len(regions))
-    result = pool.map_async(start_one, list(range(len(regions))))
 
-    if is_output_single_file(args):
-        import tifffile
-        bigtiff = vol_nbytes > 2 ** 32 - 1
-        LOG.debug('Writing BigTiff: %s', bigtiff)
-        dirname = os.path.dirname(args.output)
-        if dirname and not os.path.exists(dirname):
-            os.makedirs(dirname)
-        with tifffile.TiffWriter(args.output, append=run_number != 0, bigtiff=bigtiff) as writer:
-            for executor in executors:
-                executor.consume(writer)
-    result.wait()
+    try:
+        with ThreadPool(processes=len(regions)) as pool:
+            try:
+                pool.map(start_one, list(range(len(regions))))
+            except KeyboardInterrupt:
+                LOG.info('Processing interrupted')
+                for executor in executors:
+                    executor.abort()
+    finally:
+        if writer:
+            writer.close()
+            LOG.debug('Writer closed')
 
     return time.time() - st
 
@@ -361,7 +387,13 @@ def _are_values_equal(values):
 
 
 class Executor(object):
-    def __init__(self, resources, args, region, x_region, y_region, gpu_index, region_index):
+    """Reconstructs one region.
+
+    :param writer: if not None, we'll be writing to a file shared with other executors and need to
+    use *wait_event* to make sure we write our region when the previous executors are finished.
+    """
+    def __init__(self, resources, args, region, x_region, y_region, gpu_index, region_index,
+                 writer=None):
         self.resources = resources
         self.args = args
         self.region = region
@@ -369,14 +401,18 @@ class Executor(object):
         self.x_region = x_region
         self.y_region = y_region
         self.region_index = region_index
-        self.single_file_output = is_output_single_file(self.args)
-        self.output = Ufo.OutputTask() if self.single_file_output else None
+        self.writer = writer
+        self.output = Ufo.OutputTask() if self.writer else None
+        self.scheduler = None
+        self.wait_event = None
+        self.finished = Event()
+        self.abort_requested = False
 
     def process(self):
-        scheduler = Ufo.FixedScheduler()
-        scheduler.set_resources(self.resources)
+        self.scheduler = Ufo.FixedScheduler()
+        self.scheduler.set_resources(self.resources)
         graph = Ufo.TaskGraph()
-        gpu = scheduler.get_resources().get_gpu_nodes()[self.gpu_index]
+        gpu = self.scheduler.get_resources().get_gpu_nodes()[self.gpu_index]
         geometry = CTGeometry(self.args)
         if (len(self.args.center_position_z) == 1 and
                 np.modf(self.args.center_position_z[0])[0] == 0 and
@@ -399,21 +435,44 @@ class Executor(object):
             source = None
         last = setup_graph(opt_args, graph, self.x_region, self.y_region, self.region,
                            source=source, gpu=gpu, index=self.region_index, make_reader=True,
-                           do_output=not self.single_file_output)[-1]
-        if self.single_file_output:
+                           do_output=self.writer is None)[-1]
+        if self.writer:
             graph.connect_nodes(last, self.output)
+
         LOG.debug('Device: %d, region: %s', self.gpu_index, self.region)
-        scheduler.run(graph)
+        thread = Thread(target=self.scheduler.run, args=(graph,))
+        thread.setDaemon(True)
+        thread.start()
 
-        return scheduler.props.time
+        if self.writer:
+            self.consume()
 
-    def consume(self, writer):
+        thread.join()
+
+        return self.scheduler.props.time
+
+    def consume(self):
         import ufo.numpy
 
+        if self.wait_event:
+            LOG.debug('Executor of region %s waiting for writing', self.region)
+            self.wait_event.wait()
+
         for i in np.arange(*self.region):
+            if self.abort_requested:
+                LOG.debug('Abort requested in writing of region %s', self.region)
+                return
             buf = self.output.get_output_buffer()
-            writer.save(ufo.numpy.asarray(buf))
+            self.writer.save(ufo.numpy.asarray(buf))
             self.output.release_output_buffer(buf)
+
+        self.finished.set()
+        LOG.debug('Executor of region %s finished writing', self.region)
+
+    def abort(self):
+        self.abort_requested = True
+        if self.scheduler:
+            self.scheduler.abort()
 
 
 class CTGeometry(object):
