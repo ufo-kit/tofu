@@ -1250,7 +1250,7 @@ class UfoVaryingInputModel(UfoTaskModel):
             num_inputs, ok = QInputDialog.getInt(parent,
                                                  dialog_title,
                                                  dialog_label,
-                                                 value=1, minValue=1, maxValue=10, step=1)
+                                                 value=1, min=1, max=10, step=1)
             if not ok:
                 raise UfoModelError('Number of inputs must be specified')
         self.num_ports = {PortType.input: num_inputs, PortType.output: 1}
