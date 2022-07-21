@@ -1,5 +1,7 @@
 import os
 import logging
+from functools import partial
+
 import numpy as np
 from shutil import rmtree
 
@@ -13,7 +15,7 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QLineEdit,
 )
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, QTimer
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import Qt
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
@@ -603,8 +605,20 @@ class ConfigGroup(QGroupBox):
         These are then passed to execute_reconstruction
         """
         LOG.debug("RECO")
+        self.set_fdt_names()
+        self.set_common_darks()
+        self.set_common_flats()
+        self.set_common_flats2()
+        self.set_big_tiff()
+        self.set_input_dir()
+        self.set_output_dir()
+        self.set_temp_dir()
+        self.set_preproc()
+        self.set_preproc_entry()
         LOG.debug(parameters.params)
-        self.run_reconstruction(parameters.params, batch_run=False)
+        run_reco = partial(self.run_reconstruction, parameters.params, batch_run=False)
+        QTimer.singleShot(100, run_reco)
+        #self.run_reconstruction(parameters.params, batch_run=False)
 
     def run_reconstruction(self, params, batch_run):
         try:
