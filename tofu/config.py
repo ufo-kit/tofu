@@ -631,10 +631,21 @@ SECTIONS['find-large-spots'] = {
         'type': str,
         'help': "Location with input images",
         'metavar': 'PATH'},
+    'transpose-input': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Transpose image when *vertical_sigma* is True, i.e. filter horizontal stripes "
+                "instead of vertical"},
     'gauss-sigma': {
         'default': 0.0,
         'type': float,
         'help': "Gaussian sigma for removing low frequencies (filter will be 1 - gauss window)"},
+    'vertical-sigma': {
+        'default': False,
+        'action': 'store_true',
+        'help': "*gauss-sigma* will be used for removing low frequencies in a horizontal stripe "
+                "(vertical Gaussian profile applied around frequency ky=0 for all kx in a 1 - "
+                "gauss window fashion)"},
     'blurred-output': {
         'default': None,
         'type': str,
