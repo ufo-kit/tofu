@@ -1,6 +1,12 @@
 import logging
 from gi.repository import Ufo
-from tofu.util import set_node_props, determine_shape, setup_read_task, setup_padding
+from tofu.util import (
+    get_filtering_padding,
+    set_node_props,
+    determine_shape,
+    setup_read_task,
+    setup_padding
+)
 from tofu.tasks import get_task, get_writer
 
 
@@ -28,30 +34,62 @@ def find_large_spots(args):
     set_node_props(reader, args)
     setup_read_task(reader, args.images, args)
     if args.gauss_sigma:
-        reader_2 = get_task('read')
-        set_node_props(reader_2, args)
-        setup_read_task(reader_2, args.images, args)
+        width, height = determine_shape(args, path=args.images)
         pad = get_task('pad')
         crop = get_task('crop')
-        opencl = get_task('opencl', kernel='diff', filename='opencl.cl')
 
-        width, height = determine_shape(args, path=args.images)
-        gauss_size = int(10 * args.gauss_sigma)
+        if args.vertical_sigma:
+            pad_width = 0
+            pad_height = get_filtering_padding(height)
+            fft = get_task('fft', dimensions=2)
+            ifft = get_task('ifft', dimensions=2)
+            filter_stripes = get_task(
+                'filter-stripes',
+                vertical_sigma=args.gauss_sigma,
+                horizontal_sigma=0.0
+            )
+
+            graph.connect_nodes(reader, pad)
+            if args.transpose_input:
+                transpose = get_task('transpose')
+                itranspose = get_task('transpose')
+                graph.connect_nodes(pad, transpose)
+                graph.connect_nodes(transpose, fft)
+            else:
+                graph.connect_nodes(pad, fft)
+            graph.connect_nodes(fft, filter_stripes)
+            graph.connect_nodes(filter_stripes, ifft)
+            if args.transpose_input:
+                graph.connect_nodes(ifft, itranspose)
+                graph.connect_nodes(itranspose, crop)
+            else:
+                graph.connect_nodes(ifft, crop)
+            last = crop
+        else:
+            reader_2 = get_task('read')
+            set_node_props(reader_2, args)
+            setup_read_task(reader_2, args.images, args)
+            opencl = get_task('opencl', kernel='diff', filename='opencl.cl')
+            gauss_size = int(10 * args.gauss_sigma)
+            pad_width = pad_height = gauss_size
+            LOG.debug("Gauss size: %d", gauss_size)
+            blur = get_task('blur', sigma=args.gauss_sigma, size=gauss_size)
+            graph.connect_nodes_full(reader, opencl, 0)
+            graph.connect_nodes(reader_2, pad)
+            graph.connect_nodes(pad, blur)
+            graph.connect_nodes(blur, crop)
+            graph.connect_nodes_full(crop, opencl, 1)
+            last = opencl
+
         setup_padding(pad, width, height, args.find_large_spots_padding_mode,
-                      crop=crop, pad_width=gauss_size, pad_height=gauss_size)
-        LOG.debug("Gauss size: %d", gauss_size)
-        blur = get_task('blur', sigma=args.gauss_sigma, size=gauss_size)
-        graph.connect_nodes_full(reader, opencl, 0)
-        graph.connect_nodes(reader_2, pad)
-        graph.connect_nodes(pad, blur)
-        graph.connect_nodes(blur, crop)
-        graph.connect_nodes_full(crop, opencl, 1)
+                      crop=crop, pad_width=pad_width, pad_height=pad_height)
+
         if args.blurred_output:
-            graph.connect_nodes(opencl, broadcast)
+            graph.connect_nodes(last, broadcast)
             graph.connect_nodes(broadcast, blurred_writer)
             source = broadcast
         else:
-            source = opencl
+            source = last
         graph.connect_nodes(source, find)
     else:
         graph.connect_nodes(reader, find)
