@@ -193,20 +193,31 @@ class Overlap360Group(QGroupBox):
 
     def overlap_button_pressed(self):
         LOG.debug("Find overlap button pressed")
-        if os.path.exists(self.parameters['360overlap_output_dir']) or \
-                os.path.exists(self.parameters['360overlap_temp_dir']):
+        if os.path.exists(self.parameters['360overlap_output_dir']) and \
+                    len(os.listdir(self.parameters['360overlap_output_dir'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Output directory or(and) temporary dir exist. Can I delete both?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Output directory exists and not empty. Can I delete it to continue?",
+                              qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
                     rmtree(self.parameters['360overlap_output_dir'])
+                except:
+                    QMessageBox.information(self, "Problem", "Cannot delete existing output dir")
+                    return
+        if os.path.exists(self.parameters['360overlap_temp_dir']) and \
+                len(os.listdir(self.parameters['360overlap_temp_dir'])) >0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Temporary dir exist and not empty. Can I delete it to continue?", qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
                     rmtree(self.parameters['360overlap_temp_dir'])
                 except:
-                    pass
-            else:
-                return
-        os.makedirs(self.parameters['360overlap_temp_dir'])
-        os.makedirs(self.parameters['360overlap_output_dir'])
+                    QMessageBox.information(self, "Problem", "Cannot delete existing tmp dir")
+                    return
+        if not os.path.exists(self.parameters['360overlap_temp_dir']):
+            os.makedirs(self.parameters['360overlap_temp_dir'])
+        if not os.path.exists(self.parameters['360overlap_output_dir']):
+            os.makedirs(self.parameters['360overlap_output_dir'])
         find_overlap(self.parameters)
         if os.path.exists(self.parameters['360overlap_output_dir']):
             params_file_path = os.path.join(self.parameters['360overlap_output_dir'], '360_overlap_params.yaml')
