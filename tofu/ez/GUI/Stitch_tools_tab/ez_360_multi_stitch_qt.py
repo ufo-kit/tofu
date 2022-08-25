@@ -211,7 +211,7 @@ class MultiStitch360Group(QGroupBox):
         self.parameters['360multi_temp_dir'] = os.path.join(
                         os.path.expanduser('~'), "tmp-batch360stitch")
         self.temp_dir_entry.setText(self.parameters['360multi_temp_dir'])
-        self.parameters['360multi_output_dir'] = os.path.expanduser('~')
+        self.parameters['360multi_output_dir'] = os.path.join(os.path.expanduser('~'),'stitched360')
         self.output_dir_entry.setText(self.parameters['360multi_output_dir'])
         self.parameters['360multi_crop_projections'] = True
         self.crop_checkbox.setChecked(self.parameters['360multi_crop_projections'])
@@ -362,29 +362,33 @@ class MultiStitch360Group(QGroupBox):
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
         self.get_fdt_names_on_stitch_pressed.emit()
-        if os.path.exists(self.parameters['360multi_temp_dir']):
+        if os.path.exists(self.parameters['360multi_temp_dir']) and \
+                    len(os.listdir(self.parameters['360multi_temp_dir'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Temporary dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Temporary dir exist and not empty. Can I delete it to continue?"
+                              , qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
                     rmtree(self.parameters['360multi_temp_dir'])
                 except:
-                    warning_message("Problems with deleting directory")
+                    warning_message("Cannot delete tmp directory")
+                    return
             else:
                 return
 
-        if os.path.exists(self.parameters['360multi_output_dir']):
-            warning_message('Output directory exists. Delete it or select another one.')
-            return
-
-        # if os.path.exists(self.parameters['360multi_output_dir']):
-        #     # raise ValueError('Output directory exists')
-        #     qm = QMessageBox()
-        #     rep = qm.question(self, '', "Output dir is not empty. Can I delete it?", qm.Yes | qm.No)
-        #     if rep == qm.Yes:
-        #         os.system('rm -r {}'.format(self.parameters['360multi_output_dir']))
-        #     else:
-        #         return
+        if os.path.exists(self.parameters['360multi_output_dir']) and \
+                    len(os.listdir(self.parameters['360multi_output_dir'])) > 0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Output directory exists and not empty. Can I delete it to continue?",
+                              qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
+                    rmtree(self.parameters['360overlap_output_dir'])
+                except:
+                    warning_message(self, "Problem", "Cannot delete existing output dir")
+                    return
+            else:
+                return
 
         print("======= Begin 360 Multi-Stitch =======")
         main_360_mp_depth2(self.parameters)

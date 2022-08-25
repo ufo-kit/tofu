@@ -9,7 +9,7 @@ import shutil
 
 import numpy as np
 import tifffile
-from tofu.util import read_image, get_image_shape
+from tofu.util import read_image, get_image_shape, get_filenames
 from tofu.ez.image_read_write import TiffSequenceReader
 import multiprocessing as mp
 from functools import partial
@@ -268,13 +268,14 @@ def main_conc_mp(parameters):
 ############################## HALF ACQ ##############################
 def stitch(first, second, axis, crop):
     h, w = first.shape
-    if axis > w / 2:
-        dx = int(2 * (w - axis) + 0.5)
-    else:
-        dx = int(2 * axis + 0.5)
-        tmp = np.copy(first)
-        first = second
-        second = tmp
+    if axis > w // 2:
+        axis = w - axis
+        first = np.fliplr(first)
+        second = np.fliplr(second)
+    dx = int(2 * axis + 0.5)
+    tmp = np.copy(first)
+    first = second
+    second = tmp
     result = np.empty((h, 2 * w - dx), dtype=first.dtype)
     ramp = np.linspace(0, 1, dx)
 
@@ -295,8 +296,7 @@ def stitch_float32_output(first, second, axis, crop):
     print(f"Stitching two halves with axis {axis}, cropping by {crop}")
     h, w = first.shape
     if axis > w // 2:
-        print("Axis on the right")
-        axis = w - axis - 1
+        axis = w - axis
         first = np.fliplr(first)
         second = np.fliplr(second)
     dx = int(2 * axis + 0.5)
@@ -420,7 +420,14 @@ def main_360_mp_depth2(parameters):
         #print(parameters['360multi_axis_dict'])
         dax = np.array(list(parameters['360multi_axis_dict'].values()))
     print(dax)
+    # compute crop:
     cra = np.max(dax)-dax
+    # Axis on the right ? Must open one file to find out ><
+    tmpname = os.path.join(parameters['360multi_input_dir'], ctdirs_rel_paths[0])
+    subdirs = [dI for dI in os.listdir(tmpname) if os.path.isdir(os.path.join(tmpname, dI))]
+    M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
+    if parameters['360multi_bottom_axis'] > M//2:
+        cra = dax - np.min(dax)
     print(cra)
 
     for i, ctdir in enumerate(ctdirs):

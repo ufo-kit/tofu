@@ -204,6 +204,8 @@ class Overlap360Group(QGroupBox):
                 except:
                     QMessageBox.information(self, "Problem", "Cannot delete existing output dir")
                     return
+            else:
+                return
         if os.path.exists(self.parameters['360overlap_temp_dir']) and \
                 len(os.listdir(self.parameters['360overlap_temp_dir'])) >0:
             qm = QMessageBox()
@@ -214,6 +216,8 @@ class Overlap360Group(QGroupBox):
                 except:
                     QMessageBox.information(self, "Problem", "Cannot delete existing tmp dir")
                     return
+            else:
+                return
         if not os.path.exists(self.parameters['360overlap_temp_dir']):
             os.makedirs(self.parameters['360overlap_temp_dir'])
         if not os.path.exists(self.parameters['360overlap_output_dir']):

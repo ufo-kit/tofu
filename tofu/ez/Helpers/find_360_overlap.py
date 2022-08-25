@@ -14,6 +14,7 @@ import tifffile
 from tofu.ez.image_read_write import TiffSequenceReader
 import tofu.ez.params as glob_parameters
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
+from tofu.util import get_filenames, get_image_shape
 
 
 
@@ -106,6 +107,8 @@ def find_overlap(parameters):
                           parameters['360overlap_upper_limit']+parameters['360overlap_increment'],
                           parameters['360overlap_increment']):
             cro = parameters['360overlap_upper_limit'] - axis
+            if axis > M // 2:
+                cro = axis - parameters['360overlap_lower_limit']
             A = stitch_float32_output(
                 tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro)
             print(A.shape[1])
@@ -115,7 +118,9 @@ def find_overlap(parameters):
             # perform reconstructions for each sinogram and save to output folder
 
         print('Reconstructing slices...')
-        reco_axis = M-parameters['360overlap_upper_limit'] # equivalently half-width
+        #reco_axis = M-parameters['360overlap_upper_limit'] # equivalently half-width
+        reco_axis = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]//2
+
         cmd = f'tofu tomo --axis {reco_axis} --sinograms {sin_tmp_dir}'
         cmd +=' --output '+os.path.join(os.path.join(
             parameters['360overlap_output_dir'], f"{index_dir}-sli.tif"))
