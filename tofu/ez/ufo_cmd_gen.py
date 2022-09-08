@@ -6,8 +6,7 @@ Created on Apr 6, 2018
 import glob
 import os
 from tofu.util import next_power_of_two
-from tofu.ez.image_read_write import TiffSequenceReader
-from tifffile import imwrite
+
 from tofu.ez.util import enquote
 
 
@@ -171,11 +170,7 @@ class ufo_cmds(object):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
         cmds = []
         ######### CREATE MASK #########
-        tsr = TiffSequenceReader(indir[1])
-        flat1 = tsr.read(tsr.num_images-1)  #taking the last flat
-        tsr.close()
         flat1_file = os.path.join(tmpdir, "flat1.tif")
-        imwrite(flat1_file, flat1)
         mask_file = os.path.join(tmpdir, "mask.tif")
         # generate mask
         cmd = 'tofu find-large-spots --images {}'.format(flat1_file)

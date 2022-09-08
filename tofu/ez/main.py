@@ -5,22 +5,18 @@ Created on Apr 5, 2018
 
 import logging
 import os
-from tofu.util import get_filenames, read_image
 import warnings
-
 warnings.filterwarnings("ignore")
 import time
-
-#from shutil import rmtree
 
 from tofu.ez.ctdir_walker import WalkCTdirs
 from tofu.ez.tofu_cmd_gen import tofu_cmds
 from tofu.ez.ufo_cmd_gen import ufo_cmds
 from tofu.ez.find_axis_cmd_gen import findCOR_cmds
 from tofu.ez.util import *
-
-# from tofu.util import get_filenames
-
+from tofu.ez.image_read_write import TiffSequenceReader
+from tifffile import imwrite
+import tofu.ez.params as glob_parameters
 
 LOG = logging.getLogger(__name__)
 
@@ -79,6 +75,14 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     Ufo.common_fd_used = False
     Tofu.common_fd_used = False
     if args.main_config_preprocess:
+        if args.main_filters_remove_spots:
+            # copy one flat to tmpdir now to format remaining commands correctly
+            tsr = TiffSequenceReader(os.path.join(ctset[0],
+                                    glob_parameters.params['main_config_flats_dir_name']))
+            flat1 = tsr.read(tsr.num_images - 1)  # taking the last flat
+            tsr.close()
+            flat1_file = os.path.join(args.main_config_temp_dir, "flat1.tif")
+            imwrite(flat1_file, flat1)
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = Ufo.get_pre_cmd(ctset, args.main_config_preprocess_command,
                                       args.main_config_temp_dir,
