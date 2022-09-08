@@ -26,10 +26,14 @@ class MultiStitch360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Batch horizontal stitching of half-acquistion mode data sets")
+        self.setTitle("360-MULTI-STITCH")
+        self.setToolTip("Converts half-acquistion data sets to ordinary projections \n"
+                      "and crops all images to the same size.")
         self.setStyleSheet('QGroupBox {color: red;}')
 
         self.input_dir_button = QPushButton("Select input directory")
+        self.input_dir_button.setToolTip("Contains multiple CT directories with flats/darks/tomo subdirectories. \n"
+                                         "Images in each will be stitched pair-wise [x and x+180 deg]")
         self.input_dir_button.clicked.connect(self.input_button_pressed)
 
         self.input_dir_entry = QLineEdit()
@@ -206,23 +210,24 @@ class MultiStitch360Group(QGroupBox):
 
     def init_values(self):
         self.parameters = {'parameters_type': '360_multi_stitch'}
-        self.parameters['360multi_input_dir'] = os.path.expanduser('~')#"~/"#os.getcwd()
+        self.parameters['360multi_input_dir'] = os.path.expanduser('~')# #EZVARS['360-batch-stitch']['indir']
         self.input_dir_entry.setText(self.parameters['360multi_input_dir'])
-        self.parameters['360multi_temp_dir'] = os.path.join(
+        self.parameters['360multi_temp_dir'] = os.path.join(  #EZVARS['360-batch-stitch']['tmpdir']
                         os.path.expanduser('~'), "tmp-batch360stitch")
         self.temp_dir_entry.setText(self.parameters['360multi_temp_dir'])
-        self.parameters['360multi_output_dir'] = os.path.join(os.path.expanduser('~'),'stitched360')
+        self.parameters['360multi_output_dir'] = os.path.join(os.path.expanduser('~'),'stitched360') #EZVARS['360-batch-stitch']['outdir']
         self.output_dir_entry.setText(self.parameters['360multi_output_dir'])
-        self.parameters['360multi_crop_projections'] = True
+        self.parameters['360multi_crop_projections'] = True   #EZVARS['360-batch-stitch']['crop']
         self.crop_checkbox.setChecked(self.parameters['360multi_crop_projections'])
-        self.parameters['360multi_bottom_axis'] = 245
+        self.parameters['360multi_bottom_axis'] = 245  #EZVARS['360-batch-stitch']['COR-in-first-set']
         self.axis_bottom_entry.setText(str(self.parameters['360multi_bottom_axis']))
-        self.parameters['360multi_top_axis'] = 245
+        self.parameters['360multi_top_axis'] = 245  #EZVARS['360-batch-stitch']['COR-in-last-set']
         self.axis_top_entry.setText(str(self.parameters['360multi_top_axis']))
         self.parameters['360multi_axis'] = self.parameters['360multi_bottom_axis']
-        self.parameters['360multi_manual_axis'] = False
+        self.parameters['360multi_manual_axis'] = False   #EZVARS['360-batch-stitch']['COR-user-defined']
         self.parameters['360multi_axis_dict'] = dict.fromkeys(['z000', 'z001', 'z002', 'z003', 'z004', 'z005',
                                                                'z006', 'z007', 'z008', 'z009', 'z010', 'z011'], 200)
+        # EZVARS['360-batch-stitch']['COR-dict']
 
     def update_parameters(self, new_parameters):
         LOG.debug("Update parameters")

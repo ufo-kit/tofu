@@ -263,6 +263,10 @@ class FiltersGroup(QGroupBox):
         parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = \
             str(self.sigma_vertical_entry.text())
 
+    def set_ufoRR_params_for_360_axis_search(self):
+        self.set_sigma_vertical()
+        self.set_sigma_horizontal()
+
     def set_window_size(self):
         LOG.debug(self.wind_size_entry.text())
         parameters.params['main_filters_ring_removal_sarepy_window_size'] = str(self.wind_size_entry.text())

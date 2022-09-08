@@ -119,6 +119,10 @@ class GUI(qtw.QWidget):
         self.multi_stitch_group.get_fdt_names_on_stitch_pressed.connect(self.config_group.set_fdt_names)
         self.overlap_group.get_fdt_names_on_stitch_pressed.connect(self.config_group.set_fdt_names)
 
+        # To pass RR params from filters section to 360-search tab when button pressed
+        self.overlap_group.get_RR_params_on_start_pressed.connect(
+            self.filters_group.set_ufoRR_params_for_360_axis_search)
+
         finish = qtw.QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
 

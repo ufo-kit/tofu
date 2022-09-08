@@ -28,9 +28,10 @@ class EZMViewGroup(QGroupBox):
         self.e_ndarks = 0
         self.e_nviews = 0
         self.e_noflats2 = False
-        self.e_Andor = False
+        #self.e_Andor = False
 
-        self.setTitle("Split a sequence of tif files over flats/darks/tomo directories")
+        self.setTitle("EZ-MVIEW")
+        self.setToolTip("Splits a sequence of tif files over flats/darks/tomo directories")
         self.setStyleSheet("QGroupBox {color: green;}")
 
         self.input_dir_button = QPushButton()
@@ -126,11 +127,11 @@ class EZMViewGroup(QGroupBox):
         self.num_darks_entry.setText("10")
         self.parameters['ezmview_num_darks'] = 10
         self.num_vert_steps_entry.setText("1")
-        self.parameters['ezmview_num_vertical_steps'] = 1
+        self.parameters['ezmview_num_sets'] = 1
         self.no_trailing_flats_darks_checkbox.setChecked(False)
         self.parameters['ezmview_flats2'] = False
         self.filenames_without_padding_checkbox.setChecked(False)
-        self.parameters['ezmview_zero_padding'] = False
+        self.parameters['ezmview_no_zero_padding'] = False
 
     def update_parameters(self, new_parameters):
         LOG.debug("Update parameters")
@@ -144,9 +145,9 @@ class EZMViewGroup(QGroupBox):
         self.num_projections_entry.setText(str(self.parameters['ezmview_num_projections']))
         self.num_flats_entry.setText(str(self.parameters['ezmview_num_flats']))
         self.num_darks_entry.setText(str(self.parameters['ezmview_num_darks']))
-        self.num_vert_steps_entry.setText(str(self.parameters['ezmview_num_vertical_steps']))
+        self.num_vert_steps_entry.setText(str(self.parameters['ezmview_num_sets']))
         self.no_trailing_flats_darks_checkbox.setChecked(bool(self.parameters['ezmview_flats2']))
-        self.filenames_without_padding_checkbox.setChecked(bool(self.parameters['ezmview_zero_padding']))
+        self.filenames_without_padding_checkbox.setChecked(bool(self.parameters['ezmview_no_zero_padding']))
 
     def select_directory(self):
         LOG.debug("Select directory button pressed")
@@ -182,7 +183,7 @@ class EZMViewGroup(QGroupBox):
     def set_file_names_checkbox(self):
         LOG.debug("File names without zero padding: " +
                       str(self.filenames_without_padding_checkbox.isChecked()))
-        self.parameters['ezmview_zero_padding'] = \
+        self.parameters['ezmview_no_zero_padding'] = \
             bool(self.filenames_without_padding_checkbox.isChecked())
 
     def convert_button_pressed(self):

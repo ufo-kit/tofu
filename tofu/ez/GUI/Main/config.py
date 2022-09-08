@@ -43,7 +43,7 @@ class ConfigGroup(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Configuration")
+        self.setTitle("Input/output and misc settings")
         self.setStyleSheet("QGroupBox {color: purple;}")
 
         self.yaml_io = Yaml_IO()
@@ -884,179 +884,180 @@ class tk_args():
 
         self.args={}
         # PATHS
-        self.args['main_config_input_dir']=str(main_config_input_dir)
+        self.args['main_config_input_dir']=str(main_config_input_dir)               # EZVARS['inout']['input-dir']
         setattr(self,'main_config_input_dir',self.args['main_config_input_dir'])
-        self.args['main_config_output_dir']=str(main_config_output_dir)
+        self.args['main_config_output_dir']=str(main_config_output_dir)             # EZVARS['inout']['output-dir']
         setattr(self,'main_config_output_dir',self.args['main_config_output_dir'])
-        self.args['main_config_temp_dir']=str(main_config_temp_dir)
+        self.args['main_config_temp_dir']=str(main_config_temp_dir)                 # EZVARS['inout']['tmp-dir']
         setattr(self,'main_config_temp_dir',self.args['main_config_temp_dir'])
-        self.args['main_config_save_multipage_tiff']=bool(main_config_save_multipage_tiff)
+        self.args['main_config_save_multipage_tiff']=bool(main_config_save_multipage_tiff)  # EZVARS['inout']['bigtiff-output']
         setattr(self,'main_config_save_multipage_tiff',self.args['main_config_save_multipage_tiff'])
         # center of rotation parameters
-        self.args['main_cor_axis_search_method']=int(main_cor_axis_search_method)
+        self.args['main_cor_axis_search_method']=int(main_cor_axis_search_method)           # EZVARS['COR']['search-method']
         setattr(self,'main_cor_axis_search_method',self.args['main_cor_axis_search_method'])
-        self.args['main_cor_axis_search_interval']=str(main_cor_axis_search_interval)
+        self.args['main_cor_axis_search_interval']=str(main_cor_axis_search_interval)       # EZVARS['COR']['search-interval']
         setattr(self,'main_cor_axis_search_interval',self.args['main_cor_axis_search_interval'])
-        self.args['main_cor_recon_patch_size']=int(main_cor_recon_patch_size)
+        self.args['main_cor_recon_patch_size']=int(main_cor_recon_patch_size)               # EZVARS['COR']['patch-size']
         setattr(self,'main_cor_recon_patch_size',self.args['main_cor_recon_patch_size'])
-        self.args['main_cor_search_row_start']=int(main_cor_search_row_start)
+        self.args['main_cor_search_row_start']=int(main_cor_search_row_start)               # EZVARS['COR']['search-row']
         setattr(self,'main_cor_search_row_start',self.args['main_cor_search_row_start'])
-        self.args['main_cor_axis_column']=float(main_cor_axis_column)
+        self.args['main_cor_axis_column']=float(main_cor_axis_column)                       # EZVARS['COR']['user-defined-ax']
         setattr(self,'main_cor_axis_column',self.args['main_cor_axis_column'])
-        self.args['main_cor_axis_increment_step']=float(main_cor_axis_increment_step)
+        self.args['main_cor_axis_increment_step']=float(main_cor_axis_increment_step)       # EZVARS['COR']['user-defined-dax']
         setattr(self,'main_cor_axis_increment_step',self.args['main_cor_axis_increment_step'])
         #ring removal
-        self.args['main_filters_remove_spots']=bool(main_filters_remove_spots)
+        self.args['main_filters_remove_spots']=bool(main_filters_remove_spots)          # EZVARS['filters']['rm_spots']
         setattr(self,'main_filters_remove_spots',self.args['main_filters_remove_spots'])
-        self.args['main_filters_remove_spots_threshold']=int(main_filters_remove_spots_threshold)
+        self.args['main_filters_remove_spots_threshold']=int(main_filters_remove_spots_threshold) # SECTIONS['find-large-spots']['spot-threshold']
         setattr(self,'main_filters_remove_spots_threshold', self.args['main_filters_remove_spots_threshold'])
-        self.args['main_filters_remove_spots_blur_sigma']=int(main_filters_remove_spots_blur_sigma)
+        self.args['main_filters_remove_spots_blur_sigma']=int(main_filters_remove_spots_blur_sigma) # SECTIONS['find-large-spots']['gauss-sigma']
         setattr(self,'main_filters_remove_spots_blur_sigma',self.args['main_filters_remove_spots_blur_sigma'])
-        self.args['main_filters_ring_removal']=bool(main_filters_ring_removal)
+        self.args['main_filters_ring_removal']=bool(main_filters_ring_removal)                     #EZVARS['RR']['enable']
         setattr(self,'main_filters_ring_removal',self.args['main_filters_ring_removal'])
-        self.args['main_filters_ring_removal_ufo_lpf'] = bool(main_filters_ring_removal_ufo_lpf)
+        self.args['main_filters_ring_removal_ufo_lpf'] = bool(main_filters_ring_removal_ufo_lpf)   #EZVARS['RR']['use-ufo']
         setattr(self, 'main_filters_ring_removal_ufo_lpf', self.args['main_filters_ring_removal_ufo_lpf'])
-        self.args['main_filters_ring_removal_ufo_lpf_1d_or_2d'] = bool(main_filters_ring_removal_ufo_lpf_1d_or_2d)
+        self.args['main_filters_ring_removal_ufo_lpf_1d_or_2d'] = bool(main_filters_ring_removal_ufo_lpf_1d_or_2d) #EZVARS['RR']['ufo-2d']
         setattr(self, 'main_filters_ring_removal_ufo_lpf_1d_or_2d', self.args['main_filters_ring_removal_ufo_lpf_1d_or_2d'])
-        self.args['main_filters_ring_removal_ufo_lpf_sigma_horizontal'] = int(main_filters_ring_removal_ufo_lpf_sigma_horizontal)
+        self.args['main_filters_ring_removal_ufo_lpf_sigma_horizontal'] = int(main_filters_ring_removal_ufo_lpf_sigma_horizontal) #EZVARS['RR']['sx']
         setattr(self,'main_filters_ring_removal_ufo_lpf_sigma_horizontal',self.args['main_filters_ring_removal_ufo_lpf_sigma_horizontal'])
-        self.args['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = int(main_filters_ring_removal_ufo_lpf_sigma_vertical)
+        self.args['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = int(main_filters_ring_removal_ufo_lpf_sigma_vertical)   #EZVARS['RR']['sy']
         setattr(self, 'main_filters_ring_removal_ufo_lpf_sigma_vertical', self.args['main_filters_ring_removal_ufo_lpf_sigma_vertical'])
-        self.args['main_filters_ring_removal_sarepy_window_size'] = int(main_filters_ring_removal_sarepy_window_size)
+        self.args['main_filters_ring_removal_sarepy_window_size'] = int(main_filters_ring_removal_sarepy_window_size) #EZVARS['RR']['spy-narrow-window']
         setattr(self, 'main_filters_ring_removal_sarepy_window_size', self.args['main_filters_ring_removal_sarepy_window_size'])
-        self.args['main_filters_ring_removal_sarepy_wide'] = bool(main_filters_ring_removal_sarepy_wide)
+        self.args['main_filters_ring_removal_sarepy_wide'] = bool(main_filters_ring_removal_sarepy_wide) #EZVARS['RR']['spy-rm-wide']
         setattr(self, 'main_filters_ring_removal_sarepy_wide', self.args['main_filters_ring_removal_sarepy_wide'])
-        self.args['main_filters_ring_removal_sarepy_window'] = int(main_filters_ring_removal_sarepy_window)
+        self.args['main_filters_ring_removal_sarepy_window'] = int(main_filters_ring_removal_sarepy_window) #EZVARS['RR']['spy-wide-window']
         setattr(self, 'main_filters_ring_removal_sarepy_window', self.args['main_filters_ring_removal_sarepy_window'])
-        self.args['main_filters_ring_removal_sarepy_SNR'] = int(main_filters_ring_removal_sarepy_SNR)
+        self.args['main_filters_ring_removal_sarepy_SNR'] = int(main_filters_ring_removal_sarepy_SNR) #EZVARS['RR']['spy-wide-SNR']
         setattr(self, 'main_filters_ring_removal_sarepy_SNR', self.args['main_filters_ring_removal_sarepy_SNR'])
         # phase retrieval
-        self.args['main_pr_phase_retrieval'] = bool(main_pr_phase_retrieval)
+        self.args['main_pr_phase_retrieval'] = bool(main_pr_phase_retrieval)       #SECTIONS['retrieve-phase']['enable']
         setattr(self, 'main_pr_phase_retrieval', self.args['main_pr_phase_retrieval'])
-        self.args['main_pr_photon_energy']=float(main_pr_photon_energy)
+        self.args['main_pr_photon_energy']=float(main_pr_photon_energy)             #SECTIONS['retrieve-phase']['energy']
         setattr(self,'main_pr_photon_energy',self.args['main_pr_photon_energy'])
-        self.args['main_pr_pixel_size']=float(main_pr_pixel_size)*1e-6
+        self.args['main_pr_pixel_size']=float(main_pr_pixel_size)*1e-6              #SECTIONS['retrieve-phase']['pixel-size']
         setattr(self,'main_pr_pixel_size',self.args['main_pr_pixel_size'])
-        self.args['main_pr_detector_distance']=float(main_pr_detector_distance)
+        self.args['main_pr_detector_distance']=float(main_pr_detector_distance)     #SECTIONS['retrieve-phase']['propagation-distance']
         setattr(self,'main_pr_detector_distance',self.args['main_pr_detector_distance'])
-        self.args['main_pr_delta_beta_ratio']=np.log10(float(main_pr_delta_beta_ratio))
-        setattr(self,'main_pr_delta_beta_ratio',self.args['main_pr_delta_beta_ratio'])
+        self.args['main_pr_delta_beta_ratio']=np.log10(float(main_pr_delta_beta_ratio))  #SECTIONS['retrieve-phase']['regularization-rate']
+        setattr(self,'main_pr_delta_beta_ratio',self.args['main_pr_delta_beta_ratio'])   # apply log10 to the input which is delta/beta
         # Crop vertically
-        self.args['main_region_select_rows']=bool(main_region_select_rows)
+        self.args['main_region_select_rows']=bool(main_region_select_rows)              #EZVARS['inout']['input_ROI']
         setattr(self,'main_region_select_rows',self.args['main_region_select_rows'])
-        self.args['main_region_first_row']=int(main_region_first_row)
+        self.args['main_region_first_row']=int(main_region_first_row)                   #SECTIONS['reading']['y']
         setattr(self,'main_region_first_row',self.args['main_region_first_row'])
-        self.args['main_region_number_rows']=int(main_region_number_rows)
+        self.args['main_region_number_rows']=int(main_region_number_rows)               #SECTIONS['reading']['height']
         setattr(self,'main_region_number_rows',self.args['main_region_number_rows'])
-        self.args['main_region_nth_row']=int(main_region_nth_row)
+        self.args['main_region_nth_row']=int(main_region_nth_row)                       #SECTIONS['reading']['y-step']
         setattr(self,'main_region_nth_row',self.args['main_region_nth_row'])
         # conv to 8 bit
-        self.args['main_region_clip_histogram']=bool(main_region_clip_histogram)
+        self.args['main_region_clip_histogram']=bool(main_region_clip_histogram)        #EZVARS['inout']['clip_hist']
         setattr(self,'main_region_clip_histogram',self.args['main_region_clip_histogram'])
-        self.args['main_region_bit_depth']=int(main_region_bit_depth)
+        self.args['main_region_bit_depth']=int(main_region_bit_depth)                   #SECTIONS['general']['output-bitdepth']
         setattr(self,'main_region_bit_depth',self.args['main_region_bit_depth'])
-        self.args['main_region_histogram_min']=float(main_region_histogram_min)
+        self.args['main_region_histogram_min']=float(main_region_histogram_min)         #SECTIONS['general']['output-minimum']
         setattr(self,'main_region_histogram_min',self.args['main_region_histogram_min'])
-        self.args['main_region_histogram_max']=float(main_region_histogram_max)
+        self.args['main_region_histogram_max']=float(main_region_histogram_max)             #SECTIONS['general']['output-maximum']
         setattr(self,'main_region_histogram_max',self.args['main_region_histogram_max'])
         # preprocessing attributes
-        self.args['main_config_preprocess']=bool(main_config_preprocess)
+        self.args['main_config_preprocess']=bool(main_config_preprocess)             #EZVARS['inout']['preprocess']
         setattr(self,'main_config_preprocess',self.args['main_config_preprocess'])
-        self.args['main_config_preprocess_command']=main_config_preprocess_command
+        self.args['main_config_preprocess_command']=main_config_preprocess_command     #EZVARS['inout']['preprocess-command']
         setattr(self,'main_config_preprocess_command',self.args['main_config_preprocess_command'])
         # ROI in slice
-        self.args['main_region_crop_slices']=bool(main_region_crop_slices)
+        self.args['main_region_crop_slices']=bool(main_region_crop_slices)              #EZVARS['inout']['output-ROI']
         setattr(self,'main_region_crop_slices',self.args['main_region_crop_slices'])
-        self.args['main_region_crop_x']=int(main_region_crop_x)
+        self.args['main_region_crop_x']=int(main_region_crop_x)                         #EZVARS['inout']['output-x']
         setattr(self,'main_region_crop_x',self.args['main_region_crop_x'])
-        self.args['main_region_crop_width']=int(main_region_crop_width)
+        self.args['main_region_crop_width']=int(main_region_crop_width)                 #EZVARS['inout']['output-width']
         setattr(self,'main_region_crop_width',self.args['main_region_crop_width'])
-        self.args['main_region_crop_y']=int(main_region_crop_y)
+        self.args['main_region_crop_y']=int(main_region_crop_y)                         #EZVARS['inout']['output-y']
         setattr(self,'main_region_crop_y',self.args['main_region_crop_y'])
-        self.args['main_region_crop_height']=int(main_region_crop_height)
+        self.args['main_region_crop_height']=int(main_region_crop_height)               #EZVARS['inout']['output-height']
         setattr(self,'main_region_crop_height',self.args['main_region_crop_height'])
         # Optional FBP params
-        self.args['main_region_rotate_volume_clock']= float(main_region_rotate_volume_clock)
-        setattr(self,'main_region_rotate_volume_clock',self.args['main_region_rotate_volume_clock'])
+        self.args['main_region_rotate_volume_clock']= float(main_region_rotate_volume_clock)   #SECTIONS['general-reconstruction']['volume-angle-z']
+        setattr(self,'main_region_rotate_volume_clock',self.args['main_region_rotate_volume_clock'])  #
         # misc settings
-        self.args['main_config_dry_run']=bool(main_config_dry_run)
+        self.args['main_config_dry_run']=bool(main_config_dry_run)    #EZVARS['inout']['dryrun']
         setattr(self,'main_config_dry_run',self.args['main_config_dry_run'])
-        self.args['main_config_save_params']=bool(main_config_save_params)
+        self.args['main_config_save_params']=bool(main_config_save_params)      #EZVARS['inout']['save-params']
         setattr(self,'main_config_save_params',self.args['main_config_save_params'])
-        self.args['main_config_keep_temp']=bool(main_config_keep_temp)
+        self.args['main_config_keep_temp']=bool(main_config_keep_temp)          #EZVARS['inout']['keep-tmp']
         setattr(self,'main_config_keep_temp',self.args['main_config_keep_temp'])
         #sinFFC settings
-        self.args['advanced_ffc_sinFFC']=bool(advanced_ffc_sinFFC)
+        self.args['advanced_ffc_sinFFC']=bool(advanced_ffc_sinFFC)          #EZVARS['flat-correction']['smart-ffc']
         setattr(self,'advanced_ffc_sinFFC', self.args['advanced_ffc_sinFFC'])
-        self.args['advanced_ffc_method'] = str(advanced_ffc_method)
+        self.args['advanced_ffc_method'] = str(advanced_ffc_method)         #EZVARS['flat-correction']['smart-ffc-method']
         setattr(self, 'advanced_ffc_method', self.args['advanced_ffc_method'])
-        self.args['advanced_ffc_eigen_pco_reps']=int(advanced_ffc_eigen_pco_reps)
+        self.args['advanced_ffc_eigen_pco_reps']=int(advanced_ffc_eigen_pco_reps)  #EZVARS['flat-correction']['eigen-pco-reps']
         setattr(self, 'advanced_ffc_eigen_pco_reps', self.args['advanced_ffc_eigen_pco_reps'])
-        self.args['advanced_ffc_eigen_pco_downsample'] = int(advanced_ffc_eigen_pco_downsample)
+        self.args['advanced_ffc_eigen_pco_downsample'] = int(advanced_ffc_eigen_pco_downsample)  #EZVARS['flat-correction']['eigen-pco-downsample']
         setattr(self, 'advanced_ffc_eigen_pco_downsample', self.args['advanced_ffc_eigen_pco_downsample'])
-        self.args['advanced_ffc_downsample'] = int(advanced_ffc_downsample)
+        self.args['advanced_ffc_downsample'] = int(advanced_ffc_downsample)   #EZVARS['flat-correction']['downsample']
         setattr(self, 'advanced_ffc_downsample', self.args['advanced_ffc_downsample'])
         #Settings for using flats/darks across multiple experiments
-        self.args['main_config_common_flats_darks'] = bool(main_config_common_flats_darks)
+        self.args['main_config_common_flats_darks'] = bool(main_config_common_flats_darks) #EZVARS['inout']['shared-flatsdarks']
         setattr(self, 'main_config_common_flats_darks', self.args['main_config_common_flats_darks'])
-        self.args['main_config_darks_path'] = str(main_config_darks_path)
+        self.args['main_config_darks_path'] = str(main_config_darks_path)  #EZVARS['inout']['path2-shared-darks']
         setattr(self, 'main_config_darks_path', self.args['main_config_darks_path'])
-        self.args['main_config_flats_path'] = str(main_config_flats_path)
+        self.args['main_config_flats_path'] = str(main_config_flats_path)   #EZVARS['inout']['path2-shared-flats']
         setattr(self, 'main_config_flats_path', self.args['main_config_flats_path'])
-        self.args['main_config_flats2_checkbox'] = bool(main_config_flats2_checkbox)
+        self.args['main_config_flats2_checkbox'] = bool(main_config_flats2_checkbox)  #EZVARS['inout']['shared-flats-after']
         setattr(self, 'main_config_flats2_checkbox', self.args['main_config_flats2_checkbox'])
-        self.args['main_config_flats2_path'] = str(main_config_flats2_path)
+        self.args['main_config_flats2_path'] = str(main_config_flats2_path)    #EZVARS['inout']['path2-shared-flats-after']
         setattr(self, 'main_config_flats2_path', self.args['main_config_flats2_path'])
         #NLMDN Settings
-        self.args['advanced_nlmdn_apply_after_reco'] = bool(advanced_nlmdn_apply_after_reco)
+        self.args['advanced_nlmdn_apply_after_reco'] = bool(advanced_nlmdn_apply_after_reco) #EZVARS['nlmdn']['do-after-reco']
         setattr(self, 'advanced_nlmdn_apply_after_reco', self.args['advanced_nlmdn_apply_after_reco'])
-        self.args['advanced_nlmdn_input_dir'] = str(advanced_nlmdn_input_dir)
+        self.args['advanced_nlmdn_input_dir'] = str(advanced_nlmdn_input_dir)     #EZVARS['nlmdn']['input-dir']
         setattr(self, 'advanced_nlmdn_input_dir', self.args['advanced_nlmdn_input_dir'])
-        self.args['advanced_nlmdn_input_is_file'] = bool(advanced_nlmdn_input_is_file)
+        self.args['advanced_nlmdn_input_is_file'] = bool(advanced_nlmdn_input_is_file)  #EZVARS['nlmdn']['input-is-1file']
         setattr(self, 'advanced_nlmdn_input_is_file', self.args['advanced_nlmdn_input_is_file'])
-        self.args['advanced_nlmdn_output_dir'] = str(advanced_nlmdn_output_dir)
+        self.args['advanced_nlmdn_output_dir'] = str(advanced_nlmdn_output_dir)  #EZVARS['nlmdn']['output_pattern']
         setattr(self, 'advanced_nlmdn_output_dir', self.args['advanced_nlmdn_output_dir'])
-        self.args['advanced_nlmdn_save_bigtiff'] = bool(advanced_nlmdn_save_bigtiff)
+        self.args['advanced_nlmdn_save_bigtiff'] = bool(advanced_nlmdn_save_bigtiff)  #EZVARS['nlmdn']['bigtiff_output']
         setattr(self, 'advanced_nlmdn_save_bigtiff', self.args['advanced_nlmdn_save_bigtiff'])
-        self.args['advanced_nlmdn_sim_search_radius'] = str(advanced_nlmdn_sim_search_radius)
-        setattr(self, 'advanced_nlmdn_sim_search_radius', self.args['advanced_nlmdn_sim_search_radius'])
-        self.args['advanced_nlmdn_patch_radius'] = str(advanced_nlmdn_patch_radius)
+        self.args['advanced_nlmdn_sim_search_radius'] = str(advanced_nlmdn_sim_search_radius) #EZVARS['nlmdn']['search-radius']
+        setattr(self, 'advanced_nlmdn_sim_search_radius', self.args['advanced_nlmdn_sim_search_radius']) #positive integer
+        self.args['advanced_nlmdn_patch_radius'] = str(advanced_nlmdn_patch_radius)  #EZVARS['nlmdn']['patch-radius']
         setattr(self, 'advanced_nlmdn_patch_radius', self.args['advanced_nlmdn_patch_radius'])
-        self.args['advanced_nlmdn_smoothing_control'] = str(advanced_nlmdn_smoothing_control)
+        self.args['advanced_nlmdn_smoothing_control'] = str(advanced_nlmdn_smoothing_control)  #EZVARS['nlmdn']['h']
         setattr(self, 'advanced_nlmdn_smoothing_control', self.args['advanced_nlmdn_smoothing_control'])
-        self.args['advanced_nlmdn_noise_std'] = str(advanced_nlmdn_noise_std)
+        self.args['advanced_nlmdn_noise_std'] = str(advanced_nlmdn_noise_std)  #EZVARS['nlmdn']['sigma']
         setattr(self, 'advanced_nlmdn_noise_std', self.args['advanced_nlmdn_noise_std'])
-        self.args['advanced_nlmdn_window'] = str(advanced_nlmdn_window)
+        self.args['advanced_nlmdn_window'] = str(advanced_nlmdn_window)  #EZVARS['nlmdn']['window']
         setattr(self, 'advanced_nlmdn_window', self.args['advanced_nlmdn_window'])
-        self.args['advanced_nlmdn_fast'] = bool(advanced_nlmdn_fast)
+        self.args['advanced_nlmdn_fast'] = bool(advanced_nlmdn_fast)  #EZVARS['nlmdn']['fast']
         setattr(self, 'advanced_nlmdn_fast', self.args['advanced_nlmdn_fast'])
-        self.args['advanced_nlmdn_estimate_sigma'] = bool(advanced_nlmdn_estimate_sigma)
+        self.args['advanced_nlmdn_estimate_sigma'] = bool(advanced_nlmdn_estimate_sigma) #EZVARS['nlmdn']['estimate-sigma']
         setattr(self, 'advanced_nlmdn_estimate_sigma', self.args['advanced_nlmdn_estimate_sigma'])
-        self.args['advanced_nlmdn_dry_run'] = bool(advanced_nlmdn_dry_run)
+        self.args['advanced_nlmdn_dry_run'] = bool(advanced_nlmdn_dry_run)   #EZVARS['nlmdn']['dryrun']
         setattr(self, 'advanced_nlmdn_dry_run', self.args['advanced_nlmdn_dry_run'])
         #Advanced Settings
-        self.args['advanced_advtofu_extended_settings'] = bool(advanced_advtofu_extended_settings)
+        self.args['advanced_advtofu_extended_settings'] = bool(advanced_advtofu_extended_settings)  #EZVARS['advanced']['more-reco-params']
         setattr(self, 'advanced_advtofu_extended_settings', self.args['advanced_advtofu_extended_settings'])
-        self.args['advanced_advtofu_lamino_angle'] = str(advanced_advtofu_lamino_angle)
+        self.args['advanced_advtofu_lamino_angle'] = str(advanced_advtofu_lamino_angle)    #SECTIONS['general-reconstruction']['axis-angle-x']
         setattr(self, 'advanced_advtofu_lamino_angle', self.args['advanced_advtofu_lamino_angle'])
-        self.args['advanced_adv_tofu_z_axis_rotation'] = str(advanced_adv_tofu_z_axis_rotation)
+        self.args['advanced_adv_tofu_z_axis_rotation'] = str(advanced_adv_tofu_z_axis_rotation) #SECTIONS['general-reconstruction']['overall-angle']
         setattr(self, 'advanced_adv_tofu_z_axis_rotation', self.args['advanced_adv_tofu_z_axis_rotation'])
-        self.args['advanced_advtofu_center_position_z'] = str(advanced_advtofu_center_position_z)
+        self.args['advanced_advtofu_center_position_z'] = str(advanced_advtofu_center_position_z) #SECTIONS['general-reconstruction']['center-position-z']
         setattr(self, 'advanced_advtofu_center_position_z', self.args['advanced_advtofu_center_position_z'])
-        self.args['advanced_advtofu_y_axis_rotation'] = str(advanced_advtofu_y_axis_rotation)
+        self.args['advanced_advtofu_y_axis_rotation'] = str(advanced_advtofu_y_axis_rotation)   #SECTIONS['general-reconstruction']['axis-angle-y']
         setattr(self, 'advanced_advtofu_y_axis_rotation', self.args['advanced_advtofu_y_axis_rotation'])
-        self.args['advanced_advtofu_aux_ffc_dark_scale'] = str(advanced_advtofu_aux_ffc_dark_scale)
+        self.args['advanced_advtofu_aux_ffc_dark_scale'] = str(advanced_advtofu_aux_ffc_dark_scale) #SECTIONS['flat-correction']['dark-scale']
         setattr(self, 'advanced_advtofu_aux_ffc_dark_scale', self.args['advanced_advtofu_aux_ffc_dark_scale'])
-        self.args['advanced_advtofu_aux_ffc_flat_scale'] = str(advanced_advtofu_aux_ffc_flat_scale)
+        self.args['advanced_advtofu_aux_ffc_flat_scale'] = str(advanced_advtofu_aux_ffc_flat_scale)   #SECTIONS['flat-correction']['flat-scale']
         setattr(self, 'advanced_advtofu_aux_ffc_flat_scale', self.args['advanced_advtofu_aux_ffc_flat_scale'])
+        # SECTIONS['sinos']['pass-size'] must be added to RR groupbox
         #Optimization
-        self.args['advanced_optimize_verbose_console'] = bool(advanced_optimize_verbose_console)
+        self.args['advanced_optimize_verbose_console'] = bool(advanced_optimize_verbose_console) #SECTIONS['general']['verbose']
         setattr(self, 'advanced_optimize_verbose_console', self.args['advanced_optimize_verbose_console'])
-        self.args['advanced_optimize_slice_mem_coeff'] = str(advanced_optimize_slice_mem_coeff)
+        self.args['advanced_optimize_slice_mem_coeff'] = str(advanced_optimize_slice_mem_coeff) #SECTIONS['general-reconstruction']['slice-memory-coeff']
         setattr(self, 'advanced_optimize_slice_mem_coeff', self.args['advanced_optimize_slice_mem_coeff'])
-        self.args['advanced_optimize_num_gpus'] = str(advanced_optimize_num_gpus)
-        setattr(self, 'advanced_optimize_num_gpus', self.args['advanced_optimize_num_gpus'])
-        self.args['advanced_optimize_slices_per_device'] = str(advanced_optimize_slices_per_device)
+        self.args['advanced_optimize_num_gpus'] = str(advanced_optimize_num_gpus)  #SECTIONS['general-reconstruction']['data-splitting-policy']
+        setattr(self, 'advanced_optimize_num_gpus', self.args['advanced_optimize_num_gpus'])  # replace by 'data-splitting-policy' !!
+        self.args['advanced_optimize_slices_per_device'] = str(advanced_optimize_slices_per_device)  # 'num-gpu-threads' ??
         setattr(self, 'advanced_optimize_slices_per_device', self.args['advanced_optimize_slices_per_device'])
 
         LOG.debug("Contents of arg dict: ")

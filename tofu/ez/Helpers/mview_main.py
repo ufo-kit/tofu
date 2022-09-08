@@ -23,8 +23,8 @@ def check_folders(p, noflats2):
         os.makedirs(tmp)
 
 
-def rename_Andor(args):
-    names = get_filenames(os.path.join(args.input, "*.tif"))
+def rename_Andor(indir):
+    names = get_filenames(os.path.join(indir, "*.tif"))
     maxnum = re.match(".*?([0-9]+)$", names[0][:-4]).group(1)
     n_dgts = len(maxnum)
     trnc_len = n_dgts + 4
@@ -44,10 +44,10 @@ def rename_Andor(args):
             os.system(cmd)
 
 
-def main_prep(args):
-    if args.Andor:
-        rename_Andor(args)
-    frames = get_filenames(os.path.join(args.input, "*.tif"))
+def main_prep(params):
+    if params['ezmview_no_zero_padding']:
+        rename_Andor(params['ezmview_input_dir'])
+    frames = get_filenames(os.path.join(params['ezmview_input_dir'], "*.tif"))
 
     nframes = len(frames)
     if nframes == 0:
@@ -56,17 +56,18 @@ def main_prep(args):
 
     # replace first frame with the second to get rid of
     # corrupted first file in the PCO Edge sequencies
+    # Happened long ago in CamWare ...
     cmd = "rm {}; cp {} {}".format(frames[0], frames[1], frames[0])
     os.system(cmd)
 
-    FFinterval = args.nproj
-    int_tot = args.nviews  # (args.nproj/FFinterval)*args.nviews
+    FFinterval = params["ezmview_num_projections"]
+    int_tot = params['ezmview_num_sets']  # (args.nproj/FFinterval)*args.nviews
     int_1view = 1.0  # args.nproj/FFinterval
 
-    files_in_int = args.nflats + args.ndarks + FFinterval
-    files_input = (args.nflats + args.ndarks + FFinterval) * int_tot
-    if args.noflats2 == False:
-        files_input += args.nflats + args.ndarks
+    files_in_int = params['ezmview_num_flats'] + params['ezmview_num_darks'] + FFinterval
+    files_input = files_in_int * int_tot
+    if params['ezmview_flats2'] == False:
+        files_input += params['ezmview_num_flats'] + params['ezmview_num_darks']
 
     if files_input != nframes:
         tmp = (
@@ -76,32 +77,32 @@ def main_prep(args):
         )
         raise ValueError(tmp)
 
-    for i in range(args.nviews):
-        if args.nviews > 1:
-            pout = os.path.join(args.output, "z{:02d}".format(i))
+    for i in range(params['ezmview_num_sets']):
+        if params['ezmview_num_sets'] > 1:
+            pout = os.path.join(params['ezmview_input_dir'], "z{:02d}".format(i))
         else:
-            pout = args.output
-        check_folders(pout, args.noflats2)
+            pout = params['ezmview_input_dir']
+        check_folders(pout, params['ezmview_flats2'])
         # offset to heading flats and darks
         o = i * files_in_int
-        for i in range(args.nflats):
+        for i in range(params['ezmview_num_flats']):
             cmd = "mv {} {}/flats/".format(frames[o + i], pout)
             os.system(cmd)
             # print(cmd)
-        o += args.nflats
-        for i in range(args.ndarks):
+        o += params['ezmview_num_flats']
+        for i in range(params['ezmview_num_darks']):
             cmd = "mv {} {}/darks/".format(frames[o + i], pout)
             os.system(cmd)
             # print(cmd)
-        o += args.ndarks
-        for i in range(args.nproj):
+        o += params['ezmview_num_darks']
+        for i in range(params["ezmview_num_projections"]):
             cmd = "mv {} {}/tomo/".format(frames[o + i], pout)
             os.system(cmd)
             # print(cmd)
-        o += args.nproj
-        if args.noflats2:
+        o += params["ezmview_num_projections"]
+        if params['ezmview_flats2']:
             continue
-        for i in range(args.nflats):
+        for i in range(params['ezmview_num_flats']):
             cmd = "cp {} {}/flats2/".format(frames[o + i], pout)
             os.system(cmd)
             # print(cmd)

@@ -15,6 +15,7 @@ from tofu.ez.image_read_write import TiffSequenceReader
 import tofu.ez.params as glob_parameters
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
 from tofu.util import get_filenames, get_image_shape
+from tofu.ez.ufo_cmd_gen import ufo_cmds
 
 
 
@@ -41,13 +42,15 @@ def find_overlap(parameters):
                               glob_parameters.params['main_config_tomo_dir_name'])
     print(ctdirs)
 
+    if parameters['360overlap_doRR']:
+        ufoRRcmdgen = ufo_cmds('blah')
+
     # concatenate images end-to-end and generate a sinogram
     for ctset in ctdirs:
         print("Working on ctset:" + str(ctset))
         index_dir = os.path.basename(os.path.normpath(ctset))
 
         # loading:
-        print(os.path.join(ctset, glob_parameters.params['main_config_flats_dir_name']))
         try:
             row_flat = np.mean(extract_row(
                 os.path.join(ctset, glob_parameters.params['main_config_flats_dir_name']),
@@ -101,7 +104,8 @@ def find_overlap(parameters):
         # same row as we use for the projections, then flat/dark correction
         print('Creating stitched sinograms...')
 
-        sin_tmp_dir = os.path.join(parameters['360overlap_temp_dir'], index_dir)
+        sin_tmp_dir = os.path.join(parameters['360overlap_temp_dir'], index_dir, 'sinos')
+        print(sin_tmp_dir)
         os.makedirs(sin_tmp_dir)
         for axis in range(parameters['360overlap_lower_limit'],
                           parameters['360overlap_upper_limit']+parameters['360overlap_increment'],
@@ -119,9 +123,22 @@ def find_overlap(parameters):
 
         print('Reconstructing slices...')
         #reco_axis = M-parameters['360overlap_upper_limit'] # equivalently half-width
-        reco_axis = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]//2
+        sin_width = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]
+        sin_height = get_image_shape(get_filenames(sin_tmp_dir)[0])[-2]
 
-        cmd = f'tofu tomo --axis {reco_axis} --sinograms {sin_tmp_dir}'
+        if parameters['360overlap_doRR']:
+            print("Applying ring removal filter")
+            tmpdir = os.path.join(parameters['360overlap_temp_dir'], index_dir)
+            rrcmd = ufoRRcmdgen.get_filter2d_sinos_cmd(tmpdir,
+                                   glob_parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'],
+                                   glob_parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'],
+                                   sin_height, sin_width)
+            print(rrcmd)
+            os.system(rrcmd)
+            sin_tmp_dir = os.path.join(parameters['360overlap_temp_dir'], index_dir, 'sinos-filt')
+
+
+        cmd = f'tofu tomo --axis {sin_width//2} --sinograms {sin_tmp_dir}'
         cmd +=' --output '+os.path.join(os.path.join(
             parameters['360overlap_output_dir'], f"{index_dir}-sli.tif"))
         print(cmd)
