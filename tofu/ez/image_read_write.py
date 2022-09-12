@@ -219,6 +219,23 @@ class TiffSequenceReader(FileSequenceReader):
     def _read_real(self, index):
         return self._file.pages[index].asarray()
 
+def get_image_dtype(file_prefix):
+    tsr = TiffSequenceReader(file_prefix)
+    tmp = tsr.read(0).dtype
+    tsr.close()
+    print(tmp)
+    if tmp == 'uint8':
+        return '8'
+    elif tmp == 'uint16':
+        return '16'
+    elif tmp == 'float32':
+        return '32'
+    else:
+        return tmp
+
+
+
+
 
 class SequenceReaderError(Exception):
     pass

@@ -290,9 +290,8 @@ def execute_reconstruction(args, fdt_names):
             # cmds.append("echo \"{}\"".format(tmp))
             if args.advanced_nlmdn_apply_after_reco:
                 logging.debug("Using Non-Local Means Denoising")
-                nlmdn_input = out_pattern
                 head, tail = os.path.split(out_pattern)
-                slidir = os.path.dirname(head)
+                slidir = os.path.dirname(os.path.join(head, 'sli'))
                 nlmdn_output = os.path.join(slidir+"-nlmdn", "sli-nlmdn-%04i.tif")
                 cmds.append(fmt_nlmdn_ufo_cmd(slidir, nlmdn_output, args))
         else:
