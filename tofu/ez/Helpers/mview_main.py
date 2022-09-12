@@ -62,7 +62,7 @@ def main_prep(params):
 
     FFinterval = params["ezmview_num_projections"]
     int_tot = params['ezmview_num_sets']  # (args.nproj/FFinterval)*args.nviews
-    int_1view = 1.0  # args.nproj/FFinterval
+    #int_1view = 1.0  # args.nproj/FFinterval #remainder of a more general FF correction
 
     files_in_int = params['ezmview_num_flats'] + params['ezmview_num_darks'] + FFinterval
     files_input = files_in_int * int_tot

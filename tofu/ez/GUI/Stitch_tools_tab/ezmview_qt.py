@@ -174,7 +174,7 @@ class EZMViewGroup(QGroupBox):
 
     def set_num_steps(self):
         LOG.debug("Num steps: " + str(self.num_vert_steps_entry.text()))
-        self.parameters['ezmview_num_vertical_steps'] = int(self.num_vert_steps_entry.text())
+        self.parameters['ezmview_num_sets'] = int(self.num_vert_steps_entry.text())
 
     def set_trailing_checkbox(self):
         LOG.debug("No trailing: " + str(self.no_trailing_flats_darks_checkbox.isChecked()))

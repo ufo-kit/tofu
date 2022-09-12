@@ -551,7 +551,7 @@ class ConfigGroup(QGroupBox):
         LOG.debug("DRY")
         parameters.params['main_config_dry_run'] = str(True)
         self.reco_button_pressed()
-        parameters.params['main_config_dry_run'] = bool(False)
+
 
     def set_save_args(self):
         LOG.debug("Save args: " + str(self.save_params_checkbox.isChecked()))
@@ -714,6 +714,7 @@ class ConfigGroup(QGroupBox):
                 QMessageBox.information(self, "Finished", msg)
                 if not params['main_config_dry_run']:
                     self.signal_reco_done.emit(params)
+                parameters.params['main_config_dry_run'] = bool(False)
         except InvalidInputError as err:
             msg = ""
             err_arg = err.args

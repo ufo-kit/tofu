@@ -147,7 +147,7 @@ class ufo_cmds(object):
         cmd += " ! write filename={}".format(enquote(out_pattern))
         return cmd
 
-    def get_pre_cmd(self, ctset, pre_cmd, tmpdir, dryrun, args):
+    def get_pre_cmd(self, ctset, pre_cmd, tmpdir, args):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
         outdir = self.make_outpaths(tmpdir, ctset[1])
         # add index to the name of the output directory with projections

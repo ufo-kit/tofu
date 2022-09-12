@@ -85,8 +85,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
             imwrite(flat1_file, flat1)
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = Ufo.get_pre_cmd(ctset, args.main_config_preprocess_command,
-                                      args.main_config_temp_dir,
-                                      args.main_config_dry_run, args)
+                                      args.main_config_temp_dir, args)
         cmds.extend(cmds_prepro)
         # reset location of input data
         ctset = (args.main_config_temp_dir, ctset[1])
@@ -312,7 +311,6 @@ def execute_reconstruction(args, fdt_names):
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     print("*** Done. Total processing time {} sec.".format(int(time.time() - start)))
     print("*** Waiting for the next job...........")
-    # cmnds, axes = get_ufo_cmnds(W, tmpdir, recodir, fol, axes = None, dryrun = False)
 
 
 def already_recd(ctset, indir, recd_sets):
