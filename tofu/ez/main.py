@@ -74,15 +74,15 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     ####### PREPROCESSING #########
     Ufo.common_fd_used = False
     Tofu.common_fd_used = False
+    if args.main_filters_remove_spots:
+        # copy one flat to tmpdir now as path might change if preprocess is enabled
+        tsr = TiffSequenceReader(os.path.join(ctset[0],
+                                              glob_parameters.params['main_config_flats_dir_name']))
+        flat1 = tsr.read(tsr.num_images - 1)  # taking the last flat
+        tsr.close()
+        flat1_file = os.path.join(args.main_config_temp_dir, "flat1.tif")
+        imwrite(flat1_file, flat1)
     if args.main_config_preprocess:
-        if args.main_filters_remove_spots:
-            # copy one flat to tmpdir now to format remaining commands correctly
-            tsr = TiffSequenceReader(os.path.join(ctset[0],
-                                    glob_parameters.params['main_config_flats_dir_name']))
-            flat1 = tsr.read(tsr.num_images - 1)  # taking the last flat
-            tsr.close()
-            flat1_file = os.path.join(args.main_config_temp_dir, "flat1.tif")
-            imwrite(flat1_file, flat1)
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = Ufo.get_pre_cmd(ctset, args.main_config_preprocess_command,
                                       args.main_config_temp_dir, args)
