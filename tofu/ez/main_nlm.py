@@ -31,13 +31,17 @@ def fmt_ufo_cmd(inp, out, args, imdtype):
 
 
 
-def main_tk(args):
+def main_tk(args): #only if applied_to_slices is enabled (, brate_changed, brate):
     if args.input_is_file:
         out_pattern = args.outdir
     else:
         if not os.path.exists(args.outdir):
             os.makedirs(args.outdir)
         out_pattern = os.path.join(args.outdir, "im-nlmfilt-%05i.tif")
+    # print(brate_changed, brate)
+    # if brate_changed:
+    #     imdtype = brate
+    # else:
     imdtype = get_image_dtype(args.indir)
     cmd = fmt_ufo_cmd(args.indir, out_pattern, args, imdtype)
     if args.dryrun:

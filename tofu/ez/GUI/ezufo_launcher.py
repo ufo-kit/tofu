@@ -72,7 +72,7 @@ class GUI(qtw.QWidget):
         self.phase_retrieval_group = PhaseRetrievalGroup()
         self.phase_retrieval_group.init_values()
 
-        self.binning_group = ROIandHistGroup()
+        self.binning_group = ROIandHistGroup()  #TODO rename binning to something short and meaningful
         self.binning_group.init_values()
 
         self.config_group = ConfigGroup()

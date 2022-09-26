@@ -92,7 +92,7 @@ class ROIandHistGroup(QGroupBox):
         self.height_val_entry.editingFinished.connect(self.set_height)
 
         self.rotate_vol_label = QLabel()
-        self.rotate_vol_label.setText("Rotate volume clockwise by [deg]")
+        self.rotate_vol_label.setText("Rotate volume counterclockwise by [deg]")
         self.rotate_vol_entry = QLineEdit()
         self.rotate_vol_entry.editingFinished.connect(self.set_rotate_volume)
 
@@ -195,14 +195,21 @@ class ROIandHistGroup(QGroupBox):
     def set_clip_histo(self):
         LOG.debug("Clip histo: " + str(self.clip_histo_checkbox.isChecked()))
         parameters.params['main_region_clip_histogram'] = bool(self.clip_histo_checkbox.isChecked())
+        if parameters.params['main_region_clip_histogram']:
+            return self.set_bitdepth()
+        else:
+            return '32'
 
     def set_bitdepth(self):
         if self.eight_bit_rButton.isChecked():
             LOG.debug("8 bit")
             parameters.params['main_region_bit_depth'] = str(8)
+            return '8'
         elif self.sixteen_bit_rButton.isChecked():
             LOG.debug("16 bit")
             parameters.params['main_region_bit_depth'] = str(16)
+            return '16'
+
 
     def set_min_val(self):
         LOG.debug(self.min_val_entry.text())

@@ -223,7 +223,6 @@ def get_image_dtype(file_prefix):
     tsr = TiffSequenceReader(file_prefix)
     tmp = tsr.read(0).dtype
     tsr.close()
-    print(tmp)
     if tmp == 'uint8':
         return '8'
     elif tmp == 'uint16':

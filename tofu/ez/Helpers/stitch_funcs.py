@@ -10,7 +10,7 @@ import shutil
 import numpy as np
 import tifffile
 from tofu.util import read_image, get_image_shape, get_filenames
-from tofu.ez.image_read_write import TiffSequenceReader
+from tofu.ez.image_read_write import TiffSequenceReader, get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import re
@@ -54,11 +54,13 @@ def prepare(parameters, dir_type: int, ctdir: str):
     if dir_type == 1:
         tmp = os.path.join(parameters['ezstitch_input_dir'], Vsteps[0], parameters['ezstitch_type_image'], '*.tif')
         tmp = sorted(glob.glob(tmp))[0]
-        indtype = type(read_image(tmp)[0][0])
     elif dir_type == 2:
         tmp = os.path.join(parameters['ezstitch_input_dir'], ctdir, Vsteps[0], parameters['ezstitch_type_image'], '*.tif')
         tmp = sorted(glob.glob(tmp))[0]
-        indtype = type(read_image(tmp)[0][0])
+    indtype = get_image_dtype(tmp)
+    print(indtype)
+    #indtype= type(read_image(tmp)[0][0])
+
 
     if parameters['ezstitch_stitch_orthogonal']:
         for vstep in Vsteps:
@@ -71,11 +73,19 @@ def prepare(parameters, dir_type: int, ctdir: str):
             cmd = 'tofu sinos --projections {} --output {}'.format(in_name, out_name)
             cmd += " --y {} --height {} --y-step {}".format(start, stop-start, step)
             cmd += " --output-bytes-per-file 0"
+            if indtype == '8' or indtype == '16':
+                cmd += f" --output-bitdepth {indtype}"
+            print(cmd)
             os.system(cmd)
             time.sleep(10)
         indir = parameters['ezstitch_temp_dir']
     else:
         indir = parameters['ezstitch_input_dir']
+
+    if indtype == '8':
+        indtype = 'uint8'
+    elif tmp == '16':
+        indtype = 'uint16'
     return indir, hmin, hmax, start, stop, step, indtype
 
 

@@ -187,7 +187,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     return nviews, WH
 
 
-def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):
+def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):  ### TODO call one function from nlmdn module!!
     """
     :param inp: Path to input directory before NLMDN applied
     :param out: Path to output directory after NLMDN applied
@@ -205,6 +205,8 @@ def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):
     cmd += ' ! write filename={}'.format(enquote(outpath))
     if not args.advanced_nlmdn_save_bigtiff:
         cmd += " bytes-per-file=0 tiff-bigtiff=False"
+    if glob_parameters.params['main_region_clip_histogram']:
+        cmd += f" bits={glob_parameters.params['main_region_bit_depth']} rescale=False"
     return cmd
 
 def execute_reconstruction(args, fdt_names):
