@@ -15,9 +15,8 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QLineEdit,
 )
-from PyQt5.QtCore import QCoreApplication, QTimer
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt, QRegExp
+from PyQt5.QtGui import QRegExpValidator
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.yaml_in_out import Yaml_IO
 from tofu.ez.GUI.message_dialog import warning_message
@@ -27,6 +26,11 @@ import tofu.ez.params as parameters
 
 #TODO Get rid of the old args structure and store all parameters
 # like tofu does
+# try input validator like that
+# reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
+# input_validator = QRegExpValidator(reg_ex, self.inc_axis_entry)
+# self.inc_axis_entry.setValidator(input_validator)
+
 LOG = logging.getLogger(__name__)
 
 
@@ -741,10 +745,6 @@ class ConfigGroup(QGroupBox):
         # Axis is in column No: main_cor_axis_column
         if float(parameters.params['main_cor_axis_column']) < 0:
             raise InvalidInputError("Value out of range for: Axis is in column No [pixel]")
-
-        # Increment axis: main_cor_axis_increment_step
-        if float(parameters.params['main_cor_axis_increment_step']) < 0:
-            raise InvalidInputError("Value out of range for: Increment axis every reconstruction")
 
         # Threshold: main_filters_remove_spots_threshold
         if int(parameters.params['main_filters_remove_spots_threshold']) < 0:
