@@ -1,10 +1,10 @@
 import pyqtgraph as pg
-import pyqtgraph.opengl as gl
+#import pyqtgraph.opengl as gl
 import logging
 import numpy as np
 import tifffile
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtWidgets
 
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def create_volume(data):
     return volume
 
 
-class ImageViewer(QtGui.QWidget):
+class ImageViewer(QtWidgets.QWidget):
     """
     Present a sequence of files that can be browsed with a slider.
 
@@ -52,10 +52,10 @@ class ImageViewer(QtGui.QWidget):
         image_view.getView().setAspectLocked(True)
         self.image_item = image_view.getImageItem()
 
-        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.valueChanged.connect(self.update_image)
 
-        self.main_layout = QtGui.QVBoxLayout(self)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.addWidget(image_view)
         self.main_layout.addWidget(self.slider)
         self.setLayout(self.main_layout)
@@ -84,13 +84,13 @@ class ImageWindow(object):
     global_app = None
 
     def __init__(self, filenames):
-        self.global_app = QtGui.QApplication.instance() or QtGui.QApplication([])
+        self.global_app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
         self.viewer = ImageViewer(filenames)
         self.viewer.show()
 
 
-class OverlapViewer(QtGui.QWidget):
+class OverlapViewer(QtWidgets.QWidget):
     """
     Presents two images by subtracting the flipped second from the first.
 
@@ -103,11 +103,11 @@ class OverlapViewer(QtGui.QWidget):
         image_view.getView().setAspectLocked(True)
         self.image_item = image_view.getImageItem()
 
-        self.slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, 0)
         self.slider.valueChanged.connect(self.update_image)
 
-        self.main_layout = QtGui.QVBoxLayout()
+        self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.addWidget(image_view)
         self.main_layout.addWidget(self.slider)
         self.setLayout(self.main_layout)
@@ -150,13 +150,13 @@ class OverlapViewer(QtGui.QWidget):
                 self.image_item.setImage(moved + self.first)
 
 
-class VolumeViewer(QtGui.QWidget):
+class VolumeViewer(QtWidgets.QWidget):
 
     def __init__(self, step=1, density=1, parent=None):
         super(VolumeViewer, self).__init__(parent)
-        self.volume_view = gl.GLViewWidget()
-        self.main_layout = QtGui.QVBoxLayout()
-        self.main_layout.addWidget(self.volume_view)
+        #self.volume_view = gl.GLViewWidget()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        #self.main_layout.addWidget(self.volume_view)
         self.setLayout(self.main_layout)
         self.step = step
         self.density = density
@@ -176,7 +176,7 @@ class VolumeViewer(QtGui.QWidget):
         volume = create_volume(data)
         dx, dy, dz, _ = volume.shape
 
-        volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
-        volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
-        volume_item.scale(0.05, 0.05, 0.05, local=False)
-        self.volume_view.addItem(volume_item)
+        # volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
+        # volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
+        # volume_item.scale(0.05, 0.05, 0.05, local=False)
+        #self.volume_view.addItem(volume_item)
