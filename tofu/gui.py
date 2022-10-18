@@ -73,6 +73,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.volume_viewer = None
         self.overlap_viewer = tofu.vis.qt.OverlapViewer()
         self.get_values_from_params()
+        try:
+            import pyqtgraph.opengl as gl
+        except ImportError:
+            LOG.info("OpenGL not available, volume viewer disabled")
+            self.ui.show_volume_button.setEnabled(False)
 
         log_handler = CallableHandler(self.on_log_record)
         log_handler.setLevel(logging.DEBUG)

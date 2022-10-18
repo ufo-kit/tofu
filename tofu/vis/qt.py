@@ -1,5 +1,8 @@
 import pyqtgraph as pg
-#import pyqtgraph.opengl as gl
+try:
+    import pyqtgraph.opengl as gl
+except ImportError:
+    pass
 import logging
 import numpy as np
 import tifffile
@@ -154,9 +157,9 @@ class VolumeViewer(QtWidgets.QWidget):
 
     def __init__(self, step=1, density=1, parent=None):
         super(VolumeViewer, self).__init__(parent)
-        #self.volume_view = gl.GLViewWidget()
+        self.volume_view = gl.GLViewWidget()
         self.main_layout = QtWidgets.QVBoxLayout()
-        #self.main_layout.addWidget(self.volume_view)
+        self.main_layout.addWidget(self.volume_view)
         self.setLayout(self.main_layout)
         self.step = step
         self.density = density
@@ -176,7 +179,7 @@ class VolumeViewer(QtWidgets.QWidget):
         volume = create_volume(data)
         dx, dy, dz, _ = volume.shape
 
-        # volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
-        # volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
-        # volume_item.scale(0.05, 0.05, 0.05, local=False)
-        #self.volume_view.addItem(volume_item)
+        volume_item = gl.GLVolumeItem(volume, sliceDensity=self.density)
+        volume_item.translate(-dx / 2, -dy / 2, -dz / 2)
+        volume_item.scale(0.05, 0.05, 0.05, local=False)
+        self.volume_view.addItem(volume_item)
