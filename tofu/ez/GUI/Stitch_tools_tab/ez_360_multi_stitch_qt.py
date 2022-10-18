@@ -26,10 +26,14 @@ class MultiStitch360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Batch horizontal stitching of half-acquistion mode data sets")
+        self.setTitle("360-MULTI-STITCH")
+        self.setToolTip("Converts half-acquistion data sets to ordinary projections \n"
+                      "and crops all images to the same size.")
         self.setStyleSheet('QGroupBox {color: red;}')
 
         self.input_dir_button = QPushButton("Select input directory")
+        self.input_dir_button.setToolTip("Contains multiple CT directories with flats/darks/tomo subdirectories. \n"
+                                         "Images in each will be stitched pair-wise [x and x+180 deg]")
         self.input_dir_button.clicked.connect(self.input_button_pressed)
 
         self.input_dir_entry = QLineEdit()
@@ -206,23 +210,24 @@ class MultiStitch360Group(QGroupBox):
 
     def init_values(self):
         self.parameters = {'parameters_type': '360_multi_stitch'}
-        self.parameters['360multi_input_dir'] = os.path.expanduser('~')#"~/"#os.getcwd()
+        self.parameters['360multi_input_dir'] = os.path.expanduser('~')# #EZVARS['360-batch-stitch']['indir']
         self.input_dir_entry.setText(self.parameters['360multi_input_dir'])
-        self.parameters['360multi_temp_dir'] = os.path.join(
+        self.parameters['360multi_temp_dir'] = os.path.join(  #EZVARS['360-batch-stitch']['tmpdir']
                         os.path.expanduser('~'), "tmp-batch360stitch")
         self.temp_dir_entry.setText(self.parameters['360multi_temp_dir'])
-        self.parameters['360multi_output_dir'] = os.path.expanduser('~')
+        self.parameters['360multi_output_dir'] = os.path.join(os.path.expanduser('~'),'stitched360') #EZVARS['360-batch-stitch']['outdir']
         self.output_dir_entry.setText(self.parameters['360multi_output_dir'])
-        self.parameters['360multi_crop_projections'] = True
+        self.parameters['360multi_crop_projections'] = True   #EZVARS['360-batch-stitch']['crop']
         self.crop_checkbox.setChecked(self.parameters['360multi_crop_projections'])
-        self.parameters['360multi_bottom_axis'] = 245
+        self.parameters['360multi_bottom_axis'] = 245  #EZVARS['360-batch-stitch']['COR-in-first-set']
         self.axis_bottom_entry.setText(str(self.parameters['360multi_bottom_axis']))
-        self.parameters['360multi_top_axis'] = 245
+        self.parameters['360multi_top_axis'] = 245  #EZVARS['360-batch-stitch']['COR-in-last-set']
         self.axis_top_entry.setText(str(self.parameters['360multi_top_axis']))
         self.parameters['360multi_axis'] = self.parameters['360multi_bottom_axis']
-        self.parameters['360multi_manual_axis'] = False
+        self.parameters['360multi_manual_axis'] = False   #EZVARS['360-batch-stitch']['COR-user-defined']
         self.parameters['360multi_axis_dict'] = dict.fromkeys(['z000', 'z001', 'z002', 'z003', 'z004', 'z005',
                                                                'z006', 'z007', 'z008', 'z009', 'z010', 'z011'], 200)
+        # EZVARS['360-batch-stitch']['COR-dict']
 
     def update_parameters(self, new_parameters):
         LOG.debug("Update parameters")
@@ -362,29 +367,33 @@ class MultiStitch360Group(QGroupBox):
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
         self.get_fdt_names_on_stitch_pressed.emit()
-        if os.path.exists(self.parameters['360multi_temp_dir']):
+        if os.path.exists(self.parameters['360multi_temp_dir']) and \
+                    len(os.listdir(self.parameters['360multi_temp_dir'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Temporary dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Temporary dir exist and not empty. Can I delete it to continue?"
+                              , qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
                     rmtree(self.parameters['360multi_temp_dir'])
                 except:
-                    warning_message("Problems with deleting directory")
+                    warning_message("Cannot delete tmp directory")
+                    return
             else:
                 return
 
-        if os.path.exists(self.parameters['360multi_output_dir']):
-            warning_message('Output directory exists. Delete it or select another one.')
-            return
-
-        # if os.path.exists(self.parameters['360multi_output_dir']):
-        #     # raise ValueError('Output directory exists')
-        #     qm = QMessageBox()
-        #     rep = qm.question(self, '', "Output dir is not empty. Can I delete it?", qm.Yes | qm.No)
-        #     if rep == qm.Yes:
-        #         os.system('rm -r {}'.format(self.parameters['360multi_output_dir']))
-        #     else:
-        #         return
+        if os.path.exists(self.parameters['360multi_output_dir']) and \
+                    len(os.listdir(self.parameters['360multi_output_dir'])) > 0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Output directory exists and not empty. Can I delete it to continue?",
+                              qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
+                    rmtree(self.parameters['360overlap_output_dir'])
+                except:
+                    warning_message(self, "Problem", "Cannot delete existing output dir")
+                    return
+            else:
+                return
 
         print("======= Begin 360 Multi-Stitch =======")
         main_360_mp_depth2(self.parameters)

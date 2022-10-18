@@ -334,9 +334,11 @@ class tofu_cmds(object):
         # crop of reconstructed slice in the axial plane
         b = WH[1] / 2
         if args.main_region_crop_slices:
-            cmd += ' --x-region={},{},{}'.format(args.main_region_crop_x - b,
+            if args.main_region_crop_x != 0 or args.main_region_crop_width != 0:
+                cmd += ' --x-region={},{},{}'.format(args.main_region_crop_x - b,
                         args.main_region_crop_x + args.main_region_crop_width - b, 1)
-            cmd += ' --y-region={},{},{}'.format(args.main_region_crop_y - b,
+            if args.main_region_crop_y != 0 or args.main_region_crop_height != 0:
+                cmd += ' --y-region={},{},{}'.format(args.main_region_crop_y - b,
                         args.main_region_crop_y + args.main_region_crop_height - b, 1)
         # cmd = self.check_vcrop(cmd, args.main_region_select_rows, args.main_region_first_row, args.main_region_number_rows, args.main_region_nth_row, WH[0])
         cmd = self.check_8bit(cmd, args.main_region_clip_histogram,

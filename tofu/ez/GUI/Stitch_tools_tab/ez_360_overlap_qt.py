@@ -24,10 +24,12 @@ LOG = logging.getLogger(__name__)
 
 class Overlap360Group(QGroupBox):
     get_fdt_names_on_stitch_pressed = pyqtSignal()
+    get_RR_params_on_start_pressed = pyqtSignal()
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Reconstruct one slice with different axis of rotation positions for half-acqusition mode data set(s)")
+        self.setTitle("360-AXIS-SEARCH")
+        self.setToolTip("Stitches and reconstructs one slice with different axis of rotation positions for half-acqusition mode data set(s)")
         self.setStyleSheet('QGroupBox {color: Orange;}')
 
         self.input_dir_button = QPushButton("Select input directory")
@@ -45,7 +47,8 @@ class Overlap360Group(QGroupBox):
         self.output_dir_entry = QLineEdit()
         self.output_dir_entry.editingFinished.connect(self.set_output_entry)
 
-        self.pixel_row_label = QLabel("Pixel row to be used for sinogram")
+        self.pixel_row_label = QLabel("Row to be reconstructed")
+        self.pixel_row_label.setToolTip("TEST")
         self.pixel_row_entry = QLineEdit()
         self.pixel_row_entry.editingFinished.connect(self.set_pixel_row)
 
@@ -61,9 +64,9 @@ class Overlap360Group(QGroupBox):
         self.step_entry = QLineEdit()
         self.step_entry.editingFinished.connect(self.set_increment)
 
-        self.axis_on_left = QCheckBox("Apply ring removal")
-        self.axis_on_left.setEnabled(False)
-        self.axis_on_left.stateChanged.connect(self.set_axis_checkbox)
+        self.doRR = QCheckBox("Apply ring removal")
+        #self.doRR.setEnabled(False)
+        self.doRR.stateChanged.connect(self.set_RR_checkbox)
 
         self.help_button = QPushButton("Help")
         self.help_button.clicked.connect(self.help_button_pressed)
@@ -96,7 +99,7 @@ class Overlap360Group(QGroupBox):
         layout.addWidget(self.max_entry, 8, 1)
         layout.addWidget(self.step_label, 9, 0)
         layout.addWidget(self.step_entry, 9, 1)
-        layout.addWidget(self.axis_on_left, 10, 0)
+        layout.addWidget(self.doRR, 10, 0)
         layout.addWidget(self.help_button, 11, 0)
         layout.addWidget(self.find_overlap_button, 11, 1)
         layout.addWidget(self.import_parameters_button, 12, 0)
@@ -105,24 +108,24 @@ class Overlap360Group(QGroupBox):
 
     def init_values(self):
         self.parameters = {'parameters_type': '360_overlap'}
-        self.parameters['360overlap_input_dir'] = os.path.expanduser('~')
+        self.parameters['360overlap_input_dir'] = os.path.expanduser('~')  #EZVARS['360-olap-search']['indir']
         self.input_dir_entry.setText(self.parameters['360overlap_input_dir'])
-        self.parameters['360overlap_temp_dir'] = os.path.join(
+        self.parameters['360overlap_temp_dir'] = os.path.join(   #EZVARS['360-olap-search']['tmpdir']
                         os.path.expanduser('~'), "tmp-360axis-search")
         self.temp_dir_entry.setText(self.parameters['360overlap_temp_dir'])
-        self.parameters['360overlap_output_dir'] = os.path.join(
+        self.parameters['360overlap_output_dir'] = os.path.join(    #EZVARS['360-olap-search']['outdir']
                         os.path.expanduser('~'), "ezufo-360axis-search")
         self.output_dir_entry.setText(self.parameters['360overlap_output_dir'])
-        self.parameters['360overlap_row'] = 200
+        self.parameters['360overlap_row'] = 200       #EZVARS['360-olap-search']['y']
         self.pixel_row_entry.setText(str(self.parameters['360overlap_row']))
-        self.parameters['360overlap_lower_limit'] = 100
+        self.parameters['360overlap_lower_limit'] = 100   #EZVARS['360-olap-search']['column_first']
         self.min_entry.setText(str(self.parameters['360overlap_lower_limit']))
-        self.parameters['360overlap_upper_limit'] = 200
+        self.parameters['360overlap_upper_limit'] = 200   #EZVARS['360-olap-search']['column_last']
         self.max_entry.setText(str(self.parameters['360overlap_upper_limit']))
-        self.parameters['360overlap_increment'] = 1
+        self.parameters['360overlap_increment'] = 1    #EZVARS['360-olap-search']['column_step']
         self.step_entry.setText(str(self.parameters['360overlap_increment']))
-        self.parameters['360overlap_axis_on_left'] = True
-        self.axis_on_left.setChecked(bool(self.parameters['360overlap_axis_on_left']))
+        self.parameters['360overlap_doRR'] = False  # replace with #EZVARS['360-olap-search']['remove-rings']
+        self.doRR.setChecked(bool(self.parameters['360overlap_doRR']))
 
     def update_parameters(self, new_parameters):
         LOG.debug("Update parameters")
@@ -139,7 +142,7 @@ class Overlap360Group(QGroupBox):
         self.min_entry.setText(str(self.parameters['360overlap_lower_limit']))
         self.max_entry.setText(str(self.parameters['360overlap_upper_limit']))
         self.step_entry.setText(str(self.parameters['360overlap_increment']))
-        self.axis_on_left.setChecked(bool(self.parameters['360overlap_axis_on_left']))
+        self.doRR.setChecked(bool(self.parameters['360overlap_doRR']))
 
     def input_button_pressed(self):
         LOG.debug("Select input button pressed")
@@ -187,26 +190,43 @@ class Overlap360Group(QGroupBox):
         LOG.debug("Value of increment: " + str(self.step_entry.text()))
         self.parameters['360overlap_increment'] = int(self.step_entry.text())
 
-    def set_axis_checkbox(self):
-        LOG.debug("Is rotation axis on left-hand-side?: " + str(self.axis_on_left.isChecked()))
-        self.parameters['360overlap_axis_on_left'] = bool(self.axis_on_left.isChecked())
+    def set_RR_checkbox(self):
+        LOG.debug("Apply RR in 360-search: " + str(self.doRR.isChecked()))
+        self.parameters['360overlap_doRR'] = bool(self.doRR.isChecked())
 
     def overlap_button_pressed(self):
         LOG.debug("Find overlap button pressed")
-        if os.path.exists(self.parameters['360overlap_output_dir']) or \
-                os.path.exists(self.parameters['360overlap_temp_dir']):
+        self.get_fdt_names_on_stitch_pressed.emit()
+        self.get_RR_params_on_start_pressed.emit()
+        if os.path.exists(self.parameters['360overlap_output_dir']) and \
+                    len(os.listdir(self.parameters['360overlap_output_dir'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Output directory or(and) temporary dir exist. Can I delete both?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Output directory exists and not empty. Can I delete it to continue?",
+                              qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
                     rmtree(self.parameters['360overlap_output_dir'])
-                    rmtree(self.parameters['360overlap_temp_dir'])
                 except:
-                    pass
+                    QMessageBox.information(self, "Problem", "Cannot delete existing output dir")
+                    return
             else:
                 return
-        os.makedirs(self.parameters['360overlap_temp_dir'])
-        os.makedirs(self.parameters['360overlap_output_dir'])
+        if os.path.exists(self.parameters['360overlap_temp_dir']) and \
+                len(os.listdir(self.parameters['360overlap_temp_dir'])) > 0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Temporary dir exist and not empty. Can I delete it to continue?", qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
+                    rmtree(self.parameters['360overlap_temp_dir'])
+                except:
+                    QMessageBox.information(self, "Problem", "Cannot delete existing tmp dir")
+                    return
+            else:
+                return
+        if not os.path.exists(self.parameters['360overlap_temp_dir']):
+            os.makedirs(self.parameters['360overlap_temp_dir'])
+        if not os.path.exists(self.parameters['360overlap_output_dir']):
+            os.makedirs(self.parameters['360overlap_output_dir'])
         find_overlap(self.parameters)
         if os.path.exists(self.parameters['360overlap_output_dir']):
             params_file_path = os.path.join(self.parameters['360overlap_output_dir'], '360_overlap_params.yaml')

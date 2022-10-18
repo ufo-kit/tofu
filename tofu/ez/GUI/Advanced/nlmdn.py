@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 import tofu.ez.params as parameters
 from tofu.ez.main_nlm import main_tk
@@ -25,7 +25,6 @@ class NLMDNGroup(QGroupBox):
     """
     Non-local means de-noising settings
     """
-
     def __init__(self):
         super().__init__()
 
@@ -313,7 +312,8 @@ class NLMDNGroup(QGroupBox):
             text1 = "Output directory exists. Files can be overwritten. Proceed?"
             dialog = QMessageBox.warning(self, title_text, text1, QMessageBox.Yes | QMessageBox.No)
             if dialog == QMessageBox.Yes:
-                main_tk(args)
+                main_tk(args)#, parameters.params['main_region_clip_histogram'],
+                             # parameters.params['main_region_bit_depth'])
                 QMessageBox.information(self, "Finished", "Finished")
         else:
             main_tk(args)

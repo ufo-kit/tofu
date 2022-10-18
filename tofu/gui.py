@@ -7,11 +7,11 @@ import pkg_resources
 
 from argparse import ArgumentParser
 from contextlib import contextmanager
-from . import reco, config, util, __version__
+from tofu import reco, config, util, __version__
 
 try:
     import tofu.vis.qt
-    from PyQt4 import QtGui, QtCore, uic
+    from PyQt5 import QtGui, QtCore, uic, QtWidgets
 except ImportError:
     raise ImportError("Cannot import modules for GUI, please install PyQt4 and pyqtgraph")
 
@@ -42,9 +42,9 @@ def get_filtered_filenames(path, exts=['.tif', '.edf']):
 
 @contextmanager
 def spinning_cursor():
-    QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+    QtWidgets.QApplication.setOverrideCursor(QtWidgets.QCursor(QtCore.Qt.WaitCursor))
     yield
-    QtGui.QApplication.restoreOverrideCursor()
+    QtWidgets.QApplication.restoreOverrideCursor()
 
 
 class CallableHandler(logging.Handler):
@@ -56,9 +56,9 @@ class CallableHandler(logging.Handler):
         self.func(self.format(record))
 
 
-class ApplicationWindow(QtGui.QMainWindow):
+class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self, app, params):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         self.params = params
         self.app = app
         ui_file = pkg_resources.resource_filename(__name__, 'gui.ui')
@@ -73,6 +73,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.volume_viewer = None
         self.overlap_viewer = tofu.vis.qt.OverlapViewer()
         self.get_values_from_params()
+        try:
+            import pyqtgraph.opengl as gl
+        except ImportError:
+            LOG.info("OpenGL not available, volume viewer disabled")
+            self.ui.show_volume_button.setEnabled(False)
 
         log_handler = CallableHandler(self.on_log_record)
         log_handler.setLevel(logging.DEBUG)
@@ -307,21 +312,25 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.params.last_dir = set_last_dir(path, self.ui.flats2_path_line, self.params.last_dir)
 
     def get_path(self, directory, last_dir):
-        return QtGui.QFileDialog.getExistingDirectory(self, '.', last_dir or directory)
+        return QtWidgets.QFileDialog.getExistingDirectory(self, '.', last_dir or directory)
 
     def get_filename(self, directory, last_dir):
-        return QtGui.QFileDialog.getOpenFileName(self, '.', last_dir or directory)
+        # Thanks to Lisa Dorofeeva for pointing out that a tuple is returned in PyQT5
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, '.', last_dir or directory)
+        return filename
 
     def on_path_0_clicked(self, checked):
         path = self.get_filename(self.params.deg0, self.params.last_dir)
+        print(path)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_0, self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
         path = self.get_filename(self.params.deg180, self.params.last_dir)
+        print(path)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_180, self.params.last_dir)
 
     def on_open_from(self):
-        config_file = QtGui.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
+        config_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open ...', self.params.last_dir)
         parser = ArgumentParser()
         params = config.Params(sections=config.TOMO_PARAMS + ('gui',))
         parser = params.add_arguments(parser)
@@ -330,14 +339,14 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def on_about(self):
         message = "GUI is part of ufo-reconstruct {}.".format(__version__)
-        QtGui.QMessageBox.about(self, "About ufo-reconstruct", message)
+        QtWidgets.QMessageBox.about(self, "About ufo-reconstruct", message)
 
     def on_save_as(self):
         if os.path.exists(self.params.last_dir):
             config_file = str(self.params.last_dir + "/reco.conf")
         else:
             config_file = str(os.getenv('HOME') + "reco.conf")
-        save_config = QtGui.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
+        save_config = QtWidgets.QFileDialog.getSaveFileName(self, 'Save as ...', config_file)
         if save_config:
             sections = config.TOMO_PARAMS + ('gui',)
             config.write(save_config, args=self.params, sections=sections)
@@ -499,10 +508,10 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.axis_spin.setValue(self.axis)
 
     def gui_warn(self, message):
-        QtGui.QMessageBox.warning(self, "Warning", message)
+        QtWidgets.QMessageBox.warning(self, "Warning", message)
 
 
 def main(params):
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     ApplicationWindow(app, params)
     sys.exit(app.exec_())

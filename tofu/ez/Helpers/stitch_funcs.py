@@ -9,7 +9,8 @@ import shutil
 
 import numpy as np
 import tifffile
-from tofu.util import read_image
+from tofu.util import read_image, get_image_shape, get_filenames
+from tofu.ez.image_read_write import TiffSequenceReader, get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import re
@@ -53,11 +54,13 @@ def prepare(parameters, dir_type: int, ctdir: str):
     if dir_type == 1:
         tmp = os.path.join(parameters['ezstitch_input_dir'], Vsteps[0], parameters['ezstitch_type_image'], '*.tif')
         tmp = sorted(glob.glob(tmp))[0]
-        indtype = type(read_image(tmp)[0][0])
     elif dir_type == 2:
         tmp = os.path.join(parameters['ezstitch_input_dir'], ctdir, Vsteps[0], parameters['ezstitch_type_image'], '*.tif')
         tmp = sorted(glob.glob(tmp))[0]
-        indtype = type(read_image(tmp)[0][0])
+    indtype = get_image_dtype(tmp)
+    print(indtype)
+    #indtype= type(read_image(tmp)[0][0])
+
 
     if parameters['ezstitch_stitch_orthogonal']:
         for vstep in Vsteps:
@@ -70,11 +73,19 @@ def prepare(parameters, dir_type: int, ctdir: str):
             cmd = 'tofu sinos --projections {} --output {}'.format(in_name, out_name)
             cmd += " --y {} --height {} --y-step {}".format(start, stop-start, step)
             cmd += " --output-bytes-per-file 0"
+            if indtype == '8' or indtype == '16':
+                cmd += f" --output-bitdepth {indtype}"
+            print(cmd)
             os.system(cmd)
             time.sleep(10)
         indir = parameters['ezstitch_temp_dir']
     else:
         indir = parameters['ezstitch_input_dir']
+
+    if indtype == '8':
+        indtype = 'uint8'
+    elif tmp == '16':
+        indtype = 'uint16'
     return indir, hmin, hmax, start, stop, step, indtype
 
 
@@ -267,13 +278,14 @@ def main_conc_mp(parameters):
 ############################## HALF ACQ ##############################
 def stitch(first, second, axis, crop):
     h, w = first.shape
-    if axis > w / 2:
-        dx = int(2 * (w - axis) + 0.5)
-    else:
-        dx = int(2 * axis + 0.5)
-        tmp = np.copy(first)
-        first = second
-        second = tmp
+    if axis > w // 2:
+        axis = w - axis
+        first = np.fliplr(first)
+        second = np.fliplr(second)
+    dx = int(2 * axis + 0.5)
+    tmp = np.copy(first)
+    first = second
+    second = tmp
     result = np.empty((h, 2 * w - dx), dtype=first.dtype)
     ramp = np.linspace(0, 1, dx)
 
@@ -293,13 +305,14 @@ def stitch(first, second, axis, crop):
 def stitch_float32_output(first, second, axis, crop):
     print(f"Stitching two halves with axis {axis}, cropping by {crop}")
     h, w = first.shape
-    if axis > w / 2:
-        dx = int(2 * (w - axis) + 0.5)
-    else:
-        dx = int(2 * axis + 0.5)
-        tmp = np.copy(first)
-        first = second
-        second = tmp
+    if axis > w // 2:
+        axis = w - axis
+        first = np.fliplr(first)
+        second = np.fliplr(second)
+    dx = int(2 * axis + 0.5)
+    tmp = np.copy(first)
+    first = second
+    second = tmp
     result = np.empty((h, 2 * w - dx), dtype=first.dtype)
     ramp = np.linspace(0, 1, dx)
 
@@ -322,6 +335,11 @@ def st_mp_idx(offst, ax, crop, in_fmt, out_fmt, idx):
     stitched = stitch(first, second, ax, crop)
     tifffile.imwrite(out_fmt.format(idx), stitched)
 
+def st_mp_bigtiff_pages(offst, ax, crop, tfs, out_fmt, idx):
+    first = tfs.read(idx)
+    second = tfs.read(idx+offst)
+    stitched = stitch(first, second, ax, crop)
+    tifffile.imwrite(out_fmt.format(idx), stitched)
 
 def main_360_mp_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):
@@ -332,34 +350,53 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
     for i, sdir in enumerate(subdirs):
         print(f"Stitching images in {sdir}")
         names = sorted(glob.glob(os.path.join(indir, sdir, '*.tif')))
-        num_projs = len(names)
-        if num_projs<2:
-            warnings.warn("Warning: less than 2 files")
-        print(str(num_projs) + ' files in ' + str(sdir))
+        shape = get_image_shape(names[0])
 
-        os.makedirs(os.path.join(outdir, sdir))
-        out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
-
-        # extraxt input file format
-        firstfname = names[0]
-        firstnum = re.match('.*?([0-9]+)$', firstfname[:-4]).group(1)
-        n_dgts = len(firstnum) #number of significant digits
-        idx0 = int(firstnum)
-        trnc_len = n_dgts + 4 #format + .tif
-        in_fmt = firstfname[:-trnc_len] + '{:0'+str(n_dgts)+'}.tif'
-
-        offst = int(num_projs / 2)
-        exec_func = partial(st_mp_idx, offst, ax, cro, in_fmt, out_fmt)
-        idxs = range(idx0, idx0+offst)
-        pool = mp.Pool(processes=mp.cpu_count())
-        # double check if names correspond - to remove later
-        for nmi in idxs:
-            #print(names[nmi-idx0], in_fmt.format(nmi))
-            if names[nmi-idx0] != in_fmt.format(nmi):
-                print('Something wrong with file name format')
+        if len(shape) == 2:  # single page input
+            num_projs = len(names)
+            print(f"{num_projs} files in {sdir}")
+            if num_projs < 2:
+                warnings.warn("Warning: less than 2 files, skipping this dir")
                 continue
-        #pool.map(exec_func, names[0:num_projs/2])
-        pool.map(exec_func, idxs)
+
+
+            os.makedirs(os.path.join(outdir, sdir))
+            out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
+
+            # extraxt input file format
+            firstfname = names[0]
+            firstnum = re.match('.*?([0-9]+)$', firstfname[:-4]).group(1)
+            n_dgts = len(firstnum) #number of significant digits
+            idx0 = int(firstnum)
+            trnc_len = n_dgts + 4 #format + .tif
+            in_fmt = firstfname[:-trnc_len] + '{:0'+str(n_dgts)+'}.tif'
+
+            offst = int(num_projs / 2)
+            exec_func = partial(st_mp_idx, offst, ax, cro, in_fmt, out_fmt)
+            idxs = range(idx0, idx0+offst)
+            pool = mp.Pool(processes=mp.cpu_count())
+            # double check if names correspond - to remove later
+            for nmi in idxs:
+                #print(names[nmi-idx0], in_fmt.format(nmi))
+                if names[nmi-idx0] != in_fmt.format(nmi):
+                    print('Something wrong with file name format')
+                    continue
+            #pool.map(exec_func, names[0:num_projs/2])
+            pool.map(exec_func, idxs)
+        elif len(shape) == 3:
+            tfs = TiffSequenceReader(os.path.join(indir, sdir))
+            npairs = tfs.num_images//2
+            print(f"{npairs} pairs in {sdir} will be stitched")
+
+            os.makedirs(os.path.join(outdir, sdir))
+            out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
+
+            exec_func = partial(st_mp_bigtiff_pages, npairs, ax, cro, tfs, out_fmt)
+            idxs = range(0, npairs)
+            pool = mp.Pool(processes=mp.cpu_count())
+            pool.map(exec_func, idxs)
+
+            tfs.close()
 
     print("========== Done ==========")
 
@@ -393,7 +430,14 @@ def main_360_mp_depth2(parameters):
         #print(parameters['360multi_axis_dict'])
         dax = np.array(list(parameters['360multi_axis_dict'].values()))
     print(dax)
+    # compute crop:
     cra = np.max(dax)-dax
+    # Axis on the right ? Must open one file to find out ><
+    tmpname = os.path.join(parameters['360multi_input_dir'], ctdirs_rel_paths[0])
+    subdirs = [dI for dI in os.listdir(tmpname) if os.path.isdir(os.path.join(tmpname, dI))]
+    M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
+    if parameters['360multi_bottom_axis'] > M//2:
+        cra = dax - np.min(dax)
     print(cra)
 
     for i, ctdir in enumerate(ctdirs):

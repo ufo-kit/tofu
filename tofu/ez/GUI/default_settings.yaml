@@ -5,10 +5,10 @@
 main_config_input_dir: ""
 main_config_temp_dir: ""
 main_config_output_dir: ""
-main_config_darks_dir_name: "darks"
-main_config_flats_dir_name: "flats"
-main_config_tomo_dir_name: "tomo"
-main_config_flats2_dir_name: "flats2"
+main_config_darks_dir_name: "darks"   #SECTIONS['flat-correction']['darks']
+main_config_flats_dir_name: "flats"   #SECTIONS['flat-correction']['flats']
+main_config_tomo_dir_name: "tomo"  #SECTIONS['flat-correction']['projections']
+main_config_flats2_dir_name: "flats2"  #SECTIONS['flat-correction']['flats2']
 main_config_save_multipage_tiff: false
 main_cor_axis_search_method: 1
 main_cor_axis_search_interval: "1010,1030,0.5"

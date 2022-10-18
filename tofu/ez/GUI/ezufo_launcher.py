@@ -72,7 +72,7 @@ class GUI(qtw.QWidget):
         self.phase_retrieval_group = PhaseRetrievalGroup()
         self.phase_retrieval_group.init_values()
 
-        self.binning_group = ROIandHistGroup()
+        self.binning_group = ROIandHistGroup()  #TODO rename binning to something short and meaningful
         self.binning_group.init_values()
 
         self.config_group = ConfigGroup()
@@ -118,6 +118,10 @@ class GUI(qtw.QWidget):
         # To pass directory names from config tab to stitch tab when button pressed
         self.multi_stitch_group.get_fdt_names_on_stitch_pressed.connect(self.config_group.set_fdt_names)
         self.overlap_group.get_fdt_names_on_stitch_pressed.connect(self.config_group.set_fdt_names)
+
+        # To pass RR params from filters section to 360-search tab when button pressed
+        self.overlap_group.get_RR_params_on_start_pressed.connect(
+            self.filters_group.set_ufoRR_params_for_360_axis_search)
 
         finish = qtw.QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)

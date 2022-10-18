@@ -27,14 +27,15 @@ class EZStitchGroup(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Vertical stitching and reslicing tool")
+        self.setTitle("EZ-STITCH")
+        self.setToolTip("Reslicing and stitching tool")
         self.setStyleSheet('QGroupBox {color: purple;}')
 
         self.input_dir_button = QPushButton()
         self.input_dir_button.setText("Select input directory")
         self.input_dir_button.setToolTip("Normally contains a bunch of directories at the first depth level\n" \
                                 "each of which has a subdirectory with the same name (second depth level). \n"
-                                "Images in these second-level subdirectories will be stitched together.")
+                                "Images with the same index in these second-level subdirectories will be stitched vertically.")
         self.input_dir_button.clicked.connect(self.input_button_pressed)
 
         self.input_dir_entry = QLineEdit()
@@ -57,14 +58,16 @@ class EZStitchGroup(QGroupBox):
         self.types_of_images_label = QLabel()
         tmpstr = "Name of subdirectories which contain the same type of images in every directory in the input"
         self.types_of_images_label.setToolTip(tmpstr)
-        self.types_of_images_label.setText("Name of subdirectories with the same type of images to stitch(e.g. sli, tomo, proj-pr, etc.)")
+        self.types_of_images_label.setText("Name of subdirectory with the same type of images to stitch")
+        self.types_of_images_label.setToolTip("e.g. sli, tomo, proj-pr, etc.")
 
         self.types_of_images_entry = QLineEdit()
         self.types_of_images_entry.setToolTip(tmpstr)
         self.types_of_images_entry.editingFinished.connect(self.set_type_images)
 
         self.orthogonal_checkbox = QCheckBox()
-        self.orthogonal_checkbox.setText("Stitch orthogonal sections (will reslice images in every subdirectory and then stitch)")
+        self.orthogonal_checkbox.setText("Stitch orthogonal sections")
+        self.orthogonal_checkbox.setToolTip("Will reslice images in every subdirectory and then stitch")
         self.orthogonal_checkbox.stateChanged.connect(self.set_stitch_checkbox)
 
         self.start_stop_step_label = QLabel()
@@ -114,7 +117,9 @@ class EZStitchGroup(QGroupBox):
         self.last_row_entry.editingFinished.connect(self.set_last_row)
 
         self.half_acquisition_rButton = QRadioButton()
-        self.half_acquisition_rButton.setText("Horizontal stitching of half-acq. mode data (applies to tif images in the Input)")
+        self.half_acquisition_rButton.setText("Horizontal stitching of half-acq. mode data")
+        self.half_acquisition_rButton.setToolTip("Applies to tif images in all depth-one subdirectories in the Input \n"
+                                                 "unlike 360-MULTI-STITCH which search images at the depth two ")
         #self.half_acquisition_rButtonYfor a half-acqusition mode data (even number of tif files in the Input directory)")
         self.half_acquisition_rButton.clicked.connect(self.set_rButton)
 
@@ -381,7 +386,8 @@ class EZStitchGroup(QGroupBox):
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
 
-        if os.path.exists(self.parameters['ezstitch_temp_dir']):
+        if os.path.exists(self.parameters['ezstitch_temp_dir']) and \
+                len(os.listdir(self.parameters['ezstitch_temp_dir'])) > 0:
             qm = QMessageBox()
             rep = qm.question(self, '', "Temporary dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
             if rep == qm.Yes:
@@ -392,11 +398,18 @@ class EZStitchGroup(QGroupBox):
                     return
             else:
                 return
-
-        if os.path.exists(self.parameters['ezstitch_output_dir']):
-            #raise ValueError('Output directory exists. Delete it or select another one.')
-            warning_message('Output directory exists. Delete it or select another one.')
-            return
+        if os.path.exists(self.parameters['ezstitch_output_dir']) and \
+                len(os.listdir(self.parameters['ezstitch_output_dir'])) > 0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Output dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
+                    rmtree(self.parameters['ezstitch_output_dir'])
+                except:
+                    warning_message('Error while deleting directory')
+                    return
+            else:
+                return
 
         print("======= Begin Stitching =======")
         # Interpolate overlapping regions and equalize intensity

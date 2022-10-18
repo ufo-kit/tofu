@@ -5,7 +5,8 @@ Created on Apr 6, 2018
 """
 import glob
 import os
-from tofu.util import get_filenames, read_image, next_power_of_two
+from tofu.util import next_power_of_two
+
 from tofu.ez.util import enquote
 
 
@@ -146,7 +147,7 @@ class ufo_cmds(object):
         cmd += " ! write filename={}".format(enquote(out_pattern))
         return cmd
 
-    def get_pre_cmd(self, ctset, pre_cmd, tmpdir, dryrun, args):
+    def get_pre_cmd(self, ctset, pre_cmd, tmpdir, args):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
         outdir = self.make_outpaths(tmpdir, ctset[1])
         # add index to the name of the output directory with projections
@@ -169,10 +170,10 @@ class ufo_cmds(object):
         indir = self.make_inpaths(ctset[0], ctset[1], args)
         cmds = []
         ######### CREATE MASK #########
+        flat1_file = os.path.join(tmpdir, "flat1.tif")
         mask_file = os.path.join(tmpdir, "mask.tif")
         # generate mask
-        # cmd = 'tofu find-large-spots --images {}'.format(any_flat)
-        cmd = 'tofu find-large-spots --images {}'.format(indir[1])
+        cmd = 'tofu find-large-spots --images {}'.format(flat1_file)
         cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
                         args.main_filters_remove_spots_threshold,
                         args.main_filters_remove_spots_blur_sigma)

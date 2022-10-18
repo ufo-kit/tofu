@@ -5,22 +5,18 @@ Created on Apr 5, 2018
 
 import logging
 import os
-from tofu.util import get_filenames, read_image
 import warnings
-
 warnings.filterwarnings("ignore")
 import time
-
-#from shutil import rmtree
 
 from tofu.ez.ctdir_walker import WalkCTdirs
 from tofu.ez.tofu_cmd_gen import tofu_cmds
 from tofu.ez.ufo_cmd_gen import ufo_cmds
 from tofu.ez.find_axis_cmd_gen import findCOR_cmds
 from tofu.ez.util import *
-
-# from tofu.util import get_filenames
-
+from tofu.ez.image_read_write import TiffSequenceReader
+from tifffile import imwrite
+import tofu.ez.params as glob_parameters
 
 LOG = logging.getLogger(__name__)
 
@@ -78,11 +74,18 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     ####### PREPROCESSING #########
     Ufo.common_fd_used = False
     Tofu.common_fd_used = False
+    if args.main_filters_remove_spots:
+        # copy one flat to tmpdir now as path might change if preprocess is enabled
+        tsr = TiffSequenceReader(os.path.join(ctset[0],
+                                              glob_parameters.params['main_config_flats_dir_name']))
+        flat1 = tsr.read(tsr.num_images - 1)  # taking the last flat
+        tsr.close()
+        flat1_file = os.path.join(args.main_config_temp_dir, "flat1.tif")
+        imwrite(flat1_file, flat1)
     if args.main_config_preprocess:
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = Ufo.get_pre_cmd(ctset, args.main_config_preprocess_command,
-                                      args.main_config_temp_dir,
-                                      args.main_config_dry_run, args)
+                                      args.main_config_temp_dir, args)
         cmds.extend(cmds_prepro)
         # reset location of input data
         ctset = (args.main_config_temp_dir, ctset[1])
@@ -184,7 +187,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, args, Tofu, Ufo, FindCOR, nviews
     return nviews, WH
 
 
-def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):
+def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):  ### TODO call one function from nlmdn module!!
     """
     :param inp: Path to input directory before NLMDN applied
     :param out: Path to output directory after NLMDN applied
@@ -202,6 +205,8 @@ def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str, args):
     cmd += ' ! write filename={}'.format(enquote(outpath))
     if not args.advanced_nlmdn_save_bigtiff:
         cmd += " bytes-per-file=0 tiff-bigtiff=False"
+    if glob_parameters.params['main_region_clip_histogram']:
+        cmd += f" bits={glob_parameters.params['main_region_bit_depth']} rescale=False"
     return cmd
 
 def execute_reconstruction(args, fdt_names):
@@ -287,9 +292,8 @@ def execute_reconstruction(args, fdt_names):
             # cmds.append("echo \"{}\"".format(tmp))
             if args.advanced_nlmdn_apply_after_reco:
                 logging.debug("Using Non-Local Means Denoising")
-                nlmdn_input = out_pattern
                 head, tail = os.path.split(out_pattern)
-                slidir = os.path.dirname(head)
+                slidir = os.path.dirname(os.path.join(head, 'sli'))
                 nlmdn_output = os.path.join(slidir+"-nlmdn", "sli-nlmdn-%04i.tif")
                 cmds.append(fmt_nlmdn_ufo_cmd(slidir, nlmdn_output, args))
         else:
@@ -308,7 +312,6 @@ def execute_reconstruction(args, fdt_names):
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     print("*** Done. Total processing time {} sec.".format(int(time.time() - start)))
     print("*** Waiting for the next job...........")
-    # cmnds, axes = get_ufo_cmnds(W, tmpdir, recodir, fol, axes = None, dryrun = False)
 
 
 def already_recd(ctset, indir, recd_sets):
