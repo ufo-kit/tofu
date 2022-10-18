@@ -175,6 +175,22 @@ SECTIONS['retrieve-phase'] = {
         'help': "Real part of the complex refractive index of the material. "
                 "If specified, phase retrieval returns projected thickness, "
                 "if not, it returns phase"},
+    'tie-approximate-logarithm': {
+        'default': False,
+        'help': ("Approximate the logarithm of the tie method by the first order Taylor series "
+                 "expansion [ln(x) ~ ln(a) + (x - a) / a at a, a specified with "
+                 "--tie-approximate-point].  This way we may do the filtering for FBP already "
+                 "by the phase retrieval and save one forward and one backward 1D FFT needed "
+                 "if the filtering occurse separately. This is mostly useful for online reconstruction "
+                 "when one reconstruct only a few slices."),
+        'action': 'store_true'},
+    'tie-approximate-point': {
+        'default': 0.75,
+        'type': float,
+        'help': ("Taylor series point of expansion used by --tie-approximate-logarithm. "
+                 "The error of the approximation will be smallest around this point, "
+                 "so you can tune this for the desired grey level of interest "
+                 "(given by the sample based on e^(-mju * projected_thickness)).")},
     'retrieval-padded-width': {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),

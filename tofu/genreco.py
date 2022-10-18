@@ -11,9 +11,9 @@ from multiprocessing.pool import ThreadPool
 from threading import Event, Thread
 from gi.repository import Ufo
 from .preprocess import create_preprocessing_pipeline
-from .util import (get_filtering_padding, get_reconstructed_cube_shape,
-                  get_reconstruction_regions, get_filenames, determine_shape,
-                  get_scarray_value, Vector)
+from .util import (fbp_filtering_in_phase_retrieval, get_filtering_padding,
+                   get_reconstructed_cube_shape, get_reconstruction_regions,
+                   get_filenames, determine_shape, get_scarray_value, Vector)
 from .tasks import get_task, get_writer
 
 
@@ -243,11 +243,17 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
         height = tmp
     if args.projection_filter != 'none' and args.projection_crop_after == 'backprojection':
         # Take projection padding into account
-        padding = get_filtering_padding(width)
+        if fbp_filtering_in_phase_retrieval(args):
+            padding = args.retrieval_padded_width - width
+            padding_from = 'phase retrieval'
+        else:
+            padding = get_filtering_padding(width)
+            padding_from = 'default backproject'
         args.center_position_x = [pos + padding / 2 for pos in args.center_position_x]
         if args.z_parameter == 'center-position-x':
             region = [region[0] + padding / 2, region[1] + padding / 2, region[2]]
-        LOG.debug('center-position-x after padding: %g', args.center_position_x[0])
+        LOG.debug('center-position-x after padding: %g (from %s)',
+                  args.center_position_x[0], padding_from)
 
     backproject.props.parameter = args.z_parameter
     if args.burst:

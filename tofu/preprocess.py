@@ -2,8 +2,8 @@
 import sys
 import logging
 from gi.repository import Ufo
-from tofu.util import (get_filenames, set_node_props, make_subargs,
-                       determine_shape, setup_read_task,
+from tofu.util import (fbp_filtering_in_phase_retrieval, get_filenames,
+                       set_node_props, make_subargs, determine_shape, setup_read_task,
                        setup_padding, next_power_of_two, run_scheduler)
 from tofu.tasks import get_task, get_writer
 
@@ -122,7 +122,8 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     crop_phase_retrieve = get_task('crop', processing_node=processing_node)
     fft_phase_retrieve = get_task('fft', processing_node=processing_node)
     ifft_phase_retrieve = get_task('ifft', processing_node=processing_node)
-    last = crop_phase_retrieve
+    calculate = get_task('calculate', processing_node=processing_node)
+
     width = args.width
     height = args.height
     default_padded_width = next_power_of_two(width + 64)
@@ -142,10 +143,14 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     pad_phase_retrieve.props.width = args.retrieval_padded_width
     pad_phase_retrieve.props.height = args.retrieval_padded_height
     pad_phase_retrieve.props.addressing_mode = args.retrieval_padding_mode
-    crop_phase_retrieve.props.x = x
     crop_phase_retrieve.props.y = y
-    crop_phase_retrieve.props.width = width
     crop_phase_retrieve.props.height = height
+    if (
+        args.projection_crop_after == 'filter' or not
+        fbp_filtering_in_phase_retrieval(args)
+    ):
+        crop_phase_retrieve.props.x = x
+        crop_phase_retrieve.props.width = width
     phase_retrieve.props.method = args.retrieval_method
     phase_retrieve.props.energy = args.energy
     if len(args.propagation_distance) == 1:
@@ -160,12 +165,6 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     fft_phase_retrieve.props.dimensions = 2
     ifft_phase_retrieve.props.dimensions = 2
 
-    graph.connect_nodes(pad_phase_retrieve, fft_phase_retrieve)
-    graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
-    graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
-    graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
-    calculate = get_task('calculate', processing_node=processing_node)
-
     if args.delta is not None:
         import numpy as np
         lam = 6.62606896e-34 * 299792458 / (args.energy * 1.60217733e-16)
@@ -173,21 +172,75 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     else:
         thickness_conversion = 1
 
-    if args.retrieval_method == 'tie':
-        expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : -log ({} * v) * {{}}'
-        # 2 for 0.5 factor in ufo-filters and alpha = 10^-R, so divide by 10^R
-        expression = expression.format(2 / 10 ** args.regularization_rate)
-        # The following converts the TIE result to the actual phase, which when multiplied by the
-        # thickness_conversion gives the projected thickness
-        thickness_conversion *= -10 ** args.regularization_rate / 2
-        expression = expression.format(thickness_conversion)
+    if fbp_filtering_in_phase_retrieval(args):
+        LOG.debug('Fusing phase retrieval and FBP filtering')
+        fltr = get_task('filter', processing_node=processing_node)
+        fltr.props.filter = args.projection_filter
+        fltr.props.scale = args.projection_filter_scale
+        fltr.props.cutoff = args.projection_filter_cutoff
+        graph.connect_nodes(phase_retrieve, fltr)
+        graph.connect_nodes(fltr, ifft_phase_retrieve)
     else:
-        expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
-    calculate.props.expression = expression
-    graph.connect_nodes(crop_phase_retrieve, calculate)
-    last = calculate
+        graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
 
-    return (pad_phase_retrieve, last)
+    if args.retrieval_method == 'tie' and args.tie_approximate_logarithm:
+        # a = 2 / 10^R, b = -10^R / 2, c = thickness_conversion
+        # t = Taylor series point, T = t * (1 - ln(t))
+        # a * b = -1 (from above)
+        # -----------------------------------------------------
+        # We will use the Taylor expansion to the 1st order of the logarithm which TIE needs:
+        # -ln (a * retrieved) * b * c ~ b * c / t * [T - a * retrieved]
+        # T - a * retrieved = T - a * F^-1{F(I) * kernel} = T - F^-1{aF(I) * kernel}
+        # for u, v = 0: aF(I) * kernel = F(I)(0, 0) because kernel(0, 0) = 1 / a, thus:
+        # T - F^-1{aF(I) * kernel} = -F^-1{aF(I - T) * kernel}, because for u, v = 0 we have:
+        # -aF(I - T) * kernel = - F(I - T) = T - F(I)(0, 0) (and the rest of the frequencies is
+        # unaffected by "T".
+        # further: -aF(I - T) * kernel = F[a(T - I)] * kernel
+        # bring in b, c and t and we have F[abc/t(T - I)] * kernel, with ab=-1 we end up with:
+        # F[c/t(I - T)] * kernel, so the approximation of the logarithm does not need any change in
+        # the TIE kernel itself, we may just transform the input image and use the rest of the
+        # pipeline as usual.
+        if args.delta is None:
+            # Do not multiply by one
+            expression = "v - 1"
+        else:
+            expression = "{} * (v - {})".format(
+                # c / t
+                thickness_conversion / args.tie_approximate_point,
+                # t * (1 - ln(t))
+                args.tie_approximate_point * (1 - np.log(args.tie_approximate_point))
+            )
+        calculate.props.expression = expression
+        LOG.debug("Phase contrast conversion expression (log approximation): `%s'", expression)
+        graph.connect_nodes(calculate, pad_phase_retrieve)
+        first = calculate
+        last = crop_phase_retrieve
+    else:
+        if args.retrieval_method == 'tie':
+            expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : '
+            if args.tie_approximate_logarithm:
+                # ln(x) ~ x - 1 at a=1
+                expression += '(1.0f - {} * v) * {}'
+            else:
+                expression += '-log ({} * v) * {}'
+            # first term: 2 for 0.5 factor in ufo-filters and alpha = 10^-R, so divide by 10^R
+            # second term: The following converts the TIE result to the actual phase, which when
+            # multiplied by the thickness_conversion gives the projected thickness
+            thickness_conversion *= -10 ** args.regularization_rate / 2
+            expression = expression.format(2 / 10 ** args.regularization_rate, thickness_conversion)
+        else:
+            expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
+        LOG.debug("Phase contrast conversion expression: `%s'", expression)
+        calculate.props.expression = expression
+        graph.connect_nodes(crop_phase_retrieve, calculate)
+        first = pad_phase_retrieve
+        last = calculate
+
+    graph.connect_nodes(pad_phase_retrieve, fft_phase_retrieve)
+    graph.connect_nodes(fft_phase_retrieve, phase_retrieve)
+    graph.connect_nodes(ifft_phase_retrieve, crop_phase_retrieve)
+
+    return (first, last)
 
 
 def run_flat_correct(args):
@@ -349,8 +402,7 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
         if current:
             graph.connect_nodes(current, pr_first)
         current = pr_last
-
-    if args.projection_filter != 'none':
+    if args.projection_filter != 'none' and not fbp_filtering_in_phase_retrieval(args):
         pf_first, pf_last = create_projection_filtering_pipeline(args, graph,
                                                                  processing_node=processing_node)
         if current:
