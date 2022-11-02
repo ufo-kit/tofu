@@ -224,11 +224,11 @@ def get_image_dtype(file_prefix):
     tmp = tsr.read(0).dtype
     tsr.close()
     if tmp == 'uint8':
-        return '8'
+        return '8', 'uint8'
     elif tmp == 'uint16':
-        return '16'
+        return '16', 'uint16'
     elif tmp == 'float32':
-        return '32'
+        return '32', 'float32'
     else:
         return tmp
 
