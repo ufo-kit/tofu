@@ -310,7 +310,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         return QtWidgets.QFileDialog.getExistingDirectory(self, '.', last_dir or directory)
 
     def get_filename(self, directory, last_dir):
-        # Thanks to Lisa Dorofeeva for pointing out that a tuple is returned in PyQT5
+        # Thanks to Lisa D. for pointing out that a tuple is returned in PyQT5
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, '.', last_dir or directory)
         return filename
 
