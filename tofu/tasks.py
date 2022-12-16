@@ -23,7 +23,7 @@ def get_writer(params):
 
     outname = params.output
     LOG.debug("Writing output to {}".format(outname))
-    writer = get_task('write', filename=outname)
+    writer = get_task('write', filename=outname, rescale=params.output_rescale)
 
     writer.props.append = params.output_append
 

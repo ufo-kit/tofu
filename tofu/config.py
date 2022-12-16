@@ -41,6 +41,11 @@ SECTIONS['general'] = {
         'type': float,
         'help': "Maximum input value that maps to largest output value",
         'metavar': 'MAX'},
+    'output-rescale': {
+        'default': False,
+        'action': 'store_true',
+        'help': "If true rescale grey values either automatically or according to set "
+                "--output-minimum and --output-maximum"},
     'output-bytes-per-file': {
         'default': '128g',
         'type': convert_filesize,
