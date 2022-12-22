@@ -30,9 +30,13 @@ def get_writer(params):
     if params.output_bitdepth != 32:
         writer.props.bits = params.output_bitdepth
 
-    if params.output_minimum is not None and params.output_maximum is not None:
+    if params.output_minimum is not None:
         writer.props.minimum = params.output_minimum
+    if params.output_maximum is not None:
         writer.props.maximum = params.output_maximum
+    if params.output_minimum is not None or params.output_maximum is not None:
+        LOG.info('--output-minimum or --output-maximum specified, turning --output-rescale on')
+        writer.props.rescale = True
     if hasattr (writer.props, 'bytes_per_file'):
         writer.props.bytes_per_file = params.output_bytes_per_file
     if hasattr(writer.props, 'tiff_bigtiff'):
