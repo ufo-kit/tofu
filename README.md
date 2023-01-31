@@ -7,6 +7,11 @@ This repository contains Python data processing scripts to be used with the UFO
 framework. At the moment they are targeted at high-performance reconstruction of
 tomographic data sets.
 
+If you use this software for publishing your data, we kindly ask you to cite the article
+
+**Faragó, T., Gasilov, S., Emslie, I., Zuber, M., Helfen, L., Vogelgesang, M. & Baumbach, T. (2022). J. Synchrotron Rad.
+29, https://doi.org/10.1107/S160057752200282X**
+
 
 ## Installation
 
@@ -94,11 +99,3 @@ you can estimate it with:
 
 Currently, a modified algorithm based on the work of [Donath et
 al.](http://dx.doi.org/10.1364/JOSAA.23.001048) is used to determine the center.
-
-
-## Citation
-
-If you use this software for publishing your data, we kindly ask to cite the article below.
-
-Faragó, T., Gasilov, S., Emslie, I., Zuber, M., Helfen, L., Vogelgesang, M. & Baumbach, T. (2022). J. Synchrotron Rad.
-29, https://doi.org/10.1107/S160057752200282X

@@ -34,13 +34,18 @@ SECTIONS['general'] = {
     'output-minimum': {
         'default': None,
         'type': float,
-        'help': "Minimum value that maps to zero",
+        'help': "Minimum value that maps to zero (turns on --output-rescale)",
         'metavar': 'MIN'},
     'output-maximum': {
         'default': None,
         'type': float,
-        'help': "Maximum input value that maps to largest output value",
+        'help': "Maximum input value that maps to largest output value (turns on --output-rescale)",
         'metavar': 'MAX'},
+    'output-rescale': {
+        'default': False,
+        'action': 'store_true',
+        'help': "If true rescale grey values either automatically or according to set "
+                "--output-minimum and --output-maximum"},
     'output-bytes-per-file': {
         'default': '128g',
         'type': convert_filesize,

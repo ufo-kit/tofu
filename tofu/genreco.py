@@ -410,6 +410,9 @@ class Executor(object):
 
     def process(self):
         self.scheduler = Ufo.FixedScheduler()
+        if hasattr(self.scheduler.props, 'enable_tracing'):
+            LOG.debug("Use tracing: {}".format(self.args.enable_tracing))
+            self.scheduler.props.enable_tracing = self.args.enable_tracing
         self.scheduler.set_resources(self.resources)
         graph = Ufo.TaskGraph()
         gpu = self.scheduler.get_resources().get_gpu_nodes()[self.gpu_index]
