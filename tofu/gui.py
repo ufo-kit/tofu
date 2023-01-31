@@ -321,12 +321,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def on_path_0_clicked(self, checked):
         path = self.get_filename(self.params.deg0, self.params.last_dir)
-        print(path)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_0, self.params.last_dir)
 
     def on_path_180_clicked(self, checked):
         path = self.get_filename(self.params.deg180, self.params.last_dir)
-        print(path)
         self.params.last_dir = set_last_dir(path, self.ui.path_line_180, self.params.last_dir)
 
     def on_open_from(self):

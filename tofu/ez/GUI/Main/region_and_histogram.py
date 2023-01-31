@@ -166,6 +166,7 @@ class ROIandHistGroup(QGroupBox):
         elif int(parameters.params['main_region_bit_depth']) == 16:
             self.eight_bit_rButton.setChecked(False)
             self.sixteen_bit_rButton.setChecked(True)
+        self.set_bitdepth()
         self.min_val_entry.setText(str(parameters.params['main_region_histogram_min']))
         self.max_val_entry.setText(str(parameters.params['main_region_histogram_max']))
         self.crop_slices_checkbox.setChecked(parameters.params['main_region_crop_slices'])
