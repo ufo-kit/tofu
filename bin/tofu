@@ -94,9 +94,12 @@ def run_shell(args):
 
 
 def run_find_large_spots(args):
-    from tofu.find_large_spots import find_large_spots
+    from tofu.find_large_spots import find_large_spots, find_large_spots_median
 
-    find_large_spots(args)
+    if args.method == 'grow':
+        find_large_spots(args)
+    else:
+        find_large_spots_median(args)
 
 
 def run_inpaint(args):

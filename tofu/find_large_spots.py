@@ -1,9 +1,12 @@
 import logging
+import glob
+import os
 from gi.repository import Ufo
 from tofu.util import (
     get_filtering_padding,
     set_node_props,
     determine_shape,
+    read_image,
     setup_read_task,
     setup_padding
 )
@@ -11,6 +14,36 @@ from tofu.tasks import get_task, get_writer
 
 
 LOG = logging.getLogger(__name__)
+
+
+def find_large_spots_median(args):
+    import numpy as np
+    import skimage.morphology as sm
+    import tifffile
+    from skimage.filters import median
+    from scipy.ndimage import binary_fill_holes
+
+    if os.path.isfile(args.images):
+        filenames = [args.images]
+    else:
+        filenames = sorted(glob.glob(os.path.join(args.images, '*.*')))
+    if not filenames:
+        raise RuntimeError("No images found in `{}'".format(args.images))
+    image = read_image(filenames[0])
+    if image.ndim == 3:
+        image = np.mean(image, axis=0)
+    mask = np.zeros_like(image, dtype=np.uint8)
+
+    med = median(image, [np.ones(args.median_width)])
+
+    # First, pixels which are too bright are marked
+    mask[image > args.spot_threshold] = 1
+    # Then the ones which are way brighter than the neighborhood
+    mask[np.abs(image.astype(float) - med) > args.grow_threshold] = 1
+    mask = binary_fill_holes(mask)
+    mask = sm.dilation(mask, sm.disk(args.dilation_disk_radius))
+
+    tifffile.imsave(args.output, mask.astype(np.float32))
 
 
 def find_large_spots(args):
