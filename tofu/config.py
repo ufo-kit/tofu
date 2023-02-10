@@ -642,6 +642,21 @@ SECTIONS['general-reconstruction'] = {
         'help': "Minimum and maximum gray value mapping if store-type is integer-based"}}
 
 SECTIONS['find-large-spots'] = {
+    'method': {
+        'default': 'grow',
+        'type': str,
+        'help': "Data type of the output volume",
+        'choices': ['grow', 'median']},
+    # median arguments
+    'median-width': {
+        'default': 10,
+        'type': int,
+        'help': "Width of the median filter (operates only horizontally)"},
+    'dilation-disk-radius': {
+        'default': 2,
+        'type': int,
+        'help': "Dilation disk radius used for enlarging the found mask"},
+    # grow arguments
     'images': {
         'default': None,
         'type': str,
