@@ -1345,7 +1345,7 @@ class TestUfoMemoryOutModel:
                 # Set batch data to its linearized index to make checking easy
                 memory_out_model._batches[4 * j + i].data[:] = 4 * j + i
             # Out of order processing
-            for batch_id in np.array([2, 0, 1, 3], dtype=np.int) + (4 * j):
+            for batch_id in np.array([2, 0, 1, 3], dtype=int) + (4 * j):
                 for e in range(10):
                     memory_out_model._batches[batch_id]._on_processed(None)
             # All regions in the current paralell batch must have been processed

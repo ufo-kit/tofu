@@ -326,7 +326,7 @@ class Vector(object):
 
     def __init__(self, x_angle=0, y_angle=0, z_angle=0, position=None):
         import numpy as np
-        self.position = np.array(position, dtype=np.float) if position is not None else None
+        self.position = np.array(position, dtype=float) if position is not None else None
         self.x_angle = x_angle
         self.y_angle = y_angle
         self.z_angle = z_angle

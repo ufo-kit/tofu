@@ -27,7 +27,7 @@ def abs_sum(data):
 def entropy(data, bins=256):
     """Image entropy."""
     hist, bins = np.histogram(data, bins=bins)
-    hist = hist.astype(np.float)
+    hist = hist.astype(float)
     hist /= hist.sum()
     valid = np.where(hist > 0)
 
