@@ -469,16 +469,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         first_name = str(self.ui.path_line_0.text())
         second_name = str(self.ui.path_line_180.text())
         with tifffile.TiffFile(first_name) as tif:
-            first = tif.pages[0].asarray().astype(np.float)
+            first = tif.pages[0].asarray().astype(float)
         with tifffile.TiffFile(second_name) as tif:
-            second = tif.pages[-1].asarray().astype(np.float)
+            second = tif.pages[-1].asarray().astype(float)
 
         if self.params.ffc_correction:
             # FIXME: we should of course use the pipelines we have ...
             flat_files = get_filtered_filenames(str(self.ui.flats_path_line.text()))
             dark_files = get_filtered_filenames(str(self.ui.darks_path_line.text()))
-            flats = np.array([tifffile.TiffFile(x).asarray().astype(np.float) for x in flat_files])
-            darks = np.array([tifffile.TiffFile(x).asarray().astype(np.float) for x in dark_files])
+            flats = np.array([tifffile.TiffFile(x).asarray().astype(float) for x in flat_files])
+            darks = np.array([tifffile.TiffFile(x).asarray().astype(float) for x in dark_files])
             dark = np.mean(darks, axis=0)
             flat = np.mean(flats, axis=0) - dark
             first = (first - dark) / flat

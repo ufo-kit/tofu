@@ -296,12 +296,12 @@ def estimate_center_by_correlation(params):
 
         return np.log(result)
 
-    first = read_image(get_filenames(params.projections)[0]).astype(np.float)
+    first = read_image(get_filenames(params.projections)[0]).astype(float)
     last_index = params.start + params.number if params.number else -1
-    last = read_image(get_filenames(params.projections)[last_index]).astype(np.float)
+    last = read_image(get_filenames(params.projections)[last_index]).astype(float)
 
     if params.darks and params.flats:
-        dark = read_image(get_filenames(params.darks)[0]).astype(np.float)
+        dark = read_image(get_filenames(params.darks)[0]).astype(float)
         flat = read_image(get_filenames(params.flats)[0]) - dark
         first = flat_correct(flat, first - dark)
         last = flat_correct(flat, last - dark)

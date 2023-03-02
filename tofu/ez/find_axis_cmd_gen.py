@@ -91,17 +91,17 @@ class findCOR_cmds(object):
 
         if multipage:
             with tifffile.TiffFile(get_filenames(indir[2])[0]) as tif:
-                first = tif.pages[0].asarray().astype(np.float)
+                first = tif.pages[0].asarray().astype(float)
             with tifffile.TiffFile(get_filenames(indir[2])[-1]) as tif:
-                last = tif.pages[-1].asarray().astype(np.float)
+                last = tif.pages[-1].asarray().astype(float)
             with tifffile.TiffFile(get_filenames(indir[0])[-1]) as tif:
-                dark = tif.pages[-1].asarray().astype(np.float)
+                dark = tif.pages[-1].asarray().astype(float)
             with tifffile.TiffFile(get_filenames(indir[1])[0]) as tif:
-                flat1 = tif.pages[-1].asarray().astype(np.float) - dark
+                flat1 = tif.pages[-1].asarray().astype(float) - dark
         else:
-            first = read_image(get_filenames(indir[2])[0]).astype(np.float)
-            last = read_image(get_filenames(indir[2])[-1]).astype(np.float)
-            dark = read_image(get_filenames(indir[0])[-1]).astype(np.float)
+            first = read_image(get_filenames(indir[2])[0]).astype(float)
+            last = read_image(get_filenames(indir[2])[-1]).astype(float)
+            dark = read_image(get_filenames(indir[0])[-1]).astype(float)
             flat1 = read_image(get_filenames(indir[1])[-1]) - dark
 
         first = flat_correct(flat1, first - dark)
@@ -109,7 +109,7 @@ class findCOR_cmds(object):
         if ctset[1] == 4:
             if multipage:
                 with tifffile.TiffFile(get_filenames(indir[3])[0]) as tif:
-                    flat2 = tif.pages[-1].asarray().astype(np.float) - dark
+                    flat2 = tif.pages[-1].asarray().astype(float) - dark
             else:
                 flat2 = read_image(get_filenames(indir[3])[-1]) - dark
             last = flat_correct(flat2, last - dark)

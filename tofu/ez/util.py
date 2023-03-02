@@ -33,9 +33,9 @@ def get_dims(pth):
 def bad_vert_ROI(multipage, path2proj, y, height):
     if multipage:
         with tifffile.TiffFile(get_filenames(path2proj)[0]) as tif:
-            proj = tif.pages[0].asarray().astype(np.float)
+            proj = tif.pages[0].asarray().astype(float)
     else:
-        proj = read_image(get_filenames(path2proj)[0]).astype(np.float)
+        proj = read_image(get_filenames(path2proj)[0]).astype(float)
     y_region = slice(y, min(y + height, proj.shape[0]), 1)
     proj = proj[y_region, :]
     if proj.shape[0] == 0:

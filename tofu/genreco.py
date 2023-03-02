@@ -552,7 +552,7 @@ class CTGeometry(object):
             projs_per_45 = self.args.number / self.args.overall_angle * np.pi / 4
             stop = 4 if self.args.overall_angle <= np.pi else 8
             indices = projs_per_45 * np.arange(1, stop, 2)
-            indices = np.round(indices).astype(np.int).tolist()
+            indices = np.round(indices).astype(int).tolist()
         else:
             LOG.debug('Computing optimal projection region from all angles')
             indices = list(range(self.args.number))
@@ -674,7 +674,7 @@ def compute_detector_pixels(points, source_position, axis, volume_rotation, dete
     instances.
     """
     # Rotate the axis
-    detector_normal = np.array((0, -1, 0), dtype=np.float)
+    detector_normal = np.array((0, -1, 0), dtype=float)
     detector_normal = rotate_z(detector.z_angle, detector_normal)
     detector_normal = rotate_y(detector.y_angle, detector_normal)
     detector_normal = rotate_x(detector.x_angle, detector_normal)
@@ -743,7 +743,7 @@ def get_extrema(x_region, y_region, z):
 
     product = itertools.product(get_extrema(x_region), get_extrema(y_region), [z])
 
-    return np.array(list(product), dtype=np.float).T.copy()
+    return np.array(list(product), dtype=float).T.copy()
 
 
 def rotate_x(angle, point):
