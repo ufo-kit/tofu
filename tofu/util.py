@@ -1,13 +1,16 @@
 """Various utility functions."""
 import argparse
+import gi
 import glob
 import logging
 import math
 import os
 from collections import OrderedDict
-
+gi.require_version('Ufo', '0.0')
+from gi.repository import Ufo
 
 LOG = logging.getLogger(__name__)
+RESOURCES = None
 
 
 def range_list(value):
@@ -306,6 +309,11 @@ def get_scarray_value(scarray, index):
 
 def run_scheduler(scheduler, graph):
     from threading import Thread
+    # Reuse resources until https://github.com/ufo-kit/ufo-core/issues/191 is solved.
+    global RESOURCES
+    if not RESOURCES:
+        RESOURCES = Ufo.Resources()
+    scheduler.set_resources(RESOURCES)
 
     thread = Thread(target=scheduler.run, args=(graph,))
     thread.setDaemon(True)
