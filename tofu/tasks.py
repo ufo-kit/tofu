@@ -39,3 +39,46 @@ def get_writer(params):
         writer.props.tiff_bigtiff = params.output_bytes_per_file > 2 ** 32 - 2 ** 25
 
     return writer
+
+
+def get_memory_in(array):
+    import numpy as np
+
+    if array.ndim != 2:
+        raise ValueError("Only 2D images are supported")
+
+    if array.dtype != np.float32 and array.dtype != np.complex64:
+        raise ValueError("Only images with float32 or complex64 data type are supported")
+
+    is_complex = array.dtype == np.complex64
+
+    in_task = get_task('memory-in')
+    in_task.props.complex_layout = is_complex
+    in_task.props.pointer = array.__array_interface__['data'][0]
+    in_task.props.width = 2 * array.shape[1] if is_complex else array.shape[1]
+    in_task.props.height = array.shape[0]
+    in_task.props.number = 1
+    in_task.props.bitdepth = 32
+    # We need to extend the survival of *array* beyond this function to the point when the graph is
+    # executed, otherwise it will be destroyed and UFO will try to get data from freed memory. Thus,
+    # attach it to the task which actually needs it, because when that one is garbage collected then
+    # the array may be as well.
+    in_task.np_array = array
+
+    return in_task
+
+
+def get_memory_out(width, height):
+    import numpy as np
+
+    array = np.empty((height, width), dtype=np.float32)
+    out_task = get_task('memory-out')
+    out_task.props.pointer = array.__array_interface__['data'][0]
+    out_task.props.max_size = array.nbytes
+    # We need to extend the survival of *array* beyond this function to the point when the graph is
+    # executed, otherwise it will be destroyed and UFO will try to get data from freed memory. Thus,
+    # attach it to the task which actually needs it, because when that one is garbage collected then
+    # the array may be as well.
+    out_task.np_array = array
+
+    return out_task
