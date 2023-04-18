@@ -231,12 +231,12 @@ def get_filtering_padding(width):
     return next_power_of_two(2 * width) - width
 
 
-def setup_padding(pad, width, height, mode, crop=None, pad_width=0, pad_height=0):
-    if pad_width < 0:
+def setup_padding(pad, width, height, mode, crop=None, pad_width=None, pad_height=0):
+    if pad_width is not None and pad_width < 0:
         raise ValueError("pad_width must be >= 0")
     if pad_height < 0:
         raise ValueError("pad_height must be >= 0")
-    if not pad_width:
+    if pad_width is None:
         # Default is horizontal padding only
         pad_width = get_filtering_padding(width)
     pad.props.width = width + pad_width
