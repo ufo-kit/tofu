@@ -686,6 +686,44 @@ SECTIONS['find-large-spots'] = {
         'help': "Padded values assignment for the filtered input image"},
     }
 
+SECTIONS['inpaint'] = {
+    'projections': {
+        'default': None,
+        'type': str,
+        'help': "Location with projections",
+        'metavar': 'PATH'},
+    'guidance-image': {
+        'default': None,
+        'type': str,
+        'help': "Guidance image, structure which will be inpainted into input images"},
+    'mask-image': {
+        'default': None,
+        'type': str,
+        'help': "Mask image, pixels with ones will use the guidance image, pixels with zeros \
+                the original image"},
+    'inpaint-padded-width': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Padded width used for inpainting"},
+    'inpaint-padded-height': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Padded height used for inpainting"},
+    'inpaint-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment for inpainting"},
+    'preserve-mean': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Mean value of the inpainted result will be the same as the one of the input"},
+    'harmonize-borders': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Harmonize transitions between image borders useful for the removal of the "
+                "cross in the power spectrum"},
+}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
@@ -697,7 +735,8 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots')
+              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
+              'Inpaint')
 
 def get_config_name():
     """Get the command line --config option."""
