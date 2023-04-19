@@ -48,6 +48,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
+    'sphinxcontrib.bibtex',
 ]
 
 autodoc_mock_imports = ['gi']
@@ -196,3 +197,6 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+bibtex_bibfiles = ['refs.bib']
+bibtex_reference_style = 'author_year'

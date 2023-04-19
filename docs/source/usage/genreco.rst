@@ -12,7 +12,7 @@ position (the default) but can also be one of the geometrical parameters in orde
 their best values for the final reconstruction (see ``tofu reco --help`` and
 check the ``--z-parameter`` entry for possible values). Angular input values are
 in degrees. Geometry of the 3D reconstruction is depicted in the following
-scheme [#f1]_
+scheme :cite:`Farago:tv5034`:
 
 .. image:: ../figs/reco-geometry.png
   :width: 800
@@ -111,6 +111,3 @@ backprojection code re-written to Python is::
 
     x = projected[0, :] + axis.position[0] - 0.5
     y = projected[2, :] + axis.position[2] - 0.5
-
-
-.. [#f1] `Tofu: a fast, versatile and user-friendly image processing toolkit for computed tomography <https://doi.org/10.1107/S160057752200282X>`_
