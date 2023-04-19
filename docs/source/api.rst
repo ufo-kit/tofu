@@ -5,5 +5,6 @@ Application Programming Interface
     :maxdepth: 2
 
     api/preprocessing
+    api/inpaint
     api/genreco
     api/util
