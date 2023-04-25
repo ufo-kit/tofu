@@ -247,8 +247,16 @@ def setup_padding(pad, width, height, mode, crop=None, pad_width=None, pad_heigh
     pad.props.x = pad_width // 2 if centered else 0
     pad.props.y = pad_height // 2 if centered else 0
     pad.props.addressing_mode = mode
-    LOG.debug('Padded size: ({}, {})'.format(width + pad_width, height + pad_height))
-    LOG.debug('Padding mode: {}'.format(mode))
+    LOG.debug(
+        "Padding (x=0, y=0, w=%d, h=%d) -> (x=%d, y=%d, w=%d, h=%d) with mode `%s'",
+        width,
+        height,
+        pad.props.x,
+        pad.props.y,
+        pad.props.width,
+        pad.props.height,
+        mode,
+    )
 
     if crop:
         # crop to original width after filtering
