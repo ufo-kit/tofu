@@ -63,6 +63,9 @@ def get_filenames(path):
     Get all filenams from *path*, which could be a directory or a pattern for
     matching files in a directory.
     """
+    if not path:
+        return []
+
     return sorted(glob.glob(os.path.join(path, '*') if os.path.isdir(path) else path))
 
 
