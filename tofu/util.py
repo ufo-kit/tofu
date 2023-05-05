@@ -199,11 +199,12 @@ def get_first_filename(path):
     return filenames[0]
 
 
-def determine_shape(args, path=None, store=False):
+def determine_shape(args, path=None, store=False, do_raise=False):
     """Determine input shape from *args* which means either width and height are specified in args
     or try to read the *path* and determine the shape from it. The default path is args.projections,
     which is the typical place to find the input. If *store* is True, assign the determined values
-    if they aren't already present in *args*. Return a tuple (width, height).
+    if they aren't already present in *args*. Return a tuple (width, height). If *do_raise* is True,
+    raise an exception if shape cannot be determined.
     """
     width = args.width
     height = args.height
@@ -217,8 +218,10 @@ def determine_shape(args, path=None, store=False):
             # Now set the width and height if not specified
             width = width or shape[-1]
             height = height or shape[-2]
-        except:
+        except Exception as exc:
             LOG.info("Couldn't determine image dimensions from '{}'".format(filename))
+            if do_raise:
+                raise exc
 
     if store:
         if not args.width:
