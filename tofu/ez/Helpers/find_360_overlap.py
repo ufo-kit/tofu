@@ -16,6 +16,7 @@ import tofu.ez.params as glob_parameters
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
 from tofu.util import get_filenames, get_image_shape
 from tofu.ez.ufo_cmd_gen import ufo_cmds
+from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 
 
 
@@ -137,16 +138,21 @@ def find_overlap(parameters):
             os.system(rrcmd)
             sin_tmp_dir = os.path.join(parameters['360overlap_temp_dir'], index_dir, 'sinos-filt')
 
+        outname = os.path.join(os.path.join(
+            parameters['360overlap_output_dir'], f"{index_dir}-sli.tif"))
 
         cmd = f'tofu tomo --axis {sin_width//2} --sinograms {sin_tmp_dir}'
-        cmd +=' --output '+os.path.join(os.path.join(
-            parameters['360overlap_output_dir'], f"{index_dir}-sli.tif"))
+        cmd +=' --output '+os.path.join(outname)
         print(cmd)
         os.system(cmd)
 
+        points, maximum = evaluate_images_simp(outname, "msag")
+        print(f"Estimated overlap: {maximum}")
+              #f"{parameters['360overlap_lower_limit'] + parameters['360overlap_increment'] * maximum}")
+
         print("Finished processing: " + str(index_dir))
-        print("********************DONE********************")
+        print("****************************************")
 
     #shutil.rmtree(parameters['360overlap_temp_dir'])
-    print("Finished processing: " + str(parameters['360overlap_input_dir']))
+    print("Finished processing of all subdirectories in " + str(parameters['360overlap_input_dir']))
 
