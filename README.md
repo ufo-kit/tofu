@@ -12,6 +12,8 @@ If you use this software for publishing your data, we kindly ask you to cite the
 **Faragó, T., Gasilov, S., Emslie, I., Zuber, M., Helfen, L., Vogelgesang, M. & Baumbach, T. (2022). J. Synchrotron Rad.
 29, https://doi.org/10.1107/S160057752200282X**
 
+If you want to stay updated, subscribe to our [newsletter](mailto:sympa@lists.kit.edu?subject=subscribe%20ufo%20YourFirstName%20YourLastName). Simply leave the body of the e-mail empty and in the subject change ``YourFirstName YourLastName`` accordingly.
+
 
 ## Installation
 

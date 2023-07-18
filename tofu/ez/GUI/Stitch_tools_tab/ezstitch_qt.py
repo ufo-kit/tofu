@@ -76,7 +76,7 @@ class EZStitchGroup(QGroupBox):
         self.start_stop_step_entry.editingFinished.connect(self.set_start_stop_step)
 
         self.sample_moved_down_checkbox = QCheckBox()
-        self.sample_moved_down_checkbox.setText("Sample was moved downwards during scan")
+        self.sample_moved_down_checkbox.setText("Flip images upside down before stitching")
         self.sample_moved_down_checkbox.stateChanged.connect(self.set_sample_moved_down)
 
         self.interpolate_regions_rButton = QRadioButton()

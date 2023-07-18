@@ -10,9 +10,11 @@ from tofu.ez.GUI.Main.phase_retrieval import PhaseRetrievalGroup
 from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
 from tofu.ez.main import clean_tmp_dirs
-from tofu.ez.yaml_in_out import Yaml_IO
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
-import tofu.ez.params as parameters
+from tofu.ez.params import EZVARS
+from tofu.config import SECTIONS
+from tofu.util import load_values_from_ezdefault
+from tofu.ez.util import import_values
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
 from tofu.ez.GUI.Advanced.optimization import OptimizationGroup
 from tofu.ez.GUI.Advanced.nlmdn import NLMDNGroup
@@ -21,6 +23,8 @@ from tofu.ez.GUI.Stitch_tools_tab.ezstitch_qt import EZStitchGroup
 from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
 from tofu.ez.GUI.login_dialog import Login
+from tofu.ez.GUI.Main.batch_process import BatchProcessGroup
+from tofu.ez.GUI.Stitch_tools_tab.auto_horizontal_stitch_gui import AutoHorizontalStitchGUI
 
 
 LOG = logging.getLogger(__name__)
@@ -36,20 +40,14 @@ class GUI(qtw.QWidget):
         self.setWindowTitle("EZ-UFO")
 
         self.setStyleSheet("font: 10pt; font-family: Arial")
+        
+        # initialize dictionary entries
+        load_values_from_ezdefault(EZVARS)
+        load_values_from_ezdefault(SECTIONS)
 
         # Call login dialog
         # self.login_parameters = {}
         # QTimer.singleShot(0, self.login)
-
-        # Read in default parameter settings from yaml file
-        try:
-            settings_path = os.path.dirname(os.path.abspath(__file__)) + "/default_settings.yaml"
-            self.yaml_io = Yaml_IO()
-            self.yaml_data = self.yaml_io.read_yaml(settings_path)
-            parameters.params = dict(self.yaml_data)
-            parameters.params["parameters_type"] = "ez_ufo_reco"
-        except FileNotFoundError:
-            print("Could not load default settings from: " + str(settings_path))
 
         # Initialize tab screen
         self.tabs = qtw.QTabWidget()
@@ -57,41 +55,44 @@ class GUI(qtw.QWidget):
         self.tab2 = qtw.QWidget()
         self.tab3 = qtw.QWidget()
         self.tab4 = qtw.QWidget()
+        self.tab5 = qtw.QWidget()
+        self.tab6 = qtw.QWidget()
 
         # Create and setup classes for each section of GUI
         # Main Tab
+        self.config_group = ConfigGroup()
+        self.config_group.load_values()
+        
         self.centre_of_rotation_group = CentreOfRotationGroup()
-        self.centre_of_rotation_group.init_values()
+        self.centre_of_rotation_group.load_values()
 
         self.filters_group = FiltersGroup()
-        self.filters_group.init_values()
-
+        self.filters_group.load_values()
+        
         self.ffc_group = FFCGroup()
-        self.ffc_group.init_values()
+        self.ffc_group.load_values()
 
         self.phase_retrieval_group = PhaseRetrievalGroup()
-        self.phase_retrieval_group.init_values()
-
-        self.binning_group = ROIandHistGroup()  #TODO rename binning to something short and meaningful
-        self.binning_group.init_values()
-
-        self.config_group = ConfigGroup()
-        self.config_group.init_values()
+        self.phase_retrieval_group.load_values()
+        
+        self.binning_group = ROIandHistGroup()
+        self.binning_group.load_values()
 
         # Image Viewer
         self.image_group = ImageViewerGroup()
 
         # Advanced Tab
         self.advanced_group = AdvancedGroup()
-        self.advanced_group.init_values()
+        self.advanced_group.load_values()
 
         self.optimization_group = OptimizationGroup()
-        self.optimization_group.init_values()
+        self.optimization_group.load_values()
 
         self.nlmdn_group = NLMDNGroup()
-        self.nlmdn_group.init_values()
+        self.nlmdn_group.load_values()
 
-        # Stitch_tools_tab Tab
+        # Stitch_tools_tab Tab 
+        # ----((P)Completed up to here) ----#
         self.multi_stitch_group = MultiStitch360Group()
         self.multi_stitch_group.init_values()
 
@@ -103,6 +104,11 @@ class GUI(qtw.QWidget):
 
         self.overlap_group = Overlap360Group()
         self.overlap_group.init_values()
+        
+        self.auto_horizontal_stitch = AutoHorizontalStitchGUI()
+        self.auto_horizontal_stitch.init_values()
+        
+        self.batch_process_group = BatchProcessGroup()
 
         #######################################################
 
@@ -110,7 +116,7 @@ class GUI(qtw.QWidget):
         self.resize(0, 0)  # window to minimum size
 
         # When new settings are imported signal is sent and this catches it to update params for each GUI object
-        self.config_group.signal_update_vals_from_params.connect(self.update_values_from_params)
+        self.config_group.signal_update_vals_from_params.connect(self.update_values)
 
         # When RECO is done send signal from config
         self.config_group.signal_reco_done.connect(self.switch_to_image_tab)
@@ -156,12 +162,20 @@ class GUI(qtw.QWidget):
         helpers_layout.addWidget(self.overlap_group, 0, 1)
         helpers_layout.addWidget(self.multi_stitch_group, 1, 0)
         helpers_layout.addWidget(self.ezstitch_group, 1, 1)
+        
+        stitching2_layout = qtw.QGridLayout()
+        stitching2_layout.addWidget(self.auto_horizontal_stitch, 0, 0)
+        
+        batch_tools_layout = qtw.QGridLayout()
+        batch_tools_layout.addWidget(self.batch_process_group, 0, 0)
 
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
         self.tabs.addTab(self.tab2, "Advanced")
-        self.tabs.addTab(self.tab3, "Stitching tools")
+        self.tabs.addTab(self.tab3, "Stitching tools 1")
         self.tabs.addTab(self.tab4, "Image Viewer")
+        self.tabs.addTab(self.tab5, "Stitching Tools 2")
+        self.tabs.addTab(self.tab6, "Batch Tools")
 
         # Create main tab
         self.tab1.layout = main_layout
@@ -178,26 +192,33 @@ class GUI(qtw.QWidget):
         # Create helpers tab
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
+        
+        # Create stitching2 tab
+        self.tab5.layout = stitching2_layout
+        self.tab5.setLayout(self.tab5.layout)
+        
+        # Create batch tools tab
+        self.tab6.layout = batch_tools_layout
+        self.tab6.setLayout(self.tab6.layout)
 
         # Add tabs to widget
         layout.addWidget(self.tabs)
         self.setLayout(layout)
 
-    def update_values_from_params(self):
+    def update_values(self):
         """
         Updates displayed values when loaded in from external .yaml file of parameters
         """
-        LOG.debug("Update Values from Params")
-        LOG.debug(parameters.params)
-        self.centre_of_rotation_group.set_values_from_params()
-        self.filters_group.set_values_from_params()
-        self.ffc_group.set_values_from_params()
-        self.phase_retrieval_group.set_values_from_params()
-        self.binning_group.set_values_from_params()
-        self.config_group.set_values_from_params()
-        self.nlmdn_group.set_values_from_params()
-        self.advanced_group.set_values_from_params()
-        self.optimization_group.set_values_from_params()
+        LOG.debug("Update Values from dictionary entries")
+        self.centre_of_rotation_group.load_values()
+        self.filters_group.load_values()
+        self.ffc_group.load_values()
+        self.phase_retrieval_group.load_values()
+        self.binning_group.load_values()
+        self.config_group.load_values()
+        self.nlmdn_group.load_values()
+        self.advanced_group.load_values()
+        self.optimization_group.load_values()
 
     def switch_to_image_tab(self):
         """
@@ -205,27 +226,27 @@ class GUI(qtw.QWidget):
         when checkbox "Load images and open viewer after reconstruction" is enabled
         Automatically loads images from the output reconstruction directory for viewing
         """
-        if parameters.params["main_config_open_viewer"] is True:
+        if EZVARS['inout']['open-viewer']['value'] is True:
             LOG.debug("Switch to Image Tab")
             self.tabs.setCurrentWidget(self.tab2)
-            if os.path.isdir(str(parameters.params['main_config_output_dir'] + '/sli')):
-                files = os.listdir(str(parameters.params['main_config_output_dir'] + '/sli'))
+            if os.path.isdir(str(EZVARS['inout']['output-dir']['value'] + '/sli')):
+                files = os.listdir(str(EZVARS['inout']['output-dir']['value'] + '/sli'))
                 #Start thread here to load images
 
                 ##CHECK IF ONLY SINGLE IMAGE THEN USE OPEN IMAGE -- OTHERWISE OPEN STACK
                 if len(files) == 1:
                     print("Only one file in {}: Opening single image {}".
-                          format(parameters.params['main_config_output_dir'] + '/sli', files[0]))
-                    filePath = str(parameters.params['main_config_output_dir'] + '/sli/' + str(files[0]))
+                          format(EZVARS['inout']['output-dir']['value'] + '/sli', files[0]))
+                    filePath = str(EZVARS['inout']['output-dir']['value'] + '/sli/' + str(files[0]))
                     self.image_group.open_image_from_filepath(filePath)
                 else:
                     print("Multiple files in {}: Opening stack of images".
-                          format(str(parameters.params['main_config_output_dir'] + '/sli')))
+                          format(str(EZVARS['inout']['output-dir']['value'] + '/sli')))
                     self.image_group.open_stack_from_path(
-                        str(parameters.params['main_config_output_dir'] + '/sli'))
+                        str(EZVARS['inout']['output-dir']['value'] + '/sli'))
             else:
                 print("No output directory found")
-
+                
     def closeEvent(self, event):
         """
         Creates verification message box
@@ -236,9 +257,9 @@ class GUI(qtw.QWidget):
                         qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
         if reply == qtw.QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(parameters.params['main_config_temp_dir'], self.config_group.get_fdt_names())
+            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], self.config_group.get_fdt_names())
             # remove axis-search dir too
-            tmp = os.path.join(parameters.params['main_config_temp_dir'], 'axis-search')
+            tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
             event.accept()
         else:
             event.ignore()
