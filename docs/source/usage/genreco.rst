@@ -12,7 +12,7 @@ position (the default) but can also be one of the geometrical parameters in orde
 their best values for the final reconstruction (see ``tofu reco --help`` and
 check the ``--z-parameter`` entry for possible values). Angular input values are
 in degrees. Geometry of the 3D reconstruction is depicted in the following
-scheme [#f1]_
+scheme :cite:`Farago:tv5034`:
 
 .. image:: ../figs/reco-geometry.png
   :width: 800
@@ -65,4 +65,49 @@ pixels, (the ``center-position-x`` parameter), one can use::
 	--region=940,960,0.5 --output center-position-x-scan.tif
 
 
-.. [#f1] `Tofu: a fast, versatile and user-friendly image processing toolkit for computed tomography <https://doi.org/10.1107/S160057752200282X>`_
+Order of transformations
+------------------------
+
+In case you need to know the precise order of transformations, the OpenCL
+backprojection code re-written to Python is::
+
+    # Rotate the axis
+    detector_normal = np.array((0, -1, 0), dtype=float)
+    detector_normal = rotate_z(detector.z_angle, detector_normal)
+    detector_normal = rotate_y(detector.y_angle, detector_normal)
+    detector_normal = rotate_x(detector.x_angle, detector_normal)
+    # Compute d from ax + by + cz + d = 0
+    detector_offset = -np.dot(detector.position, detector_normal)
+
+    if np.isinf(source_position[1]):
+        # Parallel beam
+        voxels = points
+    else:
+        # Apply magnification
+        voxels = -points * source_position[1] / (detector.position[1] - source_position[1])
+    # Rotate the volume
+    voxels = rotate_z(volume_rotation.z_angle, voxels)
+    voxels = rotate_y(volume_rotation.y_angle, voxels)
+    voxels = rotate_x(volume_rotation.x_angle, voxels)
+
+    # Rotate around the axis
+    voxels = rotate_z(tomo_angle, voxels)
+
+    # Rotate the volume
+    voxels = rotate_z(axis.z_angle, voxels)
+    voxels = rotate_y(axis.y_angle, voxels)
+    voxels = rotate_x(axis.x_angle, voxels)
+
+    # Get the projected pixel
+    projected = project(voxels, source_position, detector_normal, detector_offset)
+
+    if np.any(detector_normal != np.array([0., -1, 0])):
+        # Detector is not perpendicular
+        projected -= np.array([detector.position]).T
+        # Reverse rotation => reverse order of transformation matrices and negative angles
+        projected = rotate_x(-detector.x_angle, projected)
+        projected = rotate_y(-detector.y_angle, projected)
+        projected = rotate_z(-detector.z_angle, projected)
+
+    x = projected[0, :] + axis.position[0] - 0.5
+    y = projected[2, :] + axis.position[2] - 0.5

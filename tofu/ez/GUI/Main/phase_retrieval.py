@@ -1,8 +1,9 @@
 import logging
+import math
 from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
 
-import tofu.ez.params as parameters
-
+from tofu.config import SECTIONS
+from tofu.util import add_value_to_dict_entry, reverse_tupleize, get_double_validator, get_tuple_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -25,26 +26,26 @@ class PhaseRetrievalGroup(QGroupBox):
         self.photon_energy_label = QLabel()
         self.photon_energy_label.setText("Photon energy [keV]")
         self.photon_energy_entry = QLineEdit()
+        self.photon_energy_entry.setValidator(get_double_validator())
         self.photon_energy_entry.editingFinished.connect(self.set_photon_energy)
-        self.photon_energy_entry.setStyleSheet("background-color:white")
 
         self.pixel_size_label = QLabel()
         self.pixel_size_label.setText("Pixel size [micron]")
         self.pixel_size_entry = QLineEdit()
+        self.pixel_size_entry.setValidator(get_double_validator())
         self.pixel_size_entry.editingFinished.connect(self.set_pixel_size)
-        self.pixel_size_entry.setStyleSheet("background-color:white")
 
         self.detector_distance_label = QLabel()
         self.detector_distance_label.setText("Sample-detector distance [m]")
         self.detector_distance_entry = QLineEdit()
+        self.detector_distance_entry.setValidator(get_tuple_validator())
         self.detector_distance_entry.editingFinished.connect(self.set_detector_distance)
-        self.detector_distance_entry.setStyleSheet("background-color:white")
 
         self.delta_beta_ratio_label = QLabel()
         self.delta_beta_ratio_label.setText("Delta/beta ratio: (try default if unsure)")
         self.delta_beta_ratio_entry = QLineEdit()
+        self.delta_beta_ratio_entry.setValidator(get_double_validator())
         self.delta_beta_ratio_entry.editingFinished.connect(self.set_delta_beta)
-        self.delta_beta_ratio_entry.setStyleSheet("background-color:white")
 
         self.set_layout()
 
@@ -62,38 +63,53 @@ class PhaseRetrievalGroup(QGroupBox):
         layout.addWidget(self.delta_beta_ratio_entry, 4, 1)
 
         self.setLayout(layout)
-
-    def init_values(self):
-        self.enable_PR_checkBox.setChecked(False)
-        parameters.params['main_pr_phase_retrieval'] = False
-        self.photon_energy_entry.setText("20")
-        self.pixel_size_entry.setText("3.6")
-        self.detector_distance_entry.setText("0.1")
-        self.delta_beta_ratio_entry.setText("200")
-
-    def set_values_from_params(self):
-        self.enable_PR_checkBox.setChecked(parameters.params['main_pr_phase_retrieval'])
-        self.photon_energy_entry.setText(str(parameters.params['main_pr_photon_energy']))
-        self.pixel_size_entry.setText(str(parameters.params['main_pr_pixel_size']))
-        self.detector_distance_entry.setText(str(parameters.params['main_pr_detector_distance']))
-        self.delta_beta_ratio_entry.setText(str(parameters.params['main_pr_delta_beta_ratio']))
+    
+    def load_values(self):
+        self.enable_PR_checkBox.setChecked(SECTIONS['retrieve-phase']['enable-phase']['value'])
+        self.photon_energy_entry.setText(str(SECTIONS['retrieve-phase']['energy']['value']))
+        self.pixel_size_entry.setText(str(
+            round(self.meters_to_microns(SECTIONS['retrieve-phase']['pixel-size']['value']),6)))
+        self.detector_distance_entry.setText(str(reverse_tupleize()(SECTIONS['retrieve-phase']['propagation-distance']['value'])))
+        self.delta_beta_ratio_entry.setText(str(
+            round(self.regularization_rate_to_delta_beta_ratio(SECTIONS['retrieve-phase']['regularization-rate']['value']),6)))
 
     def set_PR(self):
         LOG.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))
-        parameters.params['main_pr_phase_retrieval'] = bool(self.enable_PR_checkBox.isChecked())
+        dict_entry = SECTIONS['retrieve-phase']['enable-phase']
+        add_value_to_dict_entry(dict_entry, self.enable_PR_checkBox.isChecked())
 
     def set_photon_energy(self):
         LOG.debug(self.photon_energy_entry.text())
-        parameters.params['main_pr_photon_energy'] = str(self.photon_energy_entry.text())
+        dict_entry = SECTIONS['retrieve-phase']['energy']
+        add_value_to_dict_entry(dict_entry, str(self.photon_energy_entry.text()))
+        self.photon_energy_entry.setText(str(dict_entry['value']))
 
     def set_pixel_size(self):
         LOG.debug(self.pixel_size_entry.text())
-        parameters.params['main_pr_pixel_size'] = str(self.pixel_size_entry.text())
+        dict_entry = SECTIONS['retrieve-phase']['pixel-size']
+        add_value_to_dict_entry(dict_entry, 
+                                self.microns_to_meters(float(self.pixel_size_entry.text())))
 
     def set_detector_distance(self):
         LOG.debug(self.detector_distance_entry.text())
-        parameters.params['main_pr_detector_distance'] = str(self.detector_distance_entry.text())
+        dict_entry = SECTIONS['retrieve-phase']['propagation-distance']
+        add_value_to_dict_entry(dict_entry, str(self.detector_distance_entry.text()))
+        self.detector_distance_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
 
     def set_delta_beta(self):
         LOG.debug(self.delta_beta_ratio_entry.text())
-        parameters.params['main_pr_delta_beta_ratio'] = str(self.delta_beta_ratio_entry.text())
+        dict_entry = SECTIONS['retrieve-phase']['regularization-rate']
+        add_value_to_dict_entry(dict_entry, 
+                                self.delta_beta_ratio_to_regularization_rate(float(self.delta_beta_ratio_entry.text())))
+
+    def meters_to_microns(self,value)->float:
+        return value * 1e6
+    
+    def microns_to_meters(self,value)->float:
+        return value * 1e-6
+    
+    def delta_beta_ratio_to_regularization_rate(self,value:float)->float:
+        return math.log10(value)
+    
+    def regularization_rate_to_delta_beta_ratio(self,value)->float:
+        return 10**value

@@ -4,3 +4,4 @@ dist/
 *.egg-info/
 install_manifest*.txt
 .idea/
+.vscode/settings.json

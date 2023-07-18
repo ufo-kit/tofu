@@ -3,7 +3,7 @@ import sys
 import logging
 import configparser as configparser
 from collections import OrderedDict
-from tofu.util import convert_filesize, restrict_value, tupleize, range_list
+from tofu.util import convert_filesize, restrict_value, tupleize, restrict_tupleize, range_list
 
 
 LOG = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ SECTIONS['general'] = {
         'metavar': 'FILE'},
     'verbose': {
         'default': False,
+        'ezdefault': False,
         'help': 'Verbose output',
         'action': 'store_true'},
     'output': {
@@ -28,16 +29,19 @@ SECTIONS['general'] = {
         'metavar': 'PATH'},
     'output-bitdepth': {
         'default': 32,
+        'ezdefault': 8,
         'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of output, either 8, 16 or 32",
         'metavar': 'BITDEPTH'},
     'output-minimum': {
         'default': None,
+        'ezdefault': 0.0,
         'type': float,
         'help': "Minimum value that maps to zero (turns on --output-rescale)",
         'metavar': 'MIN'},
     'output-maximum': {
         'default': None,
+        'ezdefault': 0.0,
         'type': float,
         'help': "Maximum input value that maps to largest output value (turns on --output-rescale)",
         'metavar': 'MAX'},
@@ -68,11 +72,13 @@ SECTIONS['general'] = {
 
 SECTIONS['reading'] = {
     'y': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 0,
+        'ezdefault': 100,
+        'type': restrict_value((0, None), dtype=int),
         'help': 'Vertical coordinate from where to start reading the input image'},
     'height': {
         'default': None,
+        'ezdefault': 200,
         'type': restrict_value((0, None), dtype=int),
         'help': "Number of rows which will be read"},
     'bitdepth': {
@@ -80,33 +86,35 @@ SECTIONS['reading'] = {
         'type': restrict_value((0, None), dtype=int),
         'help': "Bit depth of raw files"},
     'y-step': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 1,
+        'ezdefault': 20,
+        'type': restrict_value((0, None), dtype=int),
         'help': "Read every \"step\" row from the input"},
     'start': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 0,
+        'type': restrict_value((0, None), dtype=int),
         'help': 'Offset to the first read file'},
     'number': {
-        'type': restrict_value((0, None), dtype=int),
         'default': None,
+        'type': restrict_value((0, None), dtype=int),
         'help': 'Number of files to read'},
     'step': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 1,
+        'ezdefault': 1, # Not updated in GUI
+        'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
     'resize': {
-        'type': restrict_value((0, None), dtype=int),
         'default': None,
+        'type': restrict_value((0, None), dtype=int),
         'help': 'Bin pixels before processing'},
     'retries': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 0,
+        'type': restrict_value((0, None), dtype=int),
         'metavar': 'NUMBER',
         'help': 'How many times to wait for new files'},
     'retry-timeout': {
-        'type': restrict_value((0, None), dtype=int),
         'default': 0,
+        'type': restrict_value((0, None), dtype=int),
         'metavar': 'TIME',
         'help': 'How long to wait for new files per trial'}}
 
@@ -153,25 +161,35 @@ SECTIONS['flat-correction'] = {
         'help': 'Do absorption correction'}}
 
 SECTIONS['retrieve-phase'] = {
+    'enable-phase': {
+        'default': False,
+        'ezdefault': False,
+        'type': bool,
+        'help': "Enable phase retrieval"},
     'retrieval-method': {
         'choices': ['tie', 'ctf', 'qp', 'qp2'],
         'default': 'tie',
         'help': "Phase retrieval method"},
     'energy': {
         'default': None,
+        'ezdefault': 20,
         'type': float,
         'help': "X-ray energy [keV]"},
     'propagation-distance': {
         'default': None,
+        'ezdefault': "0.1",
         'type': tupleize(),
         'help': ("Sample <-> detector distance (if one value, then use the same for x and y "
                  "direction, otherwise first specifies x and second y direction) [m]")},
     'pixel-size': {
         'default': 1e-6,
+        'ezdefault': 3.6e-6,
         'type': float,
         'help': "Pixel size [m]"},
     'regularization-rate': {
         'default': 2,
+        #'ezdefault': 200, #(!)WARNING - GUI value does not match description from help.
+        'ezdefault': 2.30102999566398119521,
         'type': float,
         'help': "Regularization rate (typical values between [2, 3])"},
     'delta': {
@@ -180,6 +198,22 @@ SECTIONS['retrieve-phase'] = {
         'help': "Real part of the complex refractive index of the material. "
                 "If specified, phase retrieval returns projected thickness, "
                 "if not, it returns phase"},
+    'tie-approximate-logarithm': {
+        'default': False,
+        'help': ("Approximate the logarithm of the tie method by the first order Taylor series "
+                 "expansion [ln(x) ~ ln(a) + (x - a) / a at a, a specified with "
+                 "--tie-approximate-point].  This way we may do the filtering for FBP already "
+                 "by the phase retrieval and save one forward and one backward 1D FFT needed "
+                 "if the filtering occurse separately. This is mostly useful for online reconstruction "
+                 "when one reconstruct only a few slices."),
+        'action': 'store_true'},
+    'tie-approximate-point': {
+        'default': 0.75,
+        'type': float,
+        'help': ("Taylor series point of expansion used by --tie-approximate-logarithm. "
+                 "The error of the approximation will be smallest around this point, "
+                 "so you can tune this for the desired grey level of interest "
+                 "(given by the sample based on e^(-mju * projected_thickness)).")},
     'retrieval-padded-width': {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
@@ -467,10 +501,12 @@ SECTIONS['cone-beam-weight'] = {
         'help': "X rotation axis position on a projection [pixels]"},
     'center-position-z': {
         'default': None,
+        'ezdefault': "0",
         'type': tupleize(),
         'help': "Z rotation axis position on a projection [pixels]"},
     'axis-angle-x': {
         'default': "0",
+        'ezdefault': "30",
         'type': tupleize(dtype=list),
         'help': "Rotation axis rotation around the x axis"
                 "(laminographic angle, 0 = tomography) [deg]"}}
@@ -486,6 +522,7 @@ SECTIONS['general-reconstruction'] = {
         'help': "Disable cone beam weighting"},
     'slice-memory-coeff': {
         'default': 0.8,
+        'ezdefault': 0.7, #G
         'type': restrict_value((0.01, 0.95)),
         'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]. "
                 "The total amount of consumed memory will be larger depending on the "
@@ -493,6 +530,7 @@ SECTIONS['general-reconstruction'] = {
                 "try reducing this value."},
     'num-gpu-threads': {
         'default': 1,
+        'ezdefault': None, #G = 1; Not updated in GUI; Causes a crash if not "None" due to accessing nonexistent indices
         'type': restrict_value((1, None), dtype=int),
         'help': "Number of parallel reconstruction threads on one GPU"},
     'disable-projection-crop': {
@@ -505,6 +543,7 @@ SECTIONS['general-reconstruction'] = {
         'action': 'store_true'},
     'data-splitting-policy': {
         'default': 'one',
+        'ezdefault': 'one', #G
         'type': str,
         'help': "'one': one GPU should process as many slices as possible, "
                 "'many': slices should be spread across as many GPUs as possible",
@@ -516,6 +555,7 @@ SECTIONS['general-reconstruction'] = {
                 "[y - margin, y + height + margin]"},
     'slices-per-device': {
         'default': None,
+        'ezdefault': None, # Not updated in GUI
         'type': restrict_value((0, None), dtype=int),
         'help': "Number of slices computed by one computing device"},
     'gpus': {
@@ -583,6 +623,7 @@ SECTIONS['general-reconstruction'] = {
         'help': "Detector rotation around the z axis (vertical) [deg]"},
     'axis-angle-y': {
         'default': "0",
+        'ezdefault': "0",
         'type': tupleize(dtype=list),
         'help': "Rotation axis rotation around the y axis (along beam direction) [deg]"},
     'axis-angle-z': {
@@ -599,6 +640,7 @@ SECTIONS['general-reconstruction'] = {
         'help': "Volume rotation around the y axis (along beam direction) [deg]"},
     'volume-angle-z': {
         'default': "0",
+        'ezdefault': "0.0",
         'type': tupleize(dtype=list),
         'help': "Volume rotation around the z axis (vertical) [deg]"},
     'compute-type': {
@@ -619,6 +661,7 @@ SECTIONS['general-reconstruction'] = {
         'choices': ['half', 'float', 'double', 'uchar', 'ushort', 'uint']},
     'overall-angle': {
         'default': None,
+        'ezdefault': 360,
         'type': float,
         'help': "The total angle over which projections were taken in degrees"},
     'genreco-padding-mode': {
@@ -628,7 +671,8 @@ SECTIONS['general-reconstruction'] = {
     'slice-gray-map': {
         'default': "0,0",
         'type': tupleize(num_items=2, conv=float),
-        'help': "Minimum and maximum gray value mapping if store-type is integer-based"}}
+        'help': "Minimum and maximum gray value mapping if store-type is integer-based"}
+    }
 
 SECTIONS['find-large-spots'] = {
     'images': {
@@ -643,6 +687,7 @@ SECTIONS['find-large-spots'] = {
                 "instead of vertical"},
     'gauss-sigma': {
         'default': 0.0,
+        'ezdefault': 2.0,
         'type': float,
         'help': "Gaussian sigma for removing low frequencies (filter will be 1 - gauss window)"},
     'vertical-sigma': {
@@ -657,6 +702,7 @@ SECTIONS['find-large-spots'] = {
         'help': "Path where to store the blurred input"},
     'spot-threshold': {
         'default': 0.0,
+        'ezdefault': 1000,
         'type': float,
         'help': "Pixels with grey value larger than this are considered as spots"},
     'spot-threshold-mode': {
@@ -675,6 +721,44 @@ SECTIONS['find-large-spots'] = {
         'help': "Padded values assignment for the filtered input image"},
     }
 
+SECTIONS['inpaint'] = {
+    'projections': {
+        'default': None,
+        'type': str,
+        'help': "Location with projections",
+        'metavar': 'PATH'},
+    'guidance-image': {
+        'default': None,
+        'type': str,
+        'help': "Guidance image, structure which will be inpainted into input images"},
+    'mask-image': {
+        'default': None,
+        'type': str,
+        'help': "Mask image, pixels with ones will use the guidance image, pixels with zeros \
+                the original image"},
+    'inpaint-padded-width': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Padded width used for inpainting"},
+    'inpaint-padded-height': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Padded height used for inpainting"},
+    'inpaint-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Padded values assignment for inpainting"},
+    'preserve-mean': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Mean value of the inpainted result will be the same as the one of the input"},
+    'harmonize-borders': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Harmonize transitions between image borders useful for the removal of the "
+                "cross in the power spectrum"},
+}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
@@ -686,7 +770,8 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots')
+              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
+              'Inpaint')
 
 def get_config_name():
     """Get the command line --config option."""
@@ -757,15 +842,20 @@ def config_to_list(config_name=''):
     return result
 
 
+def without_keys(d, keys):
+    return {k: v for k, v in d.items() if k not in keys}
+
 class Params(object):
     def __init__(self, sections=()):
         self.sections = sections + ('general', 'reading')
+    
 
     def add_parser_args(self, parser):
         for section in self.sections:
             for name in sorted(SECTIONS[section]):
-                opts = SECTIONS[section][name]
+                opts = without_keys(SECTIONS[section][name], {'ezdefault'})
                 parser.add_argument('--{}'.format(name), **opts)
+                
 
     def add_arguments(self, parser):
         self.add_parser_args(parser)

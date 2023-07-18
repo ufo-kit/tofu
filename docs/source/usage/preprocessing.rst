@@ -164,6 +164,101 @@ You may also perform flat correction in one step by using the flat
 correction arguments. For a full list, see ``tofu sinos --help``.
 
 
+.. _inpainting:
+
+Inpainting
+----------
+
+Inpainting is useful when we need to (a) seamlessly blend a part of one image
+into another, or (b) if we want to interpolate some corrupted region in an
+image.  In the context of 3D reconstruction, inpainting can be used in
+:ref:`broad_ring_filtering`. The algorithm is based on the Fourier transform
+method in :cite:`MOREL2012342`.
+
+Seamless Cloning
+~~~~~~~~~~~~~~~~
+
+One may seamlessly blend two images like this:
+
+.. code-block:: bash
+
+   tofu inpaint --guidance-image guidance.tif --projections boat.tif --mask-image mask.tif --preserve-mean --output inpainted.tif
+
+Which will produce the following output:
+
+.. image:: ../figs/inpainting.png
+  :width: 800
+  :align: center
+  :alt: Inpainting example
+
+Interpolation of a corrupted region requires the same command, just without the
+specification of the guidance image:
+
+.. code-block:: bash
+
+   tofu inpaint --projections boat.tif --mask-image mask.tif --preserve-mean --output inpainted.tif
+
+   # For comparison: horizontal-interpolate
+   ufo-launch [read path=boat.tif, read path=mask.tif] ! horizontal-interpolate ! write filename=horiz-interpolate.tif
+
+
+Side-by-side comparison of the result of ``horizontal-interpolate`` (left)
+and inpainting (right) generated with the above commands:
+
+.. image:: ../figs/hi-inp-comparison.jpg
+  :width: 800
+  :align: center
+  :alt: Horizontal interpolation vs. inpainting
+
+
+Harmonization of Image Borders (for the Removal of the Power Spectrum Cross)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Discrete Fourier transform assumes that images are `N`-periodic, i.e. after
+pixel `N-1`, pixel `0` comes again and so on. The transitions between image
+borders thus often contain harsh discontinuities which are reflected in the
+Fourier transform and manifest as a cross in the power spectrum aligned with the
+coordinate axes and crossing the `(0, 0)` frequency. We can remedy this by
+blending the opposing borders.
+
+In the image below (boat cropped to ``371 x 371`` pixels), on the left is the
+original image after swapping quadrants to emphasize the border discontinuities.
+In the middle is the harmonized image without padding of the Fourier transform
+and on the right with padding from the original ``371 x 371`` to ``512 x 512``
+pixels.  Commands used for their generation are shown below (with the additional
+swapping of quadrants).
+
+.. image:: ../figs/harmonization-images.jpg
+  :width: 800
+  :align: center
+  :alt: Image before and after border harmonization
+
+.. code-block:: bash
+
+    tofu inpaint --projections input.tif --preserve-mean --harmonize-borders --output middle-harmonized.tif
+    tofu inpaint --projections input.tif --inpaint-padded-width 512 --inpaint-padded-height 512 --inpaint-padding-mode mirrored_repeat
+    --preserve-mean --harmonize-borders --output right-harmonized.tif
+
+Below are the power spectra of the respective images above and below the
+commands to generate them. Note the cross in the left image and how the positive
+and negative frequencies are starting to get mixed in the right one, which is
+caused by ``mirrored_repeat`` padding mode.
+
+.. image:: ../figs/harmonization-ips.jpg
+  :width: 800
+  :align: center
+  :alt: Power spectra of an image before and after border harmonization
+
+.. code-block:: bash
+
+    ufo-launch read path=input.tif ! fft dimensions=2 ! power-spectrum ! calculate expression="'log(v)'" ! swap-quadrants
+	! write filename=left-power-spectrum.tif
+    ufo-launch read path=middle-harmonized.tif ! fft dimensions=2 ! power-spectrum ! calculate expression="'log(v)'"
+	! swap-quadrants ! write filename=middle-power-spectrum.tif
+    ufo-launch read path=right-harmonized.tif ! fft dimensions=2 !  power-spectrum ! calculate expression="'log(v)'"
+	! swap-quadrants ! write filename=right-power-spectrum.tif
+
+
 .. _broad_ring_filtering:
 
 Removing Broad Rings from Tomographic Slices
@@ -214,6 +309,9 @@ of a flat field, then thresholds it and from the found extreme intensities
     # Filtering the spots by horizontal linear interpolation
     ufo-launch -q [read path=fc.tif, read path=mask.tif] !  horizontal-interpolate ! write filename=interpolated.tif
     bytes-per-file=1000000000000 tiff-bigtiff=True
+
+    # Or by inpainting
+    tofu inpaint --projections fc.tif --mask-image mask.tif --preserve-mean --output interpolated.tif
 
 
 .. _narrow_ring_filtering:

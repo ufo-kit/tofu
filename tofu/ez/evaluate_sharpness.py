@@ -41,7 +41,7 @@ def inverted(func, *args, **kwargs):
 
 def filter_data(data, fwhm=32.0):
     """Filter low frequencies in 1D *data* (needed when the axis is far away by axis evaluation).
-    *fwhm* is the FWHM of the gaussian used to filter out low frequencies in real space. The window
+    *fwhm* is the FwhM of the gaussian used to filter out low frequencies in real space. The window
     is then computed as fft(1 - gauss).
     """
     mean = np.mean(data)
@@ -384,7 +384,7 @@ def parse_args():
     parser.add_argument(
         "--fwhm",
         type=float,
-        help="FWHM of 1 - Gauss in real space used to filter out low frequencies.",
+        help="FwhM of 1 - Gauss in real space used to filter out low frequencies.",
     )
     parser.add_argument(
         "--entropy-num-bins",
@@ -393,7 +393,7 @@ def parse_args():
         help="Number of bins to use for histogram calculation by entropy",
     )
     parser.add_argument(
-        "--blur-fwhm", type=float, help="FWHM of the Gaussian blur applied to images"
+        "--blur-fwhm", type=float, help="FwhM of the Gaussian blur applied to images"
     )
     parser.add_argument("--save-raw", action="store_true", help="Store raw data (1D npy, 2D tiff)?")
     parser.add_argument("--save-txt", action="store_true", help="Store raw data as text files")

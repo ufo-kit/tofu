@@ -54,6 +54,9 @@ class ApplicationWindow(QMainWindow):
         save_action = flow_menu.addAction("Save")
         save_action.setShortcut('Ctrl+S')
         save_action.triggered.connect(self.on_save)
+        save_json_action = flow_menu.addAction("Save json")
+        save_json_action.setShortcut('Ctrl+J')
+        save_json_action.triggered.connect(self.on_save_json)
         load_action = flow_menu.addAction("Open")
         load_action.setShortcut('Ctrl+O')
         load_action.triggered.connect(self.on_open)
@@ -434,6 +437,35 @@ class ApplicationWindow(QMainWindow):
         self.executor.run(graphs[0])
         self.run_action.setEnabled(False)
         self.ufo_scene.set_enabled(False)
+
+    def on_save_json(self):
+        graphs = self.ufo_scene.get_simple_node_graphs()
+        if len(graphs) != 1:
+            raise FlowError('Scene must contain one fully connected graph')
+        if not self.ufo_scene.is_fully_connected():
+            raise FlowError('Not all node ports are connected')
+        if not self.ufo_scene.are_all_ufo_tasks(graphs=graphs):
+            raise FlowError('Flow contains other than pure UFO nodes (nodes with different '
+                            'data types, e.g. Memory Out or Image Viewer)')
+
+        ufo_graph = self.executor.setup_ufo_graph(graphs[0])
+
+        if self.last_dirs['scene']:
+            path = self.last_dirs['scene']
+        else:
+            path = xdg.BaseDirectory.save_data_path('tofu', 'flows')
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+        file_name, _ = QFileDialog.getSaveFileName(self,
+                                                   "Select File Name",
+                                                   str(path),
+                                                   "json-File (*.json)")
+        if file_name:
+            self.last_dirs['scene'] = os.path.dirname(file_name)
+            if not file_name.endswith('.json'):
+                file_name += '.json'
+            ufo_graph.save_to_json(file_name)
 
     def on_execution_finished(self):
         self.progress_bar.reset()

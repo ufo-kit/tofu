@@ -303,6 +303,22 @@ class UfoScene(FlowScene):
 
         return True
 
+    def are_all_ufo_tasks(self, graphs=None):
+        """If all inputs and outputs of all models in all *graphs* have `UfoBuffer` data type, return
+        True. If *graphs* are not specified, they are created from the scene.
+        """
+        if graphs is None:
+            graphs = self.get_simple_node_graphs()
+
+        for graph in graphs:
+            for model in graph.nodes:
+                for port_type in ['input', 'output']:
+                    for data_type in model.data_type[port_type].values():
+                        if data_type.id != 'UfoBuffer':
+                            return False
+
+        return True
+
     def get_simple_node_graphs(self):
         """
         Get a graph from the scene without composite nodes which can be directly used byt the

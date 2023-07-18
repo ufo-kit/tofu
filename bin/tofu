@@ -99,6 +99,12 @@ def run_find_large_spots(args):
     find_large_spots(args)
 
 
+def run_inpaint(args):
+    from tofu import inpaint
+
+    inpaint.run(args)
+
+
 def gui(args):
     try:
         from tofu import gui
@@ -199,6 +205,7 @@ def main():
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
+        ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
     ]
 
     if sys.version < '3.7':

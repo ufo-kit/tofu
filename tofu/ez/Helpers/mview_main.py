@@ -67,7 +67,7 @@ def main_prep(params):
     files_in_int = params['ezmview_num_flats'] + params['ezmview_num_darks'] + FFinterval
     files_input = files_in_int * int_tot
     if params['ezmview_flats2'] == False:
-        files_input += params['ezmview_num_flats'] + params['ezmview_num_darks']
+        files_input += params['ezmview_num_flats'] #+ params['ezmview_num_darks']
 
     if files_input != nframes:
         tmp = (

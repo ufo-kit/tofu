@@ -1,8 +1,9 @@
 import logging
 from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit
 
-import tofu.ez.params as parameters
-
+from tofu.ez.params import EZVARS
+from tofu.config import SECTIONS
+from tofu.util import add_value_to_dict_entry, get_double_validator, reverse_tupleize
 
 LOG = logging.getLogger(__name__)
 
@@ -24,14 +25,17 @@ class AdvancedGroup(QGroupBox):
 
         self.lamino_angle_label = QLabel("Laminographic angle                              ")
         self.lamino_angle_entry = QLineEdit()
+        self.lamino_angle_entry.setValidator(get_double_validator())
         self.lamino_angle_entry.editingFinished.connect(self.set_lamino_angle)
 
         self.overall_rotation_label = QLabel("Overall rotation range about CT Z-axis")
         self.overall_rotation_entry = QLineEdit()
+        self.overall_rotation_entry.setValidator(get_double_validator())
         self.overall_rotation_entry.editingFinished.connect(self.set_overall_rotation)
 
         self.center_position_z_label = QLabel("Center Position Z                              ")
         self.center_position_z_entry = QLineEdit()
+        self.center_position_z_entry.setValidator(get_double_validator())
         self.center_position_z_entry.editingFinished.connect(self.set_center_position_z)
 
         self.axis_rotation_y_label = QLabel(
@@ -43,10 +47,12 @@ class AdvancedGroup(QGroupBox):
         # AUXILIARY FFC
         self.dark_scale_label = QLabel("Dark scale                              ")
         self.dark_scale_entry = QLineEdit()
+        self.dark_scale_entry.setValidator(get_double_validator())
         self.dark_scale_entry.editingFinished.connect(self.set_dark_scale)
 
         self.flat_scale_label = QLabel("Flat scale                              ")
         self.flat_scale_entry = QLineEdit()
+        self.flat_scale_entry.setValidator(get_double_validator())
         self.flat_scale_entry.editingFinished.connect(self.set_flat_scale)
 
         self.set_layout()
@@ -82,55 +88,52 @@ class AdvancedGroup(QGroupBox):
 
         self.setLayout(layout)
 
-    def init_values(self):
-        self.lamino_group.setChecked(False)
-        parameters.params['advanced_advtofu_extended_settings'] = False
-        self.lamino_angle_entry.setText("30")
-        parameters.params['advanced_advtofu_lamino_angle'] = 30
-        self.overall_rotation_entry.setText("360")
-        parameters.params['advanced_adv_tofu_z_axis_rotation'] = 360
-        self.center_position_z_entry.setText("")
-        parameters.params['advanced_advtofu_center_position_z'] = ""
-        self.axis_rotation_y_entry.setText("")
-        parameters.params['advanced_advtofu_y_axis_rotation'] = ""
-        self.dark_scale_entry.setText("")
-        parameters.params['advanced_advtofu_aux_ffc_dark_scale'] = ""
-        self.flat_scale_entry.setText("")
-        parameters.params['advanced_advtofu_aux_ffc_flat_scale'] = ""
-
-    def set_values_from_params(self):
-        self.lamino_group.setChecked(parameters.params['advanced_advtofu_extended_settings'])
-        self.lamino_angle_entry.setText(str(parameters.params['advanced_advtofu_lamino_angle']))
-        self.overall_rotation_entry.setText(str(parameters.params['advanced_adv_tofu_z_axis_rotation']))
-        self.center_position_z_entry.setText(str(parameters.params['advanced_advtofu_center_position_z']))
-        self.axis_rotation_y_entry.setText(str(parameters.params['advanced_advtofu_y_axis_rotation']))
-        self.dark_scale_entry.setText(str(parameters.params['advanced_advtofu_aux_ffc_dark_scale']))
-        self.flat_scale_entry.setText(str(parameters.params['advanced_advtofu_aux_ffc_flat_scale']))
+    def load_values(self):
+        self.lamino_group.setChecked(EZVARS['advanced']['more-reco-params']['value'])
+        self.lamino_angle_entry.setText(str(reverse_tupleize()(SECTIONS['cone-beam-weight']['axis-angle-x']['value'])))
+        self.overall_rotation_entry.setText(str(SECTIONS['general-reconstruction']['overall-angle']['value']))
+        self.center_position_z_entry.setText(str(reverse_tupleize()(SECTIONS['cone-beam-weight']['center-position-z']['value'])))
+        self.axis_rotation_y_entry.setText(str(reverse_tupleize()(SECTIONS['general-reconstruction']['axis-angle-y']['value'])))
+        self.dark_scale_entry.setText(str(EZVARS['flat-correction']['dark-scale']['value']))
+        self.flat_scale_entry.setText(str(EZVARS['flat-correction']['flat-scale']['value']))
 
     def set_lamino_group(self):
         LOG.debug("Lamino: " + str(self.lamino_group.isChecked()))
-        parameters.params['advanced_advtofu_extended_settings'] = bool(self.lamino_group.isChecked())
+        dict_entry = EZVARS['advanced']['more-reco-params']
+        add_value_to_dict_entry(dict_entry, self.lamino_group.isChecked())
 
     def set_lamino_angle(self):
         LOG.debug(self.lamino_angle_entry.text())
-        parameters.params['advanced_advtofu_lamino_angle'] = str(self.lamino_angle_entry.text())
+        dict_entry = SECTIONS['cone-beam-weight']['axis-angle-x']
+        add_value_to_dict_entry(dict_entry, str(self.lamino_angle_entry.text()))
+        self.lamino_angle_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
 
     def set_overall_rotation(self):
         LOG.debug(self.overall_rotation_entry.text())
-        parameters.params['advanced_adv_tofu_z_axis_rotation'] = str(self.overall_rotation_entry.text())
+        dict_entry = SECTIONS['general-reconstruction']['overall-angle']
+        add_value_to_dict_entry(dict_entry, str(self.overall_rotation_entry.text()))
+        self.overall_rotation_entry.setText(str(dict_entry['value']))
 
     def set_center_position_z(self):
         LOG.debug(self.center_position_z_entry.text())
-        parameters.params['advanced_advtofu_center_position_z'] = str(self.center_position_z_entry.text())
+        dict_entry = SECTIONS['cone-beam-weight']['center-position-z']
+        add_value_to_dict_entry(dict_entry, str(self.center_position_z_entry.text()))
+        self.center_position_z_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
 
     def set_rotation_about_beam(self):
         LOG.debug(self.axis_rotation_y_entry.text())
-        parameters.params['advanced_advtofu_y_axis_rotation'] = str(self.axis_rotation_y_entry.text())
+        dict_entry = SECTIONS['general-reconstruction']['axis-angle-y']
+        add_value_to_dict_entry(dict_entry, str(self.axis_rotation_y_entry.text()))
+        self.axis_rotation_y_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
 
     def set_dark_scale(self):
         LOG.debug(self.dark_scale_entry.text())
-        parameters.params['advanced_advtofu_aux_ffc_dark_scale'] = str(self.dark_scale_entry.text())
+        dict_entry = EZVARS['flat-correction']['dark-scale']
+        add_value_to_dict_entry(dict_entry, str(self.dark_scale_entry.text()))
+        self.dark_scale_entry.setText(str(dict_entry['value']))
 
     def set_flat_scale(self):
         LOG.debug(self.flat_scale_entry.text())
-        parameters.params['advanced_advtofu_aux_ffc_flat_scale'] = str(self.flat_scale_entry.text())
+        dict_entry = EZVARS['flat-correction']['flat-scale']
+        add_value_to_dict_entry(dict_entry, str(self.flat_scale_entry.text()))
+        self.flat_scale_entry.setText(str(dict_entry['value']))
