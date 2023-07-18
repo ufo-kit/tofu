@@ -27,6 +27,7 @@ DTYPE_CL_SIZE = {'float': 4,
 
 
 def genreco(args):
+    print(args)
     st = time.time()
     if is_output_single_file(args):
         try:
@@ -52,6 +53,7 @@ def genreco(args):
     gpu_indices = np.array(args.gpus or list(range(len(gpus))))
     if min(gpu_indices) < 0 or max(gpu_indices) > len(gpus) - 1:
         raise ValueError('--gpus contains invalid indices')
+    
     gpus = gpus[gpu_indices]
     duration = 0
     for i, gpu in enumerate(gpus):

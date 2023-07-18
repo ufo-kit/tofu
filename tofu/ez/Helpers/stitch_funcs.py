@@ -16,8 +16,12 @@ from functools import partial
 import re
 import warnings
 import time
+from mpi4py import MPI
+import sys
+import subprocess
 
-import tofu.ez.params as glob_parameters
+from tofu.ez.params import EZVARS
+from concurrent import futures
 
 def findCTdirs(root: str, tomo_name: str):
     """
@@ -328,11 +332,22 @@ def st_mp_idx(offst, ax, crop, in_fmt, out_fmt, idx):
     stitched = stitch(first, second, ax, crop)
     tifffile.imwrite(out_fmt.format(idx), stitched)
 
-def st_mp_bigtiff_pages(offst, ax, crop, tfs, out_fmt, idx):
+
+def st_bigtiff_pages(offst, ax, crop, tfs, out_fmt, idx):
     first = tfs.read(idx)
     second = tfs.read(idx+offst)
     stitched = stitch(first, second, ax, crop)
     tifffile.imwrite(out_fmt.format(idx), stitched)
+
+# def st_mp_bigtiff_pages(offst, ax, crop, bigtif_name, out_fmt, idx):
+#     tif = TiffSequenceReader(bigtif_name)
+#     first = tif.read(idx)
+#     second = tif.read(idx+offst)
+#     tif.close()
+#     stitched = stitch(first, second, ax, crop)
+#     tifffile.imwrite(out_fmt.format(idx), stitched)
+
+
 
 def main_360_mp_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):
@@ -340,73 +355,50 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
 
     subdirs = [dI for dI in os.listdir(indir) \
             if os.path.isdir(os.path.join(indir, dI))]
+
     for i, sdir in enumerate(subdirs):
         print(f"Stitching images in {sdir}")
-        names = sorted(glob.glob(os.path.join(indir, sdir, '*.tif')))
-        shape = get_image_shape(names[0])
+        tfs = TiffSequenceReader(os.path.join(indir, sdir))
+        if tfs.num_images < 2:
+            print("Warning: less than 2 files, skipping this dir")
+            continue
+        else:
+            print(f"{tfs.num_images//2} pairs will be stitched in {sdir}")
+        tfs.close()
 
-        if len(shape) == 2:  # single page input
-            num_projs = len(names)
-            print(f"{num_projs} files in {sdir}")
-            if num_projs < 2:
-                warnings.warn("Warning: less than 2 files, skipping this dir")
-                continue
+        os.makedirs(os.path.join(outdir, sdir))
+        out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
 
-
-            os.makedirs(os.path.join(outdir, sdir))
-            out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
-
-            # extraxt input file format
-            firstfname = names[0]
-            firstnum = re.match('.*?([0-9]+)$', firstfname[:-4]).group(1)
-            n_dgts = len(firstnum) #number of significant digits
-            idx0 = int(firstnum)
-            trnc_len = n_dgts + 4 #format + .tif
-            in_fmt = firstfname[:-trnc_len] + '{:0'+str(n_dgts)+'}.tif'
-
-            offst = int(num_projs / 2)
-            exec_func = partial(st_mp_idx, offst, ax, cro, in_fmt, out_fmt)
-            idxs = range(idx0, idx0+offst)
-            pool = mp.Pool(processes=mp.cpu_count())
-            # double check if names correspond - to remove later
-            for nmi in idxs:
-                #print(names[nmi-idx0], in_fmt.format(nmi))
-                if names[nmi-idx0] != in_fmt.format(nmi):
-                    print('Something wrong with file name format')
-                    continue
-            #pool.map(exec_func, names[0:num_projs/2])
-            pool.map(exec_func, idxs)
-        elif len(shape) == 3:
-            tfs = TiffSequenceReader(os.path.join(indir, sdir))
-            npairs = tfs.num_images//2
-            print(f"{npairs} pairs in {sdir} will be stitched")
-
-            os.makedirs(os.path.join(outdir, sdir))
-            out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
-
-            exec_func = partial(st_mp_bigtiff_pages, npairs, ax, cro, tfs, out_fmt)
-            idxs = range(0, npairs)
-            pool = mp.Pool(processes=mp.cpu_count())
-            pool.map(exec_func, idxs)
-
-            tfs.close()
+        tmp = os.path.dirname(os.path.abspath(__file__))
+        path_to_script = os.path.join(tmp, "halfacqmode-mpi-stitch.py")
+        if os.path.isfile(path_to_script):
+            tstart = time.time()
+            child_comm = MPI.COMM_WORLD.Spawn(
+                sys.executable,
+                [path_to_script, f"{ax}", f"{cro}", os.path.join(indir, sdir), out_fmt],
+                maxprocs=12)
+            child_comm.Disconnect()
+            print(f"Child finished in {time.time() - tstart} yay!")
+        else:
+            print('Cannot see the script for parallel stitching of bigtiff files')
+            break
 
     print("========== Done ==========")
 
 
 def main_360_mp_depth2(parameters):
-    ctdirs, lvl0 = findCTdirs(parameters['360multi_input_dir'], glob_parameters.params['main_config_tomo_dir_name'])
+    ctdirs, lvl0 = findCTdirs(parameters['360multi_input_dir'], EZVARS['inout']['tomo-dir']['value'])
     num_sets = len(ctdirs)
 
     if num_sets < 1:
         print(f"Didn't find any CT dirs in the input. Check directory structure and permissions. \n" 
               f"Program expects to see a number of subdirectories in the input each of with \n" 
               f"contains at least one directory with CT projections (currently name set to "
-              f"{glob_parameters.params['main_config_tomo_dir_name']}. \n"+
+              f"{EZVARS['inout']['tomo-dir']['value']}. \n"+
               f"The tif files in all " \
-              f" {glob_parameters.params['main_config_tomo_dir_name']}, "
-              f" {glob_parameters.params['main_config_flats_dir_name']}, "
-              f" {glob_parameters.params['main_config_darks_dir_name']} \n"
+              f" {EZVARS['inout']['tomo-dir']['value']}, "
+              f" {EZVARS['inout']['flats-dir']['value']}, "
+              f" {EZVARS['inout']['darks-dir']['value']} \n"
               f"subdirectories will be stitched to convert half-acquisition mode scans to ordinary \n"
               f"180-deg parallel-beam scans")
         return

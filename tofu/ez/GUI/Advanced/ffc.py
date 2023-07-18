@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
 )
 
-import tofu.ez.params as parameters
-
+from tofu.ez.params import EZVARS
+from tofu.util import add_value_to_dict_entry, get_int_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -44,14 +44,17 @@ class FFCGroup(QGroupBox):
 
         self.eigen_pco_repetitions_label = QLabel("Eigen PCO Repetitions")
         self.eigen_pco_repetitions_entry = QLineEdit()
+        self.eigen_pco_repetitions_entry.setValidator(get_int_validator())
         self.eigen_pco_repetitions_entry.editingFinished.connect(self.set_pcoReps)
 
         self.eigen_pco_downsample_label = QLabel("Eigen PCO Downsample")
         self.eigen_pco_downsample_entry = QLineEdit()
+        self.eigen_pco_downsample_entry.setValidator(get_int_validator())
         self.eigen_pco_downsample_entry.editingFinished.connect(self.set_pcoDowns)
 
         self.downsample_label = QLabel("Downsample")
         self.downsample_entry = QLineEdit()
+        self.downsample_entry.setValidator(get_int_validator())
         self.downsample_entry.editingFinished.connect(self.set_downsample)
 
         self.set_layout()
@@ -76,60 +79,57 @@ class FFCGroup(QGroupBox):
 
         self.setLayout(layout)
 
-    def init_values(self):
-        self.eigen_rButton.setChecked(True)
-        self.average_rButton.setChecked(False)
-        self.ssim_rButton.setChecked(False)
-        parameters.params['advanced_ffc_method'] = "eigen"
-        self.enable_sinFFC_checkbox.setChecked(False)
-        self.eigen_pco_repetitions_entry.setText("4")
-        self.eigen_pco_downsample_entry.setText("2")
-        self.downsample_entry.setText("4")
-
-    def set_values_from_params(self):
-        self.enable_sinFFC_checkbox.setChecked(parameters.params['advanced_ffc_sinFFC'])
+    def load_values(self):
+        self.enable_sinFFC_checkbox.setChecked(EZVARS['flat-correction']['smart-ffc']['value'])
         self.set_method_from_params()
-        self.eigen_pco_repetitions_entry.setText(str(parameters.params['advanced_ffc_eigen_pco_reps']))
-        self.eigen_pco_downsample_entry.setText(str(parameters.params['advanced_ffc_eigen_pco_downsample']))
-        self.downsample_entry.setText(str(parameters.params['advanced_ffc_downsample']))
+        self.eigen_pco_repetitions_entry.setText(str(EZVARS['flat-correction']['eigen-pco-reps']['value']))
+        self.eigen_pco_downsample_entry.setText(str(EZVARS['flat-correction']['eigen-pco-downsample']['value']))
+        self.downsample_entry.setText(str(EZVARS['flat-correction']['downsample']['value']))
 
     def set_sinFFC(self):
-        logging.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))
-        parameters.params['advanced_ffc_sinFFC'] = bool(self.enable_sinFFC_checkbox.isChecked())
+        LOG.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))
+        dict_entry = EZVARS['flat-correction']['smart-ffc']
+        add_value_to_dict_entry(dict_entry, self.enable_sinFFC_checkbox.isChecked())
 
     def set_pcoReps(self):
-        logging.debug("PCO Reps: " + str(self.eigen_pco_repetitions_entry.text()))
-        parameters.params['advanced_ffc_eigen_pco_reps'] = str(self.eigen_pco_repetitions_entry.text())
+        LOG.debug("PCO Reps: " + str(self.eigen_pco_repetitions_entry.text()))
+        dict_entry = EZVARS['flat-correction']['eigen-pco-reps']
+        add_value_to_dict_entry(dict_entry, str(self.eigen_pco_repetitions_entry.text()))
+        self.eigen_pco_repetitions_entry.setText(str(dict_entry['value']))
 
     def set_pcoDowns(self):
-        logging.debug("PCO Downsample: " + str(self.eigen_pco_downsample_entry.text()))
-        parameters.params['advanced_ffc_eigen_pco_downsample'] = str(self.eigen_pco_downsample_entry.text())
+        LOG.debug("PCO Downsample: " + str(self.eigen_pco_downsample_entry.text()))
+        dict_entry = EZVARS['flat-correction']['eigen-pco-downsample']
+        add_value_to_dict_entry(dict_entry, str(self.eigen_pco_downsample_entry.text()))
+        self.eigen_pco_downsample_entry.setText(str(dict_entry['value']))
 
     def set_downsample(self):
-        logging.debug("Downsample: " + str(self.downsample_entry.text()))
-        parameters.params['advanced_ffc_downsample'] = str(self.downsample_entry.text())
+        LOG.debug("Downsample: " + str(self.downsample_entry.text()))
+        dict_entry = EZVARS['flat-correction']['downsample']
+        add_value_to_dict_entry(dict_entry, str(self.downsample_entry.text()))
+        self.downsample_entry.setText(str(dict_entry['value']))
 
     def set_method(self):
         if self.eigen_rButton.isChecked():
-            logging.debug("Method: Eigen")
-            parameters.params['advanced_ffc_method'] = "eigen"
+            LOG.debug("Method: Eigen")
+            EZVARS['flat-correction']['smart-ffc-method']['value'] = "eigen"
         elif self.average_rButton.isChecked():
-            logging.debug("Method: Average")
-            parameters.params['advanced_ffc_method'] = "average"
+            LOG.debug("Method: Average")
+            EZVARS['flat-correction']['smart-ffc-method']['value'] = "average"
         elif self.ssim_rButton.isChecked():
-            logging.debug("Method: SSIM")
-            parameters.params['advanced_ffc_method'] = "ssim"
+            LOG.debug("Method: SSIM")
+            EZVARS['flat-correction']['smart-ffc-method']['value'] = "ssim"
 
     def set_method_from_params(self):
-        if parameters.params['advanced_ffc_method'] == 1:
+        if EZVARS['flat-correction']['smart-ffc-method']['value'] == "eigen":
             self.eigen_rButton.setChecked(True)
             self.average_rButton.setChecked(False)
             self.ssim_rButton.setChecked(False)
-        elif parameters.params['advanced_ffc_method'] == 2:
+        elif EZVARS['flat-correction']['smart-ffc-method']['value'] == "average":
             self.eigen_rButton.setChecked(False)
             self.average_rButton.setChecked(True)
             self.ssim_rButton.setChecked(False)
-        elif parameters.params['advanced_ffc_method'] == 3:
+        elif EZVARS['flat-correction']['smart-ffc-method']['value'] == "ssim":
             self.eigen_rButton.setChecked(False)
             self.average_rButton.setChecked(False)
             self.ssim_rButton.setChecked(True)

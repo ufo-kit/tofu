@@ -1,7 +1,9 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox, QComboBox
 
-import tofu.ez.params as parameters
+from tofu.ez.params import EZVARS
+from tofu.config import SECTIONS
+from tofu.util import add_value_to_dict_entry, get_double_validator
 
 
 LOG = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ class OptimizationGroup(QGroupBox):
 
         self.slice_memory_label = QLabel("Slice memory coefficient")
         self.slice_memory_entry = QLineEdit()
+        self.slice_memory_entry.setValidator(get_double_validator())
         tmpstr="Fraction of VRAM which will be used to store images \n" \
                "Reserve ~2 GB of VRAM for computation \n" \
                "Decrease the coefficient if you have very large data and start getting errors"
@@ -30,13 +33,12 @@ class OptimizationGroup(QGroupBox):
         self.slice_memory_label.setToolTip(tmpstr)
         self.slice_memory_entry.editingFinished.connect(self.set_slice)
 
-        self.num_GPU_label = QLabel("Number of GPUs")
-        self.num_GPU_entry = QLineEdit()
-        self.num_GPU_entry.editingFinished.connect(self.set_num_gpu)
-
-        self.slices_per_device_label = QLabel("Slices per device")
-        self.slices_per_device_entry = QLineEdit()
-        self.slices_per_device_entry.editingFinished.connect(self.set_slices_per_device)
+        self.data_spllitting_policy_label = QLabel("Data Splitting Policy")
+        self.data_spllitting_policy_combobox = QComboBox()
+        self.data_spllitting_policy_label.setToolTip(SECTIONS['general-reconstruction']['data-splitting-policy']['help'])
+        self.data_spllitting_policy_combobox.setToolTip(SECTIONS['general-reconstruction']['data-splitting-policy']['help'])
+        self.data_spllitting_policy_combobox.addItems(["one","many"])
+        self.data_spllitting_policy_combobox.currentIndexChanged.connect(self.set_data_splitting_policy)
 
         self.set_layout()
 
@@ -47,49 +49,46 @@ class OptimizationGroup(QGroupBox):
 
         gpu_group = QGroupBox("GPU optimization")
         gpu_group.setCheckable(True)
-        gpu_group.setChecked(False)
+        gpu_group.setChecked(bool(EZVARS['advanced']['enable-optimization']['value']))
+        gpu_group.clicked.connect(self.set_enable_optimization)
+        
         gpu_layout = QGridLayout()
         gpu_layout.addWidget(self.slice_memory_label, 0, 0)
         gpu_layout.addWidget(self.slice_memory_entry, 0, 1)
-        gpu_layout.addWidget(self.num_GPU_label, 1, 0)
-        gpu_layout.addWidget(self.num_GPU_entry, 1, 1)
-        gpu_layout.addWidget(self.slices_per_device_label, 2, 0)
-        gpu_layout.addWidget(self.slices_per_device_entry, 2, 1)
+        gpu_layout.addWidget(self.data_spllitting_policy_label, 1, 0)
+        gpu_layout.addWidget(self.data_spllitting_policy_combobox, 1, 1)
         gpu_group.setLayout(gpu_layout)
 
         layout.addWidget(gpu_group, 1, 0)
 
         self.setLayout(layout)
 
-    def init_values(self):
-        self.verbose_switch.setChecked(False)
-        parameters.params['advanced_optimize_verbose_console'] = False
-        parameters.params['advanced_optimize_slice_mem_coeff'] = 0.7
-        self.slice_memory_entry.setText(
-            str(parameters.params['advanced_optimize_slice_mem_coeff']))
-        self.num_GPU_entry.setText("")
-        parameters.params['advanced_optimize_num_gpus'] = ""
-        self.slices_per_device_entry.setText("")
-        parameters.params['advanced_optimize_slices_per_device'] = ""
-
-    def set_values_from_params(self):
-        self.verbose_switch.setChecked(bool(parameters.params['advanced_optimize_verbose_console']))
-        self.slice_memory_entry.setText(str(parameters.params['advanced_optimize_slice_mem_coeff']))
-        self.num_GPU_entry.setText(str(parameters.params['advanced_optimize_num_gpus']))
-        self.slices_per_device_entry.setText(str(parameters.params['advanced_optimize_slices_per_device']))
+    def load_values(self):
+        self.verbose_switch.setChecked(bool(SECTIONS['general']['verbose']['value']))
+        self.slice_memory_entry.setText(str(SECTIONS['general-reconstruction']['slice-memory-coeff']['value']))
+        idx = self.data_spllitting_policy_combobox.findText(SECTIONS['general-reconstruction']['data-splitting-policy']['value'])
+        if idx >= 0:
+            self.data_spllitting_policy_combobox.setCurrentIndex(idx)
 
     def set_verbose_switch(self):
         LOG.debug("Verbose: " + str(self.verbose_switch.isChecked()))
-        parameters.params['advanced_optimize_verbose_console'] = bool(self.verbose_switch.isChecked())
+        dict_entry = SECTIONS['general']['verbose']
+        add_value_to_dict_entry(dict_entry, self.verbose_switch.isChecked())
 
+    def set_enable_optimization(self):
+        checkbox = self.sender()
+        LOG.debug("GPU Optimization: " + str(checkbox.isChecked()))
+        dict_entry = EZVARS['advanced']['enable-optimization']
+        add_value_to_dict_entry(dict_entry, checkbox.isChecked())
+        
     def set_slice(self):
         LOG.debug(self.slice_memory_entry.text())
-        parameters.params['advanced_optimize_slice_mem_coeff'] = str(self.slice_memory_entry.text())
-
-    def set_num_gpu(self):
-        LOG.debug(self.num_GPU_entry.text())
-        parameters.params['advanced_optimize_num_gpus'] = str(self.num_GPU_entry.text())
-
-    def set_slices_per_device(self):
-        LOG.debug(self.slices_per_device_entry.text())
-        parameters.params['advanced_optimize_slices_per_device'] = str(self.slices_per_device_entry.text())
+        dict_entry = SECTIONS['general-reconstruction']['slice-memory-coeff']
+        add_value_to_dict_entry(dict_entry, str(self.slice_memory_entry.text()))
+        self.slice_memory_entry.setText(str(dict_entry['value']))
+        
+    def set_data_splitting_policy(self):
+        LOG.debug(self.data_spllitting_policy_combobox.currentText())
+        dict_entry = SECTIONS['general-reconstruction']['data-splitting-policy']
+        add_value_to_dict_entry(dict_entry, str(self.data_spllitting_policy_combobox.currentText()))
+        

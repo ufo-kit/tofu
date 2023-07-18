@@ -10,7 +10,7 @@ setup(
     url='http://github.com/ufo-kit/tofu',
     license='LGPL',
     packages=find_packages(),
-    package_data={'tofu': ['gui.ui', 'ez/GUI/default_settings.yaml'],
+    package_data={'tofu': ['gui.ui'],
                   'tofu.flow': ['composites/*.cm', 'config.json']},
     scripts=['bin/tofu'],
     exclude_package_data={'': ['README.rst']},

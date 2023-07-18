@@ -2,7 +2,6 @@ import os
 import logging
 from functools import partial
 
-import numpy as np
 from shutil import rmtree
 
 from PyQt5.QtWidgets import (
@@ -15,42 +14,33 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QLineEdit,
 )
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt, QRegExp
-from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
-from tofu.ez.yaml_in_out import Yaml_IO
+from tofu.ez.util import import_values, export_values
 from tofu.ez.GUI.message_dialog import warning_message
 
-import tofu.ez.params as parameters
-
-
-#TODO Get rid of the old args structure and store all parameters
-# like tofu does
-# try input validator like that
-# reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
-# input_validator = QRegExpValidator(reg_ex, self.inc_axis_entry)
-# self.inc_axis_entry.setValidator(input_validator)
+from tofu.ez.params import EZVARS
+from tofu.util import add_value_to_dict_entry
+from tofu.ez.util import get_dict_values_log
 
 LOG = logging.getLogger(__name__)
-
 
 class ConfigGroup(QGroupBox):
     """
     Setup and configuration settings
     """
 
-    # Used to send signal to ezufo_launcher when settings are imported https://stackoverflow.com/questions/2970312/pyqt4-qtcore-pyqtsignal-object-has-no-attribute-connect
-    signal_update_vals_from_params = pyqtSignal(dict)
+    # Used to send signal to ezufo_launcher when settings are imported
+    # https://stackoverflow.com/questions/2970312/pyqt4-qtcore-pyqtsignal-object-has-no-attribute-connect
+    signal_update_vals_from_params = pyqtSignal()
     # Used to send signal when reconstruction is done
-    signal_reco_done = pyqtSignal(dict)
+    signal_reco_done = pyqtSignal()
 
     def __init__(self):
         super().__init__()
 
         self.setTitle("Input/output and misc settings")
         self.setStyleSheet("QGroupBox {color: purple;}")
-
-        self.yaml_io = Yaml_IO()
 
         # Select input directory
         self.input_dir_select = QPushButton("Select input directory (or paste abs. path)")
@@ -98,7 +88,6 @@ class ConfigGroup(QGroupBox):
         self.preproc_entry.editingFinished.connect(self.set_preproc_entry)
 
         # Names of directories with flats/darks/projections frames
-        self.e_DIRTYP = ["darks", "flats", "tomo", "flats2"]
         self.dir_name_label = QLabel()
         self.dir_name_label.setText("Name of flats/darks/tomo subdirectories in each CT data set")
         self.darks_entry = QLineEdit()
@@ -278,66 +267,29 @@ class ConfigGroup(QGroupBox):
 
         self.setLayout(layout)
 
-    def init_values(self):
-        """
-        Sets the initial default values of config group
-        """
-        # If we're on a computer with access to network
-        indir = os.path.expanduser('~')#"/beamlinedata/BMIT/projects/"
-        if os.path.isdir(indir):
-            self.input_dir_entry.setText(indir)
-            outdir = os.path.abspath(indir + "/rec")
-            self.output_dir_entry.setText(outdir)
-        # Otherwise use this as default
-        self.save_params_checkbox.setChecked(True)
-        parameters.params['main_config_save_params'] = True
-        parameters.params['main_config_save_multipage_tiff'] = False
-        self.preproc_checkbox.setChecked(False)
-        self.set_preproc()
-        parameters.params['main_config_preprocess'] = False
-        self.preproc_entry.setText("remove-outliers size=3 threshold=500 sign=1")
-        self.darks_entry.setText("darks")
-        self.flats_entry.setText("flats")
-        self.tomo_entry.setText("tomo")
-        self.flats2_entry.setText("flats2")
-        self.use_common_flats_darks_checkbox.setChecked(False)
-        self.darks_absolute_entry.setText("Absolute path to darks")
-        self.flats_absolute_entry.setText("Absolute path to flats")
-        self.use_common_flats_darks_checkbox.setChecked(False)
-        self.flats2_absolute_entry.setText("Absolute path to flats2")
-        self.temp_dir_entry.setText(os.path.join(os.path.expanduser('~'),"tmp-ezufo"))
-        self.keep_tmp_data_checkbox.setChecked(False)
-        parameters.params['main_config_keep_temp'] = False
-        self.set_temp_dir()
-        self.dry_run_button.setChecked(False)
-        parameters.params['main_config_dry_run'] = False
-        parameters.params['main_config_open_viewer'] = False
-        self.open_image_after_reco_checkbox.setChecked(False)
-
-    def set_values_from_params(self):
+    def load_values(self):
         """
         Updates displayed values for config group
-        Called when .yaml file of params is loaded
         """
-        self.input_dir_entry.setText(parameters.params['main_config_input_dir'])
-        self.save_params_checkbox.setChecked(parameters.params['main_config_save_params'])
-        self.output_dir_entry.setText(parameters.params['main_config_output_dir'])
-        self.bigtiff_checkbox.setChecked(parameters.params['main_config_save_multipage_tiff'])
-        self.preproc_checkbox.setChecked(parameters.params['main_config_preprocess'])
-        self.preproc_entry.setText(parameters.params['main_config_preprocess_command'])
-        self.darks_entry.setText(parameters.params['main_config_darks_dir_name'])
-        self.flats_entry.setText(parameters.params['main_config_flats_dir_name'])
-        self.tomo_entry.setText(parameters.params['main_config_tomo_dir_name'])
-        self.flats2_entry.setText(parameters.params['main_config_flats2_dir_name'])
-        self.temp_dir_entry.setText(parameters.params['main_config_temp_dir'])
-        self.keep_tmp_data_checkbox.setChecked(parameters.params['main_config_keep_temp'])
-        self.dry_run_button.setChecked(parameters.params['main_config_dry_run'])
-        self.open_image_after_reco_checkbox.setChecked(parameters.params['main_config_open_viewer'])
-        self.use_common_flats_darks_checkbox.setChecked(parameters.params['main_config_common_flats_darks'])
-        self.darks_absolute_entry.setText(parameters.params['main_config_darks_path'])
-        self.flats_absolute_entry.setText(parameters.params['main_config_flats_path'])
-        self.use_flats2_checkbox.setChecked(parameters.params['main_config_flats2_checkbox'])
-        self.flats2_absolute_entry.setText(parameters.params['main_config_flats2_path'])
+        self.input_dir_entry.setText(EZVARS['inout']['input-dir']['value'])
+        self.save_params_checkbox.setChecked(EZVARS['inout']['save-params']['value'])
+        self.output_dir_entry.setText(EZVARS['inout']['output-dir']['value'])
+        self.bigtiff_checkbox.setChecked(EZVARS['inout']['bigtiff-output']['value'])
+        self.preproc_checkbox.setChecked(EZVARS['inout']['preprocess']['value'])
+        self.preproc_entry.setText(EZVARS['inout']['preprocess-command']['value'])
+        self.darks_entry.setText(EZVARS['inout']['darks-dir']['value'])
+        self.flats_entry.setText(EZVARS['inout']['flats-dir']['value'])
+        self.tomo_entry.setText(EZVARS['inout']['tomo-dir']['value'])
+        self.flats2_entry.setText(EZVARS['inout']['flats2-dir']['value'])
+        self.temp_dir_entry.setText(EZVARS['inout']['tmp-dir']['value'])
+        self.keep_tmp_data_checkbox.setChecked(EZVARS['inout']['keep-tmp']['value'])
+        self.dry_run_button.setChecked(EZVARS['inout']['dryrun']['value'])
+        self.open_image_after_reco_checkbox.setChecked(EZVARS['inout']['open-viewer']['value'])
+        self.use_common_flats_darks_checkbox.setChecked(EZVARS['inout']['shared-flatsdarks']['value'])
+        self.darks_absolute_entry.setText(EZVARS['inout']['path2-shared-darks']['value'])
+        self.flats_absolute_entry.setText(EZVARS['inout']['path2-shared-flats']['value'])
+        self.use_flats2_checkbox.setChecked(EZVARS['inout']['shared-flats-after']['value'])
+        self.flats2_absolute_entry.setText(EZVARS['inout']['path2-shared-flats2']['value'])
 
     def select_input_dir(self):
         """
@@ -345,61 +297,83 @@ class ConfigGroup(QGroupBox):
         """
         dir_explore = QFileDialog(self)
         dir = dir_explore.getExistingDirectory(directory=self.input_dir_entry.text())
-        self.input_dir_entry.setText(dir)
-        parameters.params['main_config_input_dir'] = dir
+        if dir:
+            self.input_dir_entry.setText(dir)
+            self.set_input_dir()
 
     def set_input_dir(self):
         LOG.debug(str(self.input_dir_entry.text()))
-        parameters.params['main_config_input_dir'] = str(self.input_dir_entry.text())
+        dict_entry = EZVARS['inout']['input-dir']
+        dir = self.input_dir_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.input_dir_entry.setText(dir)
 
     def select_output_dir(self):
         dir_explore = QFileDialog(self)
         dir = dir_explore.getExistingDirectory(directory=self.output_dir_entry.text())
-        self.output_dir_entry.setText(dir)
-        parameters.params['main_config_output_dir'] = dir
+        if dir:
+            self.output_dir_entry.setText(dir)
+            self.set_output_dir()
 
     def set_output_dir(self):
         LOG.debug(str(self.output_dir_entry.text()))
-        parameters.params['main_config_output_dir'] = str(self.output_dir_entry.text())
+        dict_entry = EZVARS['inout']['output-dir']
+        dir = self.output_dir_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.output_dir_entry.setText(dir)
 
     def set_big_tiff(self):
         LOG.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
-        parameters.params['main_config_save_multipage_tiff'] = bool(self.bigtiff_checkbox.isChecked())
+        dict_entry = EZVARS['inout']['bigtiff-output']
+        add_value_to_dict_entry(dict_entry, self.bigtiff_checkbox.isChecked())
 
     def set_preproc(self):
         LOG.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
-        parameters.params['main_config_preprocess'] = bool(self.preproc_checkbox.isChecked())
+        dict_entry = EZVARS['inout']['preprocess']
+        add_value_to_dict_entry(dict_entry, self.preproc_checkbox.isChecked())
 
     def set_preproc_entry(self):
         LOG.debug(self.preproc_entry.text())
-        parameters.params['main_config_preprocess_command'] = str(self.preproc_entry.text())
+        dict_entry = EZVARS['inout']['preprocess-command']
+        text  = self.preproc_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.preproc_entry.setText(text)
 
     def set_open_image_after_reco(self):
         LOG.debug(
             "Switch to Image Viewer After Reco: "
             + str(self.open_image_after_reco_checkbox.isChecked())
         )
-        parameters.params['main_config_open_viewer'] = bool(self.open_image_after_reco_checkbox.isChecked())
+        dict_entry = EZVARS['inout']['open-viewer']
+        add_value_to_dict_entry(dict_entry, self.open_image_after_reco_checkbox.isChecked())
 
     def set_darks(self):
         LOG.debug(self.darks_entry.text())
-        self.e_DIRTYP[0] = str(self.darks_entry.text())
-        parameters.params['main_config_darks_dir_name'] = str(self.darks_entry.text())
+        dict_entry = EZVARS['inout']['darks-dir']
+        dir = self.darks_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.darks_entry.setText(dir)
 
     def set_flats(self):
         LOG.debug(self.flats_entry.text())
-        self.e_DIRTYP[1] = str(self.flats_entry.text())
-        parameters.params['main_config_flats_dir_name'] = str(self.flats_entry.text())
+        dict_entry = EZVARS['inout']['flats-dir']
+        dir = self.flats_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.flats_entry.setText(dir)
 
     def set_tomo(self):
         LOG.debug(self.tomo_entry.text())
-        self.e_DIRTYP[2] = str(self.tomo_entry.text())
-        parameters.params['main_config_tomo_dir_name'] = str(self.tomo_entry.text())
+        dict_entry = EZVARS['inout']['tomo-dir']
+        dir = self.tomo_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.tomo_entry.setText(dir)
 
     def set_flats2(self):
         LOG.debug(self.flats2_entry.text())
-        self.e_DIRTYP[3] = str(self.flats2_entry.text())
-        parameters.params['main_config_flats2_dir_name'] = str(self.flats2_entry.text())
+        dict_entry = EZVARS['inout']['flats2-dir']
+        dir = self.flats2_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, dir)
+        self.flats2_entry.setText(dir)
 
     def set_fdt_names(self):
         self.set_darks()
@@ -412,60 +386,79 @@ class ConfigGroup(QGroupBox):
             "Use same flats/darks across multiple experiments: "
             + str(self.use_common_flats_darks_checkbox.isChecked())
         )
-        parameters.params['main_config_common_flats_darks'] = bool(
-            self.use_common_flats_darks_checkbox.isChecked()
-        )
+        dict_entry = EZVARS['inout']['shared-flatsdarks']
+        add_value_to_dict_entry(dict_entry, self.use_common_flats_darks_checkbox.isChecked())
 
     def select_darks_button_pressed(self):
         LOG.debug("Select path to darks pressed")
         dir_explore = QFileDialog(self)
-        directory = dir_explore.getExistingDirectory(directory=parameters.params['main_config_input_dir'])
-        self.darks_absolute_entry.setText(directory)
-        parameters.params['main_config_darks_path'] = directory
+        directory = dir_explore.getExistingDirectory(directory=EZVARS['inout']['input-dir']['value'])
+        if directory:
+            self.darks_absolute_entry.setText(directory)
+            self.set_common_darks()
 
     def select_flats_button_pressed(self):
         LOG.debug("Select path to flats pressed")
         dir_explore = QFileDialog(self)
-        directory = dir_explore.getExistingDirectory(directory=parameters.params['main_config_input_dir'])
-        self.flats_absolute_entry.setText(directory)
-        parameters.params['main_config_flats_path'] = directory
+        directory = dir_explore.getExistingDirectory(directory=EZVARS['inout']['input-dir']['value'])
+        if directory:
+            self.flats_absolute_entry.setText(directory)
+            self.set_common_flats()
 
     def select_flats2_button_pressed(self):
         LOG.debug("Select path to flats2 pressed")
         dir_explore = QFileDialog(self)
-        directory = dir_explore.getExistingDirectory(directory=parameters.params['main_config_input_dir'])
-        self.flats2_absolute_entry.setText(directory)
-        parameters.params['main_config_flats2_path'] = directory
+        directory = dir_explore.getExistingDirectory(directory=EZVARS['inout']['input-dir']['value'])
+        if directory:
+            self.flats2_absolute_entry.setText(directory)
+            self.set_common_flats2()
 
     def set_common_darks(self):
         LOG.debug("Common darks path: " + str(self.darks_absolute_entry.text()))
-        parameters.params['main_config_darks_path'] = str(self.darks_absolute_entry.text())
+        dict_entry = EZVARS['inout']['path2-shared-darks']
+        text = self.darks_absolute_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.darks_absolute_entry.setText(text)
 
     def set_common_flats(self):
         LOG.debug("Common flats path: " + str(self.flats_absolute_entry.text()))
-        parameters.params['main_config_flats_path'] = str(self.flats_absolute_entry.text())
+        dict_entry = EZVARS['inout']['path2-shared-flats']
+        text = self.flats_absolute_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.flats_absolute_entry.setText(text)
 
     def set_use_flats2(self):
         LOG.debug("Use common flats2 checkbox: " + str(self.use_flats2_checkbox.isChecked()))
-        parameters.params['main_config_flats2_checkbox'] = bool(self.use_flats2_checkbox.isChecked())
+        dict_entry = EZVARS['inout']['shared-flats-after']
+        text = self.use_flats2_checkbox.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.use_flats2_checkbox.setText(text)
 
     def set_common_flats2(self):
         LOG.debug("Common flats2 path: " + str(self.flats2_absolute_entry.text()))
-        parameters.params['main_config_flats2_path'] = str(self.flats2_absolute_entry.text())
+        dict_entry = EZVARS['inout']['path2-shared-flats2']
+        text = self.flats2_absolute_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.flats2_absolute_entry.setText(text)
 
     def select_temp_dir(self):
         dir_explore = QFileDialog(self)
         tmp_dir = dir_explore.getExistingDirectory(directory=self.temp_dir_entry.text())
-        self.temp_dir_entry.setText(tmp_dir)
-        parameters.params['main_config_temp_dir'] = tmp_dir
+        if tmp_dir:
+            self.temp_dir_entry.setText(tmp_dir)
+            self.set_temp_dir()
 
     def set_temp_dir(self):
         LOG.debug(str(self.temp_dir_entry.text()))
-        parameters.params['main_config_temp_dir'] = str(self.temp_dir_entry.text())
+        dict_entry = EZVARS['inout']['tmp-dir']
+        text = self.temp_dir_entry.text().strip()
+        add_value_to_dict_entry(dict_entry, text)
+        self.temp_dir_entry.setText(text)
 
     def set_keep_tmp_data(self):
         LOG.debug("Keep tmp: " + str(self.keep_tmp_data_checkbox.isChecked()))
-        parameters.params['main_config_keep_temp'] = bool(self.keep_tmp_data_checkbox.isChecked())
+        dict_entry = EZVARS['inout']['keep-tmp']
+        add_value_to_dict_entry(dict_entry, self.keep_tmp_data_checkbox.isChecked())
 
     def quit_button_pressed(self):
         """
@@ -481,9 +474,9 @@ class ConfigGroup(QGroupBox):
         )
         if reply == QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(parameters.params['main_config_temp_dir'], self.get_fdt_names())
+            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], self.get_fdt_names())
             # remove axis-search dir too
-            tmp = os.path.join(parameters.params['main_config_temp_dir'], 'axis-search')
+            tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
             QCoreApplication.instance().quit()
         else:
             pass
@@ -532,13 +525,13 @@ class ConfigGroup(QGroupBox):
         )
 
         if dialog == QMessageBox.Yes:
-            if os.path.exists(str(parameters.params['main_config_output_dir'])):
+            if os.path.exists(str(EZVARS['inout']['output-dir']['value'])):
                 LOG.debug("YES")
-                if parameters.params['main_config_output_dir'] == parameters.params['main_config_input_dir']:
+                if EZVARS['inout']['output-dir']['value'] == EZVARS['inout']['input-dir']['value']:
                     LOG.debug("Cannot delete: output directory is the same as input")
                 else:
                     try:
-                        rmtree(parameters.params['main_config_output_dir'])
+                        rmtree(EZVARS['inout']['output-dir']['value'])
                     except:
                         warning_message('Error while deleting directory')
                     LOG.debug("Directory with reconstructed data was removed")
@@ -553,13 +546,13 @@ class ConfigGroup(QGroupBox):
         and calls reconstruction
         """
         LOG.debug("DRY")
-        parameters.params['main_config_dry_run'] = str(True)
+        EZVARS['inout']['dryrun']['value'] = str(True)
         self.reco_button_pressed()
 
 
     def set_save_args(self):
         LOG.debug("Save args: " + str(self.save_params_checkbox.isChecked()))
-        parameters.params['main_config_save_params'] = bool(self.save_params_checkbox.isChecked())
+        EZVARS['inout']['save-params']['value'] = bool(self.save_params_checkbox.isChecked())
 
     def export_settings_button_pressed(self):
         """
@@ -581,7 +574,8 @@ class ConfigGroup(QGroupBox):
         if file_extension[-1] == "":
             fileName = fileName + ".yaml"
         # Create and write to YAML file based on given fileName
-        self.yaml_io.write_yaml(fileName, parameters.params)
+        # self.yaml_io.write_yaml(fileName, parameters.params)
+        export_values(fileName)
 
     def import_settings_button_pressed(self):
         """
@@ -599,16 +593,15 @@ class ConfigGroup(QGroupBox):
         )
         if filePath:
             LOG.debug("Import YAML Path: " + filePath)
-            yaml_data = self.yaml_io.read_yaml(filePath)
-            parameters.params = dict(yaml_data)
-            self.signal_update_vals_from_params.emit(parameters.params)
+            import_values(filePath)
+            self.signal_update_vals_from_params.emit()
 
     def reco_button_pressed(self):
         """
         Gets the settings set by the user in the GUI
         These are then passed to execute_reconstruction
         """
-        LOG.debug("RECO")
+        #LOG.debug("RECO")
         self.set_fdt_names()
         self.set_common_darks()
         self.set_common_flats()
@@ -619,450 +612,31 @@ class ConfigGroup(QGroupBox):
         self.set_temp_dir()
         self.set_preproc()
         self.set_preproc_entry()
-        LOG.debug(parameters.params)
-        run_reco = partial(self.run_reconstruction, parameters.params, batch_run=False)
+        #LOG.debug(get_dict_values_log())
+        run_reco = partial(self.run_reconstruction, batch_run=False)
+        #I had to add a little sleep as on some Linux ditributions params won't fully set before the main() begins
         QTimer.singleShot(100, run_reco)
-        #self.run_reconstruction(parameters.params, batch_run=False)
 
-    def run_reconstruction(self, params, batch_run):
-        try:
-            self.validate_input()
-
-            args = tk_args(params['main_config_input_dir'],
-                           params['main_config_temp_dir'],
-                           params['main_config_output_dir'],
-                           params['main_config_save_multipage_tiff'],
-                           params['main_cor_axis_search_method'],
-                           params['main_cor_axis_search_interval'],
-                           params['main_cor_search_row_start'],
-                           params['main_cor_recon_patch_size'],
-                           params['main_cor_axis_column'],
-                           params['main_cor_axis_increment_step'],
-                           params['main_filters_remove_spots'],
-                           params['main_filters_remove_spots_threshold'],
-                           params['main_filters_remove_spots_blur_sigma'],
-                           params['main_filters_ring_removal'],
-                           params['main_filters_ring_removal_ufo_lpf'],
-                           params['main_filters_ring_removal_ufo_lpf_1d_or_2d'],
-                           params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'],
-                           params['main_filters_ring_removal_ufo_lpf_sigma_vertical'],
-                           params['main_filters_ring_removal_sarepy_window_size'],
-                           params['main_filters_ring_removal_sarepy_wide'],
-                           params['main_filters_ring_removal_sarepy_window'],
-                           params['main_filters_ring_removal_sarepy_SNR'],
-                           params['main_pr_phase_retrieval'],
-                           params['main_pr_photon_energy'],
-                           params['main_pr_pixel_size'],
-                           params['main_pr_detector_distance'],
-                           params['main_pr_delta_beta_ratio'],
-                           params['main_region_select_rows'],
-                           params['main_region_first_row'],
-                           params['main_region_number_rows'],
-                           params['main_region_nth_row'],
-                           params['main_region_clip_histogram'],
-                           params['main_region_bit_depth'],
-                           params['main_region_histogram_min'],
-                           params['main_region_histogram_max'],
-                           params['main_config_preprocess'],
-                           params['main_config_preprocess_command'],
-                           params['main_region_rotate_volume_clock'],
-                           params['main_region_crop_slices'],
-                           params['main_region_crop_x'],
-                           params['main_region_crop_width'],
-                           params['main_region_crop_y'],
-                           params['main_region_crop_height'],
-                           params['main_config_dry_run'],
-                           params['main_config_save_params'],
-                           params['main_config_keep_temp'],
-                           params['advanced_ffc_sinFFC'],
-                           params['advanced_ffc_method'],
-                           params['advanced_ffc_eigen_pco_reps'],
-                           params['advanced_ffc_eigen_pco_downsample'],
-                           params['advanced_ffc_downsample'],
-                           params['main_config_common_flats_darks'],
-                           params['main_config_darks_path'],
-                           params['main_config_flats_path'],
-                           params['main_config_flats2_checkbox'],
-                           params['main_config_flats2_path'],
-                           # NLMDN Parameters
-                           params['advanced_nlmdn_apply_after_reco'],
-                           params['advanced_nlmdn_input_dir'],
-                           params['advanced_nlmdn_input_is_file'],
-                           params['advanced_nlmdn_output_dir'],
-                           params['advanced_nlmdn_save_bigtiff'],
-                           params['advanced_nlmdn_sim_search_radius'],
-                           params['advanced_nlmdn_patch_radius'],
-                           params['advanced_nlmdn_smoothing_control'],
-                           params['advanced_nlmdn_noise_std'],
-                           params['advanced_nlmdn_window'],
-                           params['advanced_nlmdn_fast'],
-                           params['advanced_nlmdn_estimate_sigma'],
-                           params['advanced_nlmdn_dry_run'],
-                           # Advanced Parameters
-                           params['advanced_advtofu_extended_settings'],
-                           params['advanced_advtofu_lamino_angle'],
-                           params['advanced_adv_tofu_z_axis_rotation'],
-                           params['advanced_advtofu_center_position_z'],
-                           params['advanced_advtofu_y_axis_rotation'],
-                           params['advanced_advtofu_aux_ffc_dark_scale'],
-                           params['advanced_advtofu_aux_ffc_flat_scale'],
-                           params['advanced_optimize_verbose_console'],
-                           params['advanced_optimize_slice_mem_coeff'],
-                           params['advanced_optimize_num_gpus'],
-                           params['advanced_optimize_slices_per_device']
-                           )
-
-            execute_reconstruction(args, self.get_fdt_names())
+    def run_reconstruction(self, batch_run):
+        try:            
+            execute_reconstruction(self.get_fdt_names())
             if batch_run is False:
                 msg = "Done. See output in terminal for details."
                 QMessageBox.information(self, "Finished", msg)
-                if not params['main_config_dry_run']:
-                    self.signal_reco_done.emit(params)
-                parameters.params['main_config_dry_run'] = bool(False)
+                if not EZVARS['inout']['dryrun']['value']:
+                    self.signal_reco_done.emit()
+                EZVARS['inout']['dryrun']['value'] = bool(False)
         except InvalidInputError as err:
             msg = ""
             err_arg = err.args
             msg += err.args[0]
             QMessageBox.information(self, "Invalid Input Error", msg)
 
-    # NEED TO DETERMINE VALID RANGES
-    # ALSO CHECK TYPES SOMEHOW
-    def validate_input(self):
-        """
-        Determines whether user-input values are valid
-        """
-
-        # Search rotation: main_cor_axis_search_interval
-
-        # Search in slice: main_cor_search_row_start
-        if int(parameters.params['main_cor_search_row_start']) < 0:
-            raise InvalidInputError("Value out of range for: Search in slice from row number")
-
-        # Size of reconstructed: main_cor_recon_patch_size
-        if int(parameters.params['main_cor_recon_patch_size']) < 0:
-            raise InvalidInputError("Value out of range for: Size of reconstructed patch [pixel]")
-
-        # Axis is in column No: main_cor_axis_column
-        if float(parameters.params['main_cor_axis_column']) < 0:
-            raise InvalidInputError("Value out of range for: Axis is in column No [pixel]")
-
-        # Threshold: main_filters_remove_spots_threshold
-        if int(parameters.params['main_filters_remove_spots_threshold']) < 0:
-            raise InvalidInputError("Value out of range for: Threshold (prominence of the spot) [counts]")
-
-        # Spot blur: main_filters_remove_spots_blur_sigma
-        if int(parameters.params['main_filters_remove_spots_blur_sigma']) < 0:
-            raise InvalidInputError("Value out of range for: Spot blur. sigma [pixels]")
-
-        # Sigma: e_sig_hor
-        if int(parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal']) < 0:
-            raise InvalidInputError("Value out of range for: ufo ring-removal sigma horizontal")
-
-        # Sigma: e_sig_ver
-        if int(parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical']) < 0:
-            raise InvalidInputError("Value out of range for: ufo ring-removal sigma vertical")
-
-        # Window size: main_filters_ring_removal_sarepy_window_size
-        if int(parameters.params['main_filters_ring_removal_sarepy_window_size']) < 0:
-            raise InvalidInputError("Value out of range for: window size")
-
-        # Wind: main_filters_ring_removal_sarepy_window
-        if int(parameters.params['main_filters_ring_removal_sarepy_window']) < 0:
-            raise InvalidInputError("Value out of range for: wind")
-
-        # SNR: main_filters_ring_removal_sarepy_SNR
-        if int(parameters.params['main_filters_ring_removal_sarepy_SNR']) < 0:
-            raise InvalidInputError("Value out of range for: SNR")
-
-        # Photon energy: main_pr_photon_energy
-        if float(parameters.params['main_pr_photon_energy']) < 0:
-            raise InvalidInputError("Value out of range for: Photon energy [keV]")
-
-        # Pixel size: main_pr_pixel_size
-        if float(parameters.params['main_pr_pixel_size']) < 0:
-            raise InvalidInputError("Value out of range for: Pixel size [micron]")
-
-        # Sample detector distance: main_pr_detector_distance
-        if float(parameters.params['main_pr_detector_distance']) < 0:
-            raise InvalidInputError("Value out of range for: Sample-detector distance [m]")
-
-        # Delta/beta ratio: main_pr_delta_beta_ratio
-        if int(parameters.params['main_pr_delta_beta_ratio']) < 0:
-            raise InvalidInputError("Value out of range for: Delta/beta ratio: (try default if unsure)")
-
-        # First row in projections: main_region_first_row
-        if int(parameters.params['main_region_first_row']) < 0:
-            raise InvalidInputError("Value out of range for: First row in projections")
-
-        # Number of rows: main_region_number_rows
-        if int(parameters.params['main_region_number_rows']) < 0:
-            raise InvalidInputError("Value out of range for: Number of rows (ROI height)")
-
-        # Reconstruct every Nth row: main_region_nth_row
-        if int(parameters.params['main_region_nth_row']) < 0:
-            raise InvalidInputError("Value out of range for: Reconstruct every Nth row")
-
-        # Can be negative when 16-bit selected
-        # Min value: main_region_histogram_min
-        #if float(parameters.params['main_region_histogram_min']) < 0:
-        #    raise InvalidInputError("Value out of range for: Min value in 32-bit histogram")
-
-        # Max value: main_region_histogram_max
-        if float(parameters.params['main_region_histogram_max']) < 0:
-            raise InvalidInputError("Value out of range for: Max value in 32-bit histogram")
-
-        # x: main_region_crop_x
-        if int(parameters.params['main_region_crop_x']) < 0:
-            raise InvalidInputError("Value out of range for: Crop slices: x")
-
-        # width: main_region_crop_width
-        if int(parameters.params['main_region_crop_width']) < 0:
-            raise InvalidInputError("Value out of range for: Crop slices: width")
-
-        # y: main_region_crop_y
-        if int(parameters.params['main_region_crop_y']) < 0:
-            raise InvalidInputError("Value out of range for: Crop slices: y")
-
-        # height: main_region_crop_height
-        if int(parameters.params['main_region_crop_height']) < 0:
-            raise InvalidInputError("Value out of range for: Crop slices: height")
-
-        if int(parameters.params['advanced_ffc_eigen_pco_reps']) < 0:
-            raise InvalidInputError("Value out of range for: Flat Field Correction: Eigen PCO Repetitions")
-
-        if int(parameters.params['advanced_ffc_eigen_pco_downsample']) < 0:
-            raise InvalidInputError("Value out of range for: Flat Field Correction: Eigen PCO Downsample")
-
-        if int(parameters.params['advanced_ffc_downsample']) < 0:
-            raise InvalidInputError("Value out of range for: Flat Field Correction: Downsample")
-
-        # Can be negative value
-        # Optional: rotate volume: main_region_rotate_volume_clock
-        #if float(parameters.params['main_region_rotate_volume_clock']) < 0:
-        #    raise InvalidInputError("Value out of range for: Optional: rotate volume clock by [deg]")
-        #TODO ADD CHECKING NLMDN SETTINGS
-        #TODO ADD CHECKING FOR ADVANCED SETTINGS
-        '''
-        if int(parameters.params['e_adv_rotation_range']) < 0:
-            raise InvalidInputError("Advanced: Rotation range must be greater than or equal to zero")
-
-        if float(parameters.params['advanced_advtofu_lamino_angle']) < 0 or float(parameters.params['advanced_advtofu_lamino_angle']) > 90:
-            raise InvalidInputError("Advanced: Lamino angle must be a float between 0 and 90")
-
-        if float(parameters.params['advanced_optimize_slice_mem_coeff']) < 0 or float(parameters.params['advanced_optimize_slice_mem_coeff']) > 1:
-            raise InvalidInputError("Advanced: Slice memory coefficient must be between 0 and 1")
-        '''
-
     def get_fdt_names(self):
-        DIRTYP = []
-        for i in self.e_DIRTYP:
-            DIRTYP.append(i)
-        LOG.debug("Result of get_fdt_names")
-        LOG.debug(DIRTYP)
-        return DIRTYP
-
-class tk_args():
-    def __init__(self, main_config_input_dir, main_config_temp_dir, main_config_output_dir, main_config_save_multipage_tiff,
-                main_cor_axis_search_method, main_cor_axis_search_interval, main_cor_search_row_start,
-                main_cor_recon_patch_size, main_cor_axis_column, main_cor_axis_increment_step,
-                main_filters_remove_spots, main_filters_remove_spots_threshold, main_filters_remove_spots_blur_sigma,
-                main_filters_ring_removal, main_filters_ring_removal_ufo_lpf, main_filters_ring_removal_ufo_lpf_1d_or_2d,
-                main_filters_ring_removal_ufo_lpf_sigma_horizontal, main_filters_ring_removal_ufo_lpf_sigma_vertical,
-                main_filters_ring_removal_sarepy_window_size, main_filters_ring_removal_sarepy_wide, main_filters_ring_removal_sarepy_window, main_filters_ring_removal_sarepy_SNR,
-                main_pr_phase_retrieval, main_pr_photon_energy, main_pr_pixel_size, main_pr_detector_distance,
-                main_pr_delta_beta_ratio, main_region_select_rows, main_region_first_row, main_region_number_rows, main_region_nth_row, main_region_clip_histogram, main_region_bit_depth, main_region_histogram_min, main_region_histogram_max,
-                main_config_preprocess, main_config_preprocess_command, main_region_rotate_volume_clock, main_region_crop_slices, main_region_crop_x, main_region_crop_width, main_region_crop_y, main_region_crop_height,
-                main_config_dry_run, main_config_save_params, main_config_keep_temp, advanced_ffc_sinFFC, advanced_ffc_method, advanced_ffc_eigen_pco_reps,
-                advanced_ffc_eigen_pco_downsample, advanced_ffc_downsample, main_config_common_flats_darks,
-                main_config_darks_path, main_config_flats_path, main_config_flats2_checkbox, main_config_flats2_path,
-                advanced_nlmdn_apply_after_reco, advanced_nlmdn_input_dir, advanced_nlmdn_input_is_file, advanced_nlmdn_output_dir, advanced_nlmdn_save_bigtiff,
-                advanced_nlmdn_sim_search_radius, advanced_nlmdn_patch_radius, advanced_nlmdn_smoothing_control, advanced_nlmdn_noise_std,
-                advanced_nlmdn_window, advanced_nlmdn_fast, advanced_nlmdn_estimate_sigma, advanced_nlmdn_dry_run,
-                advanced_advtofu_extended_settings,
-                advanced_advtofu_lamino_angle, advanced_adv_tofu_z_axis_rotation, advanced_advtofu_center_position_z, advanced_advtofu_y_axis_rotation,
-                advanced_advtofu_aux_ffc_dark_scale, advanced_advtofu_aux_ffc_flat_scale,
-                advanced_optimize_verbose_console, advanced_optimize_slice_mem_coeff, advanced_optimize_num_gpus, advanced_optimize_slices_per_device):
-
-        self.args={}
-        # PATHS
-        self.args['main_config_input_dir']=str(main_config_input_dir)               # EZVARS['inout']['input-dir']
-        setattr(self,'main_config_input_dir',self.args['main_config_input_dir'])
-        self.args['main_config_output_dir']=str(main_config_output_dir)             # EZVARS['inout']['output-dir']
-        setattr(self,'main_config_output_dir',self.args['main_config_output_dir'])
-        self.args['main_config_temp_dir']=str(main_config_temp_dir)                 # EZVARS['inout']['tmp-dir']
-        setattr(self,'main_config_temp_dir',self.args['main_config_temp_dir'])
-        self.args['main_config_save_multipage_tiff']=bool(main_config_save_multipage_tiff)  # EZVARS['inout']['bigtiff-output']
-        setattr(self,'main_config_save_multipage_tiff',self.args['main_config_save_multipage_tiff'])
-        # center of rotation parameters
-        self.args['main_cor_axis_search_method']=int(main_cor_axis_search_method)           # EZVARS['COR']['search-method']
-        setattr(self,'main_cor_axis_search_method',self.args['main_cor_axis_search_method'])
-        self.args['main_cor_axis_search_interval']=str(main_cor_axis_search_interval)       # EZVARS['COR']['search-interval']
-        setattr(self,'main_cor_axis_search_interval',self.args['main_cor_axis_search_interval'])
-        self.args['main_cor_recon_patch_size']=int(main_cor_recon_patch_size)               # EZVARS['COR']['patch-size']
-        setattr(self,'main_cor_recon_patch_size',self.args['main_cor_recon_patch_size'])
-        self.args['main_cor_search_row_start']=int(main_cor_search_row_start)               # EZVARS['COR']['search-row']
-        setattr(self,'main_cor_search_row_start',self.args['main_cor_search_row_start'])
-        self.args['main_cor_axis_column']=float(main_cor_axis_column)                       # EZVARS['COR']['user-defined-ax']
-        setattr(self,'main_cor_axis_column',self.args['main_cor_axis_column'])
-        self.args['main_cor_axis_increment_step']=float(main_cor_axis_increment_step)       # EZVARS['COR']['user-defined-dax']
-        setattr(self,'main_cor_axis_increment_step',self.args['main_cor_axis_increment_step'])
-        #ring removal
-        self.args['main_filters_remove_spots']=bool(main_filters_remove_spots)          # EZVARS['filters']['rm_spots']
-        setattr(self,'main_filters_remove_spots',self.args['main_filters_remove_spots'])
-        self.args['main_filters_remove_spots_threshold']=int(main_filters_remove_spots_threshold) # SECTIONS['find-large-spots']['spot-threshold']
-        setattr(self,'main_filters_remove_spots_threshold', self.args['main_filters_remove_spots_threshold'])
-        self.args['main_filters_remove_spots_blur_sigma']=int(main_filters_remove_spots_blur_sigma) # SECTIONS['find-large-spots']['gauss-sigma']
-        setattr(self,'main_filters_remove_spots_blur_sigma',self.args['main_filters_remove_spots_blur_sigma'])
-        self.args['main_filters_ring_removal']=bool(main_filters_ring_removal)                     #EZVARS['RR']['enable']
-        setattr(self,'main_filters_ring_removal',self.args['main_filters_ring_removal'])
-        self.args['main_filters_ring_removal_ufo_lpf'] = bool(main_filters_ring_removal_ufo_lpf)   #EZVARS['RR']['use-ufo']
-        setattr(self, 'main_filters_ring_removal_ufo_lpf', self.args['main_filters_ring_removal_ufo_lpf'])
-        self.args['main_filters_ring_removal_ufo_lpf_1d_or_2d'] = bool(main_filters_ring_removal_ufo_lpf_1d_or_2d) #EZVARS['RR']['ufo-2d']
-        setattr(self, 'main_filters_ring_removal_ufo_lpf_1d_or_2d', self.args['main_filters_ring_removal_ufo_lpf_1d_or_2d'])
-        self.args['main_filters_ring_removal_ufo_lpf_sigma_horizontal'] = int(main_filters_ring_removal_ufo_lpf_sigma_horizontal) #EZVARS['RR']['sx']
-        setattr(self,'main_filters_ring_removal_ufo_lpf_sigma_horizontal',self.args['main_filters_ring_removal_ufo_lpf_sigma_horizontal'])
-        self.args['main_filters_ring_removal_ufo_lpf_sigma_vertical'] = int(main_filters_ring_removal_ufo_lpf_sigma_vertical)   #EZVARS['RR']['sy']
-        setattr(self, 'main_filters_ring_removal_ufo_lpf_sigma_vertical', self.args['main_filters_ring_removal_ufo_lpf_sigma_vertical'])
-        self.args['main_filters_ring_removal_sarepy_window_size'] = int(main_filters_ring_removal_sarepy_window_size) #EZVARS['RR']['spy-narrow-window']
-        setattr(self, 'main_filters_ring_removal_sarepy_window_size', self.args['main_filters_ring_removal_sarepy_window_size'])
-        self.args['main_filters_ring_removal_sarepy_wide'] = bool(main_filters_ring_removal_sarepy_wide) #EZVARS['RR']['spy-rm-wide']
-        setattr(self, 'main_filters_ring_removal_sarepy_wide', self.args['main_filters_ring_removal_sarepy_wide'])
-        self.args['main_filters_ring_removal_sarepy_window'] = int(main_filters_ring_removal_sarepy_window) #EZVARS['RR']['spy-wide-window']
-        setattr(self, 'main_filters_ring_removal_sarepy_window', self.args['main_filters_ring_removal_sarepy_window'])
-        self.args['main_filters_ring_removal_sarepy_SNR'] = int(main_filters_ring_removal_sarepy_SNR) #EZVARS['RR']['spy-wide-SNR']
-        setattr(self, 'main_filters_ring_removal_sarepy_SNR', self.args['main_filters_ring_removal_sarepy_SNR'])
-        # phase retrieval
-        self.args['main_pr_phase_retrieval'] = bool(main_pr_phase_retrieval)       #SECTIONS['retrieve-phase']['enable']
-        setattr(self, 'main_pr_phase_retrieval', self.args['main_pr_phase_retrieval'])
-        self.args['main_pr_photon_energy']=float(main_pr_photon_energy)             #SECTIONS['retrieve-phase']['energy']
-        setattr(self,'main_pr_photon_energy',self.args['main_pr_photon_energy'])
-        self.args['main_pr_pixel_size']=float(main_pr_pixel_size)*1e-6              #SECTIONS['retrieve-phase']['pixel-size']
-        setattr(self,'main_pr_pixel_size',self.args['main_pr_pixel_size'])
-        self.args['main_pr_detector_distance']=float(main_pr_detector_distance)     #SECTIONS['retrieve-phase']['propagation-distance']
-        setattr(self,'main_pr_detector_distance',self.args['main_pr_detector_distance'])
-        self.args['main_pr_delta_beta_ratio']=np.log10(float(main_pr_delta_beta_ratio))  #SECTIONS['retrieve-phase']['regularization-rate']
-        setattr(self,'main_pr_delta_beta_ratio',self.args['main_pr_delta_beta_ratio'])   # apply log10 to the input which is delta/beta
-        # Crop vertically
-        self.args['main_region_select_rows']=bool(main_region_select_rows)              #EZVARS['inout']['input_ROI']
-        setattr(self,'main_region_select_rows',self.args['main_region_select_rows'])
-        self.args['main_region_first_row']=int(main_region_first_row)                   #SECTIONS['reading']['y']
-        setattr(self,'main_region_first_row',self.args['main_region_first_row'])
-        self.args['main_region_number_rows']=int(main_region_number_rows)               #SECTIONS['reading']['height']
-        setattr(self,'main_region_number_rows',self.args['main_region_number_rows'])
-        self.args['main_region_nth_row']=int(main_region_nth_row)                       #SECTIONS['reading']['y-step']
-        setattr(self,'main_region_nth_row',self.args['main_region_nth_row'])
-        # conv to 8 bit
-        self.args['main_region_clip_histogram']=bool(main_region_clip_histogram)        #EZVARS['inout']['clip_hist']
-        setattr(self,'main_region_clip_histogram',self.args['main_region_clip_histogram'])
-        self.args['main_region_bit_depth']=int(main_region_bit_depth)                   #SECTIONS['general']['output-bitdepth']
-        setattr(self,'main_region_bit_depth',self.args['main_region_bit_depth'])
-        self.args['main_region_histogram_min']=float(main_region_histogram_min)         #SECTIONS['general']['output-minimum']
-        setattr(self,'main_region_histogram_min',self.args['main_region_histogram_min'])
-        self.args['main_region_histogram_max']=float(main_region_histogram_max)             #SECTIONS['general']['output-maximum']
-        setattr(self,'main_region_histogram_max',self.args['main_region_histogram_max'])
-        # preprocessing attributes
-        self.args['main_config_preprocess']=bool(main_config_preprocess)             #EZVARS['inout']['preprocess']
-        setattr(self,'main_config_preprocess',self.args['main_config_preprocess'])
-        self.args['main_config_preprocess_command']=main_config_preprocess_command     #EZVARS['inout']['preprocess-command']
-        setattr(self,'main_config_preprocess_command',self.args['main_config_preprocess_command'])
-        # ROI in slice
-        self.args['main_region_crop_slices']=bool(main_region_crop_slices)              #EZVARS['inout']['output-ROI']
-        setattr(self,'main_region_crop_slices',self.args['main_region_crop_slices'])
-        self.args['main_region_crop_x']=int(main_region_crop_x)                         #EZVARS['inout']['output-x']
-        setattr(self,'main_region_crop_x',self.args['main_region_crop_x'])
-        self.args['main_region_crop_width']=int(main_region_crop_width)                 #EZVARS['inout']['output-width']
-        setattr(self,'main_region_crop_width',self.args['main_region_crop_width'])
-        self.args['main_region_crop_y']=int(main_region_crop_y)                         #EZVARS['inout']['output-y']
-        setattr(self,'main_region_crop_y',self.args['main_region_crop_y'])
-        self.args['main_region_crop_height']=int(main_region_crop_height)               #EZVARS['inout']['output-height']
-        setattr(self,'main_region_crop_height',self.args['main_region_crop_height'])
-        # Optional FBP params
-        self.args['main_region_rotate_volume_clock']= float(main_region_rotate_volume_clock)   #SECTIONS['general-reconstruction']['volume-angle-z']
-        setattr(self,'main_region_rotate_volume_clock',self.args['main_region_rotate_volume_clock'])  #
-        # misc settings
-        self.args['main_config_dry_run']=bool(main_config_dry_run)    #EZVARS['inout']['dryrun']
-        setattr(self,'main_config_dry_run',self.args['main_config_dry_run'])
-        self.args['main_config_save_params']=bool(main_config_save_params)      #EZVARS['inout']['save-params']
-        setattr(self,'main_config_save_params',self.args['main_config_save_params'])
-        self.args['main_config_keep_temp']=bool(main_config_keep_temp)          #EZVARS['inout']['keep-tmp']
-        setattr(self,'main_config_keep_temp',self.args['main_config_keep_temp'])
-        #sinFFC settings
-        self.args['advanced_ffc_sinFFC']=bool(advanced_ffc_sinFFC)          #EZVARS['flat-correction']['smart-ffc']
-        setattr(self,'advanced_ffc_sinFFC', self.args['advanced_ffc_sinFFC'])
-        self.args['advanced_ffc_method'] = str(advanced_ffc_method)         #EZVARS['flat-correction']['smart-ffc-method']
-        setattr(self, 'advanced_ffc_method', self.args['advanced_ffc_method'])
-        self.args['advanced_ffc_eigen_pco_reps']=int(advanced_ffc_eigen_pco_reps)  #EZVARS['flat-correction']['eigen-pco-reps']
-        setattr(self, 'advanced_ffc_eigen_pco_reps', self.args['advanced_ffc_eigen_pco_reps'])
-        self.args['advanced_ffc_eigen_pco_downsample'] = int(advanced_ffc_eigen_pco_downsample)  #EZVARS['flat-correction']['eigen-pco-downsample']
-        setattr(self, 'advanced_ffc_eigen_pco_downsample', self.args['advanced_ffc_eigen_pco_downsample'])
-        self.args['advanced_ffc_downsample'] = int(advanced_ffc_downsample)   #EZVARS['flat-correction']['downsample']
-        setattr(self, 'advanced_ffc_downsample', self.args['advanced_ffc_downsample'])
-        #Settings for using flats/darks across multiple experiments
-        self.args['main_config_common_flats_darks'] = bool(main_config_common_flats_darks) #EZVARS['inout']['shared-flatsdarks']
-        setattr(self, 'main_config_common_flats_darks', self.args['main_config_common_flats_darks'])
-        self.args['main_config_darks_path'] = str(main_config_darks_path)  #EZVARS['inout']['path2-shared-darks']
-        setattr(self, 'main_config_darks_path', self.args['main_config_darks_path'])
-        self.args['main_config_flats_path'] = str(main_config_flats_path)   #EZVARS['inout']['path2-shared-flats']
-        setattr(self, 'main_config_flats_path', self.args['main_config_flats_path'])
-        self.args['main_config_flats2_checkbox'] = bool(main_config_flats2_checkbox)  #EZVARS['inout']['shared-flats-after']
-        setattr(self, 'main_config_flats2_checkbox', self.args['main_config_flats2_checkbox'])
-        self.args['main_config_flats2_path'] = str(main_config_flats2_path)    #EZVARS['inout']['path2-shared-flats-after']
-        setattr(self, 'main_config_flats2_path', self.args['main_config_flats2_path'])
-        #NLMDN Settings
-        self.args['advanced_nlmdn_apply_after_reco'] = bool(advanced_nlmdn_apply_after_reco) #EZVARS['nlmdn']['do-after-reco']
-        setattr(self, 'advanced_nlmdn_apply_after_reco', self.args['advanced_nlmdn_apply_after_reco'])
-        self.args['advanced_nlmdn_input_dir'] = str(advanced_nlmdn_input_dir)     #EZVARS['nlmdn']['input-dir']
-        setattr(self, 'advanced_nlmdn_input_dir', self.args['advanced_nlmdn_input_dir'])
-        self.args['advanced_nlmdn_input_is_file'] = bool(advanced_nlmdn_input_is_file)  #EZVARS['nlmdn']['input-is-1file']
-        setattr(self, 'advanced_nlmdn_input_is_file', self.args['advanced_nlmdn_input_is_file'])
-        self.args['advanced_nlmdn_output_dir'] = str(advanced_nlmdn_output_dir)  #EZVARS['nlmdn']['output_pattern']
-        setattr(self, 'advanced_nlmdn_output_dir', self.args['advanced_nlmdn_output_dir'])
-        self.args['advanced_nlmdn_save_bigtiff'] = bool(advanced_nlmdn_save_bigtiff)  #EZVARS['nlmdn']['bigtiff_output']
-        setattr(self, 'advanced_nlmdn_save_bigtiff', self.args['advanced_nlmdn_save_bigtiff'])
-        self.args['advanced_nlmdn_sim_search_radius'] = str(advanced_nlmdn_sim_search_radius) #EZVARS['nlmdn']['search-radius']
-        setattr(self, 'advanced_nlmdn_sim_search_radius', self.args['advanced_nlmdn_sim_search_radius']) #positive integer
-        self.args['advanced_nlmdn_patch_radius'] = str(advanced_nlmdn_patch_radius)  #EZVARS['nlmdn']['patch-radius']
-        setattr(self, 'advanced_nlmdn_patch_radius', self.args['advanced_nlmdn_patch_radius'])
-        self.args['advanced_nlmdn_smoothing_control'] = str(advanced_nlmdn_smoothing_control)  #EZVARS['nlmdn']['h']
-        setattr(self, 'advanced_nlmdn_smoothing_control', self.args['advanced_nlmdn_smoothing_control'])
-        self.args['advanced_nlmdn_noise_std'] = str(advanced_nlmdn_noise_std)  #EZVARS['nlmdn']['sigma']
-        setattr(self, 'advanced_nlmdn_noise_std', self.args['advanced_nlmdn_noise_std'])
-        self.args['advanced_nlmdn_window'] = str(advanced_nlmdn_window)  #EZVARS['nlmdn']['window']
-        setattr(self, 'advanced_nlmdn_window', self.args['advanced_nlmdn_window'])
-        self.args['advanced_nlmdn_fast'] = bool(advanced_nlmdn_fast)  #EZVARS['nlmdn']['fast']
-        setattr(self, 'advanced_nlmdn_fast', self.args['advanced_nlmdn_fast'])
-        self.args['advanced_nlmdn_estimate_sigma'] = bool(advanced_nlmdn_estimate_sigma) #EZVARS['nlmdn']['estimate-sigma']
-        setattr(self, 'advanced_nlmdn_estimate_sigma', self.args['advanced_nlmdn_estimate_sigma'])
-        self.args['advanced_nlmdn_dry_run'] = bool(advanced_nlmdn_dry_run)   #EZVARS['nlmdn']['dryrun']
-        setattr(self, 'advanced_nlmdn_dry_run', self.args['advanced_nlmdn_dry_run'])
-        #Advanced Settings
-        self.args['advanced_advtofu_extended_settings'] = bool(advanced_advtofu_extended_settings)  #EZVARS['advanced']['more-reco-params']
-        setattr(self, 'advanced_advtofu_extended_settings', self.args['advanced_advtofu_extended_settings'])
-        self.args['advanced_advtofu_lamino_angle'] = str(advanced_advtofu_lamino_angle)    #SECTIONS['general-reconstruction']['axis-angle-x']
-        setattr(self, 'advanced_advtofu_lamino_angle', self.args['advanced_advtofu_lamino_angle'])
-        self.args['advanced_adv_tofu_z_axis_rotation'] = str(advanced_adv_tofu_z_axis_rotation) #SECTIONS['general-reconstruction']['overall-angle']
-        setattr(self, 'advanced_adv_tofu_z_axis_rotation', self.args['advanced_adv_tofu_z_axis_rotation'])
-        self.args['advanced_advtofu_center_position_z'] = str(advanced_advtofu_center_position_z) #SECTIONS['general-reconstruction']['center-position-z']
-        setattr(self, 'advanced_advtofu_center_position_z', self.args['advanced_advtofu_center_position_z'])
-        self.args['advanced_advtofu_y_axis_rotation'] = str(advanced_advtofu_y_axis_rotation)   #SECTIONS['general-reconstruction']['axis-angle-y']
-        setattr(self, 'advanced_advtofu_y_axis_rotation', self.args['advanced_advtofu_y_axis_rotation'])
-        self.args['advanced_advtofu_aux_ffc_dark_scale'] = str(advanced_advtofu_aux_ffc_dark_scale) #SECTIONS['flat-correction']['dark-scale']
-        setattr(self, 'advanced_advtofu_aux_ffc_dark_scale', self.args['advanced_advtofu_aux_ffc_dark_scale'])
-        self.args['advanced_advtofu_aux_ffc_flat_scale'] = str(advanced_advtofu_aux_ffc_flat_scale)   #SECTIONS['flat-correction']['flat-scale']
-        setattr(self, 'advanced_advtofu_aux_ffc_flat_scale', self.args['advanced_advtofu_aux_ffc_flat_scale'])
-        # SECTIONS['sinos']['pass-size'] must be added to RR groupbox
-        #Optimization
-        self.args['advanced_optimize_verbose_console'] = bool(advanced_optimize_verbose_console) #SECTIONS['general']['verbose']
-        setattr(self, 'advanced_optimize_verbose_console', self.args['advanced_optimize_verbose_console'])
-        self.args['advanced_optimize_slice_mem_coeff'] = str(advanced_optimize_slice_mem_coeff) #SECTIONS['general-reconstruction']['slice-memory-coeff']
-        setattr(self, 'advanced_optimize_slice_mem_coeff', self.args['advanced_optimize_slice_mem_coeff'])
-        self.args['advanced_optimize_num_gpus'] = str(advanced_optimize_num_gpus)  #SECTIONS['general-reconstruction']['data-splitting-policy']
-        setattr(self, 'advanced_optimize_num_gpus', self.args['advanced_optimize_num_gpus'])  # replace by 'data-splitting-policy' !!
-        self.args['advanced_optimize_slices_per_device'] = str(advanced_optimize_slices_per_device)  # 'num-gpu-threads' ??
-        setattr(self, 'advanced_optimize_slices_per_device', self.args['advanced_optimize_slices_per_device'])
-
-        LOG.debug("Contents of arg dict: ")
-        LOG.debug(self.args.items())
+        return [EZVARS['inout']['darks-dir']['value'],
+                EZVARS['inout']['flats-dir']['value'],
+                EZVARS['inout']['tomo-dir']['value'],
+                EZVARS['inout']['flats2-dir']['value']]
 
 
 class InvalidInputError(Exception):

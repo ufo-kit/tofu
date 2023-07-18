@@ -12,10 +12,10 @@ import numpy as np
 import tifffile
 
 from tofu.ez.image_read_write import TiffSequenceReader
-import tofu.ez.params as glob_parameters
+from tofu.ez.params import EZVARS
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
 from tofu.util import get_filenames, get_image_shape
-from tofu.ez.ufo_cmd_gen import ufo_cmds
+from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 
 
@@ -40,49 +40,48 @@ def extract_row(dir_name, row):
 def find_overlap(parameters):
     print("Finding CTDirs...")
     ctdirs, lvl0 = findCTdirs(parameters['360overlap_input_dir'],
-                              glob_parameters.params['main_config_tomo_dir_name'])
+                              EZVARS['inout']['tomo-dir']['value'])
     print(ctdirs)
 
-    if parameters['360overlap_doRR']:
-        ufoRRcmdgen = ufo_cmds('blah')
-
-    # concatenate images end-to-end and generate a sinogram
+    dirdark = EZVARS['inout']['darks-dir']['value']
+    dirflats = EZVARS['inout']['flats-dir']['value']
+    dirflats2 = EZVARS['inout']['flats2-dir']['value']
+    if EZVARS['inout']['shared-flatsdarks']['value']:
+        dirdark = EZVARS['inout']['path2-shared-darks']['value']
+        dirflats = EZVARS['inout']['path2-shared-flats']['value']
+        dirflats2 = EZVARS['inout']['path2-shared-flats2']['value']
+    # concatenate images with various overlap and generate sinograms
     for ctset in ctdirs:
         print("Working on ctset:" + str(ctset))
         index_dir = os.path.basename(os.path.normpath(ctset))
-
         # loading:
         try:
             row_flat = np.mean(extract_row(
-                os.path.join(ctset, glob_parameters.params['main_config_flats_dir_name']),
-                           parameters['360overlap_row']))
+                os.path.join(ctset, dirflats), parameters['360overlap_row']))
         except:
             print(f"Problem loading flats in {ctset}")
             continue
         try:
             row_dark = np.mean(extract_row(
-                os.path.join(ctset, glob_parameters.params['main_config_darks_dir_name']),
-                                       parameters['360overlap_row']))
+                os.path.join(ctset, dirdark), parameters['360overlap_row']))
         except:
             print(f"Problem loading darks in {ctset}")
             continue
         try:
             row_tomo = extract_row(
-                os.path.join(ctset, glob_parameters.params['main_config_tomo_dir_name']),
+                os.path.join(ctset, EZVARS['inout']['tomo-dir']['value']),
                                    parameters['360overlap_row'])
         except:
             print(f"Problem loading projections from "
-                  f"{os.path.join(ctset, glob_parameters.params['main_config_tomo_dir_name'])}")
+                  f"{os.path.join(ctset, EZVARS['inout']['tomo-dir']['value'])}")
             continue
-
         row_flat2 = None
-        tmpstr = os.path.join(ctset, glob_parameters.params['main_config_flats2_dir_name'])
+        tmpstr = os.path.join(ctset, dirflats2)
         if os.path.exists(tmpstr):
             try:
                 row_flat2 = np.mean(extract_row(tmpstr, parameters['360overlap_row']))
             except:
                 print(f"Problem loading flats2 in {ctset}")
-
 
         (num_proj, M) = row_tomo.shape
 
@@ -130,9 +129,9 @@ def find_overlap(parameters):
         if parameters['360overlap_doRR']:
             print("Applying ring removal filter")
             tmpdir = os.path.join(parameters['360overlap_temp_dir'], index_dir)
-            rrcmd = ufoRRcmdgen.get_filter2d_sinos_cmd(tmpdir,
-                                   glob_parameters.params['main_filters_ring_removal_ufo_lpf_sigma_horizontal'],
-                                   glob_parameters.params['main_filters_ring_removal_ufo_lpf_sigma_vertical'],
+            rrcmd = get_filter2d_sinos_cmd(tmpdir,
+                                   EZVARS['RR']['sx']['value'],
+                                   EZVARS['RR']['sy']['value'],
                                    sin_height, sin_width)
             print(rrcmd)
             os.system(rrcmd)
@@ -143,12 +142,11 @@ def find_overlap(parameters):
 
         cmd = f'tofu tomo --axis {sin_width//2} --sinograms {sin_tmp_dir}'
         cmd +=' --output '+os.path.join(outname)
-        print(cmd)
         os.system(cmd)
 
         points, maximum = evaluate_images_simp(outname, "msag")
-        print(f"Estimated overlap: {maximum}")
-              #f"{parameters['360overlap_lower_limit'] + parameters['360overlap_increment'] * maximum}")
+        print(f"Estimated overlap:" 
+            f"{parameters['360overlap_lower_limit'] + parameters['360overlap_increment'] * maximum}")
 
         print("Finished processing: " + str(index_dir))
         print("****************************************")
