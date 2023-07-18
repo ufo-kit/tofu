@@ -14,16 +14,12 @@ from tofu.ez.image_read_write import TiffSequenceReader, get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import time
-
+from mpi4py import MPI
 import sys
-
-try:
-    from mpi4py import MPI
-except ImportError:
-    print("You must install openmpi/mpi4py in order to stitch half acq. mode data",
-          file=sys.stderr)
+import subprocess
 
 from tofu.ez.params import EZVARS
+from concurrent import futures
 
 def findCTdirs(root: str, tomo_name: str):
     """
@@ -325,6 +321,31 @@ def stitch_float32_output(first, second, axis, crop):
     result[:, w:] = second[:, dx:] * k
 
     return result[:, slice(int(crop), int(2*(w - axis) - crop), 1)]
+
+
+def st_mp_idx(offst, ax, crop, in_fmt, out_fmt, idx):
+    #we pass index and formats as argument
+    first = read_image(in_fmt.format(idx))
+    second = read_image(in_fmt.format(idx+offst))[:, ::-1]
+    stitched = stitch(first, second, ax, crop)
+    tifffile.imwrite(out_fmt.format(idx), stitched)
+
+
+def st_bigtiff_pages(offst, ax, crop, tfs, out_fmt, idx):
+    first = tfs.read(idx)
+    second = tfs.read(idx+offst)
+    stitched = stitch(first, second, ax, crop)
+    tifffile.imwrite(out_fmt.format(idx), stitched)
+
+# def st_mp_bigtiff_pages(offst, ax, crop, bigtif_name, out_fmt, idx):
+#     tif = TiffSequenceReader(bigtif_name)
+#     first = tif.read(idx)
+#     second = tif.read(idx+offst)
+#     tif.close()
+#     stitched = stitch(first, second, ax, crop)
+#     tifffile.imwrite(out_fmt.format(idx), stitched)
+
+
 
 def main_360_mp_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):

@@ -320,6 +320,16 @@ def read_image(filename):
         return edf.data
     else:
         raise ValueError('Unsupported image format')
+    
+
+
+def write_image(filename, image):
+    import tifffile
+
+    directory = os.path.dirname(filename)
+    os.makedirs(directory, exist_ok=True)
+
+    tifffile.imwrite(filename, image)
 
 
 def write_image(filename, image):

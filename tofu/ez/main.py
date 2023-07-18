@@ -241,7 +241,7 @@ def execute_reconstruction(fdt_names):
                     ax = EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
             elif EZVARS['COR']['search-method']['value'] == 4:
-                ax = find_axis_image_midpoint(wh)
+                ax = find_axis_image_midpoint(ctset, multipage, wh)
                 print("Bypassing axis search and using image midpoint: {}".format(ax))
 
             setid = ctset[0][len(lvl0) + 1:]

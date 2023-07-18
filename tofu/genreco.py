@@ -27,6 +27,7 @@ DTYPE_CL_SIZE = {'float': 4,
 
 
 def genreco(args):
+    print(args)
     st = time.time()
     if is_output_single_file(args):
         try:

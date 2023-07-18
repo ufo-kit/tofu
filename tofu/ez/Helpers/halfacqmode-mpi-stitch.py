@@ -14,8 +14,7 @@ path_to_script, ax, crop, bigtif_name, out_fmt = sys.argv
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-# t0 = time.time()
-#print(f"{t0:.2f}: Private {rank} of {size} is at your service")
+#print(f"{time.time()}: Private {rank} of {size} is at your service")
 
 tfs = TiffSequenceReader(bigtif_name)
 npairs = tfs.num_images//2
@@ -26,14 +25,14 @@ for pair_number in range(n_my_pairs):
     idx = rank + pair_number * size
  #   print(f'Private {rank} processing pair {idx} - {idx+npairs}')
     first = tfs.read(idx)
-    second = tfs.read(idx+npairs)[:, ::-1]
+    second = tfs.read(idx+npairs)
 
     stitched = stitch(first, second, int(ax), int(crop))
     tifffile.imwrite(out_fmt.format(idx), stitched)
 
 tfs.close()
 
-#print(f"Private {rank} stitched {n_my_pairs} pairs in {time.time()-t0:.2f} s! Am I first?")
+print(f"Private {rank} stitched {n_my_pairs} pairs in {time.time():.2f} s! Am I first?")
 # Important - release communicator!
 try:
     parent_comm = comm.Get_parent()
