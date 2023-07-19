@@ -324,31 +324,6 @@ def stitch_float32_output(first, second, axis, crop):
 
     return result[:, slice(int(crop), int(2*(w - axis) - crop), 1)]
 
-
-def st_mp_idx(offst, ax, crop, in_fmt, out_fmt, idx):
-    #we pass index and formats as argument
-    first = read_image(in_fmt.format(idx))
-    second = read_image(in_fmt.format(idx+offst))[:, ::-1]
-    stitched = stitch(first, second, ax, crop)
-    tifffile.imwrite(out_fmt.format(idx), stitched)
-
-
-def st_bigtiff_pages(offst, ax, crop, tfs, out_fmt, idx):
-    first = tfs.read(idx)
-    second = tfs.read(idx+offst)
-    stitched = stitch(first, second, ax, crop)
-    tifffile.imwrite(out_fmt.format(idx), stitched)
-
-# def st_mp_bigtiff_pages(offst, ax, crop, bigtif_name, out_fmt, idx):
-#     tif = TiffSequenceReader(bigtif_name)
-#     first = tif.read(idx)
-#     second = tif.read(idx+offst)
-#     tif.close()
-#     stitched = stitch(first, second, ax, crop)
-#     tifffile.imwrite(out_fmt.format(idx), stitched)
-
-
-
 def main_360_mp_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -413,17 +388,17 @@ def main_360_mp_depth2(parameters):
     dax = np.round(np.linspace(parameters['360multi_bottom_axis'], parameters['360multi_top_axis'], num_sets))
     if parameters['360multi_manual_axis']:
         #print(parameters['360multi_axis_dict'])
-        dax = np.array(list(parameters['360multi_axis_dict'].values()))
-    print(dax)
+        dax = np.array(list(parameters['360multi_axis_dict'].values()))[:num_sets]
+    print(f'Overlaps: {dax}')
     # compute crop:
     cra = np.max(dax)-dax
     # Axis on the right ? Must open one file to find out ><
     tmpname = os.path.join(parameters['360multi_input_dir'], ctdirs_rel_paths[0])
     subdirs = [dI for dI in os.listdir(tmpname) if os.path.isdir(os.path.join(tmpname, dI))]
     M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
-    if parameters['360multi_bottom_axis'] > M//2:
+    if np.min(dax) > M//2:
         cra = dax - np.min(dax)
-    print(cra)
+    print(f'Crop by: {cra}')
 
     for i, ctdir in enumerate(ctdirs):
         print("================================================================")

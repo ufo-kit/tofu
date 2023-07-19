@@ -6,18 +6,6 @@ from tofu.util import restrict_value
 
 params = {}
 
-PARAMS = OrderedDict()
-PARAMS['ezmview'] = {
-    'num_sets': {
-        'default': None,
-        'type': float,
-        'help': "Axis position"},
-    'indir': {
-        'default': False,
-        'help': "Reconstruct without writing data",
-        'action': 'store_true'}}
-
-
 def save_parameters(params, file_path):
     file_out = open(file_path, 'w')
     yaml.dump(params, file_out)
