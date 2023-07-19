@@ -370,12 +370,6 @@ class MultiStitch360Group(QGroupBox):
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
         self.get_fdt_names_on_stitch_pressed.emit()
-        if os.path.exists(self.parameters['360multi_temp_dir']) and \
-                    len(os.listdir(self.parameters['360multi_temp_dir'])) > 0:
-            qm = QMessageBox()
-            rep = qm.warning(self, '', "Temp directory exists and is not empty.")            
-            return
-
         if os.path.exists(self.parameters['360multi_output_dir']) and \
                     len(os.listdir(self.parameters['360multi_output_dir'])) > 0:
             qm = QMessageBox()
@@ -399,6 +393,7 @@ class MultiStitch360Group(QGroupBox):
         if not os.path.exists(self.parameters['360multi_output_dir']):
             warning_message("Output directory does not exist")
         elif rep == qm.Yes:
+            print("---- Deleting Data From Output Directory ----")
             try:
                 rmtree(self.parameters['360multi_output_dir'])
             except:
@@ -406,18 +401,6 @@ class MultiStitch360Group(QGroupBox):
         else:
             return
         
-        rep = qm.question(self, '', "Is it safe to delete the temp directory?", qm.Yes | qm.No)
-        if not os.path.exists(self.parameters['360multi_temp_dir']):
-            warning_message("Temp directory does not exist")
-        elif rep == qm.Yes:
-            try:
-                rmtree(self.parameters['360multi_temp_dir'])
-            except:
-                warning_message("Problems with deleting temp directory")
-        else:
-            return
-        
-
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
         h = "Stitches images horizontally\n"
