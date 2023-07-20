@@ -14,12 +14,16 @@ from tofu.ez.image_read_write import TiffSequenceReader, get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import time
-from mpi4py import MPI
+
 import sys
-import subprocess
+
+try:
+    from mpi4py import MPI
+except ImportError:
+    print("You must install openmpi/mpi4py in order to stitch half acq. mode data",
+          file=sys.stderr)
 
 from tofu.ez.params import EZVARS
-from concurrent import futures
 
 def findCTdirs(root: str, tomo_name: str):
     """
