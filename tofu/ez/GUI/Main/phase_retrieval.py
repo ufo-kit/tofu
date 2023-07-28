@@ -1,9 +1,9 @@
 import logging
 import math
 from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
-
 from tofu.config import SECTIONS
-from tofu.util import add_value_to_dict_entry, reverse_tupleize, get_double_validator, get_tuple_validator
+from tofu.ez.params import EZVARS
+from tofu.ez.util import add_value_to_dict_entry, reverse_tupleize, get_double_validator, get_tuple_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class PhaseRetrievalGroup(QGroupBox):
         self.setLayout(layout)
     
     def load_values(self):
-        self.enable_PR_checkBox.setChecked(SECTIONS['retrieve-phase']['enable-phase']['value'])
+        self.enable_PR_checkBox.setChecked(EZVARS['retrieve-phase']['apply-pr']['value'])
         self.photon_energy_entry.setText(str(SECTIONS['retrieve-phase']['energy']['value']))
         self.pixel_size_entry.setText(str(
             round(self.meters_to_microns(SECTIONS['retrieve-phase']['pixel-size']['value']),6)))
@@ -75,7 +75,7 @@ class PhaseRetrievalGroup(QGroupBox):
 
     def set_PR(self):
         LOG.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))
-        dict_entry = SECTIONS['retrieve-phase']['enable-phase']
+        dict_entry = EZVARS['retrieve-phase']['apply-pr']
         add_value_to_dict_entry(dict_entry, self.enable_PR_checkBox.isChecked())
 
     def set_photon_energy(self):

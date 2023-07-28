@@ -157,6 +157,14 @@ EZVARS['COR'] = {
         'help': "TODO"},
 }
 
+EZVARS['retrieve-phase']= {
+    'apply-pr': {
+        'default': False,
+        'ezdefault': False,
+        'type': bool,
+        'help': "Applies phase retrieval if checked"}
+}
+
 EZVARS['filters'] = {
     'rm_spots': {
         'ezdefault': False,
