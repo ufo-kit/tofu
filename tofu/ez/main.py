@@ -69,7 +69,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
     """formats list of processing commands for a CT set"""
     # two helper variables to note that PR/FFC has been done at some step
     swiFFC = True  # FFC is always required
-    swiPR = SECTIONS['retrieve-phase']['enable-phase']['value']  # PR is an optional operation
+    swiPR = EZVARS['retrieve-phase']['apply-pr']['value']  # PR is an optional operation
 
     ####### PREPROCESSING #########
     #if we need to use shared flat/darks we have to do it only once so we need to keep track of that
@@ -94,21 +94,19 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
         cmds.extend(cmds_prepro)
         # reset location of input data
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
-        #add_value_to_dict_entry(EZVARS['inout']['shared-df-used'], True)
     ###################################################
     if EZVARS['filters']['rm_spots']['value']:  # generate commands to remove sci. spots from projections
         cmds.append('echo " - Flat-correcting and removing large spots"')
         cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews)
         # reset location of input data
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
-        #add_value_to_dict_entry(EZVARS['inout']['shared-df-used'], True)
         cmds.extend(cmds_inpaint)
         swiFFC = False  # no need to do FFC anymore
 
     ######## PHASE-RETRIEVAL #######
     # Do PR separately if sinograms must be generate
     # todo? also if vertical ROI is defined to speed up the phase retrieval
-    if SECTIONS['retrieve-phase']['enable-phase']['value'] and EZVARS['RR']['enable-RR']['value']:
+    if EZVARS['retrieve-phase']['apply-pr']['value'] and EZVARS['RR']['enable-RR']['value']:
         # or (SECTIONS['retrieve-phase']['enable-phase']['value'] and EZVARS['inout']['input_ROI']['value']):
         if swiFFC:  # we still need need flat correction #Inpaint No
             cmds.append('echo " - Phase retrieval with flat-correction"')
@@ -117,7 +115,6 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
                 cmds.append(get_pr_tofu_cmd_sinFFC(ctset))
             elif not EZVARS['flat-correction']['smart-ffc']['value']:
                 cmds.append(get_pr_tofu_cmd(ctset))
-            #add_value_to_dict_entry(EZVARS['inout']['shared-df-used'], True)
         else:  # Inpaint Yes
             cmds.append('echo " - Phase retrieval from flat-corrected projections"')
             cmds.extend(get_pr_ufo_cmd(nviews, wh))

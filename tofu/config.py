@@ -3,7 +3,7 @@ import sys
 import logging
 import configparser as configparser
 from collections import OrderedDict
-from tofu.util import convert_filesize, restrict_value, tupleize, restrict_tupleize, range_list
+from tofu.util import convert_filesize, restrict_value, tupleize, range_list
 
 
 LOG = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ SECTIONS['reading'] = {
         'help': 'Number of files to read'},
     'step': {
         'default': 1,
-        'ezdefault': 1, # Not updated in GUI
+        'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
     'resize': {
@@ -161,11 +161,6 @@ SECTIONS['flat-correction'] = {
         'help': 'Do absorption correction'}}
 
 SECTIONS['retrieve-phase'] = {
-    'enable-phase': {
-        'default': False,
-        'ezdefault': False,
-        'type': bool,
-        'help': "Enable phase retrieval"},
     'retrieval-method': {
         'choices': ['tie', 'ctf', 'qp', 'qp2'],
         'default': 'tie',
@@ -188,8 +183,7 @@ SECTIONS['retrieve-phase'] = {
         'help': "Pixel size [m]"},
     'regularization-rate': {
         'default': 2,
-        #'ezdefault': 200, #(!)WARNING - GUI value does not match description from help.
-        'ezdefault': 2.30102999566398119521,
+        'ezdefault': 2.3,
         'type': float,
         'help': "Regularization rate (typical values between [2, 3])"},
     'delta': {
@@ -522,7 +516,7 @@ SECTIONS['general-reconstruction'] = {
         'help': "Disable cone beam weighting"},
     'slice-memory-coeff': {
         'default': 0.8,
-        'ezdefault': 0.7, #G
+        'ezdefault': 0.7,
         'type': restrict_value((0.01, 0.95)),
         'help': "Portion of the GPU memory used for slices (from 0.01 to 0.9) [fraction]. "
                 "The total amount of consumed memory will be larger depending on the "
@@ -543,7 +537,7 @@ SECTIONS['general-reconstruction'] = {
         'action': 'store_true'},
     'data-splitting-policy': {
         'default': 'one',
-        'ezdefault': 'one', #G
+        'ezdefault': 'one',
         'type': str,
         'help': "'one': one GPU should process as many slices as possible, "
                 "'many': slices should be spread across as many GPUs as possible",
@@ -555,7 +549,7 @@ SECTIONS['general-reconstruction'] = {
                 "[y - margin, y + height + margin]"},
     'slices-per-device': {
         'default': None,
-        'ezdefault': None, # Not updated in GUI
+        'ezdefault': None,
         'type': restrict_value((0, None), dtype=int),
         'help': "Number of slices computed by one computing device"},
     'gpus': {
@@ -845,10 +839,10 @@ def config_to_list(config_name=''):
 def without_keys(d, keys):
     return {k: v for k, v in d.items() if k not in keys}
 
+
 class Params(object):
     def __init__(self, sections=()):
         self.sections = sections + ('general', 'reading')
-    
 
     def add_parser_args(self, parser):
         for section in self.sections:
@@ -856,7 +850,6 @@ class Params(object):
                 opts = without_keys(SECTIONS[section][name], {'ezdefault'})
                 parser.add_argument('--{}'.format(name), **opts)
                 
-
     def add_arguments(self, parser):
         self.add_parser_args(parser)
         return parser

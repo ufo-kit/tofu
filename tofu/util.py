@@ -5,11 +5,7 @@ import glob
 import logging
 import math
 import os
-from types import FunctionType
 from collections import OrderedDict
-from PyQt5.QtCore import QRegExp
-from PyQt5.QtGui import QRegExpValidator
-
 gi.require_version('Ufo', '0.0')
 from gi.repository import Ufo
 
@@ -95,9 +91,9 @@ def restrict_value(limits, dtype=float):
     def check(value=None, clamp=False):
         if value is None:
             return limits
-        
+
         result = dtype(value)
-        
+
         if limits[0] is not None and result < limits[0]:
             if clamp:
                 result = dtype(limits[0])
@@ -139,10 +135,10 @@ def tupleize(num_items=None, conv=float, dtype=tuple):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
-    
+
     def split_values(value=None):
         """Convert comma-separated string *value* to a tuple of numbers."""
-        if not value:   #empty value or string
+        if not value:   # empty value or string
             return dtype([])
         if type(value) is float or type(value) is int:
             return dtype([value])
@@ -158,149 +154,7 @@ def tupleize(num_items=None, conv=float, dtype=tuple):
 
     return split_values
 
-def restrict_tupleize(limits, num_items=None, conv=float, dtype=tuple):
-    """Convert a string of numbers separated by commas to tuple with *dtype* and make sure it is within *limits* (included) specified as tuple
-    (min, max). If one of the limits values is None it is ignored."""
-    
-    def check(value=None, clamp=False):
-        if value is None:
-            return limits
-        results = tupleize(num_items, conv, dtype)(value)
-        for v in results:
-            restrict_value(limits, dtype=conv)(v, clamp)
-        return results
-    return check
 
-def reverse_tupleize(num_items=None, conv=float):
-    """Convert a tuple into a comma-separted string of *value*"""
-    
-    def combine_to_string(value):
-        """Combine a tuple of numbers into a comma-separated string"""
-        
-        result = ""        
-        if num_items and len(result) != num_items:
-            # A certain number of output is expected
-            raise argparse.ArgumentTypeError('Expected {} items'.format(num_items))
-        
-        if(len(value) == 0):
-            # No tuple to convert into string
-            return result
-        
-        # Tuple with non-zero lengthh
-        for v in value:
-            result = result + "," + str(conv(v))
-        result = result[1:] # Remove the erroneous first period
-        return result
-    return combine_to_string
-
-def is_value_on_limit(dict_entry):
-    """Checks if a value is at the limit defined by the functions 'restrict_value' or 'restrict_tupleize'."""
-    if type(dict_entry['type']) is FunctionType: #is a custom data type
-        limits = dict_entry['type']()
-        if len(limits) == 2: # has a min & max limit
-            if limits[0] is not None and dict_entry['value'] == limits[0]:
-                return True
-            elif limits[1] is not None and dict_entry['value'] == limits[1]:
-                return True
-    return False
-
-def warn_if_value_at_limit(dict_entry):
-    """Display a message in terminal if the set value is at the limit"""
-    if is_value_on_limit(dict_entry):
-        limits = dict_entry['type']()
-        minLim = limits[0]
-        maxLim = limits[1]
-        if minLim is None:
-            minLim = "-inf"
-        if maxLim is None:
-            maxLim = "inf"
-        msg = "Warning: The value " + str(dict_entry['value']) + " is on the limits of ("+ str(minLim) + ", " + str(maxLim) + "). This may cause issues during reconstruction."
-        print(msg)  #QMessageBox doesn't seem to work from util.py
-
-def add_value_to_dict_entry(dict_entry, value, enable_warning = True):
-    """Add a value to a dictionary entry. An empty string will insert the ezdefault value"""
-    if 'action' in dict_entry:
-        # no 'type' can be defined in dictionary entries with 'action' key
-        dict_entry['value'] = bool(value)
-        return
-    elif value == '' or value == None:
-        # takes default value if empty string or null
-        if dict_entry['ezdefault'] is None:
-            dict_entry['value'] = dict_entry['ezdefault']
-        else:    
-            dict_entry['value'] = dict_entry['type'](dict_entry['ezdefault'])
-    else:
-        try:
-            dict_entry['value'] = dict_entry['type'](value)
-        except argparse.ArgumentTypeError: #Outside of range of type
-            dict_entry['value'] = dict_entry['type'](value, clamp=True)
-        except ValueError: #int can't convert string with decimal (e.g. "1.0" -> 1)
-            dict_entry['value'] = dict_entry['type'](float(value))
-    if enable_warning:
-        warn_if_value_at_limit(dict_entry)
-
-def get_ascii_validator():
-    """Returns a validator that only allows the input of visible ASCII characters"""
-    regexp = "[-A-Za-z0-9_]*"
-    return QRegExpValidator(QRegExp(regexp))
-
-def get_alphabet_lowercase_validator():
-    """Returns a validator that only allows the input of lowercase ASCII characters"""
-    regexp = "[a-z]*"
-    return QRegExpValidator(QRegExp(regexp))
-
-def get_int_validator():
-    """Returns a validator that only allows the input of integers"""
-    # Note: QIntValidator allows commas, which is undesirable
-    regexp = "[\-]?[0-9]*"
-    return QRegExpValidator(QRegExp(regexp))
-
-def get_double_validator():
-    """Returns a validator that only allows the input of floating point number"""
-    # Note: QDoubleValidator allows commas before period, which is undesirable
-    regexp = "[\-]?[0-9]*[.]?[0-9]*"
-    return QRegExpValidator(QRegExp(regexp))
-
-def get_tuple_validator():
-    """Returns a validator that only allows a tuple of floating point numbers"""
-    regexp = "[-0-9,.]*"
-    return QRegExpValidator(QRegExp(regexp))
-
-# ---Potential replacements for GUI widgets---
-# def set_dict_entry_to_line_edit(line_edit, dict_entry, debug_tag = "line_edit"):
-#     """Generalized function for QLineEdit widgets that store values in a dictionary entry"""
-#     text = line_edit.text().strip()
-#     LOG.debug(debug_tag + ": " + text)
-#     add_value_to_dict_entry(dict_entry, str(text))
-#     line_edit.setText(str(dict_entry['value']))
-# def set_dict_entry_to_checkbox(checkbox, dict_entry, debug_tag = "checkbox"):
-#     """Generalized function for QCheckbox widgets that store values in a dictionary entry"""
-#     LOG.debug(debug_tag + ": " + str(checkbox.isChecked()))
-#     add_value_to_dict_entry(dict_entry, checkbox.isChecked())
-    
-def get_dict_without_keys(d, keys):
-    """Returns a new dictionary entry without the selected group of keys"""
-    return {k: v for k, v in d.items() if k not in keys}
-
-def load_values_from_ezdefault(dict):
-    """Add or replace values from ezdefault in a dictionary"""
-    for key1 in dict.keys():
-        for key2 in dict[key1].keys():
-            dict_entry = dict[key1][key2]
-            if 'ezdefault' in dict_entry:
-                add_value_to_dict_entry(dict_entry, '', False) # Add default value
-                
-def get_dict_values_string(dict)->str:
-    """Get a string with all the values within a dictionary"""
-    s = ""
-    for key1 in dict.keys():
-        for key2 in dict[key1].keys():
-            dict_entry = dict[key1][key2]
-            if 'value' in dict_entry:
-                s += str(key1) + " " + str(key2) + ": " + str(dict_entry['value']) + "\n"
-    return s
-                
-    
 def next_power_of_two(number):
     """Compute the next power of two of the *number*."""
     return 2 ** int(math.ceil(math.log(number, 2)))
@@ -310,7 +164,6 @@ def read_image(filename):
     """Read image from file *filename*."""
     if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):
         from tifffile import TiffFile
-        import numpy as np
         with TiffFile(filename) as tif:
             return tif.asarray(out='memmap')
     elif '.edf' in filename.lower():
@@ -320,15 +173,12 @@ def read_image(filename):
         return edf.data
     else:
         raise ValueError('Unsupported image format')
-    
 
 
 def write_image(filename, image):
     import tifffile
-
     directory = os.path.dirname(filename)
     os.makedirs(directory, exist_ok=True)
-
     tifffile.imwrite(filename, image)
 
 

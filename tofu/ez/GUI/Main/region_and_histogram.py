@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.util import add_value_to_dict_entry, get_int_validator, get_double_validator, reverse_tupleize
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator, reverse_tupleize
 
 LOG = logging.getLogger(__name__)
 

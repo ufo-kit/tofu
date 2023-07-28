@@ -156,7 +156,7 @@ def get_inp_cmd(ctset, tmpdir, N, nviews):
         cmd += ' --output {}'.format(out_pattern)
         if ctset[1] == 4:
             cmd += ' --flats2 {}'.format(indir[3])
-        if not SECTIONS['retrieve-phase']['enable-phase']['value']:
+        if not EZVARS['retrieve-phase']['apply-pr']['value']:
             cmd += ' --absorptivity --fix-nan-and-inf'
         if not EZVARS['flat-correction']['dark-scale']['value'] == "":
             cmd += ' --dark-scale {}'.format(EZVARS['flat-correction']['dark-scale']['value'])
