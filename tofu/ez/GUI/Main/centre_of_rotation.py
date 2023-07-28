@@ -2,7 +2,11 @@ import logging
 from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit, QCheckBox
 
 from tofu.ez.params import EZVARS
+<<<<<<< HEAD
 from tofu.util import add_value_to_dict_entry, get_int_validator, get_tuple_validator, get_double_validator
+=======
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_tuple_validator, get_double_validator
+>>>>>>> ez-dev-fix-history
 
 
 LOG = logging.getLogger(__name__)

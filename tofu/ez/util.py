@@ -7,8 +7,15 @@ import os, glob, tifffile
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.yaml_in_out import read_yaml, write_yaml
+<<<<<<< HEAD
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, \
     reverse_tupleize, add_value_to_dict_entry, get_dict_values_string
+=======
+from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
+from PyQt5.QtCore import QRegExp
+from PyQt5.QtGui import QRegExpValidator
+import argparse
+>>>>>>> ez-dev-fix-history
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -133,6 +140,7 @@ def enquote(string, escape=False):
 
     return addition + string + addition
 
+<<<<<<< HEAD
 def createMapFromParamsToDictEntry():
     """
     Creates a map from parameters to dictionary entry 
@@ -173,6 +181,8 @@ def get_dict_values_log()->str:
     s += "---------------------------"
     return s
 
+=======
+>>>>>>> ez-dev-fix-history
 def extract_values_from_dict(dict):
     """Return a list of values to be saved as a text file"""
     new_dict = {}
@@ -197,6 +207,7 @@ def import_values_from_dict(dict, imported_dict):
     for key1 in imported_dict.keys():
         for key2 in imported_dict[key1].keys():
             add_value_to_dict_entry(dict[key1][key2],imported_dict[key1][key2]['value'], False)
+<<<<<<< HEAD
 
 def export_values(filePath):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
@@ -227,6 +238,28 @@ def import_values_from_params(self, params):
         dict_entry = map_param_to_dict_entries[str(p)]
         add_value_to_dict_entry(dict_entry, params[str(p)], False)
 
+=======
+
+def export_values(filePath):
+    """Export the values of EZVARS and SECTIONS as a YAML file"""
+    combined_dict = {}
+    combined_dict['sections'] = extract_values_from_dict(SECTIONS)
+    combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
+    print("Exporting values to: " + str(filePath))
+    #print(combined_dict)
+    write_yaml(filePath, combined_dict)
+    print("Finished exporting")
+    
+def import_values(filePath):
+    """Import EZVARS and SECTIONS from a YAML file"""
+    print("Importing values from: " +str(filePath))
+    yaml_data = dict(read_yaml(filePath))
+    import_values_from_dict(EZVARS,yaml_data['ezvars'])
+    import_values_from_dict(SECTIONS,yaml_data['sections'])
+    print("Finished importing")
+    #print(yaml_data)
+
+>>>>>>> ez-dev-fix-history
 def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and not os.path.exists(EZVARS['inout']['output-dir']['value']):
         os.makedirs(EZVARS['inout']['output-dir']['value'])
@@ -268,7 +301,11 @@ def save_params(ctsetname, ax, nviews, wh):
             f.write('  sigma {}\n'.format(SECTIONS['find-large-spots']['gauss-sigma']['value']))
         else:
             f.write('  Remove large spots disabled\n')
+<<<<<<< HEAD
         if SECTIONS['retrieve-phase']['enable-phase']['value']:
+=======
+        if EZVARS['retrieve-phase']['apply-pr']['value']:
+>>>>>>> ez-dev-fix-history
             f.write(' Phase retrieval enabled\n')
             f.write('  energy {} keV\n'.format(SECTIONS['retrieve-phase']['energy']['value']))
             f.write('  pixel size {:0.1f} um\n'.format(SECTIONS['retrieve-phase']['pixel-size']['value'] * 1e6))
@@ -325,3 +362,113 @@ def save_params(ctsetname, ax, nviews, wh):
         if SECTIONS['general-reconstruction']['volume-angle-z']['value'][0] > 0:
             f.write('  Rotate volume by: {:0.3f} deg\n'.format(SECTIONS['general-reconstruction']['volume-angle-z']['value'][0]))
         f.close()
+
+
+
+### ALL The following was added by Philmo Gu. I moved it to tofu/ez/utils. .
+
+# The important function
+def add_value_to_dict_entry(dict_entry, value):
+    """Add a value to a dictionary entry. An empty string will insert the ezdefault value"""
+    if 'action' in dict_entry:
+        # no 'type' can be defined in dictionary entries with 'action' key
+        dict_entry['value'] = bool(value)
+        return
+    elif value == '' or value == None:
+        # takes default value if empty string or null
+        if dict_entry['ezdefault'] is None:
+            dict_entry['value'] = dict_entry['ezdefault']
+        else:
+            dict_entry['value'] = dict_entry['type'](dict_entry['ezdefault'])
+    else:
+        try:
+            dict_entry['value'] = dict_entry['type'](value)
+        except argparse.ArgumentTypeError:  # Outside of range of type
+            dict_entry['value'] = dict_entry['type'](value, clamp=True)
+        except ValueError:  # int can't convert string with decimal (e.g. "1.0" -> 1)
+            dict_entry['value'] = dict_entry['type'](float(value))
+
+
+# Few things are helpful but most are not used or not fully implemented
+
+def get_ascii_validator():
+    """Returns a validator that only allows the input of visible ASCII characters"""
+    regexp = "[-A-Za-z0-9_]*"
+    return QRegExpValidator(QRegExp(regexp))
+
+
+def get_alphabet_lowercase_validator():
+    """Returns a validator that only allows the input of lowercase ASCII characters"""
+    regexp = "[a-z]*"
+    return QRegExpValidator(QRegExp(regexp))
+
+
+def get_int_validator():
+    """Returns a validator that only allows the input of integers"""
+    # Note: QIntValidator allows commas, which is undesirable
+    regexp = "[\-]?[0-9]*"
+    return QRegExpValidator(QRegExp(regexp))
+
+
+def get_double_validator():
+    """Returns a validator that only allows the input of floating point number"""
+    # Note: QDoubleValidator allows commas before period, which is undesirable
+    regexp = "[\-]?[0-9]*[.]?[0-9]*"
+    return QRegExpValidator(QRegExp(regexp))
+
+
+def get_tuple_validator():
+    """Returns a validator that only allows a tuple of floating point numbers"""
+    regexp = "[-0-9,.]*"
+    return QRegExpValidator(QRegExp(regexp))
+
+
+def load_values_from_ezdefault(dict):
+    """Add or replace values from ezdefault in a dictionary"""
+    for key1 in dict.keys():
+        for key2 in dict[key1].keys():
+            dict_entry = dict[key1][key2]
+            if 'ezdefault' in dict_entry:
+                add_value_to_dict_entry(dict_entry, '')  # Add default value
+
+
+def restrict_tupleize(limits, num_items=None, conv=float, dtype=tuple):
+    """Convert a string of numbers separated by commas to tuple with *dtype* and make sure it is within *limits* (included) specified as tuple
+    (min, max). If one of the limits values is None it is ignored."""
+
+    def check(value=None, clamp=False):
+        if value is None:
+            return limits
+        results = tupleize(num_items, conv, dtype)(value)
+        for v in results:
+            restrict_value(limits, dtype=conv)(v, clamp)
+        return results
+
+    return check
+
+
+def reverse_tupleize(num_items=None, conv=float):
+    """Convert a tuple into a comma-separted string of *value*"""
+
+    def combine_to_string(value):
+        """Combine a tuple of numbers into a comma-separated string"""
+
+        result = ""
+        if num_items and len(result) != num_items:
+            # A certain number of output is expected
+            raise argparse.ArgumentTypeError('Expected {} items'.format(num_items))
+
+        if (len(value) == 0):
+            # No tuple to convert into string
+            return result
+
+        # Tuple with non-zero lengthh
+        for v in value:
+            result = result + "," + str(conv(v))
+        result = result[1:]  # Remove the erroneous first period
+        return result
+
+    return combine_to_string
+
+
+

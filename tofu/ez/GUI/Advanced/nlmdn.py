@@ -15,11 +15,15 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from tofu.ez.ufo_cmd_gen import fmt_nlmdn_ufo_cmd
 from tofu.ez.params import EZVARS
+<<<<<<< HEAD
 from tofu.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 
 
 
 
+=======
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
+>>>>>>> ez-dev-fix-history
 
 LOG = logging.getLogger(__name__)
 
@@ -214,8 +218,11 @@ class NLMDNGroup(QGroupBox):
         LOG.debug("Select output directory pressed")
         dir_explore = QFileDialog(self)
         directory = dir_explore.getExistingDirectory()
+<<<<<<< HEAD
         # dict_entry = EZVARS['nlmdn']['output_pattern']
         # add_value_to_dict_entry(dict_entry, directory)
+=======
+>>>>>>> ez-dev-fix-history
         if directory:
             self.output_dir_entry.setText(str(os.path.join(directory,'im-nlmdn-%05i.tif')))
             self.set_outdir_entry()

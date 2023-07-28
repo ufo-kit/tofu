@@ -7,9 +7,12 @@ import math
 import os
 from types import FunctionType
 from collections import OrderedDict
+<<<<<<< HEAD
 from PyQt5.QtCore import QRegExp
 from PyQt5.QtGui import QRegExpValidator
 
+=======
+>>>>>>> ez-dev-fix-history
 gi.require_version('Ufo', '0.0')
 from gi.repository import Ufo
 
@@ -95,9 +98,15 @@ def restrict_value(limits, dtype=float):
     def check(value=None, clamp=False):
         if value is None:
             return limits
+<<<<<<< HEAD
         
         result = dtype(value)
         
+=======
+
+        result = dtype(value)
+
+>>>>>>> ez-dev-fix-history
         if limits[0] is not None and result < limits[0]:
             if clamp:
                 result = dtype(limits[0])
@@ -139,10 +148,17 @@ def tupleize(num_items=None, conv=float, dtype=tuple):
     """Convert comma-separated string values to a *num-items*-tuple of values converted with
     *conv*.
     """
+<<<<<<< HEAD
     
     def split_values(value=None):
         """Convert comma-separated string *value* to a tuple of numbers."""
         if not value:   #empty value or string
+=======
+
+    def split_values(value=None):
+        """Convert comma-separated string *value* to a tuple of numbers."""
+        if not value:   # empty value or string
+>>>>>>> ez-dev-fix-history
             return dtype([])
         if type(value) is float or type(value) is int:
             return dtype([value])
@@ -310,7 +326,6 @@ def read_image(filename):
     """Read image from file *filename*."""
     if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):
         from tifffile import TiffFile
-        import numpy as np
         with TiffFile(filename) as tif:
             return tif.asarray(out='memmap')
     elif '.edf' in filename.lower():
@@ -329,6 +344,13 @@ def write_image(filename, image):
     directory = os.path.dirname(filename)
     os.makedirs(directory, exist_ok=True)
 
+    tifffile.imwrite(filename, image)
+
+
+def write_image(filename, image):
+    import tifffile
+    directory = os.path.dirname(filename)
+    os.makedirs(directory, exist_ok=True)
     tifffile.imwrite(filename, image)
 
 

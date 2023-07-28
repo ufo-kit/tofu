@@ -1,9 +1,11 @@
 import os
 import logging
 from functools import partial
+<<<<<<< HEAD
 
+=======
+>>>>>>> ez-dev-fix-history
 from shutil import rmtree
-
 from PyQt5.QtWidgets import (
     QMessageBox,
     QFileDialog,
@@ -18,10 +20,15 @@ from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.util import import_values, export_values
 from tofu.ez.GUI.message_dialog import warning_message
+<<<<<<< HEAD
 
 from tofu.ez.params import EZVARS
 from tofu.util import add_value_to_dict_entry
 from tofu.ez.util import get_dict_values_log
+=======
+from tofu.ez.params import EZVARS
+from tofu.ez.util import add_value_to_dict_entry
+>>>>>>> ez-dev-fix-history
 
 LOG = logging.getLogger(__name__)
 
@@ -612,7 +619,10 @@ class ConfigGroup(QGroupBox):
         self.set_temp_dir()
         self.set_preproc()
         self.set_preproc_entry()
+<<<<<<< HEAD
         #LOG.debug(get_dict_values_log())
+=======
+>>>>>>> ez-dev-fix-history
         run_reco = partial(self.run_reconstruction, batch_run=False)
         #I had to add a little sleep as on some Linux ditributions params won't fully set before the main() begins
         QTimer.singleShot(100, run_reco)
