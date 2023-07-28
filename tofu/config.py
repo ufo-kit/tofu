@@ -524,7 +524,7 @@ SECTIONS['general-reconstruction'] = {
                 "try reducing this value."},
     'num-gpu-threads': {
         'default': 1,
-        'ezdefault': None, #G = 1; Not updated in GUI; Causes a crash if not "None" due to accessing nonexistent indices
+        'ezdefault': None,
         'type': restrict_value((1, None), dtype=int),
         'help': "Number of parallel reconstruction threads on one GPU"},
     'disable-projection-crop': {
@@ -843,7 +843,7 @@ def without_keys(d, keys):
 class Params(object):
     def __init__(self, sections=()):
         self.sections = sections + ('general', 'reading')
-
+    
     def add_parser_args(self, parser):
         for section in self.sections:
             for name in sorted(SECTIONS[section]):

@@ -182,15 +182,6 @@ def write_image(filename, image):
     tifffile.imwrite(filename, image)
 
 
-def write_image(filename, image):
-    import tifffile
-
-    directory = os.path.dirname(filename)
-    os.makedirs(directory, exist_ok=True)
-
-    tifffile.imwrite(filename, image)
-
-
 def get_image_shape(filename):
     """Determine image shape (numpy order) from file *filename*."""
     if filename.lower().endswith('.tif') or filename.lower().endswith('.tiff'):

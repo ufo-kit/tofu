@@ -179,6 +179,35 @@ def import_values(filePath):
     print("Finished importing")
     #print(yaml_data)
 
+def import_values_from_params(self, params):
+    """
+    Import parameter values into their corresponding dictionary entries
+    """             
+    print("Entering parameter values into dictionary entries")
+    map_param_to_dict_entries = self.createMapFromParamsToDictEntry()
+    for p in params:
+        dict_entry = map_param_to_dict_entries[str(p)]
+        add_value_to_dict_entry(dict_entry, params[str(p)], False)
+
+def export_values(filePath):
+    """Export the values of EZVARS and SECTIONS as a YAML file"""
+    combined_dict = {}
+    combined_dict['sections'] = extract_values_from_dict(SECTIONS)
+    combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
+    print("Exporting values to: " + str(filePath))
+    #print(combined_dict)
+    write_yaml(filePath, combined_dict)
+    print("Finished exporting")
+    
+def import_values(filePath):
+    """Import EZVARS and SECTIONS from a YAML file"""
+    print("Importing values from: " +str(filePath))
+    yaml_data = dict(read_yaml(filePath))
+    import_values_from_dict(EZVARS,yaml_data['ezvars'])
+    import_values_from_dict(SECTIONS,yaml_data['sections'])
+    print("Finished importing")
+    #print(yaml_data)
+
 def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and not os.path.exists(EZVARS['inout']['output-dir']['value']):
         os.makedirs(EZVARS['inout']['output-dir']['value'])
