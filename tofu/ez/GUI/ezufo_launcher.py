@@ -13,12 +13,7 @@ from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-<<<<<<< HEAD
-from tofu.util import load_values_from_ezdefault
-=======
 from tofu.ez.util import load_values_from_ezdefault
->>>>>>> ez-dev-fix-history
-from tofu.ez.util import import_values
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
 from tofu.ez.GUI.Advanced.optimization import OptimizationGroup
 from tofu.ez.GUI.Advanced.nlmdn import NLMDNGroup

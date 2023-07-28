@@ -7,15 +7,10 @@ import os, glob, tifffile
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.yaml_in_out import read_yaml, write_yaml
-<<<<<<< HEAD
-from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, \
-    reverse_tupleize, add_value_to_dict_entry, get_dict_values_string
-=======
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
 from PyQt5.QtCore import QRegExp
 from PyQt5.QtGui import QRegExpValidator
 import argparse
->>>>>>> ez-dev-fix-history
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -140,49 +135,6 @@ def enquote(string, escape=False):
 
     return addition + string + addition
 
-<<<<<<< HEAD
-def createMapFromParamsToDictEntry():
-    """
-    Creates a map from parameters to dictionary entry 
-    (e.g. result['<parameter name>'] -> dictionary entry
-    """
-    result = {}
-    for key in MAP_TABLE:
-        if(len(key) == 4):
-            #Note: Dictionary entries are automatically updated in the map as the program runs
-            if(key[1] == 'ezvars' and key[2] in EZVARS and key[3] in EZVARS[key[2]]):
-                result[key[0]] = EZVARS[key[2]][key[3]]     #Updates as dictionary updates
-            else:
-                print("Can't create dictionary entry: "+ key[1]+ "["+key[2]+"]"+"["+key[3]+"]"+": "+ key[0])
-        else:
-            print("Key" + key + "in MAP_TABLE does not have exactly 4 elements.")
-    return result
-
-def createMapFromParamsToDictKeys():
-    """
-    Creates a map from parameters to dictionary entry 
-    (e.g. result['<parameter name>'] -> {dict name, key1 in dict, key2 in dict[key1]}
-    """
-    result = {}
-    for key in MAP_TABLE:
-        if(len(key) == 4):
-            result[key[0]] = [key[1],[key[2],key[3]]]
-        else:
-            print("Key" + key + "in MAP_TABLE does not have exactly 4 elements.")
-    return result
-
-def get_dict_values_log()->str:
-    """Get string of setting values in dictionaries"""
-    s = "\n----Dictionary contents----\n"
-    s += "\n-EZVARS-\n"
-    s += get_dict_values_string(EZVARS)
-    s += "\n-SECTIONS-\n"
-    s += get_dict_values_string(SECTIONS)
-    s += "---------------------------"
-    return s
-
-=======
->>>>>>> ez-dev-fix-history
 def extract_values_from_dict(dict):
     """Return a list of values to be saved as a text file"""
     new_dict = {}
@@ -207,7 +159,6 @@ def import_values_from_dict(dict, imported_dict):
     for key1 in imported_dict.keys():
         for key2 in imported_dict[key1].keys():
             add_value_to_dict_entry(dict[key1][key2],imported_dict[key1][key2]['value'], False)
-<<<<<<< HEAD
 
 def export_values(filePath):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
@@ -238,8 +189,6 @@ def import_values_from_params(self, params):
         dict_entry = map_param_to_dict_entries[str(p)]
         add_value_to_dict_entry(dict_entry, params[str(p)], False)
 
-=======
-
 def export_values(filePath):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
     combined_dict = {}
@@ -259,7 +208,6 @@ def import_values(filePath):
     print("Finished importing")
     #print(yaml_data)
 
->>>>>>> ez-dev-fix-history
 def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and not os.path.exists(EZVARS['inout']['output-dir']['value']):
         os.makedirs(EZVARS['inout']['output-dir']['value'])
@@ -301,11 +249,7 @@ def save_params(ctsetname, ax, nviews, wh):
             f.write('  sigma {}\n'.format(SECTIONS['find-large-spots']['gauss-sigma']['value']))
         else:
             f.write('  Remove large spots disabled\n')
-<<<<<<< HEAD
-        if SECTIONS['retrieve-phase']['enable-phase']['value']:
-=======
         if EZVARS['retrieve-phase']['apply-pr']['value']:
->>>>>>> ez-dev-fix-history
             f.write(' Phase retrieval enabled\n')
             f.write('  energy {} keV\n'.format(SECTIONS['retrieve-phase']['energy']['value']))
             f.write('  pixel size {:0.1f} um\n'.format(SECTIONS['retrieve-phase']['pixel-size']['value'] * 1e6))

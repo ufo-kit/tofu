@@ -1,15 +1,8 @@
 import logging
 from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit
-<<<<<<< HEAD
-
-from tofu.ez.params import EZVARS
-from tofu.config import SECTIONS
-from tofu.util import add_value_to_dict_entry, get_double_validator, reverse_tupleize
-=======
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry, get_double_validator, reverse_tupleize
->>>>>>> ez-dev-fix-history
 
 LOG = logging.getLogger(__name__)
 
