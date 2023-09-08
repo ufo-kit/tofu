@@ -19,10 +19,13 @@ If you want to stay updated, subscribe to our [newsletter](mailto:sympa@lists.ki
 
 First make sure you have [ufo-core](https://github.com/ufo-kit/ufo-core) and [ufo-filters](https://github.com/ufo-kit/ufo-filters) installed. For that, please follow the [installation instructions](https://ufo-core.readthedocs.io/en/latest/install/index.html). You can either install the prerequisites yourself on [Linux](https://ufo-core.readthedocs.io/en/latest/install/linux.html), or use one of our [Docker containers](https://ufo-core.readthedocs.io/en/latest/install/docker.html).
 
-Run
+Then, for the newest version run the following in *tofu*'s top directory:
 
-    pip install -r requirements-guis.txt  # If you want to use flow or ez
-    python setup.py install
+    pip install .
+
+or to install via PyPI:
+
+    pip install ufo-tofu
 
 in a prepared virtualenv or as root for system-wide installation. Note, that if
 you do plan to use the graphical user interface you need PyQt5, pyqtgraph and
