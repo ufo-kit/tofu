@@ -17,6 +17,8 @@ If you want to stay updated, subscribe to our [newsletter](mailto:sympa@lists.ki
 
 ## Installation
 
+First make sure you have [ufo-core](https://github.com/ufo-kit/ufo-core) and [ufo-filters](https://github.com/ufo-kit/ufo-filters) installed. For that, please follow the [installation instructions](https://ufo-core.readthedocs.io/en/latest/install/index.html). You can either install the prerequisites yourself on [Linux](https://ufo-core.readthedocs.io/en/latest/install/linux.html), or use one of our [Docker containers](https://ufo-core.readthedocs.io/en/latest/install/docker.html).
+
 Run
 
     pip install -r requirements-guis.txt  # If you want to use flow or ez
