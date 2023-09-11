@@ -104,11 +104,6 @@ class GUI(qtw.QWidget):
         self.overlap_group = Overlap360Group()
         self.overlap_group.init_values()
         
-        self.auto_horizontal_stitch = AutoHorizontalStitchGUI()
-        self.auto_horizontal_stitch.init_values()
-        
-        self.batch_process_group = BatchProcessGroup()
-
         #######################################################
 
         self.set_layout()
@@ -162,19 +157,19 @@ class GUI(qtw.QWidget):
         helpers_layout.addWidget(self.multi_stitch_group, 1, 0)
         helpers_layout.addWidget(self.ezstitch_group, 1, 1)
         
-        stitching2_layout = qtw.QGridLayout()
-        stitching2_layout.addWidget(self.auto_horizontal_stitch, 0, 0)
-        
-        batch_tools_layout = qtw.QGridLayout()
-        batch_tools_layout.addWidget(self.batch_process_group, 0, 0)
+        # stitching2_layout = qtw.QGridLayout()
+        # stitching2_layout.addWidget(self.auto_horizontal_stitch, 0, 0)
+        #
+        # batch_tools_layout = qtw.QGridLayout()
+        # batch_tools_layout.addWidget(self.batch_process_group, 0, 0)
 
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
         self.tabs.addTab(self.tab2, "Advanced")
         self.tabs.addTab(self.tab3, "Stitching tools 1")
         self.tabs.addTab(self.tab4, "Image Viewer")
-        self.tabs.addTab(self.tab5, "Stitching Tools 2")
-        self.tabs.addTab(self.tab6, "Batch Tools")
+        # self.tabs.addTab(self.tab5, "Stitching Tools 2")
+        # self.tabs.addTab(self.tab6, "Batch Tools")
 
         # Create main tab
         self.tab1.layout = main_layout
@@ -192,13 +187,13 @@ class GUI(qtw.QWidget):
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
         
-        # Create stitching2 tab
-        self.tab5.layout = stitching2_layout
-        self.tab5.setLayout(self.tab5.layout)
-        
-        # Create batch tools tab
-        self.tab6.layout = batch_tools_layout
-        self.tab6.setLayout(self.tab6.layout)
+        # # Create stitching2 tab
+        # self.tab5.layout = stitching2_layout
+        # self.tab5.setLayout(self.tab5.layout)
+        #
+        # # Create batch tools tab
+        # self.tab6.layout = batch_tools_layout
+        # self.tab6.setLayout(self.tab6.layout)
 
         # Add tabs to widget
         layout.addWidget(self.tabs)
