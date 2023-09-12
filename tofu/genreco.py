@@ -32,7 +32,7 @@ def genreco(args):
         try:
             import ufo.numpy
         except ImportError:
-            LOG.error('You must install ufo-python-tools to be able to write single-file output')
+            LOG.error('You must install ufo python support (in ufo-core/python) to be able to write single-file output')
             return
     if (args.energy is not None and args.propagation_distance is not None and not
             (args.projection_margin or args.disable_projection_crop)):
