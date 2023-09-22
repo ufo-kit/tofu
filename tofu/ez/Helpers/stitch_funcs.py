@@ -123,6 +123,8 @@ def exec_sti_mp(start, step, N, Nnew, Vsteps, indir, dx, M, parameters, ramp, hm
                         ctdir,
                         parameters['ezstitch_type_image']+'-sti-{:>04}.tif'.format(index))
     if not parameters['ezstitch_clip_histo']:
+        # checking that values do not exceed type limits before saving
+        Large = np.clip(Large, np.iinfo(indtype).min, np.iinfo(indtype).max).astype(indtype)
         tifffile.imwrite(pout, Large.astype(indtype))
     else:
         Large = 255.0/(hmax-hmin) * (np.clip(Large, hmin, hmax) - hmin)

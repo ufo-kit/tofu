@@ -8,7 +8,7 @@ import glob, os, tifffile
 import numpy as np
 from tofu.ez.evaluate_sharpness import process as process_metrics
 from tofu.ez.util import enquote, make_inpaths
-from tofu.util import get_filenames, read_image, determine_shape
+from tofu.util import get_filenames, read_image
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.tofu_cmd_gen import check_lamino, gpu_optim
@@ -20,7 +20,7 @@ def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
         cmd += " --overall-angle 180"
-    cmd += " --darks {} --flats {} --projections {}".format(
+    cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(
         indir[0], indir[1], enquote(indir[2])
     )
     cmd += " --number {}".format(nviews)
@@ -56,6 +56,7 @@ def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
     return res[0] + res[2] * maximum
 
 def find_axis_corr(ctset, vcrop, y, height, multipage):
+    #TODO use tiffsequencereader
     indir = make_inpaths(ctset[0], ctset[1])
     """Use correlation to estimate center of rotation for tomography."""
     from scipy.signal import fftconvolve

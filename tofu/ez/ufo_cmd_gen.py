@@ -119,13 +119,16 @@ def get_inp_cmd(ctset, tmpdir, N, nviews):
     indir = make_inpaths(ctset[0], ctset[1])
     cmds = []
     ######### CREATE MASK #########
-    flat1_file = os.path.join(tmpdir, "flat1.tif")
+    flat1_file = os.path.join(tmpdir, "flat-median.tif")
     mask_file = os.path.join(tmpdir, "mask.tif")
     # generate mask
     cmd = 'tofu find-large-spots --images {}'.format(flat1_file)
-    cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
-                    SECTIONS['find-large-spots']['spot-threshold']['value'],
-                    SECTIONS['find-large-spots']['gauss-sigma']['value'])
+    # cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
+    #                 SECTIONS['find-large-spots']['spot-threshold']['value'],
+    #                 SECTIONS['find-large-spots']['gauss-sigma']['value'])
+    cmd += " --method median --median-width 20 --dilation-disk-radius 3 --gauss-sigma 100.0" \
+           " --spot-threshold 3800.0 --spot-threshold-mode absolute --grow-threshold 350.0" \
+           " --find-large-spots-padding-mode mirrored_repeat"
     cmd += ' --output {} --output-bytes-per-file 0'.format(mask_file)
     cmds.append(cmd)
     ######### FLAT-CORRECT #########
@@ -151,7 +154,7 @@ def get_inp_cmd(ctset, tmpdir, N, nviews):
         cmds.append(cmd)
     elif not EZVARS['flat-correction']['smart-ffc']['value']:
         cmd = 'tofu flatcorrect --fix-nan-and-inf'
-        cmd += ' --darks {} --flats {}'.format(indir[0], indir[1])
+        cmd += ' --darks {} --flats {} --reduction-mode median'.format(indir[0], indir[1])
         cmd += ' --projections {}'.format(in_proj_dir)
         cmd += ' --output {}'.format(out_pattern)
         if ctset[1] == 4:
