@@ -11,6 +11,8 @@ from tofu.util import get_filenames, get_first_filename, get_image_shape, read_i
 from PyQt5.QtCore import QRegExp
 from PyQt5.QtGui import QRegExpValidator
 import argparse
+from tofu.ez.image_read_write import TiffSequenceReader
+import numpy as np
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -187,26 +189,7 @@ def import_values_from_params(self, params):
     map_param_to_dict_entries = self.createMapFromParamsToDictEntry()
     for p in params:
         dict_entry = map_param_to_dict_entries[str(p)]
-        add_value_to_dict_entry(dict_entry, params[str(p)], False)
-
-def export_values(filePath):
-    """Export the values of EZVARS and SECTIONS as a YAML file"""
-    combined_dict = {}
-    combined_dict['sections'] = extract_values_from_dict(SECTIONS)
-    combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
-    print("Exporting values to: " + str(filePath))
-    #print(combined_dict)
-    write_yaml(filePath, combined_dict)
-    print("Finished exporting")
-    
-def import_values(filePath):
-    """Import EZVARS and SECTIONS from a YAML file"""
-    print("Importing values from: " +str(filePath))
-    yaml_data = dict(read_yaml(filePath))
-    import_values_from_dict(EZVARS,yaml_data['ezvars'])
-    import_values_from_dict(SECTIONS,yaml_data['sections'])
-    print("Finished importing")
-    #print(yaml_data)
+        add_value_to_dict_entry(dict_entry, params[str(p)])
 
 def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and not os.path.exists(EZVARS['inout']['output-dir']['value']):
@@ -390,7 +373,6 @@ def restrict_tupleize(limits, num_items=None, conv=float, dtype=tuple):
 
     return check
 
-
 def reverse_tupleize(num_items=None, conv=float):
     """Convert a tuple into a comma-separted string of *value*"""
 
@@ -413,6 +395,29 @@ def reverse_tupleize(num_items=None, conv=float):
         return result
 
     return combine_to_string
+
+def get_median_flat(path2flat):
+    tsr = TiffSequenceReader(path2flat)
+    tmp = tsr.read(0)
+    data = np.empty((tsr.num_images, tmp.shape[0], tmp.shape[1]), np.uint16)
+    for i in range(tsr.num_images):
+        data[i, :, :] = tsr.read(i)
+    tsr.close()
+    x = np.median(data, axis=0)
+    del data
+    return x
+
+def get_mean_flat(path2flat):
+    tsr = TiffSequenceReader(path2flat)
+    tmp = tsr.read(0)
+    data = np.empty((tsr.num_images, tmp.shape[0], tmp.shape[1]), np.uint16)
+    for i in range(tsr.num_images):
+        data[i, :, :] = tsr.read(i)
+    tsr.close()
+    x = np.mean(data, axis=0)
+    del data
+    return x
+
 
 
 

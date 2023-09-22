@@ -66,7 +66,7 @@ def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh):
     indir[2] = os.path.join(os.path.split(indir[2])[0], os.path.split(in_proj_dir)[1])
     # format command
     cmd = "tofu tomo --absorptivity --fix-nan-and-inf"
-    cmd += " --darks {} --flats {} --projections {}".format(indir[0], indir[1], indir[2])
+    cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(indir[0], indir[1], indir[2])
     if ctset[1] == 4:  # must be equivalent to len(indir)>3
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --output {}".format(out_pattern)
@@ -134,7 +134,7 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh):
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                     ctset[0], EZVARS['inout']['tomo-dir']['value'], False)
     cmd = 'tofu sinos --absorptivity --fix-nan-and-inf'
-    cmd += ' --darks {} --flats {} '.format(indir[0], indir[1])
+    cmd += ' --darks {} --flats {} --reduction-mode median '.format(indir[0], indir[1])
     if ctset[1] == 4:
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --projections {}".format(in_proj_dir)
@@ -187,7 +187,7 @@ def get_sinFFC_cmd(ctset):
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -203,7 +203,7 @@ def get_pr_sinFFC_cmd(ctset):
     in_proj_dir, out_pattern = fmt_in_out_path(
         EZVARS['inout']['tmp-dir']['value'], ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -244,7 +244,7 @@ def get_pr_tofu_cmd(ctset):
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'tofu preprocess --fix-nan-and-inf --projection-filter none --delta 1e-6'
-    cmd += ' --darks {} --flats {} --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(out_pattern)
@@ -276,7 +276,7 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
     cmd += ' --output {}'.format(out_pattern)
     if ffc:
         cmd += ' --fix-nan-and-inf'
-        cmd += ' --darks {} --flats {}'.format(indir[0], indir[1])
+        cmd += ' --darks {} --flats {} --reduction-mode median'.format(indir[0], indir[1])
         if ctset[1] == 4:  # must be equivalent to len(indir)>3
             cmd += ' --flats2 {}'.format(indir[3])
         if not pr:

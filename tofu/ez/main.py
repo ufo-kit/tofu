@@ -14,7 +14,6 @@ from tofu.ez.tofu_cmd_gen import *
 from tofu.ez.ufo_cmd_gen import *
 from tofu.ez.find_axis_cmd_gen import *
 from tofu.ez.util import *
-from tofu.util import TiffSequenceReader
 from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
@@ -78,15 +77,13 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
     if EZVARS['filters']['rm_spots']['value']:
         # copy one flat to tmpdir now as path might change if preprocess is enabled
         if not EZVARS['inout']['shared-flatsdarks']['value']:
-            tsr = TiffSequenceReader(os.path.join(ctset[0],
-                                     EZVARS['inout']['flats-dir']['value']))
+            path2flat = os.path.join(ctset[0],
+                                     EZVARS['inout']['flats-dir']['value'])
         else:
-            tsr = TiffSequenceReader(os.path.join(ctset[0],
-                                     EZVARS['inout']['path2-shared-flats']['value']))
-        flat1 = tsr.read(tsr.num_images - 1)  # taking the last flat
-        tsr.close()
-        flat1_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat1.tif")
-        imwrite(flat1_file, flat1)
+            path2flat = os.path.join(ctset[0],
+                                     EZVARS['inout']['path2-shared-flats']['value'])
+        medflat_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat-median.tif")
+        imwrite(medflat_file, get_median_flat(path2flat))
     if EZVARS['inout']['preprocess']['value']:
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = get_pre_cmd(ctset, EZVARS['inout']['preprocess-command']['value'],
