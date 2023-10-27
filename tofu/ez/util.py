@@ -158,7 +158,7 @@ def import_values_from_dict(dict, imported_dict):
     """Import a list of values from an imported dictionary"""
     for key1 in imported_dict.keys():
         for key2 in imported_dict[key1].keys():
-            add_value_to_dict_entry(dict[key1][key2],imported_dict[key1][key2]['value'], False)
+            add_value_to_dict_entry(dict[key1][key2],imported_dict[key1][key2]['value'])
 
 def export_values(filePath):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
