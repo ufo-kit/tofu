@@ -55,17 +55,16 @@ class MultiStitch360Group(QGroupBox):
 
         self.axis_bottom_label = QLabel()
         self.axis_bottom_label.setText("Axis of Rotation (Dir 00):")
-
         self.axis_bottom_entry = QLineEdit()
         self.axis_bottom_entry.editingFinished.connect(self.set_axis_bottom)
 
         self.axis_top_label = QLabel("Axis of Rotation (Dir 0N):")
-
-        self.axis_group = QGroupBox("Enter axis of rotation manually")
-        self.axis_group.clicked.connect(self.set_axis_group)
-
         self.axis_top_entry = QLineEdit()
         self.axis_top_entry.editingFinished.connect(self.set_axis_top)
+
+        #### MANUAL ENTRY OF OVERLAPS
+        self.axis_group = QGroupBox("Enter axis of rotation manually")
+        self.axis_group.clicked.connect(self.set_axis_group)
 
         self.axis_z000_label = QLabel("Axis of Rotation (Dir 00):")
         self.axis_z000_entry = QLineEdit()

@@ -389,10 +389,11 @@ def main_360_mp_depth2(parameters):
     print(f"Found the {num_sets} directories in the input with relative paths: {ctdirs_rel_paths}")
 
     # prepare axis and crop arrays
-    dax = np.round(np.linspace(parameters['360multi_bottom_axis'], parameters['360multi_top_axis'], num_sets))
+    dax = np.round(np.linspace(parameters['360multi_bottom_axis'],
+                               parameters['360multi_top_axis'], num_sets)).astype(np.int16)
     if parameters['360multi_manual_axis']:
         #print(parameters['360multi_axis_dict'])
-        dax = np.array(list(parameters['360multi_axis_dict'].values()))[:num_sets]
+        dax = np.array(list(parameters['360multi_axis_dict'].values()), np.int16)[:num_sets]
     print(f'Overlaps: {dax}')
     # compute crop:
     cra = np.max(dax)-dax
@@ -411,7 +412,7 @@ def main_360_mp_depth2(parameters):
 
         main_360_mp_depth1(ctdir,
                     os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]),
-                    dax[i], cra[i])
+                    int(dax[i]), int(cra[i]))
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 
 
