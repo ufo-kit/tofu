@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets as qtw
 from tofu.ez.GUI.Main.centre_of_rotation import CentreOfRotationGroup
 from tofu.ez.GUI.Main.filters import FiltersGroup
 from tofu.ez.GUI.Advanced.ffc import FFCGroup
+from tofu.ez.GUI.Advanced.find_large_spots import FindSpotsGroup
 from tofu.ez.GUI.Main.phase_retrieval import PhaseRetrievalGroup
 from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
@@ -90,6 +91,8 @@ class GUI(qtw.QWidget):
         self.nlmdn_group = NLMDNGroup()
         self.nlmdn_group.load_values()
 
+        self.find_spots_group = FindSpotsGroup()
+
         # Stitch_tools_tab Tab 
         # ----((P)Completed up to here) ----#
         self.multi_stitch_group = MultiStitch360Group()
@@ -145,11 +148,12 @@ class GUI(qtw.QWidget):
         image_layout.addWidget(self.image_group, 0, 0)
 
         advanced_layout = qtw.QGridLayout()
-        advanced_layout.addWidget(self.ffc_group, 0, 0)
 
+        advanced_layout.addWidget(self.find_spots_group, 0, 0)
         advanced_layout.addWidget(self.advanced_group, 1, 0)
         advanced_layout.addWidget(self.optimization_group, 1, 1)
         advanced_layout.addWidget(self.nlmdn_group, 2, 0)
+        advanced_layout.addWidget(self.ffc_group, 2, 1)
 
         helpers_layout = qtw.QGridLayout()
         helpers_layout.addWidget(self.ezmview_group, 0, 0)

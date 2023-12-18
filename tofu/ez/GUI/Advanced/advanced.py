@@ -15,7 +15,7 @@ class AdvancedGroup(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Advanced TOFU Reconstruction Settings")
+        self.setTitle("Generalized CT reconstruction settings")
         self.setStyleSheet("QGroupBox {color: green;}")
 
         # LAMINO
@@ -43,17 +43,6 @@ class AdvancedGroup(QGroupBox):
         self.axis_rotation_y_entry = QLineEdit()
         self.axis_rotation_y_entry.editingFinished.connect(self.set_rotation_about_beam)
 
-        # AUXILIARY FFC
-        self.dark_scale_label = QLabel("Dark scale                              ")
-        self.dark_scale_entry = QLineEdit()
-        self.dark_scale_entry.setValidator(get_double_validator())
-        self.dark_scale_entry.editingFinished.connect(self.set_dark_scale)
-
-        self.flat_scale_label = QLabel("Flat scale                              ")
-        self.flat_scale_entry = QLineEdit()
-        self.flat_scale_entry.setValidator(get_double_validator())
-        self.flat_scale_entry.editingFinished.connect(self.set_flat_scale)
-
         self.set_layout()
 
     def set_layout(self):
@@ -72,18 +61,7 @@ class AdvancedGroup(QGroupBox):
         lamino_layout.addWidget(self.axis_rotation_y_entry, 3, 1)
         self.lamino_group.setLayout(lamino_layout)
 
-        aux_group = QGroupBox("Auxiliary FFC Settings")
-        aux_group.setCheckable(True)
-        aux_group.setChecked(False)
-        aux_layout = QGridLayout()
-        aux_layout.addWidget(self.dark_scale_label, 0, 0)
-        aux_layout.addWidget(self.dark_scale_entry, 0, 1)
-        aux_layout.addWidget(self.flat_scale_label, 1, 0)
-        aux_layout.addWidget(self.flat_scale_entry, 1, 1)
-        aux_group.setLayout(aux_layout)
-
         layout.addWidget(self.lamino_group)
-        layout.addWidget(aux_group)
 
         self.setLayout(layout)
 
@@ -93,8 +71,6 @@ class AdvancedGroup(QGroupBox):
         self.overall_rotation_entry.setText(str(SECTIONS['general-reconstruction']['overall-angle']['value']))
         self.center_position_z_entry.setText(str(reverse_tupleize()(SECTIONS['cone-beam-weight']['center-position-z']['value'])))
         self.axis_rotation_y_entry.setText(str(reverse_tupleize()(SECTIONS['general-reconstruction']['axis-angle-y']['value'])))
-        self.dark_scale_entry.setText(str(EZVARS['flat-correction']['dark-scale']['value']))
-        self.flat_scale_entry.setText(str(EZVARS['flat-correction']['flat-scale']['value']))
 
     def set_lamino_group(self):
         LOG.debug("Lamino: " + str(self.lamino_group.isChecked()))
@@ -125,14 +101,3 @@ class AdvancedGroup(QGroupBox):
         add_value_to_dict_entry(dict_entry, str(self.axis_rotation_y_entry.text()))
         self.axis_rotation_y_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
 
-    def set_dark_scale(self):
-        LOG.debug(self.dark_scale_entry.text())
-        dict_entry = EZVARS['flat-correction']['dark-scale']
-        add_value_to_dict_entry(dict_entry, str(self.dark_scale_entry.text()))
-        self.dark_scale_entry.setText(str(dict_entry['value']))
-
-    def set_flat_scale(self):
-        LOG.debug(self.flat_scale_entry.text())
-        dict_entry = EZVARS['flat-correction']['flat-scale']
-        add_value_to_dict_entry(dict_entry, str(self.flat_scale_entry.text()))
-        self.flat_scale_entry.setText(str(dict_entry['value']))

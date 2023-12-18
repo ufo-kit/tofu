@@ -161,10 +161,7 @@ def get_inp_cmd(ctset, tmpdir, N, nviews):
             cmd += ' --flats2 {}'.format(indir[3])
         if not EZVARS['retrieve-phase']['apply-pr']['value']:
             cmd += ' --absorptivity --fix-nan-and-inf'
-        if not EZVARS['flat-correction']['dark-scale']['value'] == "":
-            cmd += ' --dark-scale {}'.format(EZVARS['flat-correction']['dark-scale']['value'])
-        if not EZVARS['flat-correction']['flat-scale']['value'] == "":
-            cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
+        cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
         cmds.append(cmd)
     if not EZVARS['inout']['keep-tmp']['value'] and EZVARS['inout']['preprocess']['value']:
         cmds.append('rm -rf {}'.format(indir[0]))
