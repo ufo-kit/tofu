@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
 )
 from tofu.ez.params import EZVARS
-from tofu.ez.util import add_value_to_dict_entry, get_int_validator
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -56,10 +56,18 @@ class FFCGroup(QGroupBox):
         self.downsample_entry.setValidator(get_int_validator())
         self.downsample_entry.editingFinished.connect(self.set_downsample)
 
+        self.flat_scale_label = QLabel("Scale flats by a factor of")
+        self.flat_scale_entry = QLineEdit()
+        self.flat_scale_entry.setValidator(get_double_validator())
+        self.flat_scale_entry.editingFinished.connect(self.set_flat_scale)
+
         self.set_layout()
 
     def set_layout(self):
         layout = QGridLayout()
+
+        layout.addWidget(self.flat_scale_label, 0, 0)
+        layout.addWidget(self.flat_scale_entry, 0, 1)
 
         rbutton_layout = QHBoxLayout()
         rbutton_layout.addWidget(self.method_label)
@@ -67,14 +75,14 @@ class FFCGroup(QGroupBox):
         rbutton_layout.addWidget(self.average_rButton)
         rbutton_layout.addWidget(self.ssim_rButton)
 
-        layout.addWidget(self.enable_sinFFC_checkbox, 0, 0)
-        layout.addItem(rbutton_layout, 1, 0, 1, 2)
-        layout.addWidget(self.eigen_pco_repetitions_label, 2, 0)
-        layout.addWidget(self.eigen_pco_repetitions_entry, 2, 1)
-        layout.addWidget(self.eigen_pco_downsample_label, 3, 0)
-        layout.addWidget(self.eigen_pco_downsample_entry, 3, 1)
-        layout.addWidget(self.downsample_label, 4, 0)
-        layout.addWidget(self.downsample_entry, 4, 1)
+        layout.addWidget(self.enable_sinFFC_checkbox, 1, 0)
+        layout.addItem(rbutton_layout, 2, 0, 1, 2)
+        layout.addWidget(self.eigen_pco_repetitions_label, 3, 0)
+        layout.addWidget(self.eigen_pco_repetitions_entry, 3, 1)
+        layout.addWidget(self.eigen_pco_downsample_label, 4, 0)
+        layout.addWidget(self.eigen_pco_downsample_entry, 4, 1)
+        layout.addWidget(self.downsample_label, 5, 0)
+        layout.addWidget(self.downsample_entry, 5, 1)
 
         self.setLayout(layout)
 
@@ -84,6 +92,13 @@ class FFCGroup(QGroupBox):
         self.eigen_pco_repetitions_entry.setText(str(EZVARS['flat-correction']['eigen-pco-reps']['value']))
         self.eigen_pco_downsample_entry.setText(str(EZVARS['flat-correction']['eigen-pco-downsample']['value']))
         self.downsample_entry.setText(str(EZVARS['flat-correction']['downsample']['value']))
+        self.flat_scale_entry.setText(str(EZVARS['flat-correction']['flat-scale']['value']))
+
+    def set_flat_scale(self):
+        LOG.debug(self.flat_scale_entry.text())
+        dict_entry = EZVARS['flat-correction']['flat-scale']
+        add_value_to_dict_entry(dict_entry, str(self.flat_scale_entry.text()))
+        self.flat_scale_entry.setText(str(dict_entry['value']))
 
     def set_sinFFC(self):
         LOG.debug("sinFFC: " + str(self.enable_sinFFC_checkbox.isChecked()))

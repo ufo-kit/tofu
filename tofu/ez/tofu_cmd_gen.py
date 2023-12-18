@@ -147,10 +147,7 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh):
     if not EZVARS['RR']['use-ufo']['value']:
         # because second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
-    if not EZVARS['flat-correction']['dark-scale']['value'] == "":
-        cmd += ' --dark-scale {}'.format(EZVARS['flat-correction']['dark-scale']['value'])
-    if not EZVARS['flat-correction']['flat-scale']['value'] == "":
-        cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
+    cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
     return cmd
 
 def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh):
@@ -252,10 +249,7 @@ def get_pr_tofu_cmd(ctset):
            ' --pixel-size {} --regularization-rate {:0.2f}' \
         .format(SECTIONS['retrieve-phase']['energy']['value'], SECTIONS['retrieve-phase']['propagation-distance']['value'][0],
                 SECTIONS['retrieve-phase']['pixel-size']['value'], SECTIONS['retrieve-phase']['regularization-rate']['value'])
-    if not EZVARS['flat-correction']['dark-scale']['value'] is None:
-        cmd += ' --dark-scale {}'.format(EZVARS['flat-correction']['dark-scale']['value'])
-    if not EZVARS['flat-correction']['flat-scale']['value'] is None:
-        cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
+    cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
     return cmd
 
 def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
@@ -281,10 +275,7 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
             cmd += ' --flats2 {}'.format(indir[3])
         if not pr:
             cmd += ' --absorptivity'
-        if not EZVARS['flat-correction']['dark-scale']['value'] is None:
-            cmd += ' --dark-scale {}'.format(EZVARS['flat-correction']['dark-scale']['value'])
-        if not EZVARS['flat-correction']['flat-scale']['value'] is None:
-            cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
+        cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
     if pr:
         cmd += (
             " --disable-projection-crop"
