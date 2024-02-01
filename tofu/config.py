@@ -679,6 +679,11 @@ SECTIONS['find-large-spots'] = {
         'default': 10,
         'type': int,
         'help': "Width of the median filter (operates only horizontally)"},
+    'median-direction': {
+        'default': 'horizontal',
+        'choices': ['both', 'horizontal', 'vertical'],
+        'help': "Median filtering direction (in case of 'both', it will be a disk with radius "
+                "'median-width' / 2"},
     'dilation-disk-radius': {
         'default': 2,
         'type': int,

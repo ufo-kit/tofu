@@ -34,7 +34,22 @@ def find_large_spots_median(args):
         image = np.mean(image, axis=0)
     mask = np.zeros_like(image, dtype=np.uint8)
 
-    med = median(image, [np.ones(args.median_width)])
+    if args.median_direction == 'both':
+        kernel = sm.disk(args.median_width // 2)
+    else:
+        kernel = np.ones(args.median_width)
+        if args.median_direction == 'vertical':
+            kernel = kernel[:, np.newaxis]
+        else:
+            kernel = kernel[np.newaxis]
+
+    med = median(image, kernel)
+
+    if args.spot_threshold == 0:
+        hist, bins = np.histogram(image, bins=256)
+        pdf = hist / image.size
+        args.spot_threshold = bins[np.where(np.cumsum(pdf) > 0.99)][0]
+        LOG.info(f"Automatically determined spot-threshold: {args.spot_threshold}")
 
     # First, pixels which are too bright are marked
     mask[image > args.spot_threshold] = 1
