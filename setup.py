@@ -22,7 +22,8 @@ setup(
         'PyQt5',
         'pyqtconsole',
         'pyxdg',
-        'qtpynodeeditor'
+        'qtpynodeeditor',
+        'tifffile'
     ],
     description="A fast, versatile and user-friendly image "\
                 "processing toolkit for computed tomography",
