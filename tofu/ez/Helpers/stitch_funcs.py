@@ -347,18 +347,27 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
         out_fmt = os.path.join(outdir, sdir, 'sti-{:>04}.tif')
 
         tmp = os.path.dirname(os.path.abspath(__file__))
-        path_to_script = os.path.join(tmp, "halfacqmode-mpi-stitch.py")
-        if os.path.isfile(path_to_script):
-            tstart = time.time()
-            child_comm = MPI.COMM_WORLD.Spawn(
-                sys.executable,
-                [path_to_script, f"{ax}", f"{cro}", os.path.join(indir, sdir), out_fmt],
-                maxprocs=12)
-            child_comm.Disconnect()
-            print(f"Child finished in {time.time() - tstart} yay!")
+
+        # Check if we are running inside of a slurm job
+        n_slurm_tasks = os.getenv('SLURM_NTASKS', 0)
+
+        if n_slurm_tasks > 0:
+            print(f"Slurm n tasks {slurm_ntasks}")
+            from tofu.ez.Helpers.halfacqmode_mpi_stitch import mpi_stitch
+            mpi_stitch(f"{ax}", f"{cro}", os.path.join(indir, sdir), out_fmt)
         else:
-            print('Cannot see the script for parallel stitching of bigtiff files')
-            break
+            path_to_script = os.path.join(tmp, "halfacqmode_mpi_stitch.py")
+            if os.path.isfile(path_to_script):
+                tstart = time.time()
+                child_comm = MPI.COMM_WORLD.Spawn(
+                    sys.executable,
+                    [path_to_script, f"{ax}", f"{cro}", os.path.join(indir, sdir), out_fmt],
+                    maxprocs=12)
+                child_comm.Disconnect()
+                print(f"Child finished in {time.time() - tstart} yay!")
+            else:
+                print('Cannot see the script for parallel stitching of bigtiff files')
+                break
 
     print("========== Done ==========")
 
