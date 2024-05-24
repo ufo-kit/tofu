@@ -688,6 +688,12 @@ SECTIONS['find-large-spots'] = {
         'default': 2,
         'type': int,
         'help': "Dilation disk radius used for enlarging the found mask"},
+    'max-spot-size': {
+        'default': 1000,
+        'type': int,
+        'help': "Spots with less number of pixels than this value are discarded "
+                "(only available with --method median and this threshold "
+                "is applied before dilation)"},
     # grow arguments
     'images': {
         'default': None,
@@ -724,9 +730,10 @@ SECTIONS['find-large-spots'] = {
         'default': 0.0,
         'ezdefault': 1000,
         'type': float,
-        'help': "Pixels with grey value larger than this are considered as spots. In case of "
-                "'median' method and if 'spot-threshold' is not set, it is automatically "
-                "set to 99-th percentile of the histogram."},
+        'help': "Pixels with grey value larger than this (after blurring in case of 'grow' method "
+                "and after median subtraction in case of 'median' method) are considered as spots. "
+                "In case of 'median' method and if 'spot-threshold' is not set, it is "
+                "automatically set to 99-th percentile of the histogram."},
     'spot-threshold-mode': {
         'default': 'absolute',
         'type': str,
@@ -736,12 +743,9 @@ SECTIONS['find-large-spots'] = {
     'grow-threshold': {
         'default': 0.0,
         'type': float,
-        'help': "Spot growing threshold, if 0 it will be set to FWTM times noise standard deviation "
-                "in case of 'grow' method, all pixels connected to the ones previously found by "
-                "'spot-threshold' which are above 'grow-threshold' are marked as spots. In case "
-                "'median' method, the median blurred image is subtracted from the original and "
-                "pixels which are above 'grow-threshold' in the absolute value of this "
-                "difference are marked."
+        'help': "Spot growing threshold (if 0 it will be set to FWTM times noise standard "
+                "deviation). All pixels connected to the ones previously found by "
+                "'spot-threshold' which are above 'grow-threshold' are marked as spots."
                 },
     'find-large-spots-padding-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
