@@ -41,6 +41,8 @@ def find_large_spots_median(args):
             kernel = kernel[np.newaxis]
 
     med = median(image, kernel)
+    if args.blurred_output:
+        tifffile.imsave(args.blurred_output, med.astype(image.dtype))
 
     if args.spot_threshold == 0:
         hist, bins = np.histogram(image, bins=256)
