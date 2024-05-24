@@ -714,6 +714,12 @@ SECTIONS['find-large-spots'] = {
         'default': None,
         'type': str,
         'help': "Path where to store the blurred input"},
+    'averaging-mode': {
+        'default': 'first',
+        'type': str,
+        'help': "How to average input images (first = take a single image, "
+                "only available with --method median)",
+        'choices': ['first', 'mean', 'median']},
     'spot-threshold': {
         'default': 0.0,
         'ezdefault': 1000,
