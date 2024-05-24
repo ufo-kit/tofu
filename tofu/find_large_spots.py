@@ -1,6 +1,4 @@
 import logging
-import glob
-import os
 from gi.repository import Ufo
 from tofu.util import (
     get_filtering_padding,
@@ -23,15 +21,14 @@ def find_large_spots_median(args):
     from skimage.filters import median
     from scipy.ndimage import binary_fill_holes
 
-    if os.path.isfile(args.images):
-        filenames = [args.images]
-    else:
-        filenames = sorted(glob.glob(os.path.join(args.images, '*.*')))
-    if not filenames:
-        raise RuntimeError("No images found in `{}'".format(args.images))
-    image = read_image(filenames[0])
-    if image.ndim == 3:
-        image = np.mean(image, axis=0)
+    images = read_image(args.images, allow_multi=True)
+    if args.averaging_mode == "first":
+        image = images[0]
+    if args.averaging_mode == "mean":
+        image = np.mean(images, axis=0)
+    if args.averaging_mode == "median":
+        image = np.median(images, axis=0)
+
     mask = np.zeros_like(image, dtype=np.uint8)
 
     if args.median_direction == 'both':
