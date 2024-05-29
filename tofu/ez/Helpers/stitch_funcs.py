@@ -9,8 +9,8 @@ import shutil
 
 import numpy as np
 import tifffile
-from tofu.util import read_image, get_image_shape, get_filenames
-from tofu.ez.image_read_write import TiffSequenceReader, get_image_dtype
+from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader
+from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import time

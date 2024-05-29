@@ -14,7 +14,7 @@ from tofu.ez.tofu_cmd_gen import *
 from tofu.ez.ufo_cmd_gen import *
 from tofu.ez.find_axis_cmd_gen import *
 from tofu.ez.util import *
-from tofu.ez.image_read_write import TiffSequenceReader
+from tofu.util import TiffSequenceReader
 from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS

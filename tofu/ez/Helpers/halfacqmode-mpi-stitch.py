@@ -7,7 +7,7 @@ import tifffile
 from mpi4py import MPI
 
 from tofu.ez.Helpers.stitch_funcs import stitch
-from tofu.ez.image_read_write import TiffSequenceReader
+from tofu.util import TiffSequenceReader
 
 path_to_script, ax, crop, bigtif_name, out_fmt = sys.argv
 

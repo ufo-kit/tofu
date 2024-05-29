@@ -11,10 +11,9 @@ import os
 import numpy as np
 import tifffile
 
-from tofu.ez.image_read_write import TiffSequenceReader
 from tofu.ez.params import EZVARS
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
-from tofu.util import get_filenames, get_image_shape
+from tofu.util import get_filenames, get_image_shape, TiffSequenceReader
 from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 
