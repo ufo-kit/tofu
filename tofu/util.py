@@ -186,7 +186,8 @@ def read_image(filename, allow_multi=False):
 def write_image(filename, image):
     import tifffile
     directory = os.path.dirname(filename)
-    os.makedirs(directory, exist_ok=True)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
     tifffile.imwrite(filename, image)
 
 
