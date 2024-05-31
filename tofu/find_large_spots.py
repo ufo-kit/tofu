@@ -6,7 +6,8 @@ from tofu.util import (
     determine_shape,
     read_image,
     setup_read_task,
-    setup_padding
+    setup_padding,
+    write_image
 )
 from tofu.tasks import get_task, get_writer
 
@@ -83,7 +84,8 @@ def find_large_spots_median(args):
     mask = sm.dilation(mask_low, sm.disk(args.dilation_disk_radius))
     mask = binary_fill_holes(mask)
 
-    tifffile.imsave(args.output, mask.astype(np.float32))
+
+    write_image(args.output, mask.astype(np.float32))
 
 
 def find_large_spots(args):
