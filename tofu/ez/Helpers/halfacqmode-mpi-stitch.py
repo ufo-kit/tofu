@@ -6,8 +6,8 @@ import time
 import tifffile
 from mpi4py import MPI
 
-from tofu.ez.Helpers.stitch_funcs import stitch
-from tofu.util import TiffSequenceReader
+from tofu.ez.Helpers.stitch_funcs import stitch, stitch_float32_output
+from tofu.ez.image_read_write import TiffSequenceReader
 
 path_to_script, ax, crop, bigtif_name, out_fmt = sys.argv
 
@@ -29,6 +29,12 @@ for pair_number in range(n_my_pairs):
     second = tfs.read(idx+npairs)[:, ::-1]
 
     stitched = stitch(first, second, int(ax), int(crop))
+
+    if first.dtype == "float32":
+        stitched = stitch_float32_output(first, second, int(ax), int(crop))
+    else:
+        stitched = stitch(first, second, int(ax), int(crop))
+
     tifffile.imwrite(out_fmt.format(idx), stitched)
 
 tfs.close()
