@@ -22,7 +22,7 @@ class AdvancedGroup(QGroupBox):
         self.lamino_group = QGroupBox("Extended Settings of Reconstruction Algorithms")
         self.lamino_group.clicked.connect(self.set_lamino_group)
 
-        self.lamino_angle_label = QLabel("Laminographic angle                              ")
+        self.lamino_angle_label = QLabel("Laminographic angle")
         self.lamino_angle_entry = QLineEdit()
         self.lamino_angle_entry.setValidator(get_double_validator())
         self.lamino_angle_entry.editingFinished.connect(self.set_lamino_angle)
@@ -32,14 +32,12 @@ class AdvancedGroup(QGroupBox):
         self.overall_rotation_entry.setValidator(get_double_validator())
         self.overall_rotation_entry.editingFinished.connect(self.set_overall_rotation)
 
-        self.center_position_z_label = QLabel("Center Position Z                              ")
+        self.center_position_z_label = QLabel("Center Position Z")
         self.center_position_z_entry = QLineEdit()
         self.center_position_z_entry.setValidator(get_double_validator())
         self.center_position_z_entry.editingFinished.connect(self.set_center_position_z)
 
-        self.axis_rotation_y_label = QLabel(
-            "Sample rotation about the beam Y-axis                             "
-        )
+        self.axis_rotation_y_label = QLabel("Sample rotation about the beam Y-axis")
         self.axis_rotation_y_entry = QLineEdit()
         self.axis_rotation_y_entry.editingFinished.connect(self.set_rotation_about_beam)
 

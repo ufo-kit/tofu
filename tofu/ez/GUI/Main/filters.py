@@ -12,14 +12,13 @@ from PyQt5.QtCore import Qt
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
+from PyQt5.QtCore import pyqtSignal
 
 LOG = logging.getLogger(__name__)
 
 
 class FiltersGroup(QGroupBox):
-    """
-    Filter settings
-    """
+    mask_method_median_checked = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -28,11 +27,17 @@ class FiltersGroup(QGroupBox):
         self.setStyleSheet("QGroupBox {color: orange;}")
 
         self.remove_spots_checkBox = QCheckBox()
-        self.remove_spots_checkBox.setText("Remove large spots from projections")
+        self.remove_spots_checkBox.setText("Remove large bad spots from projections")
         self.remove_spots_checkBox.setToolTip(
-            "Efficiently suppresses very intense rings \n stemming from defects in scintillator"
+            "Finds large bad spots in projections \n and replaces them with suitable values"
         )
-        self.remove_spots_checkBox.stateChanged.connect(self.set_remove_spots)
+
+        self.remove_spots_median_checkBox = QCheckBox()
+        self.remove_spots_median_checkBox.setText("Use median method (tune params in Advanced tab)")
+        self.remove_spots_median_checkBox.setToolTip(
+            "Uses median method to locate bad spots \n You must tune parameters in the Advanced tab"
+        )
+        self.remove_spots_median_checkBox.stateChanged.connect(self.remove_spots_method_median_triggers_advanced)
 
         self.threshold_label = QLabel()
         self.threshold_label.setText("Threshold (prominence of the spot) [counts]")
@@ -45,9 +50,6 @@ class FiltersGroup(QGroupBox):
         
         self.spot_blur_label = QLabel()
         self.spot_blur_label.setText("Low-pass filter sigma [pixels]")
-        # self.spot_blur_label.setToolTip(
-        #     "Regulates extent of the masked region around the detected outlier"
-        # )
         self.spot_blur_label.setToolTip('Low pass filter will be applied before spots are identified'
                                         'to remove very low-frequency changes in the flat field')
         self.spot_blur_entry = QLineEdit()
@@ -56,7 +58,7 @@ class FiltersGroup(QGroupBox):
 
         self.enable_RR_checkbox = QCheckBox()
         self.enable_RR_checkbox.setText("Enable ring removal")
-        self.remove_spots_checkBox.setToolTip(
+        self.enable_RR_checkbox.setToolTip(
             "To suppress ring artifacts"
             " stemming from intensity fluctuations and detector non-linearities"
         )
@@ -151,6 +153,7 @@ class FiltersGroup(QGroupBox):
         remove_spots_groupbox = QGroupBox()
         remove_spots_layout = QGridLayout()
         remove_spots_layout.addWidget(self.remove_spots_checkBox, 0, 0)
+        remove_spots_layout.addWidget(self.remove_spots_median_checkBox, 0, 1)
         remove_spots_layout.addWidget(self.threshold_label, 1, 0)
         remove_spots_layout.addWidget(self.threshold_entry, 1, 1, 1, 7)
         remove_spots_layout.addWidget(self.spot_blur_label, 2, 0)
@@ -286,3 +289,6 @@ class FiltersGroup(QGroupBox):
         dict_entry = EZVARS['RR']['spy-wide-SNR']
         add_value_to_dict_entry(dict_entry, self.SNR_entry.text())
         self.SNR_entry.setText(str(dict_entry['value']))
+
+    def remove_spots_method_median_triggers_advanced(self):
+        self.mask_method_median_checked.emit()

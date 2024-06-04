@@ -7,6 +7,7 @@ from tofu.ez.GUI.Main.centre_of_rotation import CentreOfRotationGroup
 from tofu.ez.GUI.Main.filters import FiltersGroup
 from tofu.ez.GUI.Advanced.ffc import FFCGroup
 from tofu.ez.GUI.Advanced.find_large_spots import FindSpotsGroup
+from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
 from tofu.ez.GUI.Main.phase_retrieval import PhaseRetrievalGroup
 from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
@@ -23,8 +24,6 @@ from tofu.ez.GUI.Stitch_tools_tab.ezstitch_qt import EZStitchGroup
 from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
 from tofu.ez.GUI.login_dialog import Login
-from tofu.ez.GUI.Main.batch_process import BatchProcessGroup
-from tofu.ez.GUI.Stitch_tools_tab.auto_horizontal_stitch_gui import AutoHorizontalStitchGUI
 
 
 LOG = logging.getLogger(__name__)
@@ -32,7 +31,16 @@ LOG = logging.getLogger(__name__)
 
 class GUI(qtw.QWidget):
     """
-    Creates main GUI
+    Creates main GUI and sets defaults and creates some signals.
+    First, load_vales_from_ezdefault has to be called in order to create ['value'] key for
+    every parameter in EZVAR and SECTIONS dictionaries. Each element of those dictionaries
+    is supposed to have 'ezdefault' key which is used to set the default value.
+    These ['value']s will be used to set default values of all entries in GUI
+    by calling load_value function in respective QGroupBoxes.
+    These values can be changed by user and editing of each Qt feature must
+    trigger set_ method in respective QGroupBoxe to update the ['value'].
+    These dictionaries can be exported to yaml file and when imported later
+    will be assigned to Qt GUI entries and to ['values'] of EZVAR and CONFIG dictionaries.
     """
 
     def __init__(self, *args, **kwargs):
@@ -93,6 +101,8 @@ class GUI(qtw.QWidget):
 
         self.find_spots_group = FindSpotsGroup()
 
+        self.batch360_group = Batch360Group()
+
         # Stitch_tools_tab Tab 
         # ----((P)Completed up to here) ----#
         self.multi_stitch_group = MultiStitch360Group()
@@ -126,6 +136,17 @@ class GUI(qtw.QWidget):
         self.overlap_group.get_RR_params_on_start_pressed.connect(
             self.filters_group.set_ufoRR_params_for_360_axis_search)
 
+        # Enable GroupBoxes in Advanced setting when certain options are
+        # selected in the Main tab
+        self.filters_group.mask_method_median_checked.connect(
+            self.find_spots_group.enable_by_trigger_from_main_tab
+        )
+        self.centre_of_rotation_group.enable_360Batch_Group_in_Advanced.connect(
+            self.batch360_group.enable_by_trigger_from_main_tab
+        )
+
+
+
         finish = qtw.QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
 
@@ -149,7 +170,8 @@ class GUI(qtw.QWidget):
 
         advanced_layout = qtw.QGridLayout()
 
-        advanced_layout.addWidget(self.find_spots_group, 0, 0)
+        advanced_layout.addWidget(self.batch360_group, 0, 0)
+        advanced_layout.addWidget(self.find_spots_group, 0, 1)
         advanced_layout.addWidget(self.advanced_group, 1, 0)
         advanced_layout.addWidget(self.optimization_group, 1, 1)
         advanced_layout.addWidget(self.nlmdn_group, 2, 0)
@@ -160,20 +182,12 @@ class GUI(qtw.QWidget):
         helpers_layout.addWidget(self.overlap_group, 0, 1)
         helpers_layout.addWidget(self.multi_stitch_group, 1, 0)
         helpers_layout.addWidget(self.ezstitch_group, 1, 1)
-        
-        # stitching2_layout = qtw.QGridLayout()
-        # stitching2_layout.addWidget(self.auto_horizontal_stitch, 0, 0)
-        #
-        # batch_tools_layout = qtw.QGridLayout()
-        # batch_tools_layout.addWidget(self.batch_process_group, 0, 0)
 
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
         self.tabs.addTab(self.tab2, "Advanced")
-        self.tabs.addTab(self.tab3, "Stitching tools 1")
+        self.tabs.addTab(self.tab3, "Stitching tools")
         self.tabs.addTab(self.tab4, "Image Viewer")
-        # self.tabs.addTab(self.tab5, "Stitching Tools 2")
-        # self.tabs.addTab(self.tab6, "Batch Tools")
 
         # Create main tab
         self.tab1.layout = main_layout
@@ -191,14 +205,6 @@ class GUI(qtw.QWidget):
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
         
-        # # Create stitching2 tab
-        # self.tab5.layout = stitching2_layout
-        # self.tab5.setLayout(self.tab5.layout)
-        #
-        # # Create batch tools tab
-        # self.tab6.layout = batch_tools_layout
-        # self.tab6.setLayout(self.tab6.layout)
-
         # Add tabs to widget
         layout.addWidget(self.tabs)
         self.setLayout(layout)

@@ -1,6 +1,6 @@
 import logging
 from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit, QCheckBox
-
+from PyQt5.QtCore import pyqtSignal
 from tofu.ez.params import EZVARS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_tuple_validator, get_double_validator
 
@@ -11,7 +11,7 @@ class CentreOfRotationGroup(QGroupBox):
     """
     Centre of Rotation settings
     """
-
+    enable_360Batch_Group_in_Advanced = pyqtSignal()
     def __init__(self):
         super().__init__()
 
@@ -71,6 +71,12 @@ class CentreOfRotationGroup(QGroupBox):
         self.image_midpoint_rButton.setText("Use image midpoint (for half-acquisition)")
         self.image_midpoint_rButton.clicked.connect(self.set_rButton)
 
+        self.unstitched360_rButton = QRadioButton()
+        self.unstitched360_rButton.setText("Input is unstitched half acq. mode data")
+        self.unstitched360_rButton.setToolTip("Works only for input directories with 3 depth levels \n"
+                                              "Outer loops -> Inner loop CT sets -> flats/darks/tomo")
+        self.unstitched360_rButton.clicked.connect(self.set_rButton_360option)
+
         # TODO Used for proper spacing - should be a better way
         self.blank_label = QLabel("                                ")
         self.blank_label2 = QLabel("                                ")
@@ -96,6 +102,7 @@ class CentreOfRotationGroup(QGroupBox):
         layout.addWidget(self.inc_axis_label, 7, 0)
         layout.addWidget(self.inc_axis_entry, 7, 1, 1, 2)
         layout.addWidget(self.image_midpoint_rButton, 8, 0)
+        layout.addWidget(self.unstitched360_rButton, 8, 1)
 
         self.setLayout(layout)
 
@@ -121,6 +128,13 @@ class CentreOfRotationGroup(QGroupBox):
         elif self.image_midpoint_rButton.isChecked():
             LOG.debug("Use image midpoint")
             add_value_to_dict_entry(dict_entry, 4)
+        self.enable_360Batch_Group_in_Advanced.emit()
+
+    def set_rButton_360option(self):
+        dict_entry = EZVARS['COR']['search-method']
+        add_value_to_dict_entry(dict_entry, 5)
+        self.enable_360Batch_Group_in_Advanced.emit()
+
 
     def set_rButton_from_params(self):
         if EZVARS['COR']['search-method']['value'] == 1:
