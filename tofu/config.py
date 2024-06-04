@@ -707,7 +707,7 @@ SECTIONS['find-large-spots'] = {
                 "instead of vertical"},
     'gauss-sigma': {
         'default': 0.0,
-        'ezdefault': 2.0,
+        'ezdefault': 5.0,
         'type': float,
         'help': "Gaussian sigma for removing low frequencies (filter will be 1 - gauss window)"},
     'vertical-sigma': {
@@ -728,7 +728,7 @@ SECTIONS['find-large-spots'] = {
         'choices': ['first', 'mean', 'median']},
     'spot-threshold': {
         'default': 0.0,
-        'ezdefault': 1000,
+        'ezdefault': 2000,
         'type': float,
         'help': "Pixels with grey value larger than this (after blurring in case of 'grow' method "
                 "and after median subtraction in case of 'median' method) are considered as spots. "

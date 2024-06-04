@@ -13,6 +13,22 @@ def save_parameters(params, file_path):
 
 
 EZVARS = OrderedDict()
+EZVAR_aux = OrderedDict()
+
+EZVAR_aux['find360olap'] = {
+    'input-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),""),
+        'type': str,
+        'help': "TODO"},
+    'output-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"rec"),
+        'type': str,
+        'help': "TODO"},
+    'tmp-dir' : {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"tmp-ezufo"),
+        'type': str,
+        'help': "TODO"},
+}
 
 EZVARS['inout'] = {
     'input-dir': {
@@ -124,6 +140,21 @@ EZVARS['inout'] = {
         'type': bool,
         'help': "Internal variable; must be set to True once "
                 "shared flats/darks were used in the recontruction pipeline"},
+    'halfacq_dir': {
+        'ezdefault': "Absolute path to half acqusition mode working directory",
+        'type': str,
+        'help': "TODO"},
+}
+
+EZVARS['half-acq'] = {
+    'dir': {
+        'ezdefault': "Absolute path to half acqusition mode working directory",
+        'type': str,
+        'help': "TODO"},
+    'task_type':{
+        'ezdefault': 0,
+        'type': restrict_value((0, 2), dtype=int),
+        'help': "What task was requested by user"},
 }
 
 EZVARS['COR'] = {
@@ -190,7 +221,7 @@ EZVARS['RR'] = {
         'type': bool, 
         'help': "TODO"},
     'sx': {
-        'ezdefault': 3,
+        'ezdefault': 13,
         'type': restrict_value((0,None),dtype=int), 
         'help': "ufo ring-removal sigma horizontal (try 3..31)"},
     'sy': {

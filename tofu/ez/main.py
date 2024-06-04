@@ -17,6 +17,7 @@ from tofu.ez.util import *
 from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
+from tofu.ez.main_half_acq_mode import main_360
 
 LOG = logging.getLogger(__name__)
 
@@ -195,12 +196,31 @@ def execute_reconstruction(fdt_names):
     # get list of all good CT directories to be reconstructed
 
     print('*********** Analyzing input directory ************')
+    # Find valid CT directories in the input directory
     W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
-    # W is an array of tuples (path, type)
+    # W is an array of tuples (path to CT directory, directory type)
+
+    # if we deal with unstitched half acqusition mode data we have to more
+    if EZVARS['COR']['search-method']['value'] == 5:
+        flag = main_360(W, lvl0)
+        if EZVARS['half-acq']['task_type']['value'] == 0:
+            print(f"Estimated overlaps are saved in "
+                  f"{os.path.join(EZVARS['half-acq']['dir']['value'], 'olap_estimates.yaml')}")
+            return 0
+        else:
+            if flag:
+                print(f"Something went wrong with stitching of half acq mode data "
+                      "examine output for errors")
+            else:
+                # at this point we have stitched projections in working directory for batch 360
+                # so we get CT sets from this directory instead of the original input
+                W, lvl0 = get_CTdirs_list(EZVARS['half-acq']['dir']['value'], fdt_names)
+                # and set axis of rotation parameter to image middle column
+                add_value_to_dict_entry(EZVARS['COR']['search-method']['value'], 4)
+
     # get list of already reconstructed sets
     recd_sets = findSlicesDirs(EZVARS['inout']['output-dir']['value'])
-    # initialize command generators
-    # populate list of reconstruction commands
+    # find axis of rotation and populate list of reconstruction commands
     print("*********** AXIS INFO ************")
     for i, ctset in enumerate(W):
         # ctset is a tuple containing a path and a type (3 or 4)
@@ -227,10 +247,11 @@ def execute_reconstruction(fdt_names):
                 elif EZVARS['COR']['search-method']['value'] == 2:
                     cmds.append("echo \"Cleaning axis-search in tmp directory\"")
                     os.system('rm -rf {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')))
-                    ax = find_axis_std(ctset,  EZVARS['inout']['tmp-dir']['value'],
-                                               EZVARS['COR']['search-interval']['value'],
-                                               EZVARS['COR']['patch-size']['value'],
-                                               nviews, wh)
+                    ax = find_axis_std(ctset,  #EZVARS['inout']['tmp-dir']['value'],
+                                        os.path.join(EZVARS['inout']['output-dir']['value'], setid),
+                                        EZVARS['COR']['search-interval']['value'],
+                                        EZVARS['COR']['patch-size']['value'],
+                                        nviews, wh)
                 else:
                     ax = EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
