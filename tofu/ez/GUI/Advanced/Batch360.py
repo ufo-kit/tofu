@@ -1,9 +1,11 @@
 import logging
 from PyQt5.QtWidgets import (QGridLayout, QLabel, QGroupBox, QLineEdit, QRadioButton, QPushButton,
-    QFileDialog)
+    QFileDialog, QMessageBox)
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry, get_double_validator, reverse_tupleize
+import os
+from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
 
@@ -95,6 +97,21 @@ class Batch360Group(QGroupBox):
         if tmp_dir:
             self.halfacq_dir_entry.setText(tmp_dir)
             self.set_halfacq_dir()
+        else:
+            QMessageBox.information(self, "Select valid directory")
+            return
+        #if os.path.exists(self.parameters['360overlap_temp_dir']) and \
+        if len(os.listdir(tmp_dir)) > 0:
+            qm = QMessageBox()
+            rep = qm.question(self, '', "Directory exists but not empty. Can I delete it to continue?", qm.Yes | qm.No)
+            if rep == qm.Yes:
+                try:
+                    rmtree(tmp_dir)
+                except:
+                    QMessageBox.information(self, "Problem", "Cannot delete existing directory")
+                    return
+            else:
+                return
 
     def set_halfacq_dir(self):
         LOG.debug(str(self.halfacq_dir_entry.text()))

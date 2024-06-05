@@ -21,13 +21,33 @@ EZVAR_aux['find360olap'] = {
         'type': str,
         'help': "TODO"},
     'output-dir': {
-        'ezdefault': os.path.join(os.path.expanduser('~'),"rec"),
+        'ezdefault': os.path.join(os.path.expanduser('~'),"overlap_search"),
         'type': str,
         'help': "TODO"},
     'tmp-dir' : {
         'ezdefault': os.path.join(os.path.expanduser('~'),"tmp-ezufo"),
         'type': str,
         'help': "TODO"},
+    'doRR': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'step': {
+        'ezdefault': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Increment in axis of rotation"},
+    'start': {
+        'ezdefault': 150,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Starting overlap"},
+    'stop': {
+        'ezdefault': 200,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Maximum overlap"},
+    'row': {
+        'ezdefault': 500,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Maximum overlap"},
 }
 
 EZVARS['inout'] = {

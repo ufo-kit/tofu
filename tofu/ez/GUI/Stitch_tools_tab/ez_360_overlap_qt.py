@@ -15,6 +15,8 @@ import yaml
 import os
 from tofu.ez.Helpers.find_360_overlap import find_overlap
 import tofu.ez.params as params
+from tofu.ez.params import EZVAR_aux
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 import getpass
 
 #TODO Make all stitching tools compatible with the bigtiffs
@@ -149,6 +151,7 @@ class Overlap360Group(QGroupBox):
         dir_explore = QFileDialog(self)
         self.parameters['360overlap_input_dir'] = dir_explore.getExistingDirectory()
         self.input_dir_entry.setText(self.parameters['360overlap_input_dir'])
+        add_value_to_dict_entry(EZVAR_aux['find360olap']['input-dir'], dir_explore.getExistingDirectory())
 
     def set_input_entry(self):
         LOG.debug("Input: " + str(self.input_dir_entry.text()))
