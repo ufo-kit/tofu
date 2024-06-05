@@ -41,6 +41,8 @@ class GUI(qtw.QWidget):
     trigger set_ method in respective QGroupBoxe to update the ['value'].
     These dictionaries can be exported to yaml file and when imported later
     will be assigned to Qt GUI entries and to ['values'] of EZVAR and CONFIG dictionaries.
+    When parameters are imported a signal is emitted which calls update_values
+    function defined below which has to call load_values for every groupbox in the GUI
     """
 
     def __init__(self, *args, **kwargs):
