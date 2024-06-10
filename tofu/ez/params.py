@@ -13,15 +13,15 @@ def save_parameters(params, file_path):
 
 
 EZVARS = OrderedDict()
-EZVAR_aux = OrderedDict()
+EZVARS_aux = OrderedDict()
 
-EZVAR_aux['find360olap'] = {
+EZVARS_aux['find360olap'] = {
     'input-dir': {
         'ezdefault': os.path.join(os.path.expanduser('~'),""),
         'type': str,
         'help': "TODO"},
     'output-dir': {
-        'ezdefault': os.path.join(os.path.expanduser('~'),"overlap_search"),
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo_360_olap_search"),
         'type': str,
         'help': "TODO"},
     'tmp-dir' : {
@@ -48,7 +48,82 @@ EZVAR_aux['find360olap'] = {
         'ezdefault': 500,
         'type': restrict_value((0, None), dtype=int),
         'help': "Maximum overlap"},
+    # 'overlaps_template':{
+    #     '/data/CTscans/scan00/z00' : 100,
+    #     '/data/CTscans/scan00/z01' : 102,
+    #     '/data/CTscans/scan_foo/bar' : 102,
+    #     '/data/CTscans/scan_foo/blah' : 99,
+    # },
+    # # placeholder for overlaps to be populated by find_360_overlap or user
+    # 'overlaps':{
+    # }
 }
+
+EZVARS_aux['stitch360'] = {
+    'input-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),""),
+        'type': str,
+        'help': "TODO"},
+    'output-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo_360_stitched"),
+        'type': str,
+        'help': "TODO"},
+    'crop': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
+    'olap_switch': {
+        'ezdefault': 0,
+        'type': restrict_value((0, 2), dtype=int),
+        'help': ""},
+    'olap_min': {
+        'ezdefault': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': ""},
+    'olap_max': {
+        'ezdefault': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': ""},
+    'olap_list': {
+        'ezdefault': '0',
+        'type': str,
+        'help': "Comma-separated list of overlaps without spaces"},
+}
+
+EZVARS['half-acq'] = {
+    'dir': {
+        'ezdefault': "Absolute path to half acqusition mode working directory",
+        'type': str,
+        'help': "TODO"},
+    'task_type':{
+        'ezdefault': 0,
+        'type': restrict_value((0, 2), dtype=int),
+        'help': "What task was requested by user"},
+}
+
+# EZVARS_aux['overlaps_template'] = {
+#     # template of structure to store overlap for each collection of half acq mode scan
+#     # e.g. input/outer_loop_scan1/z00, input/outer_loop_scan1/z01
+#     # input/outer_loop_scan2/z00, input/outer_loop_scan2/z01
+#     # must be 2 depth levels only to work correctly as import/export
+#     # functions only work with double nested dictionaries
+#     'path2_outer_scan': {
+#         'relative_path2_inner_loop_scan': 100
+#     },
+#     '/data/CTscans/scan00': {
+#         'z00': 100,
+#         'z01': 102,
+#     },
+#     '/data/CTscans/scan01': {
+#         'z00': 99,
+#         'z01': 102,
+#         'z02': 103,
+#     },
+# }
+
+# EZVARS_aux['overlaps'] = {
+#     # to be populated by user or by find_360_overlap
+# }
 
 EZVARS['inout'] = {
     'input-dir': {
@@ -164,17 +239,6 @@ EZVARS['inout'] = {
         'ezdefault': "Absolute path to half acqusition mode working directory",
         'type': str,
         'help': "TODO"},
-}
-
-EZVARS['half-acq'] = {
-    'dir': {
-        'ezdefault': "Absolute path to half acqusition mode working directory",
-        'type': str,
-        'help': "TODO"},
-    'task_type':{
-        'ezdefault': 0,
-        'type': restrict_value((0, 2), dtype=int),
-        'help': "What task was requested by user"},
 }
 
 EZVARS['COR'] = {

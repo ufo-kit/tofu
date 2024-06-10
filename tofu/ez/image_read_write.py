@@ -3,6 +3,7 @@ import os, glob
 import numpy as np
 import tifffile
 from tifffile import imread, imwrite
+from tofu.util import TiffSequenceReader
 
 
 class InvalidDataSetError(Exception):
@@ -115,3 +116,16 @@ def read_all_images(
 
     data_array = imread(valid_files_list).astype(dtype=data_type)
     return np.array(data_array)
+
+def get_image_dtype(file_prefix):
+    tsr = TiffSequenceReader(file_prefix)
+    tmp = tsr.read(0).dtype
+    tsr.close()
+    if tmp == 'uint8':
+        return '8', 'uint8'
+    elif tmp == 'uint16':
+        return '16', 'uint16'
+    elif tmp == 'float32':
+        return '32', 'float32'
+    else:
+        return tmp

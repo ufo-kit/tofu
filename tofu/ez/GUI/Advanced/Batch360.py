@@ -73,6 +73,9 @@ class Batch360Group(QGroupBox):
 
         self.setLayout(layout)
 
+    def load_values(self):
+        return 0
+
     def enable_by_trigger_from_main_tab(self):
         if not self.isEnabled():
             self.setEnabled(True)
@@ -100,7 +103,7 @@ class Batch360Group(QGroupBox):
         else:
             QMessageBox.information(self, "Select valid directory")
             return
-        #if os.path.exists(self.parameters['360overlap_temp_dir']) and \
+        #if os.path.exists(self.EZVARS_aux['find360olap']['tmp-dir']) and \
         if len(os.listdir(tmp_dir)) > 0:
             qm = QMessageBox()
             rep = qm.question(self, '', "Directory exists but not empty. Can I delete it to continue?", qm.Yes | qm.No)

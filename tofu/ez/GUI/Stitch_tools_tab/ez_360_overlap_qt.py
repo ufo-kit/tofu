@@ -11,13 +11,12 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal
 import logging
 from shutil import rmtree
-import yaml
 import os
 from tofu.ez.Helpers.find_360_overlap import find_overlap
-import tofu.ez.params as params
-from tofu.ez.params import EZVAR_aux
+from tofu.ez.params import EZVARS_aux
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
-import getpass
+from tofu.ez.util import import_values, export_values
+import yaml
 
 #TODO Make all stitching tools compatible with the bigtiffs
 
@@ -30,7 +29,7 @@ class Overlap360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("360-AXIS-SEARCH")
+        self.setTitle("360-AXIS-SEARCH: find overlap in half acq. mode CT sets. Finds all CT sets in Input recursively.")
         self.setToolTip("Stitches and reconstructs one slice with different axis of rotation positions for half-acqusition mode data set(s)")
         self.setStyleSheet('QGroupBox {color: Orange;}')
 
@@ -108,142 +107,129 @@ class Overlap360Group(QGroupBox):
         layout.addWidget(self.save_parameters_button, 12, 1)
         self.setLayout(layout)
 
-    def init_values(self):
-        self.parameters = {'parameters_type': '360_overlap'}
-        self.parameters['360overlap_input_dir'] = os.path.expanduser('~')  #EZVARS['360-olap-search']['indir']
-        self.input_dir_entry.setText(self.parameters['360overlap_input_dir'])
-        self.parameters['360overlap_temp_dir'] = os.path.join(   #EZVARS['360-olap-search']['tmpdir']
-                        os.path.expanduser('~'), "tmp-360axis-search")
-        self.temp_dir_entry.setText(self.parameters['360overlap_temp_dir'])
-        self.parameters['360overlap_output_dir'] = os.path.join(    #EZVARS['360-olap-search']['outdir']
-                        os.path.expanduser('~'), "ezufo-360axis-search")
-        self.output_dir_entry.setText(self.parameters['360overlap_output_dir'])
-        self.parameters['360overlap_row'] = 200       #EZVARS['360-olap-search']['y']
-        self.pixel_row_entry.setText(str(self.parameters['360overlap_row']))
-        self.parameters['360overlap_lower_limit'] = 100   #EZVARS['360-olap-search']['column_first']
-        self.min_entry.setText(str(self.parameters['360overlap_lower_limit']))
-        self.parameters['360overlap_upper_limit'] = 200   #EZVARS['360-olap-search']['column_last']
-        self.max_entry.setText(str(self.parameters['360overlap_upper_limit']))
-        self.parameters['360overlap_increment'] = 1    #EZVARS['360-olap-search']['column_step']
-        self.step_entry.setText(str(self.parameters['360overlap_increment']))
-        self.parameters['360overlap_doRR'] = False  # replace with #EZVARS['360-olap-search']['remove-rings']
-        self.doRR.setChecked(bool(self.parameters['360overlap_doRR']))
-
-    def update_parameters(self, new_parameters):
-        LOG.debug("Update parameters")
-        if new_parameters['parameters_type'] != '360_overlap':
-            print("Error: Invalid parameter file type: " + str(new_parameters['parameters_type']))
-            return -1
-        # Update parameters dictionary (which is passed to auto_stitch_funcs)
-        self.parameters = new_parameters
-        # Update displayed parameters for GUI
-        self.input_dir_entry.setText(self.parameters['360overlap_input_dir'])
-        self.temp_dir_entry.setText(self.parameters['360overlap_temp_dir'])
-        self.output_dir_entry.setText(self.parameters['360overlap_output_dir'])
-        self.pixel_row_entry.setText(str(self.parameters['360overlap_row']))
-        self.min_entry.setText(str(self.parameters['360overlap_lower_limit']))
-        self.max_entry.setText(str(self.parameters['360overlap_upper_limit']))
-        self.step_entry.setText(str(self.parameters['360overlap_increment']))
-        self.doRR.setChecked(bool(self.parameters['360overlap_doRR']))
+    def load_values(self):
+        self.input_dir_entry.setText(str(EZVARS_aux['find360olap']['input-dir']['value']))
+        self.temp_dir_entry.setText(str(EZVARS_aux['find360olap']['tmp-dir']['value']))
+        self.output_dir_entry.setText(str(EZVARS_aux['find360olap']['output-dir']['value']))
+        self.pixel_row_entry.setText(str(EZVARS_aux['find360olap']['row']['value']))
+        self.min_entry.setText(str(EZVARS_aux['find360olap']['start']['value']))
+        self.max_entry.setText(str(EZVARS_aux['find360olap']['stop']['value']))
+        self.step_entry.setText(str(EZVARS_aux['find360olap']['step']['value']))
+        self.doRR.setChecked(EZVARS_aux['find360olap']['doRR']['value'])
 
     def input_button_pressed(self):
         LOG.debug("Select input button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['360overlap_input_dir'] = dir_explore.getExistingDirectory()
-        self.input_dir_entry.setText(self.parameters['360overlap_input_dir'])
-        add_value_to_dict_entry(EZVAR_aux['find360olap']['input-dir'], dir_explore.getExistingDirectory())
+        tmp = dir_explore.getExistingDirectory()
+        self.input_dir_entry.setText(tmp)
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['input-dir'], tmp)
 
     def set_input_entry(self):
-        LOG.debug("Input: " + str(self.input_dir_entry.text()))
-        self.parameters['360overlap_input_dir'] = str(self.input_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['input-dir'], str(self.input_dir_entry.text()))
 
     def temp_button_pressed(self):
-        LOG.debug("Select temp button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['360overlap_temp_dir'] = dir_explore.getExistingDirectory()
-        self.temp_dir_entry.setText(self.parameters['360overlap_temp_dir'])
+        tmp = dir_explore.getExistingDirectory()
+        self.temp_dir_entry.setText(tmp)
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['tmp-dir'], tmp)
 
     def set_temp_entry(self):
-        LOG.debug("Temp: " + str(self.temp_dir_entry.text()))
-        self.parameters['360overlap_temp_dir'] = str(self.temp_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['tmp-dir'], str(self.temp_dir_entry.text()))
 
     def output_button_pressed(self):
         LOG.debug("Select output button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['360overlap_output_dir'] = dir_explore.getExistingDirectory()
-        self.output_dir_entry.setText(self.parameters['360overlap_output_dir'])
+        tmp = dir_explore.getExistingDirectory()
+        self.output_dir_entry.setText(tmp)
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['output-dir'], tmp)
 
     def set_output_entry(self):
-        LOG.debug("Output: " + str(self.output_dir_entry.text()))
-        self.parameters['360overlap_output_dir'] = str(self.output_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['output-dir'], str(self.output_dir_entry.text()))
 
     def set_pixel_row(self):
-        LOG.debug("Pixel row: " + str(self.pixel_row_entry.text()))
-        self.parameters['360overlap_row'] = int(self.pixel_row_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['row'], int(self.pixel_row_entry.text()))
 
     def set_lower_limit(self):
-        LOG.debug("Lower limit: " + str(self.min_entry.text()))
-        self.parameters['360overlap_lower_limit'] = int(self.min_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['start'], int(self.min_entry.text()))
 
     def set_upper_limit(self):
-        LOG.debug("Upper limit: " + str(self.max_entry.text()))
-        self.parameters['360overlap_upper_limit'] = int(self.max_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['stop'], int(self.max_entry.text()))
 
     def set_increment(self):
-        LOG.debug("Value of increment: " + str(self.step_entry.text()))
-        self.parameters['360overlap_increment'] = int(self.step_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['step'], int(self.step_entry.text()))
 
     def set_RR_checkbox(self):
-        LOG.debug("Apply RR in 360-search: " + str(self.doRR.isChecked()))
-        self.parameters['360overlap_doRR'] = bool(self.doRR.isChecked())
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['doRR'], self.doRR.isChecked())
 
     def overlap_button_pressed(self):
         LOG.debug("Find overlap button pressed")
         self.get_fdt_names_on_stitch_pressed.emit()
         self.get_RR_params_on_start_pressed.emit()
-        if os.path.exists(self.parameters['360overlap_output_dir']) and \
-                    len(os.listdir(self.parameters['360overlap_output_dir'])) > 0:
+        if os.path.exists(EZVARS_aux['find360olap']['output-dir']['value']) and \
+                    len(os.listdir(EZVARS_aux['find360olap']['output-dir']['value'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Output directory exists and not empty. Can I delete it to continue?",
+            rep = qm.question(self, 'WARNING',
+                              "Output directory exists and not empty. Is it SAFE to delete it?",
                               qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
-                    rmtree(self.parameters['360overlap_output_dir'])
+                    rmtree(EZVARS_aux['find360olap']['output-dir']['value'])
                 except:
                     QMessageBox.information(self, "Problem", "Cannot delete existing output dir")
                     return
             else:
                 return
-        if os.path.exists(self.parameters['360overlap_temp_dir']) and \
-                len(os.listdir(self.parameters['360overlap_temp_dir'])) > 0:
+        if os.path.exists(EZVARS_aux['find360olap']['tmp-dir']['value']) and \
+                len(os.listdir(EZVARS_aux['find360olap']['tmp-dir']['value'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Temporary dir exist and not empty. Can I delete it to continue?", qm.Yes | qm.No)
+            rep = qm.question(self, 'WARNING', "Temporary dir exist and not empty. Is it SAFE to delete it?", qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
-                    rmtree(self.parameters['360overlap_temp_dir'])
+                    rmtree(EZVARS_aux['find360olap']['tmp-dir']['value'])
                 except:
                     QMessageBox.information(self, "Problem", "Cannot delete existing tmp dir")
                     return
             else:
                 return
-        if not os.path.exists(self.parameters['360overlap_temp_dir']):
-            os.makedirs(self.parameters['360overlap_temp_dir'])
-        if not os.path.exists(self.parameters['360overlap_output_dir']):
-            os.makedirs(self.parameters['360overlap_output_dir'])
-        find_overlap(self.parameters)
-        if os.path.exists(self.parameters['360overlap_output_dir']):
-            params_file_path = os.path.join(self.parameters['360overlap_output_dir'], '360_overlap_params.yaml')
-            params.save_parameters(self.parameters, params_file_path)
+        if not os.path.exists(EZVARS_aux['find360olap']['tmp-dir']['value']):
+            os.makedirs(EZVARS_aux['find360olap']['tmp-dir']['value'])
+        if not os.path.exists(EZVARS_aux['find360olap']['output-dir']['value']):
+            os.makedirs(EZVARS_aux['find360olap']['output-dir']['value'])
+        result = find_overlap()
+        print(result)
+        params_file_path = os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
+                                            'tofuez_params.yaml')
+        export_values(params_file_path)
+        if result is None:
+            QMessageBox.information(self, "Problem", "Didn't find any valid CT sets in the input dir")
+        else:
+            fname = os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
+                                     'estimated_overlaps.txt')
+            file_out = open(fname, 'w')
+            yaml.dump(result, file_out)
+            file_out.close()
+            QMessageBox.information(self, "Done", "List of processed directories saved in \n"
+                                    f"{fname}")
+
+
+            
 
 
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
-        h = "This script takes as input a CT scan that has been collected in 'half-acquisition' mode"
-        h += " and produces a series of reconstructed slices, each of which are generated by cropping and"
-        h += " concatenating opposing projections together over a range of 'overlap' values (i.e. the pixel column"
-        h += " at which the images are cropped and concatenated)."
-        h += " The objective is to review this series of images to determine the pixel column at which the axis of rotation"
-        h += " is located (much like the axis search function commonly used in reconstruction software)."
+        h = "This script helps to find the index of detector column in with tomographic axis of rotation "
+        h += "situated during half acq. mode scan (or overlap between pairs of images separate by 180 deg)"
+        h += "Input can be a bunch of CT scans that has been collected in 'half-acquisition' mode"
+        h += "For each CT set for selected detector row this script will reconstruct a bunch of slices"
+        h += "each for different amount of overlap in the user defined range."
+        h += "The objective is to review this series of images and find the best looking slice"
+        h += "in the very much the same way as it is done when you search for axis of rotation in normal scans"
+        h += "The overlap can be computed by adding the index of the right slice (times the search step)"
+        h += "to the first overlap value in the search range."
+        h += "Script attempts to estimate the overlap and saves the value for each data set in the"
+        h += "360_overlap_params.yaml in the ezvars_aux section. They can be used as an input for"
+        h += "batch stitching of the half acq mode data. User can edit the values directly in the"
+        h += "yaml file if needed."
         QMessageBox.information(self, "Help", h)
 
     def import_parameters_button_pressed(self):
@@ -251,10 +237,8 @@ class Overlap360Group(QGroupBox):
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getOpenFileName(filter="*.yaml")
         try:
-            file_in = open(params_file_path[0], 'r')
-            new_parameters = yaml.load(file_in, Loader=yaml.FullLoader)
-            if self.update_parameters(new_parameters) == 0:
-                print("Parameters file loaded from: " + str(params_file_path[0]))
+            import_values(params_file_path[0])
+            self.load_values()
         except FileNotFoundError:
             print("You need to select a valid input file")
 
@@ -270,8 +254,7 @@ class Overlap360Group(QGroupBox):
         else:
             file_path = params_file_path[0]
         try:
-            file_out = open(file_path, 'w')
-            yaml.dump(self.parameters, file_out)
+            export_values(file_path)
             print("Parameters file saved at: " + str(file_path))
         except FileNotFoundError:
             print("You need to select a directory and use a valid file name")
