@@ -17,6 +17,7 @@ from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.util import import_values, export_values
 from tofu.ez.GUI.message_dialog import warning_message
 from tofu.ez.params import EZVARS
+from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry
 
 LOG = logging.getLogger(__name__)

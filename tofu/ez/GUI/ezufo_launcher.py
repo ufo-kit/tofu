@@ -13,7 +13,7 @@ from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
 from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
-from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
 from tofu.ez.util import load_values_from_ezdefault
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
@@ -42,7 +42,7 @@ class GUI(qtw.QWidget):
     These dictionaries can be exported to yaml file and when imported later
     will be assigned to Qt GUI entries and to ['values'] of EZVAR and CONFIG dictionaries.
     When parameters are imported a signal is emitted which calls update_values
-    function defined below which has to call load_values for every groupbox in the GUI
+    function defined below which has to call load_values which must exist in every groupbox in the GUI
     """
 
     def __init__(self, *args, **kwargs):
@@ -54,6 +54,7 @@ class GUI(qtw.QWidget):
         # initialize dictionary entries
         load_values_from_ezdefault(EZVARS)
         load_values_from_ezdefault(SECTIONS)
+        load_values_from_ezdefault(EZVARS_aux)
 
         # Call login dialog
         # self.login_parameters = {}
@@ -108,7 +109,7 @@ class GUI(qtw.QWidget):
         # Stitch_tools_tab Tab 
         # ----((P)Completed up to here) ----#
         self.multi_stitch_group = MultiStitch360Group()
-        self.multi_stitch_group.init_values()
+        self.multi_stitch_group.load_values()
 
         self.ezmview_group = EZMViewGroup()
         self.ezmview_group.init_values()
@@ -117,7 +118,7 @@ class GUI(qtw.QWidget):
         self.ezstitch_group.init_values()
 
         self.overlap_group = Overlap360Group()
-        self.overlap_group.init_values()
+        self.overlap_group.load_values()
         
         #######################################################
 
@@ -225,6 +226,7 @@ class GUI(qtw.QWidget):
         self.nlmdn_group.load_values()
         self.advanced_group.load_values()
         self.optimization_group.load_values()
+        self.overlap_group.load_values()
 
     def switch_to_image_tab(self):
         """

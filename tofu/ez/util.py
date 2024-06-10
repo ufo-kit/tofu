@@ -4,15 +4,16 @@ Created on Apr 20, 2020
 @author: gasilos
 """
 import os, glob, tifffile
-from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
-from tofu.ez.yaml_in_out import read_yaml, write_yaml
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
 from PyQt5.QtCore import QRegExp
 from PyQt5.QtGui import QRegExpValidator
 import argparse
-from tofu.ez.image_read_write import TiffSequenceReader
+from tofu.util import TiffSequenceReader
 import numpy as np
+import yaml
+import logging
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -167,6 +168,7 @@ def export_values(filePath):
     combined_dict = {}
     combined_dict['sections'] = extract_values_from_dict(SECTIONS)
     combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
+    combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
     print("Exporting values to: " + str(filePath))
     #print(combined_dict)
     write_yaml(filePath, combined_dict)
@@ -176,8 +178,9 @@ def import_values(filePath):
     """Import EZVARS and SECTIONS from a YAML file"""
     print("Importing values from: " +str(filePath))
     yaml_data = dict(read_yaml(filePath))
-    import_values_from_dict(EZVARS,yaml_data['ezvars'])
-    import_values_from_dict(SECTIONS,yaml_data['sections'])
+    import_values_from_dict(EZVARS, yaml_data['ezvars'])
+    import_values_from_dict(SECTIONS, yaml_data['sections'])
+    import_values_from_dict(EZVARS_aux, yaml_data['ezvars_aux'])
     print("Finished importing")
     #print(yaml_data)
 
@@ -417,6 +420,22 @@ def get_mean_flat(path2flat):
     x = np.mean(data, axis=0)
     del data
     return x
+
+def read_yaml(filePath):
+    with open(filePath) as f:
+        data = yaml.load(f, Loader=yaml.FullLoader)
+        return data
+
+def write_yaml(filePath, params):
+    try:
+        file = open(filePath, "w")
+    except FileNotFoundError:
+        print('Cannot write yaml file')
+    else:
+        yaml.dump(params, file)
+        file.close()
+
+
 
 
 

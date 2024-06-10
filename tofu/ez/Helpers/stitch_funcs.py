@@ -24,6 +24,7 @@ except ImportError:
           file=sys.stderr)
 
 from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS_aux
 
 def findCTdirs(root: str, tomo_name: str):
     """
@@ -365,8 +366,9 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
     print("========== Done ==========")
 
 
-def main_360_mp_depth2(parameters):
-    ctdirs, lvl0 = findCTdirs(parameters['360multi_input_dir'], EZVARS['inout']['tomo-dir']['value'])
+def main_360_mp_depth2():
+    ctdirs, lvl0 = findCTdirs(EZVARS_aux['stitch360']['input-dir']['value'],
+                                EZVARS['inout']['tomo-dir']['value'])
     num_sets = len(ctdirs)
 
     if num_sets < 1:
@@ -382,23 +384,26 @@ def main_360_mp_depth2(parameters):
               f"180-deg parallel-beam scans")
         return
 
-    tmp = len(parameters['360multi_input_dir'])
+    tmp = len(EZVARS_aux['stitch360']['input-dir']['value'])
     ctdirs_rel_paths = []
     for i in range(num_sets):
         ctdirs_rel_paths.append(ctdirs[i][tmp+1:len(ctdirs[i])])
     print(f"Found the {num_sets} directories in the input with relative paths: {ctdirs_rel_paths}")
 
     # prepare axis and crop arrays
-    dax = np.round(np.linspace(parameters['360multi_bottom_axis'],
-                               parameters['360multi_top_axis'], num_sets)).astype(np.int16)
-    if parameters['360multi_manual_axis']:
-        #print(parameters['360multi_axis_dict'])
-        dax = np.array(list(parameters['360multi_axis_dict'].values()), np.int16)[:num_sets]
+    if EZVARS_aux['stitch360']['olap_list']['value'] == 0:
+        dax = np.round(np.linspace(EZVARS_aux['stitch360']['olap_min']['value'],
+                               EZVARS_aux['stitch360']['olap_max']['value'], num_sets)).astype(np.int16)
+    else:
+        #dax = np.array(list(parameters['360multi_axis_dict'].values()), np.int16)[:num_sets]
+        dax = EZVARS_aux['stitch360']['olap_list']['value'].split(',')
+        for i in range(len(dax)):
+            dax[i] = int(dax[i])
     print(f'Overlaps: {dax}')
     # compute crop:
     cra = np.max(dax)-dax
     # Axis on the right ? Must open one file to find out ><
-    tmpname = os.path.join(parameters['360multi_input_dir'], ctdirs_rel_paths[0])
+    tmpname = os.path.join(EZVARS_aux['stitch360']['input-dir']['value'], ctdirs_rel_paths[0])
     subdirs = [dI for dI in os.listdir(tmpname) if os.path.isdir(os.path.join(tmpname, dI))]
     M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
     if np.min(dax) > M//2:
@@ -411,8 +416,8 @@ def main_360_mp_depth2(parameters):
         print(f"    axis position {dax[i]}, margin to crop {cra[i]} pixels")
 
         main_360_mp_depth1(ctdir,
-                    os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]),
-                    int(dax[i]), int(cra[i]))
+            os.path.join(EZVARS_aux['stitch360']['output-dir']['value'], ctdirs_rel_paths[i]),
+                           int(dax[i]), int(cra[i]))
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 
 
