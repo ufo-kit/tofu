@@ -15,7 +15,8 @@ from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
 from tofu.util import get_filenames, get_image_shape, TiffSequenceReader
 from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
-from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
+#from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
+from tofu.ez.evaluate_sharpness import evaluate_metrics_360_olap_search
 
 def extract_row(dir_name, row):
     tsr = TiffSequenceReader(dir_name)
@@ -59,8 +60,15 @@ def find_overlap():
     if not os.path.exists(sin_tmp_dir):
         os.makedirs(sin_tmp_dir)
 
+    ax_range = range(EZVARS_aux['find360olap']['start']['value'],
+                     EZVARS_aux['find360olap']['stop']['value'] + EZVARS_aux['find360olap']['step']['value'],
+                     EZVARS_aux['find360olap']['step']['value'])
+
     # concatenate images with various overlap and generate sinograms
     for ctset in ctdirs:
+        outerloopdirname = os.path.dirname(ctset)
+        if outerloopdirname not in EZVARS_aux['axes-list']:
+            EZVARS_aux['axes-list'].update({outerloopdirname: {}})
         setid = ctset[len(lvl0) + 1:]
         print(f"Working on ctset {setid}")
         index_dir = os.path.basename(os.path.normpath(ctset))
@@ -114,9 +122,8 @@ def find_overlap():
         # same row as we use for the projections, then flat/dark correction
         print('Creating stitched sinograms...')
 
-        for axis in range(EZVARS_aux['find360olap']['start']['value'],
-                          EZVARS_aux['find360olap']['stop']['value']+EZVARS_aux['find360olap']['step']['value'],
-                          EZVARS_aux['find360olap']['step']['value']):
+
+        for axis in ax_range:
             cro = EZVARS_aux['find360olap']['stop']['value'] - axis
             if axis > M // 2:
                 cro = axis - EZVARS_aux['find360olap']['start']['value']
@@ -151,12 +158,20 @@ def find_overlap():
         cmd +=' --output '+os.path.join(outname)
         os.system(cmd)
 
-        points, maximum = evaluate_images_simp(outname, "msag")
-        olap_est = EZVARS_aux['find360olap']['start']['value'] + EZVARS_aux['find360olap']['step']['value'] * maximum
-        print(f"Estimated overlap: {olap_est}")
-        olap_estimates.append(olap_est)#.update(dict(zip([ctset], [olap_est])))
+        #points, maximum = evaluate_images_simp(outname, "std")
+        mettxtpref = os.path.join(os.path.join(
+            EZVARS_aux['find360olap']['output-dir']['value'], setid))
 
-        print("Finished processing: " + str(index_dir))
+        results = evaluate_metrics_360_olap_search(outname, mettxtpref, ax_range,
+                                    metrics_1d={"std": np.std}, detrend=True)
+
+        olap_est = int(EZVARS_aux['find360olap']['start']['value'] + \
+                   EZVARS_aux['find360olap']['step']['value'] * np.argmax(results['std']))
+
+        print(f"Finished processing: {index_dir}, estimated overlap: {olap_est}")
+        EZVARS_aux['axes-list'][outerloopdirname].update({index_dir: olap_est})
+        olap_estimates.append(olap_est)
+
         print("****************************************")
 
     #shutil.rmtree(EZVARS_aux['find360olap']['tmp-dir'])

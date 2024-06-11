@@ -48,15 +48,6 @@ EZVARS_aux['find360olap'] = {
         'ezdefault': 500,
         'type': restrict_value((0, None), dtype=int),
         'help': "Maximum overlap"},
-    # 'overlaps_template':{
-    #     '/data/CTscans/scan00/z00' : 100,
-    #     '/data/CTscans/scan00/z01' : 102,
-    #     '/data/CTscans/scan_foo/bar' : 102,
-    #     '/data/CTscans/scan_foo/blah' : 99,
-    # },
-    # # placeholder for overlaps to be populated by find_360_overlap or user
-    # 'overlaps':{
-    # }
 }
 
 EZVARS_aux['stitch360'] = {
@@ -90,40 +81,36 @@ EZVARS_aux['stitch360'] = {
         'help': "Comma-separated list of overlaps without spaces"},
 }
 
-EZVARS['half-acq'] = {
-    'dir': {
-        'ezdefault': "Absolute path to half acqusition mode working directory",
+EZVARS_aux['half-acq'] = {
+    'workdir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo-halfacq"),
         'type': str,
         'help': "TODO"},
-    'task_type':{
+    'task_type': {
         'ezdefault': 0,
-        'type': restrict_value((0, 2), dtype=int),
+        'type': restrict_value((0, 1), dtype=int),
         'help': "What task was requested by user"},
+    'list_dirs': {
+        'ezdefault': '/data/foo',
+        'type': str,
+        'help': "Comma-separated list of outer loop directories which contain"
+                "subdirectories with inner loop CT scans"},
+    'list_olaps': {
+        'ezdefault': '50',
+        'type': str,
+        'help': "Comma-separated list of overlaps for every subdirectory in"
+                "lexicographic order"},
 }
 
-# EZVARS_aux['overlaps_template'] = {
-#     # template of structure to store overlap for each collection of half acq mode scan
-#     # e.g. input/outer_loop_scan1/z00, input/outer_loop_scan1/z01
-#     # input/outer_loop_scan2/z00, input/outer_loop_scan2/z01
-#     # must be 2 depth levels only to work correctly as import/export
-#     # functions only work with double nested dictionaries
-#     'path2_outer_scan': {
-#         'relative_path2_inner_loop_scan': 100
-#     },
-#     '/data/CTscans/scan00': {
-#         'z00': 100,
-#         'z01': 102,
-#     },
-#     '/data/CTscans/scan01': {
-#         'z00': 99,
-#         'z01': 102,
-#         'z02': 103,
-#     },
-# }
-
-# EZVARS_aux['overlaps'] = {
-#     # to be populated by user or by find_360_overlap
-# }
+EZVARS_aux['axes-list'] = {
+   # Template:
+   #  '/data/TestBatch/foo2': # outer loop scan
+   #      {'z02': 40, 'z03': 41},  # several inner loop scans
+   # '/data/TestBatch':
+   #     {'z02': 0},
+   #   '/data/TestBatch/TestCT360-single-tifs':
+   #      {z00: 50, z01: 49}
+}
 
 EZVARS['inout'] = {
     'input-dir': {
@@ -131,11 +118,11 @@ EZVARS['inout'] = {
         'type': str, 
         'help': "TODO"},
     'output-dir': {
-        'ezdefault': os.path.join(os.path.expanduser('~'),"rec"), 
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo-rec"),
         'type': str, 
         'help': "TODO"},
     'tmp-dir' : {
-        'ezdefault': os.path.join(os.path.expanduser('~'),"tmp-ezufo"),
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo-tmp"),
         'type': str, 
         'help': "TODO"},
     'darks-dir': {

@@ -305,7 +305,7 @@ def stitch(first, second, axis, crop):
 
 ############################## HALF ACQ ##############################
 def stitch_float32_output(first, second, axis, crop):
-    print(f"Stitching two halves with axis {axis}, cropping by {crop}")
+    #print(f"Stitching two halves with axis {axis}, cropping by {crop}")
     h, w = first.shape
     if axis > w // 2:
         axis = w - axis
@@ -391,7 +391,7 @@ def main_360_mp_depth2():
     print(f"Found the {num_sets} directories in the input with relative paths: {ctdirs_rel_paths}")
 
     # prepare axis and crop arrays
-    if EZVARS_aux['stitch360']['olap_list']['value'] == 0:
+    if EZVARS_aux['stitch360']['olap_switch']['value'] == 0:
         dax = np.round(np.linspace(EZVARS_aux['stitch360']['olap_min']['value'],
                                EZVARS_aux['stitch360']['olap_max']['value'], num_sets)).astype(np.int16)
     else:

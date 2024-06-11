@@ -7,6 +7,8 @@ import numpy as np
 from functools import partial
 from tofu.util import read_image
 from scipy.stats import skew, kurtosis
+from scipy import signal
+from tofu.util import TiffSequenceReader
 
 
 def sum_abs_gradient(data):
@@ -153,6 +155,39 @@ def evaluate_metrics(images, out_prefix, *args, **kwargs):
 
     return merged
 
+def evaluate_metrics_360_olap_search(images, out_prefix, x_data, *args, **kwargs):
+    """Evaluate many *images* which are either file paths or images. *out_prefix* is the metric
+    results file prefix. Metric names and file extension are appended to it. *args* and *kwargs* are
+    passed to :func:`evaluate`. Except for *fwhm* in *kwargs* which is used to filter low
+    frequencies from the results.
+    """
+    dtrnd = kwargs.pop("detrend") if "detrend" in kwargs else None
+    merged = {}
+    results = []
+    tfs = TiffSequenceReader(images)
+    for i in range(tfs.num_images):
+        results.append(evaluate(tfs.read(i), *args, ** kwargs))
+    tfs.close()
+
+    for metric in results[0].keys():
+        merged[metric] = np.array([result[metric] for result in results])
+        if dtrnd:
+            # Filter out slope
+            merged[metric] = signal.detrend(merged[metric])
+        if out_prefix is not None:
+            path = out_prefix + "/" + metric
+            np.savetxt(path+".txt", merged[metric], fmt="%g")
+            #and plot it as well
+            from matplotlib import pyplot as plt
+            plt.figure()
+            plt.plot(x_data, merged[metric])
+            plt.title(metric)
+            plt.grid()
+            plt.savefig(path + ".tif")
+            plt.close()
+
+    return merged
+
 
 def process(
     names,
@@ -172,7 +207,7 @@ def process(
         if num_images_for_stats == -1:
             num_images_for_stats = len(names)
         extrema_metrics = {"min": np.min, "max": np.max}
-        extrema = evaluate_metrics(
+        extrema = evaluate_metrics_new(
             names[:num_images_for_stats],
             None,
             metrics_1d=extrema_metrics,
@@ -186,7 +221,7 @@ def process(
 
     metrics_1d, metrics_2d = make_metrics(metric_names)
 
-    return evaluate_metrics(
+    return evaluate_metrics_new(
         names,
         out_prefix,
         metrics_1d=metrics_1d,
@@ -210,6 +245,7 @@ def main():
         size_str = str(axis_length)
     print("Data size: {}".format(size_str))
     kwargs = {"entropy": {"bins": args.entropy_num_bins}}
+    print(kwargs)
     for key in kwargs.keys():
         kwargs["m" + key] = kwargs[key]
 
@@ -362,7 +398,7 @@ def parse_args():
         "--metrics",
         type=str,
         nargs="*",
-        choices=METRICS_1D.keys() + METRICS_2D.keys(),
+        choices=METRICS_1D.keys() ,#+ METRICS_2D.keys(),
         help="Metrics to determine (m prefix means -metric)",
     )
     parser.add_argument("--x-from", type=float, help="X data from")
