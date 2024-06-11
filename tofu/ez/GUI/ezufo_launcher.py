@@ -7,7 +7,6 @@ from tofu.ez.GUI.Main.centre_of_rotation import CentreOfRotationGroup
 from tofu.ez.GUI.Main.filters import FiltersGroup
 from tofu.ez.GUI.Advanced.ffc import FFCGroup
 from tofu.ez.GUI.Advanced.find_large_spots import FindSpotsGroup
-from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
 from tofu.ez.GUI.Main.phase_retrieval import PhaseRetrievalGroup
 from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
@@ -23,6 +22,8 @@ from tofu.ez.GUI.Stitch_tools_tab.ez_360_multi_stitch_qt import MultiStitch360Gr
 from tofu.ez.GUI.Stitch_tools_tab.ezstitch_qt import EZStitchGroup
 from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
+from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
+# from tofu.ez.Helpers.batch_search_stitch_360 import Batcher
 from tofu.ez.GUI.login_dialog import Login
 
 
@@ -105,6 +106,7 @@ class GUI(qtw.QWidget):
         self.find_spots_group = FindSpotsGroup()
 
         self.batch360_group = Batch360Group()
+        self.batch360_group.load_values()
 
         # Stitch_tools_tab Tab 
         # ----((P)Completed up to here) ----#
@@ -147,7 +149,9 @@ class GUI(qtw.QWidget):
         self.centre_of_rotation_group.enable_360Batch_Group_in_Advanced.connect(
             self.batch360_group.enable_by_trigger_from_main_tab
         )
-
+        # self.batch360_group.imported_good_list_signal.connect(
+        #     self.update_overlap_list
+        # )
 
 
         finish = qtw.QAction("Quit", self)
@@ -227,6 +231,7 @@ class GUI(qtw.QWidget):
         self.advanced_group.load_values()
         self.optimization_group.load_values()
         self.overlap_group.load_values()
+        self.batch360_group.load_values()
 
     def switch_to_image_tab(self):
         """

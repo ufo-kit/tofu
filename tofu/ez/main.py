@@ -18,6 +18,7 @@ from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.main_half_acq_mode import main_360
+from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch
 
 LOG = logging.getLogger(__name__)
 

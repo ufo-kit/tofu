@@ -61,7 +61,7 @@ class MultiStitch360Group(QGroupBox):
         self.olap_val_int_rButton.setText('Min/max and interpolate between')
         self.olap_val_int_rButton.clicked.connect(self.set_rButton)
         self.olap_val_int_rButton.setChecked(True)
-        self.set_rButton()
+
 
         self.olap_val_dict_rButton = QRadioButton()
         self.olap_val_dict_rButton.setText('Table')
@@ -121,6 +121,7 @@ class MultiStitch360Group(QGroupBox):
         self.save_parameters_button.clicked.connect(self.save_parameters_button_pressed)
 
         self.set_layout()
+        self.set_rButton()
 
     def set_layout(self):
         layout = QGridLayout()
@@ -262,25 +263,21 @@ class MultiStitch360Group(QGroupBox):
         dict_entry = EZVARS_aux['stitch360']['olap_switch']
         if self.olap_val_int_rButton.isChecked():
             add_value_to_dict_entry(dict_entry, 0)
-            self.axis_bottom_label.setEnabled(True)
             self.axis_bottom_entry.setEnabled(True)
-            self.axis_top_label.setEnabled(True)
             self.axis_top_entry.setEnabled(True)
             self.olap_list_entry.setEnabled(False)
             self.axis_group.setEnabled(False)
         elif self.olap_val_dict_rButton.isChecked():
             add_value_to_dict_entry(dict_entry, 1)
-            self.axis_bottom_label.setEnabled(False)
             self.axis_bottom_entry.setEnabled(False)
-            self.axis_top_label.setEnabled(False)
             self.axis_top_entry.setEnabled(False)
             self.olap_list_entry.setEnabled(False)
             self.axis_group.setEnabled(True)
         elif self.olap_val_list_rButton.isChecked():
             add_value_to_dict_entry(dict_entry, 2)
-            self.axis_bottom_label.setEnabled(False)
+#            self.axis_bottom_label.setEnabled(False)
             self.axis_bottom_entry.setEnabled(False)
-            self.axis_top_label.setEnabled(False)
+#            self.axis_top_label.setEnabled(False)
             self.axis_top_entry.setEnabled(False)
             self.olap_list_entry.setEnabled(True)
             self.axis_group.setEnabled(False)

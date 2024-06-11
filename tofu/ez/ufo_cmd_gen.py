@@ -34,7 +34,7 @@ def check_vcrop(cmd, vcrop, y, yheight, ystep):
 
 def check_bigtif(cmd, swi):
     if not swi:
-        cmd += " bytes-per-file=0"
+        cmd += " bytes-per-file=0 tiff-bigtiff=False"
     return cmd
 
 def get_pr_ufo_cmd(nviews, wh):

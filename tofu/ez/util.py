@@ -155,20 +155,27 @@ def extract_values_from_dict(dict):
                     new_dict[key1][key2]['value'] = str(reverse_tupleize()(dict_entry['value']))
                 else:                      
                     new_dict[key1][key2]['value'] = dict_entry['value']
-    return new_dict                   
+            if key1 == 'axes-list':
+                new_dict[key1][key2] = dict_entry
+    return new_dict
 
 def import_values_from_dict(dict, imported_dict):
     """Import a list of values from an imported dictionary"""
     for key1 in imported_dict.keys():
-        for key2 in imported_dict[key1].keys():
-            add_value_to_dict_entry(dict[key1][key2],imported_dict[key1][key2]['value'])
+        if key1 == 'axes-list':
+            for key2 in imported_dict[key1].keys():
+                dict[key1][key2] = imported_dict[key1][key2]
+        else:
+            for key2 in imported_dict[key1].keys():
+                add_value_to_dict_entry(dict[key1][key2], imported_dict[key1][key2]['value'])
+
 
 def export_values(filePath):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
     combined_dict = {}
+    combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
     combined_dict['sections'] = extract_values_from_dict(SECTIONS)
     combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
-    combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
     print("Exporting values to: " + str(filePath))
     #print(combined_dict)
     write_yaml(filePath, combined_dict)
@@ -183,16 +190,6 @@ def import_values(filePath):
     import_values_from_dict(EZVARS_aux, yaml_data['ezvars_aux'])
     print("Finished importing")
     #print(yaml_data)
-
-def import_values_from_params(self, params):
-    """
-    Import parameter values into their corresponding dictionary entries
-    """             
-    print("Entering parameter values into dictionary entries")
-    map_param_to_dict_entries = self.createMapFromParamsToDictEntry()
-    for p in params:
-        dict_entry = map_param_to_dict_entries[str(p)]
-        add_value_to_dict_entry(dict_entry, params[str(p)])
 
 def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and not os.path.exists(EZVARS['inout']['output-dir']['value']):
