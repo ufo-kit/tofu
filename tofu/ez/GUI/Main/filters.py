@@ -37,24 +37,24 @@ class FiltersGroup(QGroupBox):
         self.remove_spots_median_checkBox.setToolTip(
             "Uses median method to locate bad spots \n You must tune parameters in the Advanced tab"
         )
-        self.remove_spots_median_checkBox.stateChanged.connect(self.remove_spots_method_median_triggers_advanced)
+        self.remove_spots_median_checkBox.stateChanged.connect(self.remove_spots_method_median_checked)
 
         self.threshold_label = QLabel()
         self.threshold_label.setText("Threshold (prominence of the spot) [counts]")
         self.threshold_label.setToolTip(
-            "Outliers which will be considered as the part of the large spot"
+            "Outliers will be considered as the part of the large spot"
         )
         self.threshold_entry = QLineEdit()
         self.threshold_entry.setValidator(get_double_validator())
         self.threshold_entry.editingFinished.connect(self.set_threshold)
-        
-        self.spot_blur_label = QLabel()
-        self.spot_blur_label.setText("Low-pass filter sigma [pixels]")
-        self.spot_blur_label.setToolTip('Low pass filter will be applied before spots are identified'
-                                        'to remove very low-frequency changes in the flat field')
-        self.spot_blur_entry = QLineEdit()
-        self.spot_blur_entry.setValidator(get_double_validator())
-        self.spot_blur_entry.editingFinished.connect(self.set_spot_blur)
+
+        self.find_spots_gau_sigma_label = QLabel()
+        self.find_spots_gau_sigma_label.setText("Low-pass filter sigma [pixels]")
+        self.find_spots_gau_sigma_label.setToolTip('Low pass filter will be applied before spots are identified \n'
+                                        'to remove slow changes in the flat field intensity')
+        self.find_spots_gau_sigma_entry = QLineEdit()
+        self.find_spots_gau_sigma_entry.setValidator(get_int_validator())
+        self.find_spots_gau_sigma_entry.editingFinished.connect(self.set_find_spots_gau_sigma)
 
         self.enable_RR_checkbox = QCheckBox()
         self.enable_RR_checkbox.setText("Enable ring removal")
@@ -155,9 +155,9 @@ class FiltersGroup(QGroupBox):
         remove_spots_layout.addWidget(self.remove_spots_checkBox, 0, 0)
         remove_spots_layout.addWidget(self.remove_spots_median_checkBox, 0, 1)
         remove_spots_layout.addWidget(self.threshold_label, 1, 0)
-        remove_spots_layout.addWidget(self.threshold_entry, 1, 1, 1, 7)
-        remove_spots_layout.addWidget(self.spot_blur_label, 2, 0)
-        remove_spots_layout.addWidget(self.spot_blur_entry, 2, 1, 1, 7)
+        remove_spots_layout.addWidget(self.threshold_entry, 1, 1)
+        remove_spots_layout.addWidget(self.find_spots_gau_sigma_label, 2, 0)
+        remove_spots_layout.addWidget(self.find_spots_gau_sigma_entry, 2, 1)
         remove_spots_groupbox.setLayout(remove_spots_layout)
         layout.addWidget(remove_spots_groupbox)
 
@@ -188,7 +188,7 @@ class FiltersGroup(QGroupBox):
     def load_values(self):
         self.remove_spots_checkBox.setChecked(EZVARS['filters']['rm_spots']['value'])
         self.threshold_entry.setText(str(SECTIONS['find-large-spots']['spot-threshold']['value']))
-        self.spot_blur_entry.setText(str(SECTIONS['find-large-spots']['gauss-sigma']['value']))
+        self.find_spots_gau_sigma_entry.setText(str(SECTIONS['find-large-spots']['gauss-sigma']['value']))
         self.enable_RR_checkbox.setChecked(EZVARS['RR']['enable-RR']['value'])
         if EZVARS['RR']['use-ufo']['value'] == True:
             self.use_LPF_rButton.setChecked(True)
@@ -218,11 +218,11 @@ class FiltersGroup(QGroupBox):
         add_value_to_dict_entry(dict_entry, self.threshold_entry.text())
         self.threshold_entry.setText(str(dict_entry['value']))
 
-    def set_spot_blur(self):
-        LOG.debug(self.spot_blur_entry.text())
+    def set_find_spots_gau_sigma(self):
+        LOG.debug(self.find_spots_gau_sigma_entry.text())
         dict_entry = SECTIONS['find-large-spots']['gauss-sigma']
-        add_value_to_dict_entry(dict_entry, self.spot_blur_entry.text())
-        self.spot_blur_entry.setText(str(dict_entry['value']))
+        add_value_to_dict_entry(dict_entry, self.find_spots_gau_sigma_entry.text())
+        self.find_spots_gau_sigma_entry.setText(str(dict_entry['value']))
 
     def set_ring_removal(self):
         LOG.debug("RR: " + str(self.enable_RR_checkbox.isChecked()))
@@ -290,5 +290,5 @@ class FiltersGroup(QGroupBox):
         add_value_to_dict_entry(dict_entry, self.SNR_entry.text())
         self.SNR_entry.setText(str(dict_entry['value']))
 
-    def remove_spots_method_median_triggers_advanced(self):
+    def remove_spots_method_median_checked(self):
         self.mask_method_median_checked.emit()
