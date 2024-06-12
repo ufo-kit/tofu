@@ -572,7 +572,7 @@ class ConfigGroup(QGroupBox):
             fileName = fileName + ".yaml"
         # Create and write to YAML file based on given fileName
         # self.yaml_io.write_yaml(fileName, parameters.params)
-        export_values(fileName)
+        export_values(fileName, ['ezvars', 'tofu', 'ezvars_aux'])
 
     def import_settings_button_pressed(self):
         """
@@ -590,7 +590,7 @@ class ConfigGroup(QGroupBox):
         )
         if filePath:
             LOG.debug("Import YAML Path: " + filePath)
-            import_values(filePath)
+            import_values(filePath, ['ezvars', 'tofu', 'ezvars_aux'])
             self.signal_update_vals_from_params.emit()
 
     def reco_button_pressed(self):

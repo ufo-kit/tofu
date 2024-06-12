@@ -1,10 +1,9 @@
 import logging
 from PyQt5.QtWidgets import (QGridLayout, QLabel, QGroupBox, QLineEdit, QRadioButton, QPushButton,
-    QFileDialog, QMessageBox)
+    QFileDialog, QMessageBox,QCheckBox)
 from PyQt5.QtCore import pyqtSignal
-from tofu.ez.params import EZVARS
 from tofu.ez.params import EZVARS_aux
-from tofu.ez.util import add_value_to_dict_entry, read_yaml
+from tofu.ez.util import add_value_to_dict_entry, import_values
 import os
 from shutil import rmtree
 
@@ -42,14 +41,13 @@ class Batch360Group(QGroupBox):
 
         # Import file with overlaps
         self.open_olap_file_button = QPushButton()
-        self.open_olap_file_button.setText("Import file with overlaps")
+        self.open_olap_file_button.setText("Import file with overlaps with the structure\n"
+                                           "as produced by 360-find-overlaps tool")
         self.open_olap_file_button.pressed.connect(self.import_olap_file_button_pressed)
         self.open_olap_file_button.setEnabled(True)
         h = 'Example of the file structure (as created by 360-find-overlap tool):'
-        h += '/data/TestBatch/Test2/z02: 40 \n'
-        h += '/data/TestBatch/Test2/z03: 42 \n'
-        h += '/data/TestBatch/TestCT360/z00: 50 \n'
-        h += '/data/TestBatch/TestCT360/z01: 48'
+        # h += '/data/TestBatch/foo2': # outer loop scan
+        # h += '    {'z02': 40, 'z03': 41},'  # several inner loop scans
         self.open_olap_file_button.setToolTip(h)
 
 
@@ -66,18 +64,24 @@ class Batch360Group(QGroupBox):
         )
         self.halfacq_dir_entry.editingFinished.connect(self.set_halfacq_dir)
 
+        self.doVertStitching_checkbox = QCheckBox("Invoke vertical stitching when "
+                                         "reconstruction is over. \n You must set"
+                                         "params correctly in the Stitch Tab.")
+        self.doVertStitching_checkbox.clicked.connect(self.set_doVertStitching)
+
         self.set_layout()
 
     def set_layout(self):
         layout = QGridLayout()
 
-        layout.addWidget(self.info_label, 0, 0)
+        layout.addWidget(self.info_label, 0, 0, 1, 2)
         layout.addWidget(self.stitch_and_reco_rButton, 1, 0)
         layout.addWidget(self.open_olap_file_button, 1, 1)
         layout.addWidget(self.find_olap_stitch_and_reco_rButton, 2, 0)
 
         layout.addWidget(self.halfacq_dir_select, 3, 0)
         layout.addWidget(self.halfacq_dir_entry, 3, 1)
+        layout.addWidget(self.doVertStitching_checkbox, 4, 0, 1, 2)
 
         self.setLayout(layout)
 
@@ -87,6 +91,8 @@ class Batch360Group(QGroupBox):
         #I have to mention everything in load_values so that they will be initialized properly
         self.dummy_text.setText(str(EZVARS_aux['half-acq']['list_dirs']['value']))
         self.dummy_text.setText(str(EZVARS_aux['half-acq']['list_olaps']['value']))
+        self.doVertStitching_checkbox.setChecked(
+            EZVARS_aux['half-acq']['dovertsti']['value'])
 
     def enable_by_trigger_from_main_tab(self):
         if not self.isEnabled():
@@ -148,6 +154,10 @@ class Batch360Group(QGroupBox):
             QMessageBox.information(self, "Problem", "Directory for stitched data already exists \n"
                                                      "and not empty. Clean it and try again.")
 
+    def set_doVertStitching(self):
+        add_value_to_dict_entry(EZVARS_aux['half-acq']['dovertsti'],
+                                self.doVertStitching_checkbox.isChecked())
+
     def import_olap_file_button_pressed(self):
         """
         Loads external settings from .yaml file specified by user
@@ -162,40 +172,40 @@ class Batch360Group(QGroupBox):
             options=options,
         )
         if filePath:
-            # structure holding path to CT set and respective overlap
+            # structure holding path to CT sets and respective overlaps
             # must be imported
             try:
-                self.olap_lists = read_yaml(filePath)
+                self.olap_lists = import_values(filePath, ['ezvars_aux'])
             except:
                 QMessageBox.information(self, "Cannot import list of overlaps")
-            self.list_is_good = self.check_olap_lists()
-            if self.list_is_good:
-                self.imported_good_list_signal.emit(self.olap_lists)
-                self.set_olap_list_in_EZVARS_aux()
-                print(EZVARS_aux)
-
-    def check_olap_lists(self):
-        try:
-            self.outloopscans = set([os.path.dirname(w) for w in self.olap_lists.keys()])
-        except:
-            QMessageBox.information(self, "Cannot extract directory names from the supplied file")
-            return False
-        try:
-            for o in self.olap_lists.values(): int(o)
-        except:
-            QMessageBox.information(self, "One of overlaps is not a number in the supplied file")
-            return False
-#        EZVARS_aux['half-acq']['list_dirs']['value'] = ''
-        return True
-
-    def set_olap_list_in_EZVARS_aux(self):
-        for outscan in self.outloopscans:
-            EZVARS_aux['axes-list'].update({str(outscan) : {} })
-            for j in self.olap_lists.keys():
-                tmp = os.path.dirname(j)
-                if outscan == tmp:
-                    EZVARS_aux['axes-list'][outscan][j[len(tmp)+1:]] = self.olap_lists[j]
-        return
+#             self.list_is_good = self.check_olap_lists()
+#             if self.list_is_good:
+#                 self.imported_good_list_signal.emit(self.olap_lists)
+#                 self.set_olap_list_in_EZVARS_aux()
+#                 print(EZVARS_aux)
+#
+#     def check_olap_lists(self):
+#         try:
+#             self.outloopscans = set([os.path.dirname(w) for w in self.olap_lists.keys()])
+#         except:
+#             QMessageBox.information(self, "Cannot extract directory names from the supplied file")
+#             return False
+#         try:
+#             for o in self.olap_lists.values(): int(o)
+#         except:
+#             QMessageBox.information(self, "One of overlaps is not a number in the supplied file")
+#             return False
+# #        EZVARS_aux['half-acq']['list_dirs']['value'] = ''
+#         return True
+#
+#     def set_olap_list_in_EZVARS_aux(self):
+#         for outscan in self.outloopscans:
+#             EZVARS_aux['axes-list'].update({str(outscan) : {} })
+#             for j in self.olap_lists.keys():
+#                 tmp = os.path.dirname(j)
+#                 if outscan == tmp:
+#                     EZVARS_aux['axes-list'][outscan][j[len(tmp)+1:]] = self.olap_lists[j]
+#         return
 
 
 

@@ -100,6 +100,10 @@ EZVARS_aux['half-acq'] = {
         'type': str,
         'help': "Comma-separated list of overlaps for every subdirectory in"
                 "lexicographic order"},
+    'dovertsti': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
 }
 
 EZVARS_aux['axes-list'] = {

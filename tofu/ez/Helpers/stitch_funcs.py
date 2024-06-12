@@ -421,17 +421,6 @@ def main_360_mp_depth2():
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 
 
-
-
-
-
-
-def clear_tmp(parameters):
-    tmp_dirs = os.listdir(parameters['ezstitch_temp_dir'])
-    for tmp_dir in tmp_dirs:
-        shutil.rmtree(os.path.join(parameters['ezstitch_temp_dir'], tmp_dir))
-
-
 def check_last_index(axis_list):
     """
     Return the index of item in list immediately before first 'None' type

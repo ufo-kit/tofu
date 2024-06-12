@@ -195,24 +195,15 @@ class Overlap360Group(QGroupBox):
             os.makedirs(EZVARS_aux['find360olap']['tmp-dir']['value'])
         if not os.path.exists(EZVARS_aux['find360olap']['output-dir']['value']):
             os.makedirs(EZVARS_aux['find360olap']['output-dir']['value'])
-        result = find_overlap()
-        print(result)
+        find_overlap()
         params_file_path = os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
-                                            'tofuez_params.yaml')
-        export_values(params_file_path)
-        if result is None:
-            QMessageBox.information(self, "Problem", "Didn't find any valid CT sets in the input dir")
+                                            'ezvars_aux_from_overlap_search.yaml')
+        if export_values(params_file_path, ['ezvars_aux']):
+            QMessageBox.information(self, "Problem", "Cannot export to yaml file")
         else:
-            fname = os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
-                                     'estimated_overlaps.txt')
-            file_out = open(fname, 'w')
-            yaml.dump(result, file_out)
-            file_out.close()
-            QMessageBox.information(self, "Done", "List of processed directories saved in \n"
-                                    f"{fname}")
-
-
-            
+            QMessageBox.information(self, "Done", "List of processed directories and "
+                                                  "overlap estimates saved in \n"
+                                                  f"{params_file_path}")
 
 
     def help_button_pressed(self):
@@ -237,7 +228,7 @@ class Overlap360Group(QGroupBox):
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getOpenFileName(filter="*.yaml")
         try:
-            import_values(params_file_path[0])
+            import_values(params_file_path[0], ['ezvars_aux'])
             self.load_values()
         except FileNotFoundError:
             print("You need to select a valid input file")
@@ -254,7 +245,7 @@ class Overlap360Group(QGroupBox):
         else:
             file_path = params_file_path[0]
         try:
-            export_values(file_path)
+            export_values(file_path, ['ezvars_aux'])
             print("Parameters file saved at: " + str(file_path))
         except FileNotFoundError:
             print("You need to select a directory and use a valid file name")

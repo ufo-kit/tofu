@@ -363,8 +363,8 @@ class MultiStitch360Group(QGroupBox):
         main_360_mp_depth2()
 
         params_file_path = os.path.join(EZVARS_aux['stitch360']['output-dir']['value'],
-                                        'tofuez_params.yaml')
-        export_values(params_file_path)
+                                        'ezvars_aux_from_multistitch.yaml')
+        export_values(params_file_path, ['ezvars_aux'])
 
         print("==== Waiting for Next Task ====")
         QMessageBox.information(self, "Finished", "Finished stitching")
@@ -398,7 +398,7 @@ class MultiStitch360Group(QGroupBox):
         LOG.debug("Import params button clicked")
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getOpenFileName(filter="*.yaml")
-        import_values(params_file_path[0])
+        import_values(params_file_path[0], ['ezvars_aux'])
         self.load_values()
 
     def save_parameters_button_pressed(self):
@@ -413,7 +413,7 @@ class MultiStitch360Group(QGroupBox):
         else:
             file_path = params_file_path[0]
         try:
-            export_values(file_path)
+            export_values(file_path, ['ezvars_aux'])
             print("Parameters file saved at: " + str(file_path))
         except FileNotFoundError:
             print("You need to select a directory and use a valid file name")

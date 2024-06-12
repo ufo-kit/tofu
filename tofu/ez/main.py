@@ -17,8 +17,7 @@ from tofu.ez.util import *
 from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.ez.main_half_acq_mode import main_360
-from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch
+from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
 
 LOG = logging.getLogger(__name__)
 
@@ -201,23 +200,32 @@ def execute_reconstruction(fdt_names):
     W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
     # W is an array of tuples (path to CT directory, directory type)
 
-    # if we deal with unstitched half acqusition mode data we have to more
+    # if we deal with unstitched half acqusition mode data we have to
+    # convert all frames to ordinary 180-deg projections first
     if EZVARS['COR']['search-method']['value'] == 5:
-        flag = main_360(W, lvl0)
-        if EZVARS['half-acq']['task_type']['value'] == 0:
-            print(f"Estimated overlaps are saved in "
-                  f"{os.path.join(EZVARS['half-acq']['dir']['value'], 'olap_estimates.yaml')}")
-            return 0
-        else:
-            if flag:
-                print(f"Something went wrong with stitching of half acq mode data "
-                      "examine output for errors")
-            else:
-                # at this point we have stitched projections in working directory for batch 360
-                # so we get CT sets from this directory instead of the original input
-                W, lvl0 = get_CTdirs_list(EZVARS['half-acq']['dir']['value'], fdt_names)
-                # and set axis of rotation parameter to image middle column
-                add_value_to_dict_entry(EZVARS['COR']['search-method']['value'], 4)
+        if EZVARS_aux['half-acq']['task_type']['value']: # task_type=1 meaning overlaps must be estimated first
+            print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+            print('# Estimating overlaps for half acq mode data sets')
+            print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+            if batch_olap_search():
+                print(f"Something went wrong during search of overlaps in half acq mode data")
+                return
+        # at this point we are ready to stitch projections
+        #list of overlaps is in the EZVARS_aux['axes-list']
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        print("# Batch stitching half acq mode data sets")
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        if batch_stitch():
+            print(f"Something went wrong with stitching of half acq mode data "
+                  "examine output for errors")
+            return
+        # at this point we have stitched projections in working directory for batch 360
+        # so we get CT sets from this directory instead of the original input
+        W, lvl0 = get_CTdirs_list(os.path.join(
+            EZVARS_aux['half-acq']['workdir']['value'], 'stitched-data'), fdt_names)
+        # and set axis of rotation parameter to the image's middle column
+        add_value_to_dict_entry(EZVARS['COR']['search-method'], 4)
+        # then proceed as usual
 
     # get list of already reconstructed sets
     recd_sets = findSlicesDirs(EZVARS['inout']['output-dir']['value'])
@@ -270,7 +278,7 @@ def execute_reconstruction(fdt_names):
             clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
             # call function which formats commands for this data set
             nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh)
-            save_params(setid, ax, nviews, wh)
+            # save_params(setid, ax, nviews, wh)
             print('{}\t{}'.format('CTset:', ctset[0]))
             print('{:>30}\t{}'.format('Axis:', ax))
             print("{:>30}\t{}, dimensions: {}".format("Number of projections:", nviews, wh))

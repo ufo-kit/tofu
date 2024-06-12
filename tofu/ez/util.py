@@ -170,25 +170,60 @@ def import_values_from_dict(dict, imported_dict):
                 add_value_to_dict_entry(dict[key1][key2], imported_dict[key1][key2]['value'])
 
 
-def export_values(filePath):
+def export_values(filePath, param_sections):
     """Export the values of EZVARS and SECTIONS as a YAML file"""
     combined_dict = {}
-    combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
-    combined_dict['sections'] = extract_values_from_dict(SECTIONS)
-    combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
+    for i in param_sections:
+        if i == 'ezvars_aux':
+            try:
+                combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
+            except:
+                print("Error: cannot import EZVARS_aux section")
+                return 1
+        if i == 'tofu':
+            try:
+                combined_dict['sections'] = extract_values_from_dict(SECTIONS)
+            except:
+                print("Error: cannot import TOFU section")
+                return 1
+        if i == 'ezvars':
+            try:
+                combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
+            except:
+                print("Error: cannot import EZVARS section")
+                return 1
     print("Exporting values to: " + str(filePath))
     #print(combined_dict)
     write_yaml(filePath, combined_dict)
     print("Finished exporting")
+    return 0
     
-def import_values(filePath):
+def import_values(filePath, param_sections):
     """Import EZVARS and SECTIONS from a YAML file"""
+    #param_sections options: ['ezvars', 'tofu', 'ezvars_aux']
     print("Importing values from: " +str(filePath))
     yaml_data = dict(read_yaml(filePath))
-    import_values_from_dict(EZVARS, yaml_data['ezvars'])
-    import_values_from_dict(SECTIONS, yaml_data['sections'])
-    import_values_from_dict(EZVARS_aux, yaml_data['ezvars_aux'])
+    for i in param_sections:
+        if i == 'ezvars':
+            try:
+                import_values_from_dict(EZVARS, yaml_data['ezvars'])
+            except:
+                print("Error: cannot import EZVARS section")
+                return 1
+        if i == 'tofu':
+            try:
+                import_values_from_dict(SECTIONS, yaml_data['sections'])
+            except:
+                print("Error: cannot import TOFU section")
+                return 1
+        if i == 'ezvars_aux':
+            try:
+                import_values_from_dict(EZVARS_aux, yaml_data['ezvars_aux'])
+            except:
+                print("Error: cannot import EZVARS_aux section")
+                return 1
     print("Finished importing")
+    return 0
     #print(yaml_data)
 
 def save_params(ctsetname, ax, nviews, wh):

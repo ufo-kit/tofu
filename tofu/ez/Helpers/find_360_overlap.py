@@ -54,11 +54,12 @@ def find_overlap():
         dirflats2 = EZVARS['inout']['path2-shared-flats2']['value']
 
     sin_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos')
-    if EZVARS_aux['find360olap']['doRR']['value']:
-        sinfilt_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos-filt')
-    # print(sin_tmp_dir)
     if not os.path.exists(sin_tmp_dir):
         os.makedirs(sin_tmp_dir)
+    if EZVARS_aux['find360olap']['doRR']['value']:
+        sinfilt_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos-filt')
+        if not os.path.exists(sinfilt_tmp_dir):
+            os.makedirs(sinfilt_tmp_dir)
 
     ax_range = range(EZVARS_aux['find360olap']['start']['value'],
                      EZVARS_aux['find360olap']['stop']['value'] + EZVARS_aux['find360olap']['step']['value'],
@@ -121,22 +122,21 @@ def find_overlap():
         # create interpolated sinogram of flats on the
         # same row as we use for the projections, then flat/dark correction
         print('Creating stitched sinograms...')
-
-
         for axis in ax_range:
             cro = EZVARS_aux['find360olap']['stop']['value'] - axis
             if axis > M // 2:
                 cro = axis - EZVARS_aux['find360olap']['start']['value']
             A = stitch_float32_output(
                 tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro)
-            print(A.shape[1])
             tifffile.imwrite(os.path.join(
                 sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
 
-            # perform reconstructions for each sinogram and save to output folder
-
+        # formatting reco command
         sin_width = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]
         sin_height = get_image_shape(get_filenames(sin_tmp_dir)[0])[-2]
+        outname = os.path.join(os.path.join(
+            EZVARS_aux['find360olap']['output-dir']['value'], setid, f"{index_dir}-sli.tif"))
+        cmd = f'tofu tomo --axis {sin_width // 2} --output {os.path.join(outname)}'
 
         if EZVARS_aux['find360olap']['doRR']['value']:
             print("Applying ring removal filter")
@@ -146,18 +146,14 @@ def find_overlap():
                                    sin_height, sin_width)
             print(rrcmd)
             os.system(rrcmd)
-            sin_tmp_dir = sinfilt_tmp_dir
+            cmd += f' --sinograms {sinfilt_tmp_dir}'
+        else:
+            cmd += f' --sinograms {sin_tmp_dir}'
 
         print('Reconstructing slices...')
-        #reco_axis = M-EZVARS_aux['find360olap']['stop'] # equivalently half-width
-
-        outname = os.path.join(os.path.join(
-            EZVARS_aux['find360olap']['output-dir']['value'], setid, f"{index_dir}-sli.tif"))
-
-        cmd = f'tofu tomo --axis {sin_width//2} --sinograms {sin_tmp_dir}'
-        cmd +=' --output '+os.path.join(outname)
         os.system(cmd)
 
+        # estimating overlap
         #points, maximum = evaluate_images_simp(outname, "std")
         mettxtpref = os.path.join(os.path.join(
             EZVARS_aux['find360olap']['output-dir']['value'], setid))
@@ -168,10 +164,10 @@ def find_overlap():
         olap_est = int(EZVARS_aux['find360olap']['start']['value'] + \
                    EZVARS_aux['find360olap']['step']['value'] * np.argmax(results['std']))
 
+        print("****************************************")
         print(f"Finished processing: {index_dir}, estimated overlap: {olap_est}")
         EZVARS_aux['axes-list'][outerloopdirname].update({index_dir: olap_est})
         olap_estimates.append(olap_est)
-
         print("****************************************")
 
     #shutil.rmtree(EZVARS_aux['find360olap']['tmp-dir'])

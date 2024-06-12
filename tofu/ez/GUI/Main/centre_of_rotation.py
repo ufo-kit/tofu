@@ -157,6 +157,9 @@ class CentreOfRotationGroup(QGroupBox):
             self.auto_minimize_rButton.setChecked(False)
             self.define_axis_rButton.setChecked(False)
             self.image_midpoint_rButton.setChecked(True)
+        elif EZVARS['COR']['search-method']['value'] == 5:
+            self.unstitched360_rButton.setChecked(True)
+            self.enable_360Batch_Group_in_Advanced.emit()
 
     def set_search_rotation(self):
         LOG.debug(self.search_rotation_entry.text())
