@@ -670,21 +670,26 @@ SECTIONS['general-reconstruction'] = {
 
 SECTIONS['find-large-spots'] = {
     'method': {
+        'ezdefault': 'grow',
         'default': 'grow',
         'type': str,
         'help': "Data type of the output volume",
         'choices': ['grow', 'median']},
     # median arguments
     'median-width': {
+        'ezdefault': 50,
         'default': 10,
         'type': int,
         'help': "Width of the median filter (operates only horizontally)"},
     'median-direction': {
+        'ezdefault': 'horizontal',
         'default': 'horizontal',
+        'type': str,
         'choices': ['both', 'horizontal', 'vertical'],
         'help': "Median filtering direction (in case of 'both', it will be a disk with radius "
                 "'median-width' / 2"},
     'dilation-disk-radius': {
+        'ezdefault': 2,
         'default': 2,
         'type': int,
         'help': "Dilation disk radius used for enlarging the found mask"},
@@ -721,6 +726,7 @@ SECTIONS['find-large-spots'] = {
         'type': str,
         'help': "Path where to store the blurred input"},
     'averaging-mode': {
+        'ezdefault': 'median',
         'default': 'first',
         'type': str,
         'help': "How to average input images (first = take a single image, "
@@ -735,12 +741,14 @@ SECTIONS['find-large-spots'] = {
                 "In case of 'median' method and if 'spot-threshold' is not set, it is "
                 "automatically set to 99-th percentile of the histogram."},
     'spot-threshold-mode': {
+        'ezdefault': 'absolute',
         'default': 'absolute',
         'type': str,
         'help': "Pixels must be either \"below\", \"above\" the spot threshold, or \
                 their \"absolute\" value can be compared",
         'choices': ['below', 'above', 'absolute']},
     'grow-threshold': {
+        'ezdefault': 0.0,
         'default': 0.0,
         'type': float,
         'help': "Spot growing threshold (if 0 it will be set to FWTM times noise standard "

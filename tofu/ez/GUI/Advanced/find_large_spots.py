@@ -4,13 +4,12 @@ from PyQt5.QtWidgets import (
     QLabel,
     QGroupBox,
     QLineEdit,
-    QCheckBox,
-    QRadioButton,
+    QComboBox,
     QHBoxLayout,
 )
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.ez.util import add_value_to_dict_entry, get_int_validator
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -31,23 +30,85 @@ class FindSpotsGroup(QGroupBox):
         self.median_width_entry = QLineEdit()
         self.median_width_entry.setValidator(get_int_validator())
         self.median_width_entry.editingFinished.connect(self.set_median_width)
+        self.median_width_entry.setToolTip(SECTIONS['find-large-spots']['median-width']['help'])
+        self.median_width_label.setToolTip(SECTIONS['find-large-spots']['median-width']['help'])
+
+        self.dil_disk_rad_label = QLabel("Dilation disk radius")
+        self.dil_disk_rad_entry = QLineEdit()
+        self.dil_disk_rad_entry.setValidator(get_int_validator())
+        self.dil_disk_rad_entry.editingFinished.connect(self.set_dil_disk_rad)
+        self.dil_disk_rad_entry.setToolTip(SECTIONS['find-large-spots']['dilation-disk-radius']['help'])
+        self.dil_disk_rad_label.setToolTip(SECTIONS['find-large-spots']['dilation-disk-radius']['help'])
+
+        self.grow_thr_label = QLabel("Grow threshold")
+        self.grow_thr_entry = QLineEdit()
+        self.grow_thr_entry.setValidator(get_double_validator())
+        self.grow_thr_entry.editingFinished.connect(self.set_grow_thr)
+        self.grow_thr_entry.setToolTip(SECTIONS['find-large-spots']['grow-threshold']['help'])
+        self.grow_thr_label.setToolTip(SECTIONS['find-large-spots']['grow-threshold']['help'])
+
+        self.spot_thr_sign_label = QLabel("Spot threshold mode")
+        self.spot_thr_sign_entry = QComboBox()
+        self.spot_thr_sign_entry.addItems(["absolute", "above", "below"])
+        self.spot_thr_sign_entry.setCurrentText("absolute")
+        self.spot_thr_sign_entry.currentIndexChanged.connect(self.set_spot_thr_sign)
+        self.spot_thr_sign_entry.setToolTip(SECTIONS['find-large-spots']['spot-threshold-mode']['help'])
+        self.spot_thr_sign_label.setToolTip(SECTIONS['find-large-spots']['spot-threshold-mode']['help'])
+
+        self.median_direction_label = QLabel("Median direction")
+        self.median_direction_entry = QComboBox()
+        self.median_direction_entry.addItems(['both', 'horizontal', 'vertical'])
+        self.median_direction_entry.setCurrentText("horizontal")
+        self.median_direction_entry.currentIndexChanged.connect(self.set_median_direction)
+        self.median_direction_entry.setToolTip(SECTIONS['find-large-spots']['median-direction']['help'])
+        self.median_direction_label.setToolTip(SECTIONS['find-large-spots']['median-direction']['help'])
+
+
+
 
         self.set_layout()
 
     def set_layout(self):
         layout = QGridLayout()
 
+        # layout.addWidget(self.median_width_label, 1, 0)
+        # layout.addWidget(self.median_width_entry, 1, 1, 1, 3)
+        #
+        # layout.addWidget(self.grow_thr_label, 2, 0)
+        # layout.addWidget(self.grow_thr_entry, 2, 1, 1, 3)
+        #
+        # layout.addWidget(self.dil_disk_rad_label, 3, 0)
+        # layout.addWidget(self.dil_disk_rad_entry, 3, 1, 1, 3)
+        #
+        # layout.addWidget(self.spot_thr_sign_label, 4, 0)
+        # layout.addWidget(self.spot_thr_sign_entry, 4, 1)
+        #
+        # layout.addWidget(self.median_direction_label, 4, 2)
+        # layout.addWidget(self.median_direction_entry, 4, 3)
+
         layout.addWidget(self.median_width_label, 1, 0)
         layout.addWidget(self.median_width_entry, 1, 1)
 
+        layout.addWidget(self.grow_thr_label, 2, 0)
+        layout.addWidget(self.grow_thr_entry, 2, 1)
+
+        layout.addWidget(self.dil_disk_rad_label, 3, 0)
+        layout.addWidget(self.dil_disk_rad_entry, 3, 1)
+
+        layout.addWidget(self.spot_thr_sign_label, 4, 0)
+        layout.addWidget(self.spot_thr_sign_entry, 4, 1)
+
+        layout.addWidget(self.median_direction_label, 5, 0)
+        layout.addWidget(self.median_direction_entry, 5, 1)
+
         self.setLayout(layout)
 
-    # def load_values(self):
-    #     self.enable_sinFFC_checkbox.setChecked(EZVARS['flat-correction']['smart-ffc']['value'])
-    #     self.set_method_from_params()
-    #     self.eigen_pco_repetitions_entry.setText(str(EZVARS['flat-correction']['eigen-pco-reps']['value']))
-    #     self.eigen_pco_downsample_entry.setText(str(EZVARS['flat-correction']['eigen-pco-downsample']['value']))
-    #     self.downsample_entry.setText(str(EZVARS['flat-correction']['downsample']['value']))
+    def load_values(self):
+        self.median_width_entry.setText(str(SECTIONS['find-large-spots']['median-width']['value']))
+        self.dil_disk_rad_entry.setText(str(SECTIONS['find-large-spots']['dilation-disk-radius']['value']))
+        self.grow_thr_entry.setText(str(SECTIONS['find-large-spots']['grow-threshold']['value']))
+        self.spot_thr_sign_entry.setCurrentText(str(SECTIONS['find-large-spots']['spot-threshold-mode']['value']))
+        self.median_direction_entry.setCurrentText(str(SECTIONS['find-large-spots']['median-direction']['value']))
 
     def enable_by_trigger_from_main_tab(self):
         dict_entry = SECTIONS['find-large-spots']['method']
@@ -57,12 +118,24 @@ class FindSpotsGroup(QGroupBox):
         else:
             self.setEnabled(False)
             add_value_to_dict_entry(dict_entry, 'grow')
-        print(SECTIONS['find-large-spots']['method']['value'])
-
-    def enable_median(self):
-        return 0
 
     def set_median_width(self):
         dict_entry = SECTIONS['find-large-spots']['median-width']
         add_value_to_dict_entry(dict_entry, self.threshold_entry.text())
-        self.threshold_entry.setText(str(dict_entry['value']))
+
+    def set_dil_disk_rad(self):
+        dict_entry = SECTIONS['find-large-spots']['dilation-disk-radius']
+        add_value_to_dict_entry(dict_entry, self.dil_disk_rad_entry.text())
+
+    def set_grow_thr(self):
+        dict_entry = SECTIONS['find-large-spots']['grow-threshold']
+        add_value_to_dict_entry(dict_entry, self.grow_thr_entry.text())
+
+    def set_spot_thr_sign(self):
+        dict_entry = SECTIONS['find-large-spots']['spot-threshold-mode']
+        self.spot_thr_sign_entry.currentText()
+        add_value_to_dict_entry(dict_entry, self.spot_thr_sign_entry.currentText())
+
+    def set_median_direction(self):
+        dict_entry = SECTIONS['find-large-spots']['median-direction']
+        add_value_to_dict_entry(dict_entry, self.median_direction_entry.currentText())

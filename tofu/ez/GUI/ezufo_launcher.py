@@ -104,6 +104,7 @@ class GUI(qtw.QWidget):
         self.nlmdn_group.load_values()
 
         self.find_spots_group = FindSpotsGroup()
+        self.find_spots_group.load_values()
 
         self.batch360_group = Batch360Group()
         self.batch360_group.load_values()
@@ -223,6 +224,7 @@ class GUI(qtw.QWidget):
         LOG.debug("Update Values from dictionary entries")
         self.centre_of_rotation_group.load_values()
         self.filters_group.load_values()
+        self.find_spots_group.load_values()
         self.ffc_group.load_values()
         self.phase_retrieval_group.load_values()
         self.binning_group.load_values()
