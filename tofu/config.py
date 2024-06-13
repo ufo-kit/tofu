@@ -734,7 +734,7 @@ SECTIONS['find-large-spots'] = {
         'choices': ['first', 'mean', 'median']},
     'spot-threshold': {
         'default': 0.0,
-        'ezdefault': 2000,
+        'ezdefault': 2000.0,
         'type': float,
         'help': "Pixels with grey value larger than this (after blurring in case of 'grow' method "
                 "and after median subtraction in case of 'median' method) are considered as spots. "

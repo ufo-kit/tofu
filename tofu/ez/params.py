@@ -25,7 +25,7 @@ EZVARS_aux['find360olap'] = {
         'type': str,
         'help': "TODO"},
     'tmp-dir' : {
-        'ezdefault': os.path.join(os.path.expanduser('~'),"tmp-ezufo"),
+        'ezdefault': os.path.join(os.path.expanduser('~'),"ezufo_360_tmp"),
         'type': str,
         'help': "TODO"},
     'doRR': {
@@ -48,6 +48,10 @@ EZVARS_aux['find360olap'] = {
         'ezdefault': 500,
         'type': restrict_value((0, None), dtype=int),
         'help': "Maximum overlap"},
+    'patch-size': {
+        'ezdefault': 2048,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Size of the slice fragment which will be reconstructed"},
 }
 
 EZVARS_aux['stitch360'] = {
@@ -76,7 +80,7 @@ EZVARS_aux['stitch360'] = {
         'type': restrict_value((0, None), dtype=int),
         'help': ""},
     'olap_list': {
-        'ezdefault': '0',
+        'ezdefault': '',
         'type': str,
         'help': "Comma-separated list of overlaps without spaces"},
 }
@@ -242,21 +246,26 @@ EZVARS['COR'] = {
         'type': str, 
         'help': "TODO"},
     'patch-size': {
-        'ezdefault': 256,
+        'ezdefault': 800,
         'type': restrict_value((0,None),dtype=int), 
         'help': "Size of reconstructed patch [pixel]"},
     'search-row': {
-        'ezdefault': 100,
+        'ezdefault': 400,
         'type': restrict_value((0,None), dtype=int), 
         'help': "Search in slice from row number"},
     'min-std-apply-pr': {
         'ezdefault': False,
         'type': bool,
         'help': "Will apply phase retreival but only while estimating the axis"},
+    # 'user-defined-ax': {
+    #     'ezdefault': 0.0,
+    #     'type': restrict_value((0,None), dtype=float),
+    #     'help': "Axis is in column No [pixel]"},
     'user-defined-ax': {
-        'ezdefault': 0.0,
-        'type': restrict_value((0,None),dtype=float),
-        'help': "Axis is in column No [pixel]"},
+        'ezdefault': '0.0',
+        'type': str,
+        'help': "Axis is in column No [pixel] \n"
+                "If "},
     'user-defined-dax': {
         'ezdefault': 0.0,
         'type': float, 
@@ -276,10 +285,14 @@ EZVARS['filters'] = {
         'ezdefault': False,
         'type': bool, 
         'help': "TODO-G"},
-    'spot-threshold': {
-        'ezdefault': 1000,
-        'type': restrict_value((0,None), dtype=float),
-        'help': "TODO-G"}
+    'rm_spots_use_median': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO-G"},
+    # 'spot-threshold': {
+    #     'ezdefault': 1000,
+    #     'type': restrict_value((0,None), dtype=float),
+    #     'help': "TODO-G"}
 }
 
 EZVARS['RR'] = {

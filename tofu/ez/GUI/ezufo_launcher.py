@@ -186,8 +186,8 @@ class GUI(qtw.QWidget):
         advanced_layout.addWidget(self.ffc_group, 2, 1)
 
         helpers_layout = qtw.QGridLayout()
-        helpers_layout.addWidget(self.ezmview_group, 0, 0)
-        helpers_layout.addWidget(self.overlap_group, 0, 1)
+        helpers_layout.addWidget(self.ezmview_group, 0, 1)
+        helpers_layout.addWidget(self.overlap_group, 0, 0)
         helpers_layout.addWidget(self.multi_stitch_group, 1, 0)
         helpers_layout.addWidget(self.ezstitch_group, 1, 1)
 

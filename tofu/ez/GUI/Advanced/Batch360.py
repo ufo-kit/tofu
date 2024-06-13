@@ -133,7 +133,9 @@ class Batch360Group(QGroupBox):
         #if os.path.exists(self.EZVARS_aux['find360olap']['tmp-dir']) and \
         if len(os.listdir(tmp_dir)) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, 'WARNING', "Directory exists and not empty. Is it SAFE to delete it?", qm.Yes | qm.No)
+            rep = qm.question(self, 'WARNING', "Directory exists and not empty. \n "
+                                               "Clean it or select a new directory. \n"
+                                               "Is it SAFE to delete directory now?", qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
                     rmtree(tmp_dir)
@@ -147,12 +149,12 @@ class Batch360Group(QGroupBox):
         dict_entry = EZVARS_aux['half-acq']['workdir']
         text = self.halfacq_dir_entry.text().strip()
         add_value_to_dict_entry(dict_entry, text)
-        stitched_data_dir_name = os.path.join(EZVARS_aux['half-acq']['workdir']['value'],
-                                              'stitched-data')
-        if os.path.exists(stitched_data_dir_name) and \
-                len(os.listdir(stitched_data_dir_name)) > 0:
-            QMessageBox.information(self, "Problem", "Directory for stitched data already exists \n"
-                                                     "and not empty. Clean it and try again.")
+        # stitched_data_dir_name = os.path.join(EZVARS_aux['half-acq']['workdir']['value'],
+        #                                       'stitched-data')
+        # if os.path.exists(stitched_data_dir_name) and \
+        #         len(os.listdir(stitched_data_dir_name)) > 0:
+        #     QMessageBox.information(self, "Problem", "Directory for stitched data already exists \n"
+        #                                              "and not empty. Clean it and try again.")
 
     def set_doVertStitching(self):
         add_value_to_dict_entry(EZVARS_aux['half-acq']['dovertsti'],
