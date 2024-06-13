@@ -90,7 +90,7 @@ class MultiStitch360Group(QGroupBox):
         self.axis_group = QGroupBox("Enter overlaps manually")
         self.axis_group.clicked.connect(self.set_axis_group)
 
-        self.num_subdirs = 12
+        self.num_subdirs = 24
         for i in range(self.num_subdirs):
             setattr(self, f"axis_z{i:03d}_label", QLabel(f"Dir {i:02d}:"))
             entry = QLineEdit()
@@ -126,86 +126,64 @@ class MultiStitch360Group(QGroupBox):
     def set_layout(self):
         layout = QGridLayout()
 
-        layout.addWidget(self.input_dir_button, 0, 0, 1, 4)
-        layout.addWidget(self.input_dir_entry, 1, 0, 1, 4)
-        layout.addWidget(self.output_dir_button, 4, 0, 1, 4)
-        layout.addWidget(self.output_dir_entry, 5, 0, 1, 4)
-        layout.addWidget(self.crop_checkbox, 6, 0, 1, 4)
+        # layout.addWidget(self.input_dir_button, 0, 0, 1, 4)
+        # layout.addWidget(self.input_dir_entry, 1, 0, 1, 4)
+        # layout.addWidget(self.output_dir_button, 4, 0, 1, 4)
+        # layout.addWidget(self.output_dir_entry, 5, 0, 1, 4)
+        # layout.addWidget(self.crop_checkbox, 6, 0, 1, 4)
 
+        layout.addWidget(self.input_dir_button, 0, 0, 1, 1)
+        layout.addWidget(self.input_dir_entry, 0, 1, 1, 7)
+        layout.addWidget(self.output_dir_button, 1, 0, 1, 1)
+        layout.addWidget(self.output_dir_entry, 1, 1, 1, 7)
+        layout.addWidget(self.crop_checkbox, 2, 0, 1, 4)
+        l=3
         olap_switch_layout = QGridLayout()
         olap_switch_layout.addWidget(self.olap_val_switch_label, 0, 0)
         olap_switch_layout.addWidget(self.olap_val_int_rButton, 0, 1)
         olap_switch_layout.addWidget(self.olap_val_dict_rButton, 0, 2)
         olap_switch_layout.addWidget(self.olap_val_list_rButton, 0, 3)
         self.oval_val_switch_group.setLayout(olap_switch_layout)
-        layout.addWidget(self.oval_val_switch_group, 7, 0, 1, 4)
-
+        layout.addWidget(self.oval_val_switch_group, l, 0, 1, 8)
+        l= 4
         # Interpolate overlaps
-        layout.addWidget(self.axis_bottom_label, 8, 0)
-        layout.addWidget(self.axis_bottom_entry, 8, 1)
-        layout.addWidget(self.axis_top_label, 8, 2)
-        layout.addWidget(self.axis_top_entry, 8, 3)
+        layout.addWidget(self.axis_bottom_label, l, 0)
+        layout.addWidget(self.axis_bottom_entry, l, 1)
+        layout.addWidget(self.axis_top_label, l, 2)
+        layout.addWidget(self.axis_top_entry, l, 3)
 
         # self.axis_group.setCheckable(True)
         # self.axis_group.setChecked(False)
 
         # Table of overlaps
+        l=5
         axis_layout = QGridLayout()
-
-        axis_layout.addWidget(self.axis_z000_label, 0, 0)
-        axis_layout.addWidget(self.axis_z000_entry, 0, 1)
-        axis_layout.addWidget(self.axis_z006_label, 0, 2)
-        axis_layout.addWidget(self.axis_z006_entry, 0, 3)
-
-        axis_layout.addWidget(self.axis_z001_label, 1, 0)
-        axis_layout.addWidget(self.axis_z001_entry, 1, 1)
-        axis_layout.addWidget(self.axis_z007_label, 1, 2)
-        axis_layout.addWidget(self.axis_z007_entry, 1, 3)
-
-        axis_layout.addWidget(self.axis_z002_label, 2, 0)
-        axis_layout.addWidget(self.axis_z002_entry, 2, 1)
-        axis_layout.addWidget(self.axis_z008_label, 2, 2)
-        axis_layout.addWidget(self.axis_z008_entry, 2, 3)
-
-        axis_layout.addWidget(self.axis_z003_label, 3, 0)
-        axis_layout.addWidget(self.axis_z003_entry, 3, 1)
-        axis_layout.addWidget(self.axis_z009_label, 3, 2)
-        axis_layout.addWidget(self.axis_z009_entry, 3, 3)
-
-        axis_layout.addWidget(self.axis_z004_label, 4, 0)
-        axis_layout.addWidget(self.axis_z004_entry, 4, 1)
-        axis_layout.addWidget(self.axis_z010_label, 4, 2)
-        axis_layout.addWidget(self.axis_z010_entry, 4, 3)
-
-        axis_layout.addWidget(self.axis_z005_label, 5, 0)
-        axis_layout.addWidget(self.axis_z005_entry, 5, 1)
-        axis_layout.addWidget(self.axis_z011_label, 5, 2)
-        axis_layout.addWidget(self.axis_z011_entry, 5, 3)
+        ncols = 6
+        for i in range(self.num_subdirs):
+            axis_layout.addWidget(getattr(self, f"axis_z{i:03d}_label"), 
+                                  i % ncols, i // ncols * 2)
+            axis_layout.addWidget(getattr(self, f"axis_z{i:03d}_entry"), 
+                                  i % ncols, i // ncols * 2 + 1)
         self.axis_group.setLayout(axis_layout)
+        layout.addWidget(self.axis_group, l, 0, 1, 8)
+        l = 6
+        layout.addWidget(self.olap_list_label, l, 0)
+        layout.addWidget(self.olap_list_entry, l, 1, 1, 7)
 
-        self.axis_group.setTabOrder(self.axis_z000_entry, self.axis_z001_entry)
-        self.axis_group.setTabOrder(self.axis_z001_entry, self.axis_z002_entry)
-        self.axis_group.setTabOrder(self.axis_z002_entry, self.axis_z003_entry)
-        self.axis_group.setTabOrder(self.axis_z003_entry, self.axis_z004_entry)
-        self.axis_group.setTabOrder(self.axis_z004_entry, self.axis_z005_entry)
-        self.axis_group.setTabOrder(self.axis_z005_entry, self.axis_z006_entry)
-        self.axis_group.setTabOrder(self.axis_z006_entry, self.axis_z007_entry)
-        self.axis_group.setTabOrder(self.axis_z007_entry, self.axis_z008_entry)
-        self.axis_group.setTabOrder(self.axis_z008_entry, self.axis_z009_entry)
-        self.axis_group.setTabOrder(self.axis_z009_entry, self.axis_z010_entry)
-        self.axis_group.setTabOrder(self.axis_z010_entry, self.axis_z011_entry)
+        # layout.addWidget(self.help_button, 11, 0)
+        # layout.addWidget(self.delete_button, 11, 1)
+        # layout.addWidget(self.stitch_button, 11, 2, 1, 2)
+        #
+        # layout.addWidget(self.import_parameters_button, 12, 0, 1, 2)
+        # layout.addWidget(self.save_parameters_button, 12, 2, 1, 2)
+        l = 7
+        layout.addWidget(self.delete_button, l, 0)
+        layout.addWidget(self.help_button, l, 1)
+        layout.addWidget(self.import_parameters_button, l, 2)
+        layout.addWidget(self.save_parameters_button, l, 3)
+        layout.addWidget(self.stitch_button, l, 4)
 
-        layout.addWidget(self.axis_group, 9, 0, 1, 4)
 
-        layout.addWidget(self.olap_list_label, 10, 0)
-        layout.addWidget(self.olap_list_entry, 10, 1, 1, 3)
-
-        layout.addWidget(self.help_button, 11, 0)
-        layout.addWidget(self.delete_button, 11, 1)
-        layout.addWidget(self.stitch_button, 11, 2, 1, 2)
-
-        layout.addWidget(self.import_parameters_button, 12, 0, 1, 2)
-        layout.addWidget(self.save_parameters_button, 12, 2, 1, 2)
 
         self.setLayout(layout)
 
@@ -218,6 +196,7 @@ class MultiStitch360Group(QGroupBox):
         self.set_rButton_from_params()
 
     def set_rButton_from_params(self):
+        t = "One of the imported overlaps is not a number"
         if EZVARS_aux['stitch360']['olap_switch']['value'] == 0:
             self.olap_val_int_rButton.setChecked(True)
             self.olap_val_dict_rButton.setChecked(False)
@@ -227,7 +206,7 @@ class MultiStitch360Group(QGroupBox):
             self.olap_val_dict_rButton.setChecked(True)
             self.olap_val_list_rButton.setChecked(False)
             vals = EZVARS_aux['stitch360']['olap_list']['value'].split(',')
-            if self.check_that_int_failed(vals):
+            if self.check_that_int_failed(vals, t):
                 return
             else:
                 self.set_table_vals(vals)
@@ -237,18 +216,18 @@ class MultiStitch360Group(QGroupBox):
             self.olap_val_list_rButton.setChecked(True)
             self.olap_list_entry.setText(EZVARS_aux['stitch360']['olap_list']['value'])
             vals = EZVARS_aux['stitch360']['olap_list']['value'].split(',')
-            if self.check_that_int_failed(vals):
+            if self.check_that_int_failed(vals, t):
                 return
             else:
                 self.set_table_vals(vals)
 
-    def check_that_int_failed(self, vals):
+    def check_that_int_failed(self, vals, t):
         for i in range(len(vals)):
             try:
                 int(vals[i])
             except:
                 qm = QMessageBox()
-                qm.warning(self, '', "One of the imported overlaps is not a number")
+                qm.warning(self, '', t)
                 return 1
         return 0
 

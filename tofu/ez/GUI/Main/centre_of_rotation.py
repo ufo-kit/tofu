@@ -1,8 +1,11 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QRadioButton, QGroupBox, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import (QGridLayout, QLabel, QRadioButton,
+            QGroupBox, QLineEdit, QCheckBox, QMessageBox)
 from PyQt5.QtCore import pyqtSignal
 from tofu.ez.params import EZVARS
-from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_tuple_validator, get_double_validator
+from tofu.ez.util import (add_value_to_dict_entry,
+                          get_int_validator, get_tuple_validator,
+                          get_double_validator, check_that_num_failed)
 
 LOG = logging.getLogger(__name__)
 
@@ -56,16 +59,25 @@ class CentreOfRotationGroup(QGroupBox):
         self.size_of_recon_entry.editingFinished.connect(self.set_size_of_reco)
 
         self.axis_col_label = QLabel()
-        self.axis_col_label.setText("Axis is in column No [pixel]")
+        self.axis_col_label.setText("Axis is in column No [pixel]. \n ")
+        ttt = "Axis is in column No [pixel, can be fractional number]. \n " \
+              "This can be one number or a string of comma separated numbers \n" \
+              "one per each data set in the input directory"
+        self.axis_col_label.setToolTip(ttt)
         self.axis_col_entry = QLineEdit()
-        self.axis_col_entry.setValidator(get_double_validator())
+        #self.axis_col_entry.setValidator(get_double_validator())
         self.axis_col_entry.editingFinished.connect(self.set_axis_col)
+        self.axis_col_entry.setToolTip(ttt)
 
         self.inc_axis_label = QLabel()
         self.inc_axis_label.setText("Increment axis every reconstruction")
         self.inc_axis_entry = QLineEdit()
         self.inc_axis_entry.setValidator(get_double_validator())
         self.inc_axis_entry.editingFinished.connect(self.set_axis_inc)
+        ttt = "This value will be added to the user-defined axis for \n" \
+              "to get axis for each consecutive data set in the input directory"
+        self.inc_axis_entry.setToolTip(ttt)
+        self.inc_axis_label.setToolTip(ttt)
 
         self.image_midpoint_rButton = QRadioButton()
         self.image_midpoint_rButton.setText("Use image midpoint (for half-acquisition)")
@@ -185,6 +197,9 @@ class CentreOfRotationGroup(QGroupBox):
         add_value_to_dict_entry(dict_entry, self.auto_minimize_apply_pr.isChecked())
 
     def set_axis_col(self):
+        if check_that_num_failed(self.axis_col_entry.text()):
+            qm = QMessageBox()
+            qm.warning(self, 'Input error', 'One of values in the Set axis entry is not number')
         LOG.debug(self.axis_col_entry.text())
         dict_entry = EZVARS['COR']['user-defined-ax']
         add_value_to_dict_entry(dict_entry, str(self.axis_col_entry.text()))
@@ -195,3 +210,6 @@ class CentreOfRotationGroup(QGroupBox):
         dict_entry = EZVARS['COR']['user-defined-dax']
         add_value_to_dict_entry(dict_entry, str(self.inc_axis_entry.text()))
         self.inc_axis_entry.setText(str(dict_entry['value']))
+
+
+

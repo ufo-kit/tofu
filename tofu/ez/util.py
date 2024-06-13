@@ -235,14 +235,14 @@ def save_params(ctsetname, ax, nviews, wh):
     if not EZVARS['inout']['dryrun']['value'] and EZVARS['inout']['save-params']['value']:
         # Dump the params .yaml file
         try:
-            yaml_output_filepath = os.path.join(tmp, "parameters.yaml")
-            export_values(yaml_output_filepath)
+            filepath = os.path.join(tmp, "tofuez_all_parameters.yaml")
+            export_values(filepath, ['ezvars', 'tofu', 'ezvars_aux'])
             
         except FileNotFoundError:
             print("Something went wrong when exporting the .yaml parameters file")
 
         # Dump the reco.params output file
-        fname = os.path.join(tmp, 'reco.params')
+        fname = os.path.join(tmp, 'reco_params_simple.txt')
         f = open(fname, 'w')
         f.write('*** General ***\n')
         f.write('Input directory {}\n'.format(EZVARS['inout']['input-dir']['value']))
@@ -251,8 +251,10 @@ def save_params(ctsetname, ax, nviews, wh):
         f.write('CT set {}\n'.format(ctsetname))
         if EZVARS['COR']['search-method']['value'] == 1 or EZVARS['COR']['search-method']['value'] == 2:
             f.write('Center of rotation {} (auto estimate)\n'.format(ax))
-        else:
+        elif EZVARS['COR']['search-method']['value'] == 3:
             f.write('Center of rotation {} (user defined)\n'.format(ax))
+        else:
+            f.write('Center of rotation {} (half acq mode data)\n'.format(ax))
         f.write('Dimensions of projections {} x {} (height x width)\n'.format(wh[0], wh[1]))
         f.write('Number of projections {}\n'.format(nviews))
         f.write('*** Preprocessing ***\n')
@@ -265,6 +267,15 @@ def save_params(ctsetname, ax, nviews, wh):
             f.write(' Remove large spots enabled\n')
             f.write('  threshold {}\n'.format(SECTIONS['find-large-spots']['spot-threshold']['value']))
             f.write('  sigma {}\n'.format(SECTIONS['find-large-spots']['gauss-sigma']['value']))
+            if EZVARS['filters']['rm_spots_use_median']['value']:
+                f.write('  Median filter was used to find spots')
+                for i in SECTIONS['find-large-spots'].keys():
+                    f.write(f"\t{i}\t{SECTIONS['find-large-spots'][i]['value']}\n")
+            #     f.write(f"\tMedian width {SECTIONS['find-large-spots']['median-width']['value']}\n")
+            #     f.write(f"\tDilation disk radius {SECTIONS['find-large-spots']['dilation-disk-radius']['value']}\n")
+            #     f.write(f"\tGrow threshold {SECTIONS['find-large-spots']['grow-threshold']['value']}\n")
+            # self.spot_thr_sign_entry.setCurrentText(str(SECTIONS['find-large-spots']['spot-threshold-mode']['value']))
+            # self.median_direction_entry.setCurrentText(str(SECTIONS['find-large-spots']['median-direction']['value']))
         else:
             f.write('  Remove large spots disabled\n')
         if EZVARS['retrieve-phase']['apply-pr']['value']:
@@ -272,7 +283,7 @@ def save_params(ctsetname, ax, nviews, wh):
             f.write('  energy {} keV\n'.format(SECTIONS['retrieve-phase']['energy']['value']))
             f.write('  pixel size {:0.1f} um\n'.format(SECTIONS['retrieve-phase']['pixel-size']['value'] * 1e6))
             f.write('  sample-detector distance {} m\n'.format(SECTIONS['retrieve-phase']['propagation-distance']['value'][0]))
-            f.write('  delta/beta ratio {}\n'.format(SECTIONS['retrieve-phase']['regularization-rate']['value']))
+            f.write(f" delta/beta ratio {10**SECTIONS['retrieve-phase']['regularization-rate']['value']}\n")
         else:
             f.write('  Phase retrieval disabled\n')
         f.write('*** Ring removal ***\n')
@@ -467,6 +478,16 @@ def write_yaml(filePath, params):
         yaml.dump(params, file)
         file.close()
 
+def check_that_num_failed(vals):
+    vals = vals.split(',')
+    # check that all comma separated entries
+    # in the input string
+    for i in range(len(vals)):
+        try:
+            float(vals[i])
+        except:
+            return 1
+    return 0
 
 
 

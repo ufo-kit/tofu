@@ -104,6 +104,8 @@ class FindSpotsGroup(QGroupBox):
         self.setLayout(layout)
 
     def load_values(self):
+        if EZVARS['filters']['rm_spots_use_median']['value']:
+            self.isEnabled(True)
         self.median_width_entry.setText(str(SECTIONS['find-large-spots']['median-width']['value']))
         self.dil_disk_rad_entry.setText(str(SECTIONS['find-large-spots']['dilation-disk-radius']['value']))
         self.grow_thr_entry.setText(str(SECTIONS['find-large-spots']['grow-threshold']['value']))
@@ -114,14 +116,16 @@ class FindSpotsGroup(QGroupBox):
         dict_entry = SECTIONS['find-large-spots']['method']
         if not self.isEnabled():
             self.setEnabled(True)
+            add_value_to_dict_entry(EZVARS['filters']['rm_spots_use_median'], True)
             add_value_to_dict_entry(dict_entry, 'median')
         else:
             self.setEnabled(False)
+            add_value_to_dict_entry(EZVARS['filters']['rm_spots_use_median'], False)
             add_value_to_dict_entry(dict_entry, 'grow')
 
     def set_median_width(self):
         dict_entry = SECTIONS['find-large-spots']['median-width']
-        add_value_to_dict_entry(dict_entry, self.threshold_entry.text())
+        add_value_to_dict_entry(dict_entry, self.median_width_entry.text())
 
     def set_dil_disk_rad(self):
         dict_entry = SECTIONS['find-large-spots']['dilation-disk-radius']

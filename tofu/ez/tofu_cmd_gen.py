@@ -325,3 +325,21 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
     # Optimization
     cmd += gpu_optim()
     return cmd
+
+def get_find_spots_cmd(tmpdir):
+    ######### CREATE MASK #########
+    flat1_file = os.path.join(tmpdir, "flat-median.tif")
+    mask_file = os.path.join(tmpdir, "mask.tif")
+    cmd = 'tofu find-large-spots'
+    cmd += f" --images {flat1_file}"
+    cmd += f" --output {mask_file} --output-bytes-per-file 0"
+    cmd += f" --spot-threshold {SECTIONS['find-large-spots']['spot-threshold']['value']}"
+    cmd += f" --gauss-sigma {SECTIONS['find-large-spots']['gauss-sigma']['value']}"
+    if SECTIONS['find-large-spots']['method']['value'] == 'median':
+        cmd += f" --method median"
+        cmd += f" --spot-threshold-mode {SECTIONS['find-large-spots']['spot-threshold-mode']['value']}"
+        cmd += f" --median-direction {SECTIONS['find-large-spots']['median-direction']['value']}"
+        cmd += f" --median-width {SECTIONS['find-large-spots']['median-width']['value']}"
+        cmd += f" --grow-threshold {SECTIONS['find-large-spots']['grow-threshold']['value']}"
+        cmd += f" --dilation-disk-radius {SECTIONS['find-large-spots']['dilation-disk-radius']['value']}"
+    return cmd

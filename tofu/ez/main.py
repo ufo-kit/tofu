@@ -94,6 +94,8 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
     ###################################################
     if EZVARS['filters']['rm_spots']['value']:  # generate commands to remove sci. spots from projections
+        cmds.append('echo " - Creating mask of large bad spots in flat field"')
+        cmds.append(get_find_spots_cmd(EZVARS['inout']['tmp-dir']['value']))
         cmds.append('echo " - Flat-correcting and removing large spots"')
         cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews)
         # reset location of input data
@@ -210,6 +212,8 @@ def execute_reconstruction(fdt_names):
             if batch_olap_search():
                 print(f"Something went wrong during search of overlaps in half acq mode data")
                 return
+            export_values(os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
+                                       'ezvars_aux_from_overlap_search.yaml' ), ['ezvars_aux'])
         # at this point we are ready to stitch projections
         #list of overlaps is in the EZVARS_aux['axes-list']
         print('# +++++++++++++++++++++++++++++++++++++++++++++++')
@@ -231,9 +235,26 @@ def execute_reconstruction(fdt_names):
     recd_sets = findSlicesDirs(EZVARS['inout']['output-dir']['value'])
     # find axis of rotation and populate list of reconstruction commands
     print("*********** AXIS INFO ************")
+    # if axis is defined by user then make appropriate list
+    if EZVARS['COR']['search-method']['value'] == 3:
+        axlist = EZVARS['COR']['user-defined-ax']['value'].split(',')
+        if len(axlist) == 1:
+            ax = float(axlist[0])
+            axlist = []
+            for i in range(len(W)):
+                axlist.append(ax + i*EZVARS['COR']['user-defined-dax']['value'])
+        else:
+            if len(W) != len(axlist):
+                return "There are more data sets in the input dir than entries in the list of axes"
+            for i in range(len(axlist)):
+                axlist[i] = float(axlist[i])
+        print(axlist)
+    num_proc_sets = 0
     for i, ctset in enumerate(W):
         # ctset is a tuple containing a path and a type (3 or 4)
         if not already_recd(ctset[0], lvl0, recd_sets):
+            setid = ctset[0][len(lvl0) + 1:]
+            num_proc_sets += 1
             # determine initial number of projections and their shape
             path2proj = os.path.join(ctset[0], fdt_names[2])
             nviews, wh, multipage = get_dims(path2proj)
@@ -262,13 +283,13 @@ def execute_reconstruction(fdt_names):
                                         EZVARS['COR']['patch-size']['value'],
                                         nviews, wh)
                 else:
-                    ax = EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
+                    ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
             elif EZVARS['COR']['search-method']['value'] == 4:
                 ax = find_axis_image_midpoint(wh)
                 print("Bypassing axis search and using image midpoint: {}".format(ax))
+            add_value_to_dict_entry(SECTIONS['cone-beam-weight']['center-position-x'], str(ax))
 
-            setid = ctset[0][len(lvl0) + 1:]
             out_pattern = os.path.join(EZVARS['inout']['output-dir']['value'], setid, 'sli/sli')
             cmds.append('echo ">>>>> PROCESSING {}"'.format(setid))
             # rm files in temporary directory first of all to
@@ -278,7 +299,7 @@ def execute_reconstruction(fdt_names):
             clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
             # call function which formats commands for this data set
             nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh)
-            # save_params(setid, ax, nviews, wh)
+            save_params(setid, ax, nviews, wh)
             print('{}\t{}'.format('CTset:', ctset[0]))
             print('{:>30}\t{}'.format('Axis:', ax))
             print("{:>30}\t{}, dimensions: {}".format("Number of projections:", nviews, wh))
@@ -306,6 +327,7 @@ def execute_reconstruction(fdt_names):
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     print("*** Done. Total processing time {} sec.".format(int(time.time() - start)))
     print("*** Waiting for the next job...........")
+    return num_proc_sets
 
 
 def already_recd(ctset, indir, recd_sets):

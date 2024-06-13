@@ -118,19 +118,19 @@ def get_pre_cmd( ctset, pre_cmd, tmpdir):
 def get_inp_cmd(ctset, tmpdir, N, nviews):
     indir = make_inpaths(ctset[0], ctset[1])
     cmds = []
-    ######### CREATE MASK #########
-    flat1_file = os.path.join(tmpdir, "flat-median.tif")
+    # ######### CREATE MASK #########
+    # flat1_file = os.path.join(tmpdir, "flat-median.tif")
     mask_file = os.path.join(tmpdir, "mask.tif")
-    # generate mask
-    cmd = 'tofu find-large-spots --images {}'.format(flat1_file)
-    cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
-                    SECTIONS['find-large-spots']['spot-threshold']['value'],
-                    SECTIONS['find-large-spots']['gauss-sigma']['value'])
-    # cmd += " --method median --median-width 20 --dilation-disk-radius 3 --gauss-sigma 100.0" \
-    #        " --spot-threshold 3800.0 --spot-threshold-mode absolute --grow-threshold 350.0" \
-    #        " --find-large-spots-padding-mode mirrored_repeat"
-    cmd += ' --output {} --output-bytes-per-file 0'.format(mask_file)
-    cmds.append(cmd)
+    # # generate mask
+    # cmd = 'tofu find-large-spots --images {}'.format(flat1_file)
+    # cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
+    #                 SECTIONS['find-large-spots']['spot-threshold']['value'],
+    #                 SECTIONS['find-large-spots']['gauss-sigma']['value'])
+    # # cmd += " --method median --median-width 20 --dilation-disk-radius 3 --gauss-sigma 100.0" \
+    # #        " --spot-threshold 3800.0 --spot-threshold-mode absolute --grow-threshold 350.0" \
+    # #        " --find-large-spots-padding-mode mirrored_repeat"
+    # cmd += ' --output {} --output-bytes-per-file 0'.format(mask_file)
+    # cmds.append(cmd)
     ######### FLAT-CORRECT #########
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'], ctset[0],
                                                EZVARS['inout']['tomo-dir']['value'])

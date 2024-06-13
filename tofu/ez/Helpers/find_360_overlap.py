@@ -65,6 +65,8 @@ def find_overlap():
                      EZVARS_aux['find360olap']['stop']['value'] + EZVARS_aux['find360olap']['step']['value'],
                      EZVARS_aux['find360olap']['step']['value'])
 
+    # flush records from previous run
+    EZVARS_aux['axes-list'] = {}
     # concatenate images with various overlap and generate sinograms
     for ctset in ctdirs:
         outerloopdirname = os.path.dirname(ctset)
@@ -149,6 +151,10 @@ def find_overlap():
             cmd += f' --sinograms {sinfilt_tmp_dir}'
         else:
             cmd += f' --sinograms {sin_tmp_dir}'
+
+        p_width = EZVARS_aux['find360olap']['patch-size']['value']/2
+        cmd += " --x-region={},{},{}".format(int(-p_width), int(p_width), 1)
+        cmd += " --y-region={},{},{}".format(int(-p_width), int(p_width), 1)
 
         print('Reconstructing slices...')
         os.system(cmd)

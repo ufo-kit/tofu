@@ -69,9 +69,10 @@ class PhaseRetrievalGroup(QGroupBox):
         self.photon_energy_entry.setText(str(SECTIONS['retrieve-phase']['energy']['value']))
         self.pixel_size_entry.setText(str(
             round(self.meters_to_microns(SECTIONS['retrieve-phase']['pixel-size']['value']),6)))
-        self.detector_distance_entry.setText(str(reverse_tupleize()(SECTIONS['retrieve-phase']['propagation-distance']['value'])))
+        self.detector_distance_entry.setText(str(
+            reverse_tupleize()(SECTIONS['retrieve-phase']['propagation-distance']['value'])))
         self.delta_beta_ratio_entry.setText(str(
-            round(self.regularization_rate_to_delta_beta_ratio(SECTIONS['retrieve-phase']['regularization-rate']['value']),6)))
+            round(self.regularization_rate_to_delta_beta_ratio(SECTIONS['retrieve-phase']['regularization-rate']['value']))))
 
     def set_PR(self):
         LOG.debug("PR: " + str(self.enable_PR_checkBox.isChecked()))

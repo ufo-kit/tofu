@@ -29,8 +29,9 @@ class FiltersGroup(QGroupBox):
         self.remove_spots_checkBox = QCheckBox()
         self.remove_spots_checkBox.setText("Remove large bad spots from projections")
         self.remove_spots_checkBox.setToolTip(
-            "Finds large bad spots in projections \n and replaces them with suitable values"
+            "Finds large bad spots in images \n and replaces them with suitable values"
         )
+        self.remove_spots_checkBox.stateChanged.connect(self.set_remove_spots)
 
         self.remove_spots_median_checkBox = QCheckBox()
         self.remove_spots_median_checkBox.setText("Use median method (tune params in Advanced tab)")
@@ -187,6 +188,7 @@ class FiltersGroup(QGroupBox):
 
     def load_values(self):
         self.remove_spots_checkBox.setChecked(EZVARS['filters']['rm_spots']['value'])
+        self.remove_spots_median_checkBox.setChecked(EZVARS['filters']['rm_spots_use_median']['value'])
         self.threshold_entry.setText(str(SECTIONS['find-large-spots']['spot-threshold']['value']))
         self.find_spots_gau_sigma_entry.setText(str(SECTIONS['find-large-spots']['gauss-sigma']['value']))
         self.enable_RR_checkbox.setChecked(EZVARS['RR']['enable-RR']['value'])

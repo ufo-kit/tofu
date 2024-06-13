@@ -229,10 +229,10 @@ class ConfigGroup(QGroupBox):
 
         layout.addWidget(self.input_dir_select, 0, 0)
         layout.addWidget(self.input_dir_entry, 0, 1, 1, 3)
-        layout.addWidget(self.output_dir_select, 1, 0)
-        layout.addWidget(self.output_dir_entry, 1, 1, 1, 3)
-        layout.addWidget(self.temp_dir_select, 2, 0)
-        layout.addWidget(self.temp_dir_entry, 2, 1, 1, 3)
+        layout.addWidget(self.temp_dir_select, 1, 0)
+        layout.addWidget(self.temp_dir_entry, 1, 1, 1, 3)
+        layout.addWidget(self.output_dir_select, 2, 0)
+        layout.addWidget(self.output_dir_entry, 2, 1, 1, 3)
         layout.addWidget(self.preproc_checkbox, 3, 0)
         layout.addWidget(self.preproc_entry, 3, 1, 1, 3)
 
@@ -506,8 +506,7 @@ class ConfigGroup(QGroupBox):
         h += "Note2: if you bin in preprocess the center of rotation will change a lot; \n"
         h += 'Note4: set to "flats" if "flats2" exist but you need to ignore them; \n'
         h += (
-            "Created by Sergei Gasilov, BMIT CLS, Dec. 2018.\n Extended by Iain Emslie, Summer"
-            " 2021."
+            "Sergei Gasilov, BMIT CLS, Dec. 2018 - 2024 \n"
         )
         QMessageBox.information(self, "Help", h)
 
@@ -615,15 +614,18 @@ class ConfigGroup(QGroupBox):
 
     def run_reconstruction(self, batch_run):
         try:            
-            execute_reconstruction(self.get_fdt_names())
-            if batch_run is False:
-                msg = "Done. See output in terminal for details."
-                QMessageBox.information(self, "Finished", msg)
-                if not EZVARS['inout']['dryrun']['value']:
-                    self.signal_reco_done.emit()
-                EZVARS['inout']['dryrun']['value'] = bool(False)
+            s = execute_reconstruction(self.get_fdt_names())
+            if s:
+                msg = f"Processed {s} sets. See output in terminal for details."
+            else:
+                msg = "All sets are already in Output directory. \n"
+                msg += "Clean it or select a different Output."
+            QMessageBox.information(self, "Finished", msg)
+            if not EZVARS['inout']['dryrun']['value']:
+                self.signal_reco_done.emit()
+            EZVARS['inout']['dryrun']['value'] = bool(False)
         except InvalidInputError as err:
-            msg = ""
+            msg = "Failed to run reconstruction. See output in terminal for details."
             err_arg = err.args
             msg += err.args[0]
             QMessageBox.information(self, "Invalid Input Error", msg)

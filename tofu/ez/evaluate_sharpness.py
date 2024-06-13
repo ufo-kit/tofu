@@ -207,7 +207,7 @@ def process(
         if num_images_for_stats == -1:
             num_images_for_stats = len(names)
         extrema_metrics = {"min": np.min, "max": np.max}
-        extrema = evaluate_metrics_new(
+        extrema = evaluate_metrics(
             names[:num_images_for_stats],
             None,
             metrics_1d=extrema_metrics,
@@ -221,7 +221,7 @@ def process(
 
     metrics_1d, metrics_2d = make_metrics(metric_names)
 
-    return evaluate_metrics_new(
+    return evaluate_metrics(
         names,
         out_prefix,
         metrics_1d=metrics_1d,
