@@ -14,7 +14,7 @@ from shutil import rmtree
 import os
 from tofu.ez.Helpers.find_360_overlap import find_overlap
 from tofu.ez.params import EZVARS_aux
-from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
+from tofu.ez.util import add_value_to_dict_entry
 from tofu.ez.util import import_values, export_values
 import yaml
 
@@ -211,6 +211,7 @@ class Overlap360Group(QGroupBox):
 
     def overlap_button_pressed(self):
         LOG.debug("Find overlap button pressed")
+        print("Find overlap button pressed")
         self.get_fdt_names_on_stitch_pressed.emit()
         self.get_RR_params_on_start_pressed.emit()
         if os.path.exists(EZVARS_aux['find360olap']['output-dir']['value']) and \

@@ -75,7 +75,8 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
     #if we need to use shared flat/darks we have to do it only once so we need to keep track of that
     #will be set to False in util/make_inpaths as soon as it was used
     add_value_to_dict_entry(EZVARS['inout']['shared-df-used'], False)
-    if EZVARS['filters']['rm_spots']['value']:
+    if (EZVARS['filters']['rm_spots']['value'] or EZVARS['filters']['rm_spots_use_median']['value'])\
+            and not EZVARS['inout']['dryrun']['value']:
         # copy one flat to tmpdir now as path might change if preprocess is enabled
         if not EZVARS['inout']['shared-flatsdarks']['value']:
             path2flat = os.path.join(ctset[0],
@@ -93,7 +94,8 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
         # reset location of input data
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
     ###################################################
-    if EZVARS['filters']['rm_spots']['value']:  # generate commands to remove sci. spots from projections
+    if EZVARS['filters']['rm_spots']['value'] or EZVARS['filters']['rm_spots_use_median']['value']:
+        # generate commands to remove sci. spots from projections
         cmds.append('echo " - Creating mask of large bad spots in flat field"')
         cmds.append(get_find_spots_cmd(EZVARS['inout']['tmp-dir']['value']))
         cmds.append('echo " - Flat-correcting and removing large spots"')

@@ -362,8 +362,27 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
         else:
             print('Cannot see the script for parallel stitching of bigtiff files')
             break
-
     print("========== Done ==========")
+
+def main_360sti_ufol_depth1(indir, outdir, ax, cro):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    subdirs = [dI for dI in os.listdir(indir) \
+            if os.path.isdir(os.path.join(indir, dI))]
+
+    for i, sdir in enumerate(subdirs):
+        print(f"Stitching images in {sdir}")
+        numfiles = sorted(glob.glob(os.path.join(sdir, '*.tif')))
+        numim = tfs.num_images
+        tfs = TiffSequenceReader(os.path.join(indir, sdir))
+        if numim < 2:
+            print("Warning: less than 2 files, skipping this dir")
+            continue
+        else:
+            print(f"{numim//2} pairs will be stitched in {sdir}")
+        tfs.close()
+
 
 
 def main_360_mp_depth2():

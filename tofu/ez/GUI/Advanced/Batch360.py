@@ -103,6 +103,7 @@ class Batch360Group(QGroupBox):
             self.setEnabled(False)
 
     def set_rButton_from_params(self):
+        # TODO: it seems it is not being set correctly. Plus: check that dir empty here?
         if EZVARS_aux['half-acq']['task_type']['value']:
             self.stitch_and_reco_rButton.setChecked(False)
             self.find_olap_stitch_and_reco_rButton.setChecked(True)
