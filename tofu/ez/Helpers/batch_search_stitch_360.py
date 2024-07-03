@@ -5,6 +5,7 @@ from tofu.ez.Helpers.stitch_funcs import main_360_mp_depth2
 from tofu.ez.Helpers.find_360_overlap import find_overlap
 
 def batch_stitch():
+    #TODO: check that directory is empty - if loaded from params check is not applied
     stitched_data_dir_name = os.path.join(EZVARS_aux['half-acq']['workdir']['value'],
                                           'stitched-data')
     if os.path.exists(stitched_data_dir_name) and \

@@ -105,7 +105,7 @@ class FindSpotsGroup(QGroupBox):
 
     def load_values(self):
         if EZVARS['filters']['rm_spots_use_median']['value']:
-            self.isEnabled(True)
+            self.setEnabled(True)
         self.median_width_entry.setText(str(SECTIONS['find-large-spots']['median-width']['value']))
         self.dil_disk_rad_entry.setText(str(SECTIONS['find-large-spots']['dilation-disk-radius']['value']))
         self.grow_thr_entry.setText(str(SECTIONS['find-large-spots']['grow-threshold']['value']))

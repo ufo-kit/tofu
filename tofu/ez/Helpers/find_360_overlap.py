@@ -26,8 +26,8 @@ def extract_row(dir_name, row):
         row = N//2
     num_images = tsr.num_images
     if num_images % 2 == 1:
-        print(f"odd number of images ({num_images}) in {dir_name}, "
-              f"discarding the last one before stitching pairs")
+        # print(f"odd number of images ({num_images}) in {dir_name}, "
+        #       f"discarding the last one before stitching pairs")
         num_images-=1
     A = np.empty((num_images, M), dtype=np.uint16)
     for i in range(num_images):
@@ -72,9 +72,8 @@ def find_overlap():
         outerloopdirname = os.path.dirname(ctset)
         if outerloopdirname not in EZVARS_aux['axes-list']:
             EZVARS_aux['axes-list'].update({outerloopdirname: {}})
-        setid = ctset[len(lvl0) + 1:]
-        print(f"Working on ctset {setid}")
         index_dir = os.path.basename(os.path.normpath(ctset))
+        print(f"Generating slices for ctset {index_dir}")
         # loading:
         try:
             row_flat = np.mean(extract_row(
@@ -137,34 +136,42 @@ def find_overlap():
         sin_width = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]
         sin_height = get_image_shape(get_filenames(sin_tmp_dir)[0])[-2]
         outname = os.path.join(os.path.join(
-            EZVARS_aux['find360olap']['output-dir']['value'], setid, f"{index_dir}-sli.tif"))
-        cmd = f'tofu tomo --axis {sin_width // 2} --output {os.path.join(outname)}'
-
+            EZVARS_aux['find360olap']['output-dir']['value'], index_dir, f"{index_dir}-sli"))
+        #old command
+        #cmd = f'tofu tomo --axis {sin_width // 2} --output {os.path.join(outname)}'
+        # new command to enable slice crop
+        # convert sinos to projections first
+        nsli = len(ax_range)
+        cmd = f'tofu sinos --number {nsli}'
         if EZVARS_aux['find360olap']['doRR']['value']:
             print("Applying ring removal filter")
             rrcmd = get_filter2d_sinos_cmd(EZVARS_aux['find360olap']['tmp-dir']['value'],
                                    EZVARS['RR']['sx']['value'],
                                    EZVARS['RR']['sy']['value'],
                                    sin_height, sin_width)
-            print(rrcmd)
             os.system(rrcmd)
-            cmd += f' --sinograms {sinfilt_tmp_dir}'
+            cmd += f' --projections {sinfilt_tmp_dir}'
         else:
-            cmd += f' --sinograms {sin_tmp_dir}'
-
-        p_width = EZVARS_aux['find360olap']['patch-size']['value']/2
+            cmd += f' --projections {sin_tmp_dir}'
+        proj_file_name = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'proj.tif')
+        cmd += f" --output {proj_file_name}"
+        os.system(cmd)
+        # now the reco command
+        cmd = f'tofu reco --projections {proj_file_name} --output {outname}'
+        cmd += f' --overall-angle 180 --center-position-x {sin_width // 2} '
+        cmd += f' --number {sin_height} --region={-(nsli//2)},{nsli-nsli//2},{1}'
+        p_width = EZVARS_aux['find360olap']['patch-size']['value'] // 2
         cmd += " --x-region={},{},{}".format(int(-p_width), int(p_width), 1)
         cmd += " --y-region={},{},{}".format(int(-p_width), int(p_width), 1)
-
         print('Reconstructing slices...')
         os.system(cmd)
 
         # estimating overlap
         #points, maximum = evaluate_images_simp(outname, "std")
         mettxtpref = os.path.join(os.path.join(
-            EZVARS_aux['find360olap']['output-dir']['value'], setid))
+            EZVARS_aux['find360olap']['output-dir']['value'], index_dir))
 
-        results = evaluate_metrics_360_olap_search(outname, mettxtpref, ax_range,
+        results = evaluate_metrics_360_olap_search(os.path.dirname(outname), mettxtpref, ax_range,
                                     metrics_1d={"std": np.std}, detrend=True)
 
         olap_est = int(EZVARS_aux['find360olap']['start']['value'] + \
@@ -178,6 +185,5 @@ def find_overlap():
 
     #shutil.rmtree(EZVARS_aux['find360olap']['tmp-dir'])
     print("Finished processing of all subdirectories in " + str(EZVARS_aux['find360olap']['input-dir']['value']))
-    print(olap_estimates)
     return dict(zip(ctdirs, olap_estimates))
 

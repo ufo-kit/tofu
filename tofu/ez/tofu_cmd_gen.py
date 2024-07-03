@@ -169,7 +169,8 @@ def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh):
     return cmd
 
 def get_sinos2proj_cmd(proj_height):
-    quatsch, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'], 'quatsch', EZVARS['inout']['tomo-dir']['value'], True)
+    quatsch, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'], 'quatsch',
+                                           EZVARS['inout']['tomo-dir']['value'], True)
     cmd = 'tofu sinos'
     cmd += ' --projections {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'sinos-filt'))
     cmd += ' --output {}'.format(out_pattern)
