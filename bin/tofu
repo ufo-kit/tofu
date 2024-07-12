@@ -53,8 +53,13 @@ def run_sinos(args):
 
 
 def run_ez(args):
-    from tofu.ez.GUI.ezufo_launcher import main_qt
-    main_qt(args)
+    if args.ezvars:
+        LOG.info(f"Loading ez parameters from {args.ezvars}")
+        from tofu.ez.main import execute_from_params
+        execute_from_params(args)
+    else:
+        from tofu.ez.GUI.ezufo_launcher import main_qt
+        main_qt(args)
 
 
 def get_ipython_shell(config=None):
@@ -203,7 +208,7 @@ def main():
                                                                         "laminographic cone/parallel beam"),
         ('gui',         gui,            tomo_params + ('gui',),         "GUI for tomographic reconstruction"),
         ('flow',        run_flow,       (),                             "Visual flow creation"),
-        ('ez',          run_ez,         (),                             "GUI for making ufo-kit data processing pipelines"),
+        ('ez',          run_ez,         ('ez',),                        "GUI for making ufo-kit data processing pipelines"),
         ('estimate',    estimate,       tomo_params + ('estimate',),    "Estimate center of rotation"),
         ('perf',        perf,           tomo_params + ('perf',),        "Check reconstruction performance"),
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),

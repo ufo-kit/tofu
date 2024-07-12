@@ -391,3 +391,13 @@ def findSlicesDirs(lvl0):
             if name == "sli":
                 recd_sets.append(root[len(lvl0) + 1 :])
     return recd_sets
+
+
+def execute_from_params(params):
+    # initialize dictionary entries
+    load_values_from_ezdefault(EZVARS)
+    load_values_from_ezdefault(SECTIONS)
+    load_values_from_ezdefault(EZVARS_aux)
+    LOG.debug("Import YAML Path: " + params.ezvars)
+    import_values(params.ezvars, ['ezvars', 'tofu', 'ezvars_aux'])
+    execute_reconstruction()
