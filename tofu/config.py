@@ -799,6 +799,14 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
+SECTIONS['ez'] = {
+    'ezvars': {
+        'default': None,
+        'type': str,
+        'help': "Path to ez parameters.yaml file. Executes ez pipeline without gui.",
+        'metavar': 'PATH'},
+}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
