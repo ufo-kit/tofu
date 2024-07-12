@@ -14,7 +14,7 @@ from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
 from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
-from tofu.ez.util import load_values_from_ezdefault
+from tofu.ez.util import load_values_from_ezdefault, get_fdt_names
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
 from tofu.ez.GUI.Advanced.optimization import OptimizationGroup
 from tofu.ez.GUI.Advanced.nlmdn import NLMDNGroup
@@ -274,7 +274,7 @@ class GUI(qtw.QWidget):
                         qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
         if reply == qtw.QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], self.config_group.get_fdt_names())
+            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], get_fdt_names())
             # remove axis-search dir too
             tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
             event.accept()

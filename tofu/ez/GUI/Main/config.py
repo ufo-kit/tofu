@@ -14,10 +14,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
-from tofu.ez.util import import_values, export_values
+from tofu.ez.util import import_values, export_values, get_fdt_names
 from tofu.ez.GUI.message_dialog import warning_message
 from tofu.ez.params import EZVARS, EZVARS_aux
-from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry
 
 LOG = logging.getLogger(__name__)
@@ -470,7 +469,7 @@ class ConfigGroup(QGroupBox):
         )
         if reply == QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], self.get_fdt_names())
+            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], get_fdt_names())
             # remove axis-search dir too
             tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
             QCoreApplication.instance().quit()
@@ -618,7 +617,7 @@ class ConfigGroup(QGroupBox):
 
     def run_reconstruction(self, batch_run):
         try:            
-            s = execute_reconstruction(self.get_fdt_names())
+            s = execute_reconstruction()
             if s:
                 msg = f"Processed {s} sets. See output in terminal for details."
             else:
@@ -633,12 +632,6 @@ class ConfigGroup(QGroupBox):
             err_arg = err.args
             msg += err.args[0]
             QMessageBox.information(self, "Invalid Input Error", msg)
-
-    def get_fdt_names(self):
-        return [EZVARS['inout']['darks-dir']['value'],
-                EZVARS['inout']['flats-dir']['value'],
-                EZVARS['inout']['tomo-dir']['value'],
-                EZVARS['inout']['flats2-dir']['value']]
 
 
 class InvalidInputError(Exception):

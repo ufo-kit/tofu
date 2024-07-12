@@ -506,6 +506,8 @@ def check_that_num_failed(vals):
     return 0
 
 
-
-
-
+def get_fdt_names():
+    return [EZVARS['inout']['darks-dir']['value'],
+            EZVARS['inout']['flats-dir']['value'],
+            EZVARS['inout']['tomo-dir']['value'],
+            EZVARS['inout']['flats2-dir']['value']]
