@@ -192,7 +192,7 @@ def main_sti_mp(parameters):
                 pool.map(exec_func, J)
                 print("========== Done ==========")
                 # Clear temp directory
-                clear_tmp(parameters)
+                #clear_tmp(parameters)
         else:
             print("Invalid input directory")
         complete_message()
@@ -273,7 +273,7 @@ def main_conc_mp(parameters):
                 # print "Images stitched in {:.01f} sec".format(time.time()-start)
                 print("============ Done ============")
                 #Clear temp directory
-                clear_tmp(parameters)
+                #clear_tmp(parameters)
     complete_message()
 
 
