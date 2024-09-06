@@ -211,3 +211,32 @@ def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str):
     if EZVARS['inout']['clip_hist']['value']:
         cmd += f" bits={SECTIONS['general']['output-bitdepth']['value']} rescale=False"
     return cmd
+
+def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro):
+    cmd = 'ufo-launch'
+    st = 'start'
+    if bigtiff:
+        st = 'image-start'
+    if ax <= w // 2:
+        cmd += f" [read path={inpath} number={num}, " \
+               f"read path={inpath} {st}={num} number={num} ! flip]" \
+               f" ! stitch shift={w - ax}"
+    else:
+        cmd += f" [read path={inpath} number={num} ! flip, " \
+               f"read path={inpath} {st}={num} number={num}]" \
+               f" ! stitch shift={ax}"
+    cmd += " blend=True adjust-mean=TRUE !"
+    # crop
+    if cro != 0:
+        cmd += f" crop x={cro} width={2*(w - ax - cro)} !"
+    # checking that after multiplication values are within the valid range for the
+    # respective input data type
+    lim = 65535
+    if bits == 8:
+        lim = 255
+    if (bits == 16) or (bits == 8):
+        cmd += f" calculate expression=\"'v < 0 ? 0 : (v > {lim} ? {lim} : v)'\" !"
+    cmd += f" write filename={os.path.join(outpath, 'stitched-%04i.tif')}"
+    if (bits == 16) or (bits == 8):
+        cmd += f" bits={bits} rescale=FALSE"
+    return cmd

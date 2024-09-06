@@ -14,13 +14,14 @@ from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
 import time
+from tofu.ez.ufo_cmd_gen import fmt_stitch_cmd
 
 import sys
 
 try:
     from mpi4py import MPI
 except ImportError:
-    print("You must install openmpi/mpi4py in order to stitch half acq. mode data",
+    print("Ufo-launch GPU filter will be used to stitch half acq mode data",
           file=sys.stderr)
 
 from tofu.ez.params import EZVARS
@@ -373,15 +374,36 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
 
     for i, sdir in enumerate(subdirs):
         print(f"Stitching images in {sdir}")
-        numfiles = sorted(glob.glob(os.path.join(sdir, '*.tif')))
+        inpath = os.path.join(indir, sdir)
+        numfiles = len(sorted(glob.glob(os.path.join(inpath, '*.tif'))))
+        tfs = TiffSequenceReader(inpath)
         numim = tfs.num_images
-        tfs = TiffSequenceReader(os.path.join(indir, sdir))
         if numim < 2:
-            print("Warning: less than 2 files, skipping this dir")
+            print("Warning: less than 2 images, skipping this dir")
             continue
-        else:
-            print(f"{numim//2} pairs will be stitched in {sdir}")
+        if (numfiles > 1) and (numfiles != numim):
+            print("Warning: cannot work with several bigtiff files. Input must be either"
+                  "one bigtiff container or single tif per each image")
+            continue
+        bigtiff = False
+        if numfiles == 1:
+            bigtiff = True
+        numpairs = numim // 2
+        print(f"{numpairs} pairs will be stitched in {sdir}")
+        im = tfs.read(0)
         tfs.close()
+        h, w = im.shape
+        bits = 32
+        if im.dtype == 'uint8':
+            bits = 8
+        elif im.dtype == 'uint16':
+            bits = 16,
+        outpath = os.path.join(outdir, sdir)
+        cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro)
+        #print(cmd)
+        os.system(cmd)
+
+
 
 
 
@@ -434,9 +456,11 @@ def main_360_mp_depth2():
         print(" -> Working On: " + str(ctdir))
         print(f"    axis position {dax[i]}, margin to crop {cra[i]} pixels")
 
-        main_360_mp_depth1(ctdir,
+        #main_360_mp_depth1
+        main_360sti_ufol_depth1(ctdir,
             os.path.join(EZVARS_aux['stitch360']['output-dir']['value'], ctdirs_rel_paths[i]),
                            int(dax[i]), int(cra[i]))
+
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 
 
