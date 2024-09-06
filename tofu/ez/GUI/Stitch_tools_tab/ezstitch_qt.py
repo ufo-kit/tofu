@@ -17,7 +17,7 @@ import logging
 import getpass
 import yaml
 import tofu.ez.params as params
-from tofu.ez.Helpers.stitch_funcs import main_sti_mp, main_conc_mp, main_360_mp_depth1
+from tofu.ez.Helpers.stitch_funcs import main_sti_mp, main_conc_mp, main_360sti_ufol_depth1#, main_360_mp_depth1
 from tofu.ez.GUI.message_dialog import warning_message
 
 
@@ -420,7 +420,8 @@ class EZStitchGroup(QGroupBox):
             main_conc_mp(self.parameters)
         # Half acquisition mode
         elif self.parameters['ezstitch_stitch_type'] == 2:
-            main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
+            #main_360_mp_depth1
+            main_360sti_ufol_depth1(self.parameters['ezstitch_input_dir'],
                                self.parameters['ezstitch_output_dir'],
                                self.parameters['ezstitch_axis_of_rotation'], 0)
         if os.path.isdir(self.parameters['ezstitch_output_dir']):

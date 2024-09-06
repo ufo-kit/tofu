@@ -28,7 +28,7 @@ for pair_number in range(n_my_pairs):
     first = tfs.read(idx)
     second = tfs.read(idx+npairs)[:, ::-1]
 
-    stitched = stitch(first, second, int(ax), int(crop))
+    #stitched = stitch(first, second, int(ax), int(crop))
 
     if first.dtype == "float32":
         stitched = stitch_float32_output(first, second, int(ax), int(crop))
