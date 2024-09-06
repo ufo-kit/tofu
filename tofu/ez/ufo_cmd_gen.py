@@ -212,19 +212,19 @@ def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str):
         cmd += f" bits={SECTIONS['general']['output-bitdepth']['value']} rescale=False"
     return cmd
 
-def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro):
+def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
     cmd = 'ufo-launch'
     st = 'start'
     if bigtiff:
         st = 'image-start'
     if ax <= w // 2:
-        cmd += f" [read path={inpath} number={num}, " \
-               f"read path={inpath} {st}={num} number={num} ! flip]" \
-               f" ! stitch shift={w - ax}"
+        cmd += f" [read path={inpath} {st}={num} number={num} ! flip," \
+                f" read path={inpath} number={num}]" \
+                f" ! stitch shift={w - 2*ax}"
     else:
-        cmd += f" [read path={inpath} number={num} ! flip, " \
-               f"read path={inpath} {st}={num} number={num}]" \
-               f" ! stitch shift={ax}"
+        cmd += f" [read path={inpath} number={num} ! flip,"\
+               f" read path={inpath} {st}={num} number={num}]" \
+               f" ! stitch shift={w - 2*ax}"
     cmd += " blend=True adjust-mean=TRUE !"
     # crop
     if cro != 0:
@@ -239,4 +239,5 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro):
     cmd += f" write filename={os.path.join(outpath, 'stitched-%04i.tif')}"
     if (bits == 16) or (bits == 8):
         cmd += f" bits={bits} rescale=FALSE"
+    print(cmd)
     return cmd
