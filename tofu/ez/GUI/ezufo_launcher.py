@@ -118,7 +118,7 @@ class GUI(qtw.QWidget):
         self.ezmview_group.init_values()
 
         self.ezstitch_group = EZStitchGroup()
-        self.ezstitch_group.init_values()
+        self.ezstitch_group.load_values()
 
         self.overlap_group = Overlap360Group()
         self.overlap_group.load_values()
@@ -178,32 +178,29 @@ class GUI(qtw.QWidget):
 
         advanced_layout = qtw.QGridLayout()
 
-        advanced_layout.addWidget(self.batch360_group, 0, 0)
-        advanced_layout.addWidget(self.find_spots_group, 0, 1)
+        #advanced_layout.addWidget(self.batch360_group, 0, 0)
+        advanced_layout.addWidget(self.find_spots_group, 0, 0)
         advanced_layout.addWidget(self.advanced_group, 1, 0)
         advanced_layout.addWidget(self.optimization_group, 1, 1)
-        advanced_layout.addWidget(self.nlmdn_group, 2, 0)
-        advanced_layout.addWidget(self.ffc_group, 2, 1)
+        advanced_layout.addWidget(self.nlmdn_group, 0, 1)
+        advanced_layout.addWidget(self.ffc_group, 2, 0)
+        advanced_layout.addWidget(self.ezmview_group, 2, 1)
 
         helpers_layout = qtw.QGridLayout()
-        helpers_layout.addWidget(self.ezmview_group, 0, 1)
-        helpers_layout.addWidget(self.overlap_group, 0, 0)
-        helpers_layout.addWidget(self.multi_stitch_group, 1, 0)
-        helpers_layout.addWidget(self.ezstitch_group, 1, 1)
+        helpers_layout.addWidget(self.overlap_group, 0, 0, 2, 1)
+        helpers_layout.addWidget(self.batch360_group, 3, 1, 1, 1)
+        helpers_layout.addWidget(self.multi_stitch_group, 2, 0, 2, 1)
+        helpers_layout.addWidget(self.ezstitch_group, 0, 1, 3, 1)
 
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
-        self.tabs.addTab(self.tab2, "Advanced")
+        self.tabs.addTab(self.tab2, "Reco+")
         self.tabs.addTab(self.tab3, "Stitching tools")
-        self.tabs.addTab(self.tab4, "Image Viewer")
+        self.tabs.addTab(self.tab5, "Image Viewer")
 
         # Create main tab
         self.tab1.layout = main_layout
         self.tab1.setLayout(self.tab1.layout)
-
-        # Create image tab
-        self.tab4.layout = image_layout
-        self.tab4.setLayout(self.tab4.layout)
 
         # Create advanced tab
         self.tab2.layout = advanced_layout
@@ -212,7 +209,11 @@ class GUI(qtw.QWidget):
         # Create helpers tab
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
-        
+
+        # Create image tab
+        self.tab5.layout = image_layout
+        self.tab5.setLayout(self.tab5.layout)
+
         # Add tabs to widget
         layout.addWidget(self.tabs)
         self.setLayout(layout)
@@ -234,6 +235,7 @@ class GUI(qtw.QWidget):
         self.optimization_group.load_values()
         self.overlap_group.load_values()
         self.batch360_group.load_values()
+        self.ezstitch_group.load_values()
 
     def switch_to_image_tab(self):
         """

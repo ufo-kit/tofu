@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import (
 )
 from shutil import rmtree
 import logging
-import getpass
-import yaml
-import tofu.ez.params as params
-from tofu.ez.Helpers.stitch_funcs import main_sti_mp, main_conc_mp, main_360sti_ufol_depth1, main_360_mp_depth1
+from tofu.ez.params import EZVARS_aux, EZVARS
+from tofu.ez.Helpers.stitch_funcs import main_sti_mp, main_360sti_ufol_depth1, main_360_mp_depth1
 from tofu.ez.GUI.message_dialog import warning_message
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
+from tofu.ez.util import import_values, export_values
 
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +30,10 @@ class EZStitchGroup(QGroupBox):
         self.setTitle("EZ-STITCH")
         self.setToolTip("Reslicing and stitching tool")
         self.setStyleSheet('QGroupBox {color: purple;}')
+
+        self.invoke_after_reco_checkbox = QCheckBox("Automatically produce stitched orthogonal sections")
+        self.invoke_after_reco_checkbox.stateChanged.connect(self.conf_auto_stitch)
+        #self.invoke_after_reco_checkbox.setToolTip("Only works for batch reconstructions with ")
 
         self.input_dir_button = QPushButton()
         self.input_dir_button.setText("Select input directory")
@@ -68,16 +72,16 @@ class EZStitchGroup(QGroupBox):
         self.orthogonal_checkbox = QCheckBox()
         self.orthogonal_checkbox.setText("Stitch orthogonal sections")
         self.orthogonal_checkbox.setToolTip("Will reslice images in every subdirectory and then stitch")
-        self.orthogonal_checkbox.stateChanged.connect(self.set_stitch_checkbox)
+        self.orthogonal_checkbox.stateChanged.connect(self.set_ort_checkbox)
 
         self.start_stop_step_label = QLabel()
         self.start_stop_step_label.setText("Which images to be stitched: start,stop,step:")
         self.start_stop_step_entry = QLineEdit()
-        self.start_stop_step_entry.editingFinished.connect(self.set_start_stop_step)
+        self.start_stop_step_entry.editingFinished.connect(self.get_start_stop_step)
 
-        self.sample_moved_down_checkbox = QCheckBox()
-        self.sample_moved_down_checkbox.setText("Flip images upside down before stitching")
-        self.sample_moved_down_checkbox.stateChanged.connect(self.set_sample_moved_down)
+        self.flipud_checkbox = QCheckBox()
+        self.flipud_checkbox.setText("Flip images upside down before stitching")
+        self.flipud_checkbox.stateChanged.connect(self.set_flipud)
 
         self.interpolate_regions_rButton = QRadioButton()
         self.interpolate_regions_rButton.setText("Interpolate overlapping regions and equalize intensity")
@@ -87,6 +91,26 @@ class EZStitchGroup(QGroupBox):
         self.num_overlaps_label.setText("Number of overlapping rows")
         self.num_overlaps_entry = QLineEdit()
         self.num_overlaps_entry.editingFinished.connect(self.set_overlap)
+
+        self.est_olap_checkbox = QCheckBox()
+        self.est_olap_checkbox.setText("Estimate vertical overlap automatically. Will take a slice from z00 directory "
+                              "and compare it with selected slices in z01 directory")
+        #self.est_olap_checkbox.stateChanged.connect(self.set_est_olap)
+
+        self.ind_z00_label = QLabel()
+        self.ind_z00_label.setText("Index of slice in z00 directory")
+        self.ind_z00_entry = QLineEdit()
+
+        self.slice_range_label = QLabel()
+        self.slice_range_label.setText("Range of slices in z01 directory")
+
+        self.ind_start_z01_label = QLabel()
+        self.ind_start_z01_label.setText("First slice")
+        self.ind_start_z01_entry = QLineEdit()
+
+        self.ind_stop_z01_label = QLabel()
+        self.ind_stop_z01_label.setText("Last slice")
+        self.ind_stop_z01_entry = QLineEdit()
 
         self.clip_histogram_checkbox = QCheckBox()
         self.clip_histogram_checkbox.setText("Clip histogram and convert slices to 8-bit before saving")
@@ -152,6 +176,7 @@ class EZStitchGroup(QGroupBox):
     def set_layout(self):
         layout = QGridLayout()
         vbox1 = QVBoxLayout()
+        vbox1.addWidget(self.invoke_after_reco_checkbox)
         vbox1.addWidget(self.input_dir_button)
         vbox1.addWidget(self.input_dir_entry)
         vbox1.addWidget(self.tmp_dir_button)
@@ -160,22 +185,29 @@ class EZStitchGroup(QGroupBox):
         vbox1.addWidget(self.output_dir_entry)
         layout.addItem(vbox1, 0, 0)
 
-        grid = QGridLayout()
-        grid.addWidget(self.types_of_images_label, 0, 0)
-        grid.addWidget(self.types_of_images_entry, 0, 1)
-        grid.addWidget(self.orthogonal_checkbox, 1, 0, 1, 2)
-        grid.addWidget(self.start_stop_step_label, 2, 0)
-        grid.addWidget(self.start_stop_step_entry, 2, 1)
-        grid.addWidget(self.sample_moved_down_checkbox, 3, 0)
-        grid.addWidget(self.interpolate_regions_rButton, 4, 0, 1, 2)
-        grid.addWidget(self.num_overlaps_label, 5, 0)
-        grid.addWidget(self.num_overlaps_entry, 5, 1)
-        grid.addWidget(self.clip_histogram_checkbox, 6, 0)
-        grid.addWidget(self.min_value_label, 7, 0)
-        grid.addWidget(self.min_value_entry, 7, 1)
-        grid.addWidget(self.max_value_label, 8, 0)
-        grid.addWidget(self.max_value_entry, 8, 1)
-        layout.addItem(grid, 1, 0)
+        grid0 = QGridLayout()
+        grid0.addWidget(self.types_of_images_label, 0, 0)
+        grid0.addWidget(self.types_of_images_entry, 0, 1)
+        grid0.addWidget(self.orthogonal_checkbox, 1, 0, 1, 2)
+        grid0.addWidget(self.start_stop_step_label, 2, 0)
+        grid0.addWidget(self.start_stop_step_entry, 2, 1)
+        grid0.addWidget(self.flipud_checkbox, 3, 0)
+        layout.addItem(grid0, 1, 0)
+
+        grid1 = QGridLayout()
+        grid1.addWidget(self.interpolate_regions_rButton, 0, 0, 1, 2)
+        grid1.addWidget(self.num_overlaps_label, 1, 0)
+        grid1.addWidget(self.num_overlaps_entry, 1, 1)
+        grid1.addWidget(self.est_olap_checkbox,2, 0, 1, 2)
+        layout.addItem(grid1, 2, 0)
+
+        grid1_b = QGridLayout()
+        grid1_b.addWidget(self.clip_histogram_checkbox, 0, 0)
+        grid1_b.addWidget(self.min_value_label, 1, 0)
+        grid1_b.addWidget(self.min_value_entry, 1, 1)
+        grid1_b.addWidget(self.max_value_label, 2, 0)
+        grid1_b.addWidget(self.max_value_entry, 2, 1)
+        layout.addItem(grid1_b, 3, 0)
 
         grid2 = QGridLayout()
         grid2.addWidget(self.concatenate_rButton, 0, 0, 1, 2)
@@ -183,13 +215,13 @@ class EZStitchGroup(QGroupBox):
         grid2.addWidget(self.first_row_entry, 1, 1)
         grid2.addWidget(self.last_row_label, 1, 2)
         grid2.addWidget(self.last_row_entry, 1, 3)
-        layout.addItem(grid2, 2, 0)
+        layout.addItem(grid2, 4, 0)
 
         grid3 = QGridLayout()
         grid3.addWidget(self.half_acquisition_rButton, 0, 0, 1, 2)
         grid3.addWidget(self.column_of_axis_label, 1, 0)
         grid3.addWidget(self.column_of_axis_entry, 1, 1)
-        layout.addItem(grid3, 3, 0)
+        layout.addItem(grid3, 5, 0)
 
         grid4 = QGridLayout()
         grid4.addWidget(self.help_button, 0, 0)
@@ -197,162 +229,148 @@ class EZStitchGroup(QGroupBox):
         grid4.addWidget(self.stitch_button, 0, 2)
         grid4.addWidget(self.import_parameters_button, 1, 0, 1, 2)
         grid4.addWidget(self.save_parameters_button, 1, 2)
-        layout.addItem(grid4, 4, 0)
+        layout.addItem(grid4, 6, 0)
 
         self.setLayout(layout)
 
-    def init_values(self):
-        self.parameters = {'parameters_type': 'ez_stitch'}
-        self.parameters['ezstitch_input_dir'] = os.path.expanduser('~')
-        self.input_dir_entry.setText(self.parameters['ezstitch_input_dir'])
-        self.parameters['ezstitch_temp_dir'] = os.path.join(
-                        os.path.expanduser('~'), "tmp-ezstitch")
-        self.tmp_dir_entry.setText(self.parameters['ezstitch_temp_dir'])
-        self.parameters['ezstitch_output_dir'] = os.path.join(
-                        os.path.expanduser('~'), "ezufo-stitched-images")
-        self.output_dir_entry.setText(self.parameters['ezstitch_output_dir'])
-        self.parameters['ezstitch_type_image'] = "sli"
-        self.types_of_images_entry.setText(self.parameters['ezstitch_type_image'])
-        self.parameters['ezstitch_stitch_orthogonal'] = True
-        self.orthogonal_checkbox.setChecked(self.parameters['ezstitch_stitch_orthogonal'])
-        self.parameters['ezstitch_start_stop_step'] = "200,2000,200"
-        self.start_stop_step_entry.setText(self.parameters['ezstitch_start_stop_step'])
-        self.parameters['ezstitch_sample_moved_down'] = False
-        self.sample_moved_down_checkbox.setChecked(self.parameters['ezstitch_sample_moved_down'])
-        self.parameters['ezstitch_stitch_type'] = 0
-        self.interpolate_regions_rButton.setChecked(True)
-        self.concatenate_rButton.setChecked(False)
-        self.half_acquisition_rButton.setChecked(False)
-        self.parameters['ezstitch_num_overlap_rows'] = 60
-        self.num_overlaps_entry.setText(str(self.parameters['ezstitch_num_overlap_rows']))
-        self.parameters['ezstitch_clip_histo'] = False
-        self.clip_histogram_checkbox.setChecked(self.parameters['ezstitch_clip_histo'])
-        self.parameters['ezstitch_histo_min'] = -0.0003
-        self.min_value_entry.setText(str(self.parameters['ezstitch_histo_min']))
-        self.parameters['ezstitch_histo_max'] = 0.0002
-        self.max_value_entry.setText(str(self.parameters['ezstitch_histo_max']))
-        self.parameters['ezstitch_first_row'] = 40
-        self.first_row_entry.setText(str(self.parameters['ezstitch_first_row']))
-        self.parameters['ezstitch_last_row'] = 440
-        self.last_row_entry.setText(str(self.parameters['ezstitch_last_row']))
-        self.parameters['ezstitch_axis_of_rotation'] = 245
-        self.column_of_axis_entry.setText(str(self.parameters['ezstitch_axis_of_rotation']))
+    def load_values(self):
+        self.invoke_after_reco_checkbox.setChecked(EZVARS_aux['vert-sti']['dovertsti']['value'])
+        self.input_dir_entry.setText(str(EZVARS_aux['vert-sti']['input-dir']['value']))
+        self.tmp_dir_entry.setText(str(EZVARS_aux['vert-sti']['tmp-dir']['value']))
+        self.output_dir_entry.setText(str(EZVARS_aux['vert-sti']['output-dir']['value']))
+        self.types_of_images_entry.setText(str(EZVARS_aux['vert-sti']['subdir-name']['value']))
+        self.orthogonal_checkbox.setChecked(EZVARS_aux['vert-sti']['ort']['value'])
+        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
+        self.flipud_checkbox.setChecked(EZVARS_aux['vert-sti']['flipud']['value'])
 
-    def update_parameters(self, new_parameters):
-        LOG.debug("Update parameters")
-        if new_parameters['parameters_type'] != 'ez_stitch':
-            print("Error: Invalid parameter file type: " + str(new_parameters['parameters_type']))
-            return -1
-        # Update parameters dictionary (which is passed to auto_stitch_funcs)
-        self.parameters = new_parameters
-        # Update displayed parameters for GUI
-        self.input_dir_entry.setText(self.parameters['ezstitch_input_dir'])
-        self.tmp_dir_entry.setText(self.parameters['ezstitch_temp_dir'])
-        self.output_dir_entry.setText(self.parameters['ezstitch_output_dir'])
-        self.types_of_images_entry.setText(self.parameters['ezstitch_type_image'])
-        self.orthogonal_checkbox.setChecked(self.parameters['ezstitch_stitch_orthogonal'])
-        self.start_stop_step_entry.setText(self.parameters['ezstitch_start_stop_step'])
-        self.sample_moved_down_checkbox.setChecked(self.parameters['ezstitch_sample_moved_down'])
-
-        if self.parameters['ezstitch_stitch_type'] == 0:
+        if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
             self.interpolate_regions_rButton.setChecked(True)
-        elif self.parameters['ezstitch_stitch_type'] == 1:
+        elif EZVARS_aux['vert-sti']['task_type']['value'] == 1:
             self.concatenate_rButton.setChecked(True)
-        elif self.parameters['ezstitch_stitch_type'] == 2:
+        elif EZVARS_aux['vert-sti']['task_type']['value'] == 2:
             self.half_acquisition_rButton.setChecked(True)
 
-        self.num_overlaps_entry.setText(str(self.parameters['ezstitch_num_overlap_rows']))
-        self.clip_histogram_checkbox.setChecked(self.parameters['ezstitch_clip_histo'])
-        self.min_value_entry.setText(str(self.parameters['ezstitch_histo_min']))
-        self.max_value_entry.setText(str(self.parameters['ezstitch_histo_max']))
-        self.first_row_entry.setText(str(self.parameters['ezstitch_first_row']))
-        self.last_row_entry.setText(str(self.parameters['ezstitch_last_row']))
-        self.column_of_axis_entry.setText(str(self.parameters['ezstitch_axis_of_rotation']))
+        self.num_overlaps_entry.setText(str(EZVARS_aux['vert-sti']['num_olap_rows']['value']))
+        self.clip_histogram_checkbox.setChecked(EZVARS_aux['vert-sti']['clip_hist']['value'])
+        self.min_value_entry.setText(str(EZVARS_aux['vert-sti']['min_int_val']['value']))
+        self.max_value_entry.setText(str(EZVARS_aux['vert-sti']['max_int_val']['value']))
+        self.first_row_entry.setText(str(EZVARS_aux['vert-sti']['conc_row_top']['value']))
+        self.last_row_entry.setText(str(EZVARS_aux['vert-sti']['conc_row_bottom']['value']))
+        self.column_of_axis_entry.setText(str(EZVARS_aux['vert-sti']['cor']['value']))
+        self.conf_auto_stitch()
+    
+    #TODO: change output/tmp on signal from the main tab if auto sttiched is requested
+    # and respective entries are modified in the main tab
+    def conf_auto_stitch(self):
+        if self.invoke_after_reco_checkbox.isChecked():
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['dovertsti'], True)
+            self.input_dir_entry.setEnabled(False)
+            self.output_dir_entry.setEnabled(f"{EZVARS['inout']['output-dir']}-ort-stitched")
+            self.tmp_dir_entry.setEnabled(EZVARS['inout']['tmp-dir'])
+            self.types_of_images_entry.setText('sli')
+            self.types_of_images_entry.setEnabled(False)
+            self.half_acquisition_rButton.setEnabled(False)
+            self.column_of_axis_entry.setEnabled(False)
+        else:
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['dovertsti'], False)
+            self.input_dir_entry.setEnabled(True)
+            self.types_of_images_entry.setEnabled(True)
+            self.half_acquisition_rButton.setEnabled(True)
+            self.column_of_axis_entry.setEnabled(True)
 
     def set_rButton(self):
         if self.interpolate_regions_rButton.isChecked():
             LOG.debug("Interpolate regions")
-            self.parameters['ezstitch_stitch_type'] = 0
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['task_type'], 0)
         elif self.concatenate_rButton.isChecked():
             LOG.debug("Concatenate only")
-            self.parameters['ezstitch_stitch_type'] = 1
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['task_type'], 1)
         elif self.half_acquisition_rButton.isChecked():
             LOG.debug("Half-acquisition mode")
-            self.parameters['ezstitch_stitch_type'] = 2
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['task_type'], 2)
 
     def input_button_pressed(self):
         LOG.debug("Input button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['ezstitch_input_dir'] = dir_explore.getExistingDirectory()
-        self.input_dir_entry.setText(self.parameters['ezstitch_input_dir'])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'], dir_explore.getExistingDirectory())
+        self.input_dir_entry.setText(EZVARS_aux['vert-sti']['input-dir']['value'])
 
     def set_input_entry(self):
         LOG.debug("Input: " + str(self.input_dir_entry.text()))
-        self.parameters['ezstitch_input_dir'] = str(self.input_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'], str(self.input_dir_entry.text()))
 
     def temp_button_pressed(self):
         LOG.debug("Temp button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['ezstitch_temp_dir'] = dir_explore.getExistingDirectory()
-        self.tmp_dir_entry.setText(self.parameters['ezstitch_temp_dir'])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['tmp-dir'], dir_explore.getExistingDirectory())
+        self.tmp_dir_entry.setText(EZVARS_aux['vert-sti']['tmp-dir']['value'])
 
     def set_temp_entry(self):
         LOG.debug("Temp: " + str(self.tmp_dir_entry.text()))
-        self.parameters['ezstitch_temp_dir'] = str(self.tmp_dir_entry.text())
+        EZVARS_aux['vert-sti']['tmp-dir']['value'] = str(self.tmp_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['tmp-dir'], str(self.tmp_dir_entry.text()))
 
     def output_button_pressed(self):
         LOG.debug("Output button pressed")
         dir_explore = QFileDialog(self)
-        self.parameters['ezstitch_output_dir'] = dir_explore.getExistingDirectory()
-        self.output_dir_entry.setText(self.parameters['ezstitch_output_dir'])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'], dir_explore.getExistingDirectory())
+        self.output_dir_entry.setText(EZVARS_aux['vert-sti']['output-dir']['value'])
 
     def set_output_entry(self):
         LOG.debug("Output: " + str(self.output_dir_entry.text()))
-        self.parameters['ezstitch_output_dir'] = str(self.output_dir_entry.text())
+        EZVARS_aux['vert-sti']['output-dir']['value'] = str(self.output_dir_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'], str(self.output_dir_entry.text()))
 
     def set_type_images(self):
         LOG.debug("Type of images: " + str(self.types_of_images_entry.text()))
-        self.parameters['ezstitch_type_image'] = str(self.types_of_images_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['subdir-name'], str(self.types_of_images_entry.text()))
 
-    def set_stitch_checkbox(self):
+    def set_ort_checkbox(self):
         LOG.debug("Stitch orthogonal: " + str(self.orthogonal_checkbox.isChecked()))
-        self.parameters['ezstitch_stitch_orthogonal'] = bool(self.orthogonal_checkbox.isChecked())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['ort'], bool(self.orthogonal_checkbox.isChecked()))
 
-    def set_start_stop_step(self):
+    def get_start_stop_step(self):
         LOG.debug("Images to be stitched: " + str(self.start_stop_step_entry.text()))
-        self.parameters['ezstitch_start_stop_step'] = str(self.start_stop_step_entry.text())
-
-    def set_sample_moved_down(self):
-        LOG.debug("Sample moved down: " + str(self.sample_moved_down_checkbox.isChecked()))
-        self.parameters['ezstitch_sample_moved_down'] = bool(self.sample_moved_down_checkbox.isChecked())
+        sli_range = str(self.start_stop_step_entry.text()).split(",")
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['start'], sli_range[0])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['stop'], sli_range[1])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['step'], sli_range[2])
+        
+    def set_flipud(self):
+        LOG.debug("Sample moved down: " + str(self.flipud_checkbox.isChecked()))
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['flipud'], bool(self.flipud_checkbox.isChecked()))
 
     def set_overlap(self):
         LOG.debug("Num overlapping rows: " + str(self.num_overlaps_entry.text()))
-        self.parameters['ezstitch_num_overlap_rows'] = int(self.num_overlaps_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], int(self.num_overlaps_entry.text()))
 
     def set_histogram_checkbox(self):
         LOG.debug("Clip histogram:  " + str(self.clip_histogram_checkbox.isChecked()))
-        self.parameters['ezstitch_clip_histo'] = bool(self.clip_histogram_checkbox.isChecked())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['clip_hist'], bool(self.clip_histogram_checkbox.isChecked()))
 
     def set_min_value(self):
         LOG.debug("Min value: " + str(self.min_value_entry.text()))
-        self.parameters['ezstitch_histo_min'] = float(self.min_value_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['min_int_val'], float(self.min_value_entry.text()))
 
     def set_max_value(self):
         LOG.debug("Max value: " + str(self.max_value_entry.text()))
-        self.parameters['ezstitch_histo_max'] = float(self.max_value_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['max_int_val'], float(self.max_value_entry.text()))
 
     def set_first_row(self):
         LOG.debug("First row: " + str(self.first_row_entry.text()))
-        self.parameters['ezstitch_first_row'] = int(self.first_row_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['conc_row_top'], int(self.first_row_entry.text()))
 
     def set_last_row(self):
         LOG.debug("Last row: " + str(self.last_row_entry.text()))
-        self.parameters['ezstitch_last_row'] = int(self.last_row_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['conc_row_bottom'], int(self.last_row_entry.text()))
 
     def set_axis_column(self):
         LOG.debug("Column of axis: " + str(self.column_of_axis_entry.text()))
-        self.parameters['ezstitch_axis_of_rotation'] = int(self.column_of_axis_entry.text())
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['cor'], int(self.column_of_axis_entry.text()))
+        
+    
 
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
@@ -367,16 +385,16 @@ class EZStitchGroup(QGroupBox):
 
     def delete_button_pressed(self):
         LOG.debug("Delete button pressed")
-        # if os.path.exists(self.parameters['ezstitch_output_dir']):
-        #     os.system('rm -r {}'.format(self.parameters['ezstitch_output_dir']))
+        # if os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
+        #     os.system('rm -r {}'.format(EZVARS_aux['vert-sti']['output-dir']['value']))
         #     print(" - Directory with reconstructed data was removed")
-        if os.path.exists(self.parameters['ezstitch_output_dir']):
+        if os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
             qm = QMessageBox()
-            rep = qm.question(self, '', f"{self.parameters['ezstitch_output_dir']} \n"
+            rep = qm.question(self, '', f"{EZVARS_aux['vert-sti']['output-dir']['value']} \n"
                                         "will be removed. Continue?", qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
-                    rmtree(self.parameters['ezstitch_output_dir'])
+                    rmtree(EZVARS_aux['vert-sti']['output-dir']['value'])
                 except:
                     warning_message('Error while deleting directory')
                     return
@@ -386,25 +404,27 @@ class EZStitchGroup(QGroupBox):
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
 
-        if os.path.exists(self.parameters['ezstitch_temp_dir']) and \
-                len(os.listdir(self.parameters['ezstitch_temp_dir'])) > 0:
+        if os.path.exists(EZVARS_aux['vert-sti']['tmp-dir']['value']) and \
+                len(os.listdir(EZVARS_aux['vert-sti']['tmp-dir']['value'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Temporary dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Temporary dir is not empty. Is it safe to delete it?", 
+                              qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
-                    rmtree(self.parameters['ezstitch_temp_dir'])
+                    rmtree(EZVARS_aux['vert-sti']['tmp-dir']['value'])
                 except:
                     warning_message('Error while deleting directory')
                     return
             else:
                 return
-        if os.path.exists(self.parameters['ezstitch_output_dir']) and \
-                len(os.listdir(self.parameters['ezstitch_output_dir'])) > 0:
+        if os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']) and \
+                len(os.listdir(EZVARS_aux['vert-sti']['output-dir']['value'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, '', "Output dir is not empty. Is it safe to delete it?", qm.Yes | qm.No)
+            rep = qm.question(self, '', "Output dir is not empty. Is it safe to delete it?", 
+                              qm.Yes | qm.No)
             if rep == qm.Yes:
                 try:
-                    rmtree(self.parameters['ezstitch_output_dir'])
+                    rmtree(EZVARS_aux['vert-sti']['output-dir']['value'])
                 except:
                     warning_message('Error while deleting directory')
                     return
@@ -413,35 +433,28 @@ class EZStitchGroup(QGroupBox):
 
         print("======= Begin Stitching =======")
         # Interpolate overlapping regions and equalize intensity
-        if self.parameters['ezstitch_stitch_type'] == 0:
-            main_sti_mp(self.parameters)
-        # Concatenate only
-        elif self.parameters['ezstitch_stitch_type'] == 1:
-            main_conc_mp(self.parameters)
-        # Half acquisition mode
-        elif self.parameters['ezstitch_stitch_type'] == 2:
+        if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
+                EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+            main_sti_mp()
+        else: 
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
-            #                     self.parameters['ezstitch_output_dir'],
+            #                     EZVARS_aux['vert-sti']['output-dir']['value'],
             #                     self.parameters['ezstitch_axis_of_rotation'], 0)
-            main_360sti_ufol_depth1(self.parameters['ezstitch_input_dir'],
-                               self.parameters['ezstitch_output_dir'],
-                               self.parameters['ezstitch_axis_of_rotation'], 0)
-        if os.path.isdir(self.parameters['ezstitch_output_dir']):
-            params_file_path = os.path.join(self.parameters['ezstitch_output_dir'], 'ezmview_params.yaml')
-            params.save_parameters(self.parameters, params_file_path)
+            main_360sti_ufol_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
+                               EZVARS_aux['vert-sti']['output-dir']['value'],
+                               EZVARS_aux['vert-sti']['cor']['value'], 0)
+        if os.path.isdir(EZVARS_aux['vert-sti']['output-dir']['value']):
+            params_file_path = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], 
+                                            'ezmview_params.yaml')
+            export_values(params_file_path, ['ezvars_aux'])
         print("==== Waiting for Next Task ====")
 
     def import_parameters_button_pressed(self):
         LOG.debug("Import params button clicked")
         dir_explore = QFileDialog(self)
         params_file_path = dir_explore.getOpenFileName(filter="*.yaml")
-        try:
-            file_in = open(params_file_path[0], 'r')
-            new_parameters = yaml.load(file_in, Loader=yaml.FullLoader)
-            if self.update_parameters(new_parameters) == 0:
-                print("Parameters file loaded from: " + str(params_file_path[0]))
-        except FileNotFoundError:
-            print("You need to select a valid input file")
+        import_values(params_file_path[0], ['ezvars_aux'])
+        self.load_values()
 
     def save_parameters_button_pressed(self):
         LOG.debug("Save params button clicked")
@@ -455,8 +468,7 @@ class EZStitchGroup(QGroupBox):
         else:
             file_path = params_file_path[0]
         try:
-            file_out = open(file_path, 'w')
-            yaml.dump(self.parameters, file_out)
+            export_values(file_path, ['ezvars_aux'])
             print("Parameters file saved at: " + str(file_path))
         except FileNotFoundError:
             print("You need to select a directory and use a valid file name")
