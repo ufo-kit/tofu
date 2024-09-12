@@ -16,14 +16,16 @@ class Batch360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Batch processing of unstitched half acq. mode data")
+        self.setTitle("AUTO STITCHING AND BATCH PROCESSING OF HALF ACQ. MODE DATA")
         self.setStyleSheet("QGroupBox {color: black;}")
         self.setEnabled(False)
 
 
-        self.info_label = QLabel("You have to set parameters of 360_overlap_search util "
-                                 "and 360_multi_stitch in the Stitch tool tab. \n"
-                                 "Then go back to Main tab set reco parameters and press Reconstruct as usual")
+        self.info_label = QLabel(f"Input directory structure MUST have four depth layers:\n"
+                                 f"Input -> Scans --> CT subdirectories --> flats/darks/tomo. \n"
+                                 f"You have to configure 360_overlap_search utility in top left  "
+                                 f"to enable the automatic stitching. \n"
+                                 "Then switch to Main tab set reco parameters and press Reconstruct as usual.\n")
 
         self.dummy_text = QLabel()
         self.list_is_good = False
@@ -81,7 +83,7 @@ class Batch360Group(QGroupBox):
 
         layout.addWidget(self.halfacq_dir_select, 3, 0)
         layout.addWidget(self.halfacq_dir_entry, 3, 1)
-        layout.addWidget(self.doVertStitching_checkbox, 4, 0, 1, 2)
+        #layout.addWidget(self.doVertStitching_checkbox, 4, 0, 1, 2)
 
         self.setLayout(layout)
 
@@ -91,8 +93,7 @@ class Batch360Group(QGroupBox):
         #I have to mention everything in load_values so that they will be initialized properly
         self.dummy_text.setText(str(EZVARS_aux['half-acq']['list_dirs']['value']))
         self.dummy_text.setText(str(EZVARS_aux['half-acq']['list_olaps']['value']))
-        self.doVertStitching_checkbox.setChecked(
-            EZVARS_aux['half-acq']['dovertsti']['value'])
+
 
     def enable_by_trigger_from_main_tab(self):
         if not self.isEnabled():

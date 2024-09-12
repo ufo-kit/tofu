@@ -23,6 +23,7 @@ from tofu.ez.params import EZVARS_aux
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator
 from tofu.ez.util import import_values, export_values
 
+
 LOG = logging.getLogger(__name__)
 
 class MultiStitch360Group(QGroupBox):

@@ -104,11 +104,99 @@ EZVARS_aux['half-acq'] = {
         'type': str,
         'help': "Comma-separated list of overlaps for every subdirectory in"
                 "lexicographic order"},
+}
+
+EZVARS_aux['vert-sti'] = {
     'dovertsti': {
         'ezdefault': False,
         'type': bool,
         'help': "TODO"},
+    'input-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'), ""),
+        'type': str,
+        'help': "TODO"},
+    'output-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'), "ezufo_stitched_images"),
+        'type': str,
+        'help': "TODO"},
+    'tmp-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'), "ezufo_stitched_tmp"),
+        'type': str,
+        'help': "TODO"},
+    'subdir-name': {
+        'ezdefault': "sli",
+        'type': str,
+        'help': "TODO"},
+    'ort': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
+    'step': {
+        'ezdefault': 200,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Increment"},
+    'start': {
+        'ezdefault': 200,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Start"},
+    'stop': {
+        'ezdefault': 2000,
+        'type': restrict_value((0, None), dtype=int),
+        'help': ""},
+    'flipud': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'task_type': {
+        'ezdefault': 0,
+        'type': restrict_value((0, 2), dtype=int),
+        'help': "What task was requested by user"},
+    'num_olap_rows': {
+        'ezdefault': 60,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Increment in axis of rotation"},
+    'estimate_num_olap_rows': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'ind_z00': {
+        'ezdefault': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Index of slice in 00 directory which will be used to find the overlap"},
+    'ind_start_z01': {
+        'ezdefault': 800,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Index of the beginning of the range of slices in 01 directory which will be used to find the overlap"},
+    'ind_stop_z01': {
+        'ezdefault': 850,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Stop index in z01 directory for the range of slices used to find the vertical overlap"},
+    'clip_hist': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'min_int_val': {
+        'ezdefault': -0.0003,
+        'type': float,
+        'help': "TODO"},
+    'max_int_val': {
+        'ezdefault': 0.0002,
+        'type': float,
+        'help': "TODO"},
+    'conc_row_top': {
+        'ezdefault': 40,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "First row in the image"},
+    'conc_row_bottom': {
+        'ezdefault': 440,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Last row in the image"},
+    'cor': {
+        'ezdefault': 245,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Axis of rotation for half acq mode stitching"}
 }
+
 
 EZVARS_aux['axes-list'] = {
    # Template:

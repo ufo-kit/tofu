@@ -16,9 +16,6 @@ from tofu.ez.Helpers.find_360_overlap import find_overlap
 from tofu.ez.params import EZVARS_aux
 from tofu.ez.util import add_value_to_dict_entry
 from tofu.ez.util import import_values, export_values
-import yaml
-
-#TODO Make all stitching tools compatible with the bigtiffs
 
 
 LOG = logging.getLogger(__name__)

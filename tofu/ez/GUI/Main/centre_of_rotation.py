@@ -84,7 +84,7 @@ class CentreOfRotationGroup(QGroupBox):
         self.image_midpoint_rButton.clicked.connect(self.set_rButton)
 
         self.unstitched360_rButton = QRadioButton()
-        self.unstitched360_rButton.setText("Input is unstitched half acq. mode data (see Advanced Tab)")
+        self.unstitched360_rButton.setText("Input is unstitched half acq. mode data (Use Stitching Tab to setup params)")
         self.unstitched360_rButton.setToolTip("Works only for input directories with 3 depth levels \n"
                                               "Outer loops -> Inner loop CT sets -> flats/darks/tomo")
         self.unstitched360_rButton.clicked.connect(self.set_rButton_360option)

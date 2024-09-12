@@ -11,6 +11,8 @@ from tofu.config import SECTIONS
 from tofu.ez.util import make_inpaths, fmt_in_out_path
 
 
+# TODO: check amount of RAM and generate sinograms in multiple passes if needed
+
 def check_lamino():
     cmd = ''
     if not SECTIONS['cone-beam-weight']['axis-angle-x']['value'][0] == '':
@@ -129,6 +131,10 @@ def get_ct_sin_cmd(out_pattern, ax, nviews, wh):
     cmd = check_bigtif(cmd, EZVARS['inout']['bigtiff-output']['value'])
     return cmd
 
+# TODO: check amount of RAM and generate sinograms in multiple passes if needed
+# mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') # gb: /1024.**3
+# read number of images, dimensions and estimate req memory
+# do multiple passes ; --pass-size {num_input_images/int(mem_req/mem_bytes +1)}
 def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh):
     indir = make_inpaths(ctset[0], ctset[1])
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],

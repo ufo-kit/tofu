@@ -12,7 +12,7 @@ import numpy as np
 import tifffile
 
 from tofu.ez.params import EZVARS, EZVARS_aux
-from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch_float32_output
+from tofu.ez.Helpers.stitch_funcs import findCTdirs, stitch
 from tofu.util import get_filenames, get_image_shape, TiffSequenceReader
 from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 #from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
@@ -127,8 +127,8 @@ def find_overlap():
             cro = EZVARS_aux['find360olap']['stop']['value'] - axis
             if axis > M // 2:
                 cro = axis - EZVARS_aux['find360olap']['start']['value']
-            A = stitch_float32_output(
-                tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro)
+            A = stitch(
+                tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro, False)
             tifffile.imwrite(os.path.join(
                 sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
 
