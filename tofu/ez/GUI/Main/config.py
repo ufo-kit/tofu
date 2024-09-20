@@ -16,7 +16,7 @@ from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.util import import_values, export_values
 from tofu.ez.GUI.message_dialog import warning_message
-from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry
 
@@ -608,6 +608,11 @@ class ConfigGroup(QGroupBox):
         self.set_temp_dir()
         self.set_preproc()
         self.set_preproc_entry()
+        if EZVARS_aux['vert-sti']['dovertsti']['value']:
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'],
+                                    f"{EZVARS['inout']['output-dir']['value']}-ort-stitched")
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['tmp-dir'],
+                                    f"{EZVARS['inout']['tmp-dir']['value']}")
         run_reco = partial(self.run_reconstruction, batch_run=False)
         #I had to add a little sleep as on some Linux ditributions params won't fully set before the main() begins
         QTimer.singleShot(100, run_reco)

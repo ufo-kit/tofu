@@ -47,8 +47,6 @@ def make_ort_sections(ctset_path):
     :param ctdir Name of the ctdir - blank string if not using multiple ctdirs:
     :return:
     """
-    if not os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
-        os.makedirs(EZVARS_aux['vert-sti']['output-dir']['value'])
     Vsteps = sorted(os.listdir(ctset_path))
     #determine input data type
     tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif')
@@ -81,6 +79,8 @@ def make_ort_sections(ctset_path):
 def main_sti_mp():
     #Check whether indir is CTdir or parent containing CTdirs
     #if indir + some z00 subdir + sli + *.tif does not exist then use original
+    if not os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
+        os.makedirs(EZVARS_aux['vert-sti']['output-dir']['value'])
     subdirs = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
     if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
                                    EZVARS_aux['vert-sti']['subdir-name']['value'])):
@@ -106,8 +106,6 @@ def main_sti_mp():
                     sti_one_set(indir, outdir)
                 else:
                     conc_one_set(indir, outdir)
-            print("Invalid input directory")
-    complete_message()
 
 
 def sti_one_set(in_dir_path, out_dir_path):
@@ -390,13 +388,92 @@ def check_last_index(axis_list):
         last_index = index
     return last_index
 
-def find_overlap(indir, ind, ind_range):
-    tsr = TiffSequenceReader(indir)
-    ssim_ind = np.zeros((tsr.num_images, 1))
-    im_ref = 0
-    for i in range(tsr.num_images):
-        im = tsr.read(i)
-        ssim_ind[i] = ssim(im_ref, im, data_range=(max(im_ref.max(), im.max()) - min(im_ref.min(), im.min())))
+def find_vert_olap_all_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
+    Vsteps = sorted(os.listdir(ctset_path))
+    num_vsteps = len(Vsteps)
+    olaps = np.zeros((num_vsteps-1, 1))
+    for i in range(num_vsteps-1):
+        # if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
+        #                            EZVARS_aux['vert-sti']['subdir-name']['value'])):
+        z00_name = os.path.join(ctset_path, Vsteps[i],
+                                EZVARS_aux['vert-sti']['subdir-name']['value'])
+        z01_name = os.path.join(ctset_path, Vsteps[i+1],
+                                EZVARS_aux['vert-sti']['subdir-name']['value'])
+        olaps[i] = find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01)
+    return np.median(olaps) #ind_start_z01+olaps-ind_z00
+
+def find_vert_olap_2_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
+    #taking two sub-scans near the center of the sample
+    vsteps = sorted(os.listdir(ctset_path))
+    num_vsteps = len(vsteps)
+    z00_name = os.path.join(ctset_path, vsteps[num_vsteps//2-1],
+                            EZVARS_aux['vert-sti']['subdir-name']['value'])
+    z01_name = os.path.join(ctset_path, vsteps[num_vsteps//2],
+                            EZVARS_aux['vert-sti']['subdir-name']['value'])
+    print(f"Estimating overlap between {vsteps[num_vsteps//2-1]} and {vsteps[num_vsteps//2]} "
+          f"scans in {ctset_path}")
+    return find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01)
+
+
+def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
+    tmp = os.path.join(z00_name, '*.tif')
+    im0 = read_image(sorted(glob.glob(tmp))[ind_z00])
+    tsr = TiffSequenceReader(z01_name)
+    num_ref_im = ind_stop_z01 - ind_start_z01
+    ssim_ind = np.zeros((num_ref_im, 1))
+    for i in range(num_ref_im):
+        im1 = tsr.read(ind_start_z01 + i)
+        ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -
+                                                   min(im0.min(), im1.min())))
+        print(f"Similarity with slice {ind_start_z01 + i} = {ssim_ind[i]}")
+    M = len(sorted(glob.glob(tmp)))
+    # olap = ind_start_z01 + np.argmax(ssim_ind) - ind_z00
+    if ind_z00 < M//2:
+        return M - (ind_start_z01 + np.argmax(ssim_ind) - ind_z00)
+    else:
+        return (ind_start_z01 + np.argmax(ssim_ind)) - (M - ind_z00)
+
+# def find_ver_overlap_mp(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
+#     tmp = os.path.join(z00_name, '*.tif')
+#     im0 = read_image(sorted(glob.glob(tmp))[ind_z00])
+#     N, M = im0.shape
+#     tsr = TiffSequenceReader(z01_name)
+#     num_ref_im = ind_stop_z01 - ind_start_z01
+#     A = np.zeros((num_ref_im, N, M))
+#     ssim_ind = np.zeros((num_ref_im, 1))
+#     for i in range(num_ref_im):
+#         im1 = tsr.read(ind_start_z01 + i)
+#         A[i,:,:] = im1
+#     del(A)
+
+# def comp_ssim(im0, A, i):
+#     ssim_ind = ssim(im0, A[i,:,:], data_range=(max(im0.max(), A[i,:,:].max()) -
+#                                              min(im0.min(), A[i,:,:].min())))
+#     print(f"Similarity with slice {i} = {ssim_ind}")
+#     return [i, ssim_ind]
+#
+#
+#     nslices = len(sorted(glob.glob(tmp)))
+#     # olap = ind_start_z01 + np.argmax(ssim_ind) - ind_z00
+#     if ind_z00 < nslices // 2:
+#         return nslices - (ind_start_z01 + np.argmax(ssim_ind) - ind_z00)
+#     else:
+#         return (ind_start_z01 + np.argmax(ssim_ind)) - (nslices - ind_z00)
+
+
+# def find_vert_overlap(ctset_path, step_ind, ind_z00, ind_start_z01, ind_stop_z01):
+#     Vsteps = sorted(os.listdir(ctset_path))
+#     tmp = os.path.join(ctset_path, Vsteps[step_ind], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif')
+#     im0 = read_image(sorted(glob.glob(tmp))[ind_z00])
+#     tmp = os.path.join(ctset_path, Vsteps[step_ind+1], EZVARS_aux['vert-sti']['subdir-name']['value'])
+#     tsr = TiffSequenceReader(tmp)
+#     num_ref_im = ind_stop_z01 - ind_start_z01
+#     ssim_ind = np.zeros((num_ref_im, 1))
+#     for i in range(num_ref_im):
+#         im1 = tsr.read(ind_start_z01 + i)
+#         ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -
+#                                                    min(im0.min(), im1.min())))
+#     return np.argmax(ssim_ind[i])
 
 
 def complete_message():
@@ -413,3 +490,4 @@ def complete_message():
     print(" ||      /    \\)___)\\")
     print(" | \\____(      )___) )____")
     print("  \\______(_______;;;)__;;;)")
+
