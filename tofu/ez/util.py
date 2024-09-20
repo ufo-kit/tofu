@@ -33,6 +33,24 @@ def get_dims(pth):
         return nviews, [shape[-2], shape[-1]], multipage
     return -6, [-6, -6]
 
+def get_data_cube_info(pth):
+    im_names = glob.glob(os.path.join(pth, '*.tif'))
+    nslices = len(im_names)
+    im = read_image(im_names[0])
+    N, M = im.shape
+    tmp = im.dtype
+    bit = 0; dt = 'unsupported'
+    if tmp == 'uint8':
+        bit = 8; dt = 'uint8'
+    elif tmp == 'uint16':
+        bit = 16; dt = 'uint16'
+    elif tmp == 'float32':
+        bit = 32; dt = 'float32'
+    ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+    data_size_bytes = nslices * N * M * 4
+    print(f"RAM availible {ram_amount_bytes//1024**3} GB; data size {data_size_bytes//1024**3} GB")
+    npasses = nslices/int(data_size_bytes/ram_amount_bytes + 1)
+    return nslices, N, M, bit, dt, npasses
 
 def bad_vert_ROI(multipage, path2proj, y, height):
     if multipage:
