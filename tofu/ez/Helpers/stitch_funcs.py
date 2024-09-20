@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 import tifffile
 from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader
+from tofu.ez.util import get_data_cube_info
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
@@ -49,9 +50,8 @@ def make_ort_sections(ctset_path):
     """
     Vsteps = sorted(os.listdir(ctset_path))
     #determine input data type
-    tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif')
-    tmp = sorted(glob.glob(tmp))[0]
-    indtype_digit, indtype = get_image_dtype(tmp)
+    tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
+    nslices, N, M, indtype_digit, indtype, npasses = get_data_cube_info(tmp)
 
     if EZVARS_aux['vert-sti']['ort']['value']:
         print(" - Creating orthogonal sections")
@@ -67,6 +67,7 @@ def make_ort_sections(ctset_path):
             cmd += " --output-bytes-per-file 0"
             if indtype_digit == '8' or indtype_digit == '16':
                 cmd += f" --output-bitdepth {indtype_digit}"
+            cmd += f" --pass-size {npasses}"
             print(cmd)
             os.system(cmd)
             time.sleep(10)

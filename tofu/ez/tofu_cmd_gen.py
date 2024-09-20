@@ -8,7 +8,7 @@ import numpy as np
 from tofu.ez.ufo_cmd_gen import fmt_in_out_path
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.ez.util import make_inpaths, fmt_in_out_path
+from tofu.ez.util import make_inpaths, fmt_in_out_path, get_data_cube_info
 
 
 # TODO: check amount of RAM and generate sinograms in multiple passes if needed
@@ -131,11 +131,7 @@ def get_ct_sin_cmd(out_pattern, ax, nviews, wh):
     cmd = check_bigtif(cmd, EZVARS['inout']['bigtiff-output']['value'])
     return cmd
 
-# TODO: check amount of RAM and generate sinograms in multiple passes if needed
-# mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') # gb: /1024.**3
-# read number of images, dimensions and estimate req memory
-# do multiple passes ; --pass-size {num_input_images/int(mem_req/mem_bytes +1)}
-def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh):
+def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass):
     indir = make_inpaths(ctset[0], ctset[1])
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                     ctset[0], EZVARS['inout']['tomo-dir']['value'], False)
@@ -154,9 +150,10 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh):
         # because second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
     cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
+    cmd += f" --pass-size {n_per_pass}"
     return cmd
 
-def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh):
+def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh, n_per_pass):
     in_proj_dir, out_pattern = fmt_in_out_path(
         EZVARS['inout']['tmp-dir']['value'], ctsetpath, EZVARS['inout']['tomo-dir']['value'], False
     )
@@ -172,18 +169,21 @@ def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh):
     if not EZVARS['RR']['use-ufo']['value']:
         # because second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
+    cmd += f" --pass-size {n_per_pass}"
     return cmd
 
-def get_sinos2proj_cmd(proj_height):
+def get_sinos2proj_cmd(proj_height, n_per_pass):
     quatsch, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'], 'quatsch',
                                            EZVARS['inout']['tomo-dir']['value'], True)
+    in_proj_dir = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'sinos-filt')
     cmd = 'tofu sinos'
-    cmd += ' --projections {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'sinos-filt'))
+    cmd += ' --projections {}'.format(in_proj_dir)
     cmd += ' --output {}'.format(out_pattern)
     if not EZVARS['inout']['input_ROI']['value']:
         cmd += ' --number {}'.format(proj_height)
     else:
         cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+    cmd += f" --pass-size {n_per_pass}"
     return cmd
 
 def get_sinFFC_cmd(ctset):

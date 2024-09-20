@@ -67,7 +67,7 @@ def get_CTdirs_list(inpath, fdt_names):
         return W.ctsets, W.lvl0
 
 
-def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
+def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
     """formats list of processing commands for a CT set"""
     # two helper variables to note that PR/FFC has been done at some step
     swiFFC = True  # FFC is always required
@@ -133,13 +133,16 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
                 # Create flat corrected images using sinFFC
                 cmds.append(get_sinFFC_cmd(ctset))
                 # Feed the flat corrected images to sino gram generation
-                cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'], nviews, wh))
+                cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'],
+                                                nviews, wh, n_per_pass))
             elif not EZVARS['flat-correction']['smart-ffc']['value']:
                 cmds.append('echo " - Make sinograms with flat-correction"')
-                cmds.append(get_sinos_ffc_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], nviews, wh))
+                cmds.append(get_sinos_ffc_cmd(ctset, EZVARS['inout']['tmp-dir']['value'],
+                                              nviews, wh, n_per_pass))
         else:  # we do not need flat-field correction
             cmds.append('echo " - Make sinograms without flat-correction"')
-            cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'], nviews, wh))
+            cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'],
+                                            nviews, wh, n_per_pass))
         swiFFC = False
         # Filter sinograms
         if EZVARS['RR']['use-ufo']['value']:
@@ -173,7 +176,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh):
             cmds.append("rm -rf {}".format(os.path.join(EZVARS['inout']['tmp-dir']['value'], "sinos")))
         # Convert filtered sinograms back to projections
         cmds.append('echo " - Generating proj from filtered sinograms"')
-        cmds.append(get_sinos2proj_cmd(wh[0]))
+        cmds.append(get_sinos2proj_cmd(wh[0], n_per_pass))
         # reset location of input data
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
 
@@ -262,15 +265,28 @@ def execute_reconstruction(fdt_names):
             # determine initial number of projections and their shape
             path2proj = os.path.join(ctset[0], fdt_names[2])
             nviews, wh, multipage = get_dims(path2proj)
-            # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
-            if EZVARS['COR']['search-method']['value'] != 4:
-                if (EZVARS['inout']['input_ROI']['value'] and bad_vert_ROI(multipage, path2proj,
-                                SECTIONS['reading']['y']['value'], SECTIONS['reading']['height']['value'])):
+            ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+            nrows = wh[0]
+            if EZVARS['inout']['input_ROI']['value']:
+                nrows = (SECTIONS['reading']['height']['value'] \
+                           - SECTIONS['reading']['y']['value']) / SECTIONS['reading']['y-step']['value']
+                if bad_vert_ROI(multipage, path2proj,
+                        SECTIONS['reading']['y']['value'],SECTIONS['reading']['height']['value']):
                     print('{}\t{}'.format('CTset:', ctset[0]))
                     print('{:>30}\t{}'.format('Axis:', 'na'))
                     print('Vertical ROI does not contain any rows.')
                     print("{:>30}\t{}, dimensions: {}".format("Number of projections:", nviews, wh))
                     continue
+                elif (SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value']) > wh[0]:
+                    print('Vertical ROI exceeds the number of rows')
+                    print('Resetting the interval to match the number of rows')
+                    SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
+                    nrows = (SECTIONS['reading']['height']['value'] \
+                        - SECTIONS['reading']['y']['value']) / SECTIONS['reading']['y-step']['value']
+            data_size_bytes = nviews * nrows * wh[1] * 4
+            n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
+            # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
+            if EZVARS['COR']['search-method']['value'] != 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
                     ax = find_axis_corr(ctset,
@@ -302,7 +318,7 @@ def execute_reconstruction(fdt_names):
             cmds.append('echo "Cleaning temporary directory"'.format(setid))
             clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
             # call function which formats commands for this data set
-            nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh)
+            nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass)
             save_params(setid, ax, nviews, wh)
             print('{}\t{}'.format('CTset:', ctset[0]))
             print('{:>30}\t{}'.format('Axis:', ax))
@@ -329,8 +345,8 @@ def execute_reconstruction(fdt_names):
         clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
 
     print("========================================")
-    print("======= Begin Vertical Stitching =======")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:
+        print("======= Begin Vertical Stitching =======")
         rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
