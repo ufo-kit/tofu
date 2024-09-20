@@ -77,9 +77,9 @@ class Batch360Group(QGroupBox):
         layout = QGridLayout()
 
         layout.addWidget(self.info_label, 0, 0, 1, 2)
-        layout.addWidget(self.stitch_and_reco_rButton, 1, 0)
-        layout.addWidget(self.open_olap_file_button, 1, 1)
-        layout.addWidget(self.find_olap_stitch_and_reco_rButton, 2, 0)
+        layout.addWidget(self.stitch_and_reco_rButton, 2, 0)
+        layout.addWidget(self.open_olap_file_button, 2, 1)
+        layout.addWidget(self.find_olap_stitch_and_reco_rButton, 1, 0)
 
         layout.addWidget(self.halfacq_dir_select, 3, 0)
         layout.addWidget(self.halfacq_dir_entry, 3, 1)

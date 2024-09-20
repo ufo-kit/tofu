@@ -91,7 +91,7 @@ EZVARS_aux['half-acq'] = {
         'type': str,
         'help': "TODO"},
     'task_type': {
-        'ezdefault': 0,
+        'ezdefault': 1,
         'type': restrict_value((0, 1), dtype=int),
         'help': "What task was requested by user"},
     'list_dirs': {
@@ -163,11 +163,11 @@ EZVARS_aux['vert-sti'] = {
         'ezdefault': 0,
         'type': restrict_value((0, None), dtype=int),
         'help': "Index of slice in 00 directory which will be used to find the overlap"},
-    'ind_start_z01': {
+    'ind_z01_start': {
         'ezdefault': 800,
         'type': restrict_value((0, None), dtype=int),
         'help': "Index of the beginning of the range of slices in 01 directory which will be used to find the overlap"},
-    'ind_stop_z01': {
+    'ind_z01_stop': {
         'ezdefault': 850,
         'type': restrict_value((0, None), dtype=int),
         'help': "Stop index in z01 directory for the range of slices used to find the vertical overlap"},
