@@ -17,6 +17,10 @@ from tofu.util import get_filenames, get_image_shape, TiffSequenceReader
 from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 #from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 from tofu.ez.evaluate_sharpness import evaluate_metrics_360_olap_search
+from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1
+from tofu.ez.util import get_data_cube_info, get_dims
+from tofu.ez.ufo_cmd_gen import get_pre_cmd
+from tofu.ez.tofu_cmd_gen import fmt_pr_cmd
 
 def extract_row(dir_name, row):
     tsr = TiffSequenceReader(dir_name)
@@ -44,7 +48,8 @@ def find_overlap():
         return None
 
     olap_estimates = []
-
+    # TODO: fix shared flats/darks - path doesn't have to be
+    # joined as shared variable is an absolute path already
     dirdark = EZVARS['inout']['darks-dir']['value']
     dirflats = EZVARS['inout']['flats-dir']['value']
     dirflats2 = EZVARS['inout']['flats2-dir']['value']
@@ -56,10 +61,7 @@ def find_overlap():
     sin_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos')
     if not os.path.exists(sin_tmp_dir):
         os.makedirs(sin_tmp_dir)
-    if EZVARS_aux['find360olap']['doRR']['value']:
-        sinfilt_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos-filt')
-        if not os.path.exists(sinfilt_tmp_dir):
-            os.makedirs(sinfilt_tmp_dir)
+
 
     ax_range = range(EZVARS_aux['find360olap']['start']['value'],
                      EZVARS_aux['find360olap']['stop']['value'] + EZVARS_aux['find360olap']['step']['value'],
@@ -74,100 +76,18 @@ def find_overlap():
             EZVARS_aux['axes-list'].update({outerloopdirname: {}})
         index_dir = os.path.basename(os.path.normpath(ctset))
         print(f"Generating slices for ctset {index_dir}")
-        # loading:
-        try:
-            row_flat = np.mean(extract_row(
-                os.path.join(ctset, dirflats), EZVARS_aux['find360olap']['row']['value']))
-        except:
-            print(f"Problem loading flats in {ctset}")
-            continue
-        try:
-            row_dark = np.mean(extract_row(
-                os.path.join(ctset, dirdark), EZVARS_aux['find360olap']['row']['value']))
-        except:
-            print(f"Problem loading darks in {ctset}")
-            continue
-        try:
-            row_tomo = extract_row(
-                os.path.join(ctset, EZVARS['inout']['tomo-dir']['value']),
-                                   EZVARS_aux['find360olap']['row']['value'])
-        except:
-            print(f"Problem loading projections from "
-                  f"{os.path.join(ctset, EZVARS['inout']['tomo-dir']['value'])}")
-            continue
-        row_flat2 = None
-        tmpstr = os.path.join(ctset, dirflats2)
-        if os.path.exists(tmpstr):
-            try:
-                row_flat2 = np.mean(extract_row(tmpstr, EZVARS_aux['find360olap']['row']['value']))
-            except:
-                print(f"Problem loading flats2 in {ctset}")
-
-        (num_proj, M) = row_tomo.shape
-
-        print('Flat-field correction...')
-        # Flat-correction
-        tmp_flat = np.tile(row_flat, (num_proj, 1))
-        if row_flat2 is not None:
-            tmp_flat2 = np.tile(row_flat2, (num_proj, 1))
-            ramp = np.linspace(0, 1, num_proj)
-            ramp = np.transpose(np.tile(ramp, (M, 1)))
-            tmp_flat = tmp_flat * (1-ramp) + tmp_flat2 * ramp
-            del ramp, tmp_flat2
-
-        tmp_dark = np.tile(row_dark, (num_proj, 1))
-        tomo_ffc = -np.log((row_tomo - tmp_dark)/np.float32(tmp_flat - tmp_dark))
-        del row_tomo, row_dark, row_flat, tmp_flat, tmp_dark
-        np.nan_to_num(tomo_ffc, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
-
-        # create interpolated sinogram of flats on the
-        # same row as we use for the projections, then flat/dark correction
-        print('Creating stitched sinograms...')
-        for axis in ax_range:
-            cro = EZVARS_aux['find360olap']['stop']['value'] - axis
-            if axis > M // 2:
-                cro = axis - EZVARS_aux['find360olap']['start']['value']
-            A = stitch(
-                tomo_ffc[: num_proj//2, :], tomo_ffc[num_proj//2:, ::-1], axis, cro, False)
-            tifffile.imwrite(os.path.join(
-                sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
-
-        # formatting reco command
-        sin_width = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]
-        sin_height = get_image_shape(get_filenames(sin_tmp_dir)[0])[-2]
-        outname = os.path.join(os.path.join(
-            EZVARS_aux['find360olap']['output-dir']['value'], index_dir, f"{index_dir}-sli"))
-        #old command
-        #cmd = f'tofu tomo --axis {sin_width // 2} --output {os.path.join(outname)}'
-        # new command to enable slice crop
-        # convert sinos to projections first
-        nsli = len(ax_range)
-        cmd = f'tofu sinos --number {nsli}'
-        if EZVARS_aux['find360olap']['doRR']['value']:
-            print("Applying ring removal filter")
-            rrcmd = get_filter2d_sinos_cmd(EZVARS_aux['find360olap']['tmp-dir']['value'],
-                                   EZVARS['RR']['sx']['value'],
-                                   EZVARS['RR']['sy']['value'],
-                                   sin_height, sin_width)
-            os.system(rrcmd)
-            cmd += f' --projections {sinfilt_tmp_dir}'
+        e = 0
+        if EZVARS_aux['find360olap']['doPR']['value']:
+            e = make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir)
         else:
-            cmd += f' --projections {sin_tmp_dir}'
-        proj_file_name = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'proj.tif')
-        cmd += f" --output {proj_file_name}"
-        os.system(cmd)
-        # now the reco command
-        cmd = f'tofu reco --projections {proj_file_name} --output {outname}'
-        cmd += f' --overall-angle 180 --center-position-x {sin_width // 2} '
-        cmd += f' --number {sin_height} --region={-(nsli//2)},{nsli-nsli//2},{1}'
-        p_width = EZVARS_aux['find360olap']['patch-size']['value'] // 2
-        cmd += " --x-region={},{},{}".format(int(-p_width), int(p_width), 1)
-        cmd += " --y-region={},{},{}".format(int(-p_width), int(p_width), 1)
-        print('Reconstructing slices...')
-        os.system(cmd)
+            e = make_sinos_noPR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir)
+        if e:
+            print("Cannot create sinograms; continue with the next ct set")
+            continue
+
+        outname = do_reco(sin_tmp_dir, index_dir, ax_range)
 
         # estimating overlap
-        #points, maximum = evaluate_images_simp(outname, "std")
         mettxtpref = os.path.join(os.path.join(
             EZVARS_aux['find360olap']['output-dir']['value'], index_dir))
 
@@ -186,4 +106,165 @@ def find_overlap():
     #shutil.rmtree(EZVARS_aux['find360olap']['tmp-dir'])
     print("Finished processing of all subdirectories in " + str(EZVARS_aux['find360olap']['input-dir']['value']))
     return dict(zip(ctdirs, olap_estimates))
+
+def make_sinos_noPR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
+    try:
+        row_flat = np.median(extract_row(
+            os.path.join(ctset, dirflats), EZVARS_aux['find360olap']['row']['value']))
+    except:
+        print(f"Problem loading flats in {ctset}")
+        return 1
+    try:
+        row_dark = np.mean(extract_row(
+            os.path.join(ctset, dirdark), EZVARS_aux['find360olap']['row']['value']))
+    except:
+        print(f"Problem loading darks in {ctset}")
+        return 1
+    try:
+        row_tomo = extract_row(
+            os.path.join(ctset, EZVARS['inout']['tomo-dir']['value']),
+            EZVARS_aux['find360olap']['row']['value'])
+    except:
+        print(f"Problem loading projections from "
+              f"{os.path.join(ctset, EZVARS['inout']['tomo-dir']['value'])}")
+        return 1
+    row_flat2 = None
+    tmpstr = os.path.join(ctset, dirflats2)
+    if os.path.exists(tmpstr):
+        try:
+            row_flat2 = np.median(extract_row(tmpstr, EZVARS_aux['find360olap']['row']['value']))
+        except:
+            print(f"Problem loading flats2 in {ctset}")
+            return 1
+
+    (num_proj, M) = row_tomo.shape
+
+    print('Flat-field correction...')
+    # Flat-correction
+    tmp_flat = np.tile(row_flat, (num_proj, 1))
+    if row_flat2 is not None:
+        tmp_flat2 = np.tile(row_flat2, (num_proj, 1))
+        ramp = np.linspace(0, 1, num_proj)
+        ramp = np.transpose(np.tile(ramp, (M, 1)))
+        tmp_flat = tmp_flat * (1 - ramp) + tmp_flat2 * ramp
+        del ramp, tmp_flat2
+
+    tmp_dark = np.tile(row_dark, (num_proj, 1))
+    tomo_ffc = -np.log((row_tomo - tmp_dark) / np.float32(tmp_flat - tmp_dark))
+    del row_tomo, row_dark, row_flat, tmp_flat, tmp_dark
+    np.nan_to_num(tomo_ffc, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # create interpolated sinogram of flats on the
+    # same row as we use for the projections, then flat/dark correction
+    print('Creating stitched sinograms...')
+    for axis in ax_range:
+        cro = EZVARS_aux['find360olap']['stop']['value'] - axis
+        if axis > M // 2:
+            cro = axis - EZVARS_aux['find360olap']['start']['value']
+        A = stitch(
+            tomo_ffc[: num_proj // 2, :], tomo_ffc[num_proj // 2:, ::-1], axis, cro, False)
+        tifffile.imwrite(os.path.join(
+            sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'), A.astype(np.float32))
+    return 0
+
+
+def do_reco(sin_tmp_dir, index_dir, ax_range):
+    if EZVARS_aux['find360olap']['doRR']['value']:
+        sinfilt_tmp_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'sinos-filt')
+        if not os.path.exists(sinfilt_tmp_dir):
+            os.makedirs(sinfilt_tmp_dir)
+    # formatting reco command
+    sin_width = get_image_shape(get_filenames(sin_tmp_dir)[0])[-1]
+    sin_height = get_image_shape(get_filenames(sin_tmp_dir)[0])[-2]
+    outname = os.path.join(os.path.join(
+        EZVARS_aux['find360olap']['output-dir']['value'], index_dir, f"{index_dir}-sli"))
+    # old command
+    # cmd = f'tofu tomo --axis {sin_width // 2} --output {os.path.join(outname)}'
+    # new command to enable slice crop
+    # convert sinos to projections first
+    nsli = len(ax_range)
+    cmd = f'tofu sinos --number {nsli}'
+    if EZVARS_aux['find360olap']['doRR']['value']:
+        print("Applying ring removal filter")
+        rrcmd = get_filter2d_sinos_cmd(EZVARS_aux['find360olap']['tmp-dir']['value'],
+                                       EZVARS['RR']['sx']['value'],
+                                       EZVARS['RR']['sy']['value'],
+                                       sin_height, sin_width)
+        os.system(rrcmd)
+        cmd += f' --projections {sinfilt_tmp_dir}'
+    else:
+        cmd += f' --projections {sin_tmp_dir}'
+    proj_file_name = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'proj.tif')
+    cmd += f" --output {proj_file_name}"
+    os.system(cmd)
+    # now the reco command
+    cmd = f'tofu reco --projections {proj_file_name} --output {outname}'
+    cmd += f' --overall-angle 180 --center-position-x {sin_width // 2} '
+    cmd += f' --number {sin_height} --region={-(nsli // 2)},{nsli - nsli // 2},{1}'
+    p_width = EZVARS_aux['find360olap']['patch-size']['value'] // 2
+    cmd += " --x-region={},{},{}".format(int(-p_width), int(p_width), 1)
+    cmd += " --y-region={},{},{}".format(int(-p_width), int(p_width), 1)
+    print('Reconstructing slices...')
+    os.system(cmd)
+    return outname
+
+def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
+    path2crop_frames = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'vertcrop')
+    mrg = 64
+    nviews, wh = validate_row(mrg, ctset, EZVARS['inout']['tomo-dir']['value'])
+    pre_cmd = f"crop y={EZVARS_aux['find360olap']['row']['value'] - mrg + 1} height={2*mrg}"
+    typ = 3
+    tmpstr = os.path.join(ctset, dirflats2)
+    if os.path.exists(tmpstr):
+        typ = 4
+    cmds = get_pre_cmd((ctset, typ), pre_cmd, path2crop_frames)
+    print(f"Creating a cropped copy of the input data set with 128 rows only")
+    for cmd in cmds:
+        #print(cmd)
+        os.system(cmd)
+    for axis in ax_range:
+        print(f"Making sinogram for axis {axis}")
+        cro = EZVARS_aux['find360olap']['stop']['value'] - axis
+        if axis > wh[1] // 2:
+            cro = axis - EZVARS_aux['find360olap']['start']['value']
+        par_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched', f"{axis:04}")
+        print(f"Stitching flats/darks/tomo")
+        main_360sti_ufol_depth1(path2crop_frames, par_dir, axis, cro)
+        dirdark = os.path.join(par_dir, dirdark)
+        dirflats = os.path.join(par_dir, dirflats)
+        dirtomo = os.path.join(par_dir, 'proj-step1')
+        dirflats2 = os.path.join(par_dir, dirflats2)
+        typ = 3
+        if os.path.exists(dirflats2):
+            typ = 4
+        par_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched-pr', f"{axis:04}")
+        out_pattern = os.path.join(par_dir, "proj-%04i.tif")
+        print(f"Phase retrieval")
+        cmd = fmt_pr_cmd(dirdark, dirflats, dirtomo, typ, dirflats2, out_pattern)
+        os.system(cmd)
+        print(f"Generating sinogram for the target row")
+        cmd = "tofu sinos"
+        cmd += " --projections {}".format(par_dir)
+        cmd += " --output {}".format(os.path.join(sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'))
+        cmd += " --number {}".format(nviews//2)
+        cmd += f" --y={mrg} --height=1"
+        os.system(cmd)
+    return 0
+
+
+
+def validate_row(dy, ctset, dirflats):
+    nviews, wh, multipage = get_dims(os.path.join(ctset, dirflats))
+    y = EZVARS_aux['find360olap']['row']['value']
+    if (y+dy) >= wh[1]:
+        y = wh[1] - dy
+    elif (y-dy) <=0:
+        y = dy
+    if ((y+dy) > wh[1]) or ((y-dy) <=0):
+        print("Input projections must be at least 16 rows large to perform phase retrieval accurately")
+        return 1
+    return nviews, wh
+
+
+
 

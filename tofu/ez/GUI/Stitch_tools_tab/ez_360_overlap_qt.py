@@ -26,9 +26,22 @@ class Overlap360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("360-AXIS-SEARCH: find overlap in half acq. mode CT sets. Finds all CT sets in Input recursively.")
-        self.setToolTip("Stitches and reconstructs one slice with different axis of rotation positions for half-acqusition mode data set(s)")
+        self.setTitle("360-AXIS-SEARCH: find overlap in half acq. mode CT sets. "
+                      "Works for all CT sets in the Input directory recursively.")
         self.setStyleSheet('QGroupBox {color: Orange;}')
+        self.setToolTip("Upon 360 deg rotation in parallel beam tomography two data sets are "
+                        "effectively acquired"
+                        " if the axis of rotation is moved close to the edge of the detector.\n"
+                        "A half acquisition mode data set can be converted to an ordinary parallel"
+                        "beam data set by stitching matching pairs of projections from "
+                        "[0-180) and [180-360) deg intervals.\n"
+                        "In order to do that one must know position of the axis of rotation or, in other words,"
+                        "the horizontal overlap between [0-180) and [180-360) projections.\n"
+                        "This tool helps to find index of the column where axis of rotation was "
+                        "by reconstructing CT slices for one detector row"
+                        "with different overlaps.\n"
+                        "Script suggests an automatic estimate which can be verified by "
+                        "visual inspection of the slices saved in the output directory.")
 
         self.input_dir_button = QPushButton("Select input directory")
         self.input_dir_button.clicked.connect(self.input_button_pressed)
@@ -50,7 +63,7 @@ class Overlap360Group(QGroupBox):
         self.pixel_row_entry = QLineEdit()
         self.pixel_row_entry.editingFinished.connect(self.set_pixel_row)
 
-        self.patch_size_label = QLabel("Patch size")
+        self.patch_size_label = QLabel("\tPatch size")
         self.patch_size_label.setToolTip(EZVARS_aux['find360olap']['patch-size']['help'])
         self.patch_size_entry = QLineEdit()
         self.patch_size_entry.editingFinished.connect(self.set_patch_size)
@@ -63,17 +76,21 @@ class Overlap360Group(QGroupBox):
         #self.doRR.setEnabled(False)
         self.doRR.stateChanged.connect(self.set_RR_checkbox)
 
+        self.doPR = QCheckBox("Apply phase retrieval")
+        # self.doRR.setEnabled(False)
+        self.doPR.stateChanged.connect(self.set_PR_checkbox)
+
         self.range_label = QLabel("Overlap range for axis search:")
 
         self.min_label = QLabel("\tStart")
         self.min_entry = QLineEdit()
         self.min_entry.editingFinished.connect(self.set_lower_limit)
 
-        self.max_label = QLabel("Stop")
+        self.max_label = QLabel("\tStop")
         self.max_entry = QLineEdit()
         self.max_entry.editingFinished.connect(self.set_upper_limit)
 
-        self.step_label = QLabel("Step")
+        self.step_label = QLabel("\t\tStep")
         self.step_entry = QLineEdit()
         self.step_entry.editingFinished.connect(self.set_increment)
 
@@ -94,28 +111,8 @@ class Overlap360Group(QGroupBox):
 
     def set_layout(self):
         layout = QGridLayout()
-        # layout.addWidget(self.input_dir_button, 0, 0, 1, 2)
-        # layout.addWidget(self.input_dir_entry, 1, 0, 1, 2)
-        # layout.addWidget(self.temp_dir_button, 2, 0, 1, 2)
-        # layout.addWidget(self.temp_dir_entry, 3, 0, 1, 2)
-        # layout.addWidget(self.output_dir_button, 4, 0, 1, 2)
-        # layout.addWidget(self.output_dir_entry, 5, 0, 1, 2)
-        # layout.addWidget(self.pixel_row_label, 6, 0)
-        # layout.addWidget(self.pixel_row_entry, 6, 1)
-        # layout.addWidget(self.min_label, 7, 0)
-        # layout.addWidget(self.min_entry, 7, 1)
-        # layout.addWidget(self.max_label, 8, 0)
-        # layout.addWidget(self.max_entry, 8, 1)
-        # layout.addWidget(self.step_label, 9, 0)
-        # layout.addWidget(self.step_entry, 9, 1)
-        # layout.addWidget(self.patch_size_label, 10, 0)
-        # layout.addWidget(self.patch_size_entry, 10, 1)
-        # layout.addWidget(self.doRR, 11, 0)
-        # layout.addWidget(self.help_button, 12, 0)
-        # layout.addWidget(self.find_overlap_button, 12, 1)
-        # layout.addWidget(self.import_parameters_button, 13, 0)
-        # layout.addWidget(self.save_parameters_button, 13, 1)
-        
+
+        #layout.addWidget(self.info_label, 0, 0, 1, 7)
         layout.addWidget(self.input_dir_button, 0, 0, 1, 1)
         layout.addWidget(self.input_dir_entry, 0, 1, 1, 6)
         layout.addWidget(self.temp_dir_button, 1, 0, 1, 1)
@@ -135,10 +132,11 @@ class Overlap360Group(QGroupBox):
         l = 4
         layout.addWidget(self.pixel_row_label, l, 0)
         layout.addWidget(self.pixel_row_entry, l, 1)
-        layout.addWidget(self.row1_dummy_label1, l, 2)
-        layout.addWidget(self.patch_size_label, l, 3)
-        layout.addWidget(self.patch_size_entry, l, 4)
-        layout.addWidget(self.row1_dummy_label2, l, 5)
+        #layout.addWidget(self.row1_dummy_label1, l, 2)
+        layout.addWidget(self.patch_size_label, l, 2)
+        layout.addWidget(self.patch_size_entry, l, 3)
+        layout.addWidget(self.row1_dummy_label2, l, 4)
+        layout.addWidget(self.doPR, l, 5)
         layout.addWidget(self.doRR, l, 6)
         #
         l = 5
@@ -158,6 +156,7 @@ class Overlap360Group(QGroupBox):
         self.step_entry.setText(str(EZVARS_aux['find360olap']['step']['value']))
         self.patch_size_entry.setText(str(EZVARS_aux['find360olap']['patch-size']['value']))
         self.doRR.setChecked(EZVARS_aux['find360olap']['doRR']['value'])
+        self.doPR.setChecked(EZVARS_aux['find360olap']['doPR']['value'])
 
     def input_button_pressed(self):
         LOG.debug("Select input button pressed")
@@ -205,6 +204,9 @@ class Overlap360Group(QGroupBox):
                                 int(self.patch_size_entry.text()))
     def set_RR_checkbox(self):
         add_value_to_dict_entry(EZVARS_aux['find360olap']['doRR'], self.doRR.isChecked())
+
+    def set_PR_checkbox(self):
+        add_value_to_dict_entry(EZVARS_aux['find360olap']['doPR'], self.doPR.isChecked())
 
     def overlap_button_pressed(self):
         LOG.debug("Find overlap button pressed")
