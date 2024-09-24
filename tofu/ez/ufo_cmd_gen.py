@@ -225,6 +225,7 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
         cmd += f" [read path={inpath} number={num} ! flip,"\
                f" read path={inpath} {st}={num} number={num}]" \
                f" ! stitch shift={w - 2*ax}"
+        ax = w - ax
     cmd += " blend=True adjust-mean=TRUE !"
     # crop
     if cro != 0:
@@ -239,5 +240,5 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
     cmd += f" write filename={os.path.join(outpath, 'stitched-%04i.tif')}"
     if (bits == 16) or (bits == 8):
         cmd += f" bits={bits} rescale=FALSE"
-    print(cmd)
+    #print(cmd)
     return cmd

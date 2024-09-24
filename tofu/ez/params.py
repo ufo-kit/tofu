@@ -32,6 +32,10 @@ EZVARS_aux['find360olap'] = {
         'ezdefault': False,
         'type': bool,
         'help': "TODO"},
+    'doPR': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'step': {
         'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
