@@ -77,7 +77,7 @@ class Overlap360Group(QGroupBox):
         self.doRR.stateChanged.connect(self.set_RR_checkbox)
 
         self.doPR = QCheckBox("Apply phase retrieval")
-        # self.doRR.setEnabled(False)
+        self.doPR.setToolTip("Warning! It can take a lot of time and space on the disk.")
         self.doPR.stateChanged.connect(self.set_PR_checkbox)
 
         self.range_label = QLabel("Overlap range for axis search:")
@@ -268,7 +268,7 @@ class Overlap360Group(QGroupBox):
         h += "Script attempts to estimate the overlap and saves the value for each data set in the"
         h += "360_overlap_params.yaml in the ezvars_aux section. They can be used as an input for"
         h += "batch stitching of the half acq mode data. User can edit the values directly in the"
-        h += "yaml file if needed."
+        h += "automatically formatted output yaml file if needed."
         QMessageBox.information(self, "Help", h)
 
     def import_parameters_button_pressed(self):

@@ -31,10 +31,20 @@ class MultiStitch360Group(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("360-MULTI-STITCH: convert half-acqusition mode CT sets to ordinary CT sets. "
+        self.h_msg =  "Stitches images horizontally to convert a bunch of half-acquisition " \
+                      "mode scans to ordinary parallel beam CT sets.\n"
+        self.h_msg += "Input directory structure must conform to the following template: \n" \
+                      "Input/000, Input/001,...Input/00N. \n"
+        self.h_msg += "Each 000, 001, ... 00N directory in the Input must be a legitimate tofu ez" \
+                      "CT set with flats/darks/tomo subdirectories. \n"
+        self.h_msg += "Frames in each flats/darks/tomo directory will be stitched horizontally pair-wise " \
+                      "to produce ordinary projections from [0-180) and [180-360) halves of the " \
+                      "half-acquisition mode scan and saved in the Output directory under the same relative path. \n"
+        self.h_msg += "Script is also going to crop resulting frames to the same width."
+
+        self.setTitle("360-MULTI-STITCH: convert half-acquisition mode CT sets to ordinary CT sets. "
                       "Not recursive.")
-        self.setToolTip("Converts half-acquistion data sets to ordinary projections \n"
-                      "and crops all images to the same size.")
+        self.setToolTip(self.h_msg)
         self.setStyleSheet('QGroupBox {color: red;}')
 
         self.input_dir_button = QPushButton("Select input directory")
@@ -367,12 +377,7 @@ class MultiStitch360Group(QGroupBox):
         
     def help_button_pressed(self):
         LOG.debug("Help button pressed")
-        h = "Stitches images horizontally\n"
-        h += "Directory structure is, f.i., Input/000, Input/001,...Input/00N\n"
-        h += "Each 000, 001, ... 00N directory must have subdirectory(ies) with camera frames\n"
-        h += "Frames in each subdirectory will be stitched horizontally in pairs\n"
-        h += "and cropped to the same horizontal size of the subdirectory with the largest overlap"
-        QMessageBox.information(self, "Help", h)
+        QMessageBox.information(self, "Help", self.h_msg)
 
     def import_parameters_button_pressed(self):
         LOG.debug("Import params button clicked")
