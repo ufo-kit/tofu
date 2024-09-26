@@ -413,7 +413,9 @@ def find_vert_olap_2_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
                             EZVARS_aux['vert-sti']['subdir-name']['value'])
     print(f"Estimating overlap between {vsteps[num_vsteps//2-1]} and {vsteps[num_vsteps//2]} "
           f"scans in {ctset_path}")
-    return find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01)
+    tmp = find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01)
+    print(f"Estimated overlap is {tmp} rows")
+    return tmp
 
 
 def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
@@ -427,6 +429,7 @@ def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
         ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -
                                                    min(im0.min(), im1.min())))
         print(f"Similarity with slice {ind_start_z01 + i} = {ssim_ind[i]}")
+    print(f"The most similar slice to {ind_z00} is {ind_start_z01 + np.argmax(ssim_ind)}")
     M = len(sorted(glob.glob(tmp)))
     # olap = ind_start_z01 + np.argmax(ssim_ind) - ind_z00
     if ind_z00 < M//2:
@@ -460,21 +463,6 @@ def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
 #         return nslices - (ind_start_z01 + np.argmax(ssim_ind) - ind_z00)
 #     else:
 #         return (ind_start_z01 + np.argmax(ssim_ind)) - (nslices - ind_z00)
-
-
-# def find_vert_overlap(ctset_path, step_ind, ind_z00, ind_start_z01, ind_stop_z01):
-#     Vsteps = sorted(os.listdir(ctset_path))
-#     tmp = os.path.join(ctset_path, Vsteps[step_ind], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif')
-#     im0 = read_image(sorted(glob.glob(tmp))[ind_z00])
-#     tmp = os.path.join(ctset_path, Vsteps[step_ind+1], EZVARS_aux['vert-sti']['subdir-name']['value'])
-#     tsr = TiffSequenceReader(tmp)
-#     num_ref_im = ind_stop_z01 - ind_start_z01
-#     ssim_ind = np.zeros((num_ref_im, 1))
-#     for i in range(num_ref_im):
-#         im1 = tsr.read(ind_start_z01 + i)
-#         ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -
-#                                                    min(im0.min(), im1.min())))
-#     return np.argmax(ssim_ind[i])
 
 
 def complete_message():
