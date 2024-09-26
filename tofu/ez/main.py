@@ -268,8 +268,7 @@ def execute_reconstruction(fdt_names):
             ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
             nrows = wh[0]
             if EZVARS['inout']['input_ROI']['value']:
-                nrows = (SECTIONS['reading']['height']['value'] \
-                           - SECTIONS['reading']['y']['value']) / SECTIONS['reading']['y-step']['value']
+                nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
                 if bad_vert_ROI(multipage, path2proj,
                         SECTIONS['reading']['y']['value'],SECTIONS['reading']['height']['value']):
                     print('{}\t{}'.format('CTset:', ctset[0]))
@@ -281,9 +280,10 @@ def execute_reconstruction(fdt_names):
                     print('Vertical ROI exceeds the number of rows')
                     print('Resetting the interval to match the number of rows')
                     SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
-                    nrows = (SECTIONS['reading']['height']['value'] \
-                        - SECTIONS['reading']['y']['value']) / SECTIONS['reading']['y-step']['value']
+                    nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
             n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
+            # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
+            #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
             if EZVARS['COR']['search-method']['value'] != 4:
                 # Find axis of rotation using auto: correlate first/last projections
