@@ -283,7 +283,6 @@ def execute_reconstruction(fdt_names):
                     SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
                     nrows = (SECTIONS['reading']['height']['value'] \
                         - SECTIONS['reading']['y']['value']) / SECTIONS['reading']['y-step']['value']
-            data_size_bytes = nviews * nrows * wh[1] * 4
             n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
             if EZVARS['COR']['search-method']['value'] != 4:

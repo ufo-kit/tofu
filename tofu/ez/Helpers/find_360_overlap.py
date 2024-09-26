@@ -91,11 +91,15 @@ def find_overlap():
         mettxtpref = os.path.join(os.path.join(
             EZVARS_aux['find360olap']['output-dir']['value'], index_dir))
 
+
         results = evaluate_metrics_360_olap_search(os.path.dirname(outname), mettxtpref, ax_range,
                                     metrics_1d={"std": np.std}, detrend=True)
 
+        mtc_key = 'std'
+        if EZVARS_aux['find360olap']['doPR']['value']:
+            mtc_key = 'sag'
         olap_est = int(EZVARS_aux['find360olap']['start']['value'] + \
-                   EZVARS_aux['find360olap']['step']['value'] * np.argmax(results['std']))
+                   EZVARS_aux['find360olap']['step']['value'] * np.argmax(results[mtc_key]))
 
         print("****************************************")
         print(f"Finished processing: {index_dir}, estimated overlap: {olap_est}")
@@ -210,7 +214,7 @@ def do_reco(sin_tmp_dir, index_dir, ax_range):
 
 def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     path2crop_frames = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'vertcrop')
-    mrg = 64
+    mrg = 16 # hardcoding the margins to avoid boundary artifacts when retrieving phase for one row
     nviews, wh = validate_row(mrg, ctset, EZVARS['inout']['tomo-dir']['value'])
     pre_cmd = f"crop y={EZVARS_aux['find360olap']['row']['value'] - mrg + 1} height={2*mrg}"
     typ = 3
