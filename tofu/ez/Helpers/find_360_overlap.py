@@ -214,7 +214,7 @@ def do_reco(sin_tmp_dir, index_dir, ax_range):
 
 def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     path2crop_frames = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'vertcrop')
-    mrg = 16 # hardcoding the margins to avoid boundary artifacts when retrieving phase for one row
+    mrg = 32 # hardcoding the margins to avoid boundary artifacts when retrieving phase for one row
     nviews, wh = validate_row(mrg, ctset, EZVARS['inout']['tomo-dir']['value'])
     pre_cmd = f"crop y={EZVARS_aux['find360olap']['row']['value'] - mrg + 1} height={2*mrg}"
     typ = 3
@@ -222,7 +222,7 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     if os.path.exists(tmpstr):
         typ = 4
     cmds = get_pre_cmd((ctset, typ), pre_cmd, path2crop_frames)
-    print(f"Creating a cropped copy of the input data set with 128 rows only")
+    print(f"Creating a cropped copy of the input data set with {mrg} rows only")
     for cmd in cmds:
         #print(cmd)
         os.system(cmd)
