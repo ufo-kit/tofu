@@ -28,7 +28,6 @@ class ConfigGroup(QGroupBox):
     """
 
     # Used to send signal to ezufo_launcher when settings are imported
-    # https://stackoverflow.com/questions/2970312/pyqt4-qtcore-pyqtsignal-object-has-no-attribute-connect
     signal_update_vals_from_params = pyqtSignal()
     # Used to send signal when reconstruction is done
     signal_reco_done = pyqtSignal()

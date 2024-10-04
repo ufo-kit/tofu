@@ -18,7 +18,8 @@ from tifffile import imwrite
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
-from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, complete_message
+from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
+    complete_message, find_depth_level_to_CT_sets
 from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
@@ -349,24 +350,23 @@ def execute_reconstruction(fdt_names):
         rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
-        # Stitch multiple data set or just one?
-        pth = ""
-        subdirs = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
-        if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       EZVARS_aux['vert-sti']['subdir-name']['value'])):
-            pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'])
-        else:
-            second_subdirs = sorted(os.listdir(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0])))
-            if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                           second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
-                pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0])
         if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
+            # Stitch multiple data set or just one?
+            dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
+                                                    EZVARS_aux['vert-sti']['subdir-name']['value'])
+            if pth == "":
+                print(f"Cannot format path to a directory with slices. Check directory structure")
             olap = find_vert_olap_2_vsteps(pth,
                                            EZVARS_aux['vert-sti']['ind_z00']['value'],
                                            EZVARS_aux['vert-sti']['ind_z01_start']['value'],
                                            EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
             print(f"Number of overlapping lines is {olap}.")
             add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
+        # validate slice range (common problem)
+        # TODO: must use function from ezsttich_qt by signal
+        nviews, wh, multipage = get_dims(pth)
+        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
+            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
         main_sti_mp()
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")

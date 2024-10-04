@@ -19,10 +19,10 @@ from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
     find_vert_olap_2_vsteps,
-    find_vert_olap_all_vsteps)
+    find_depth_level_to_CT_sets)
 from tofu.ez.GUI.message_dialog import warning_message
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
-from tofu.ez.util import import_values, export_values, read_image
+from tofu.ez.util import import_values, export_values, read_image, get_dims
 import glob
 
 LOG = logging.getLogger(__name__)
@@ -78,6 +78,10 @@ class EZStitchGroup(QGroupBox):
         self.orthogonal_checkbox.setText("Stitch orthogonal sections")
         self.orthogonal_checkbox.setToolTip("Will reslice images in every subdirectory and then stitch")
         self.orthogonal_checkbox.stateChanged.connect(self.set_ort_checkbox)
+
+        self.reslice_all = QCheckBox()
+        self.reslice_all.setText("Reslice whole cube")
+        self.reslice_all.stateChanged.connect(self.set_reslice_all)
 
         self.start_stop_step_label = QLabel()
         self.start_stop_step_label.setText("Which images to be stitched: start,stop,step:")
@@ -199,6 +203,8 @@ class EZStitchGroup(QGroupBox):
         self.save_parameters_button = QPushButton("Save Parameters to File")
         self.save_parameters_button.clicked.connect(self.save_parameters_button_pressed)
 
+        self.err = ""
+
         self.set_layout()
 
     def set_layout(self):
@@ -216,8 +222,9 @@ class EZStitchGroup(QGroupBox):
         grid0 = QGridLayout()
         grid0.addWidget(self.types_of_images_label, 0, 0)
         grid0.addWidget(self.types_of_images_entry, 0, 1)
-        grid0.addWidget(self.orthogonal_checkbox, 1, 0, 1, 2)
-        grid0.addWidget(self.start_stop_step_label, 2, 0)
+        grid0.addWidget(self.orthogonal_checkbox, 1, 0)
+        grid0.addWidget(self.reslice_all, 2, 0)
+        grid0.addWidget(self.start_stop_step_label, 1, 1)
         grid0.addWidget(self.start_stop_step_entry, 2, 1)
         grid0.addWidget(self.flipud_checkbox, 3, 0)
         layout.addItem(grid0, 1, 0)
@@ -279,6 +286,8 @@ class EZStitchGroup(QGroupBox):
         self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
                                            f"{EZVARS_aux['vert-sti']['stop']['value']},"
                                            f"{EZVARS_aux['vert-sti']['step']['value']}")
+        self.reslice_all.setChecked(EZVARS_aux['vert-sti']['reslice_all']['value'])
+        self.set_reslice_all()
         self.flipud_checkbox.setChecked(EZVARS_aux['vert-sti']['flipud']['value'])
 
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
@@ -380,6 +389,13 @@ class EZStitchGroup(QGroupBox):
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['start'], sli_range[0])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['stop'], sli_range[1])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['step'], sli_range[2])
+
+    def set_reslice_all(self):
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['reslice_all'], bool(self.reslice_all.isChecked()))
+        if self.reslice_all.isChecked():
+            self.start_stop_step_entry.setEnabled(False)
+        else:
+            self.start_stop_step_entry.setEnabled(True)
         
     def set_flipud(self):
         LOG.debug("Sample moved down: " + str(self.flipud_checkbox.isChecked()))
@@ -466,15 +482,51 @@ class EZStitchGroup(QGroupBox):
 
     def validate_requested_section_indices(self):
         nslices, N, M = self.get_cube_dims()
-        if EZVARS_aux['vert-sti']['start']['value'] > M or \
-                (EZVARS_aux['vert-sti']['stop']['value'] > M):
-            QMessageBox.warning(self, "Error", f"Requested range of sections "
-                                               f"{self.start_stop_step_entry.text()} \n"
-                                               f"exceeds the number of columns in CT slices (max {M})")
-            return 1
+        if EZVARS_aux['vert-sti']['reslice_all']['value']:
+            EZVARS_aux['vert-sti']['start']['value'] = 0
+            EZVARS_aux['vert-sti']['stop']['value'] = N
+            EZVARS_aux['vert-sti']['step']['value'] = 1
+        else:
+            if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
+                tmp = EZVARS_aux['vert-sti']['start']['value']
+                EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
+                EZVARS_aux['vert-sti']['stop']['value'] = tmp
+
+            if EZVARS_aux['vert-sti']['stop']['value'] > N:
+                EZVARS_aux['vert-sti']['stop']['value'] = N
+
+        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
+            # if EZVARS_aux['vert-sti']['start']['value'] > N or \
+            #         (EZVARS_aux['vert-sti']['stop']['value'] > N):
+            #     QMessageBox.warning(self, "Error", f"Requested range of sections "
+            #                                        f"{self.start_stop_step_entry.text()} \n"
+            #                                        f"exceeds the number of rows in CT slices (max {M})")
+            #     return 1
         return 0
 
+    def validate_slice_range(self):
+        dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
+                                                EZVARS_aux['vert-sti']['subdir-name']['value'])
+        try:
+            nviews, wh, multipage = get_dims(pth)
+        except:
+            self.err = "Problem with validating slice range: cannot read dimensions of Input slices."
+            return 1
 
+        if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
+            tmp = EZVARS_aux['vert-sti']['start']['value']
+            EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
+            EZVARS_aux['vert-sti']['stop']['value'] = tmp
+
+        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
+            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
+
+        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
+                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
+        return 0
 
     def validate_input_structure_1set(self):
         Vsteps = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
@@ -539,6 +591,8 @@ class EZStitchGroup(QGroupBox):
             else:
                 return
 
+
+
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
 
@@ -547,6 +601,8 @@ class EZStitchGroup(QGroupBox):
         
         # if self.validate_input_structure_1set() or self.validate_row_entries():
         #     return
+
+
 
         print("======= Begin Stitching =======")
         # if overlap has to be estimated:
@@ -560,6 +616,7 @@ class EZStitchGroup(QGroupBox):
         # Interpolate overlapping regions and equalize intensity
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
                 EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+            self.validate_requested_section_indices()
             main_sti_mp()
         else: 
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
