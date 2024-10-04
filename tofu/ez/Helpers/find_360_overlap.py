@@ -222,7 +222,7 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     if os.path.exists(tmpstr):
         typ = 4
     cmds = get_pre_cmd((ctset, typ), pre_cmd, path2crop_frames)
-    print(f"Creating a cropped copy of the input data set with {mrg} rows only")
+    print(f"Creating a cropped copy of the input data set with {2*mrg} rows only")
     for cmd in cmds:
         #print(cmd)
         os.system(cmd)

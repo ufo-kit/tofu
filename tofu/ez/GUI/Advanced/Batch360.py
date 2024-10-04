@@ -98,7 +98,7 @@ class Batch360Group(QGroupBox):
     def enable_by_trigger_from_main_tab(self):
         if not self.isEnabled():
             self.setEnabled(True)
-            self.stitch_and_reco_rButton.setChecked(True)
+            self.find_olap_stitch_and_reco_rButton.setChecked(True)
             self.set_rButton()
         else:
             self.setEnabled(False)

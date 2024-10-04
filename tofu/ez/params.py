@@ -147,6 +147,10 @@ EZVARS_aux['vert-sti'] = {
         'ezdefault': 2000,
         'type': restrict_value((0, None), dtype=int),
         'help': ""},
+    'reslice_all': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'flipud': {
         'ezdefault': False,
         'type': bool,

@@ -76,6 +76,19 @@ def make_ort_sections(ctset_path):
         indir = EZVARS_aux['vert-sti']['input-dir']['value']
     return indir, indtype
 
+def find_depth_level_to_CT_sets(input_dir, slice_dir):
+    subdirs = sorted(os.listdir(input_dir))
+    tmp = os.path.join(input_dir, subdirs[0], slice_dir)
+    if os.path.exists(tmp):
+        return 1, tmp
+    second_subdirs = sorted(os.listdir(os.path.join(tmp, subdirs[0])))
+    tmp = os.path.join(input_dir, subdirs[0], second_subdirs[0], slice_dir)
+    if os.path.exists(tmp):
+        return 2, tmp
+    return 0, ""
+
+def load_an_image_from_the_input_dir(input_dir, slice_dir):
+    return 0
 
 def main_sti_mp():
     #Check whether indir is CTdir or parent containing CTdirs
@@ -424,6 +437,7 @@ def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
     tsr = TiffSequenceReader(z01_name)
     num_ref_im = ind_stop_z01 - ind_start_z01
     ssim_ind = np.zeros((num_ref_im, 1))
+    #TODO: must be parallelized
     for i in range(num_ref_im):
         im1 = tsr.read(ind_start_z01 + i)
         ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -

@@ -244,6 +244,9 @@ class Overlap360Group(QGroupBox):
         if not os.path.exists(EZVARS_aux['find360olap']['output-dir']['value']):
             os.makedirs(EZVARS_aux['find360olap']['output-dir']['value'])
         find_overlap()
+        #adding the next line so that on export in MULTI-STITCH the list is
+        #imported even if default interpolate is selected when 360-SEARCH is used
+        EZVARS_aux['stitch360']['olap_switch']['value'] == 2
         params_file_path = os.path.join(EZVARS_aux['find360olap']['output-dir']['value'],
                                             'ezvars_aux_from_overlap_search.yaml')
         if export_values(params_file_path, ['ezvars_aux']):

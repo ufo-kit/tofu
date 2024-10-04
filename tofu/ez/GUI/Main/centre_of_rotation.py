@@ -172,6 +172,8 @@ class CentreOfRotationGroup(QGroupBox):
         elif EZVARS['COR']['search-method']['value'] == 5:
             self.unstitched360_rButton.setChecked(True)
             self.enable_360Batch_Group_in_Advanced.emit()
+            #TODO: also disable INput/Output in 360-SEARCH
+            #and completely disable 360-MULTI-STITCH
 
     def set_search_rotation(self):
         LOG.debug(self.search_rotation_entry.text())
