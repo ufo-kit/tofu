@@ -284,14 +284,14 @@ def save_params(ctsetname, ax, nviews, wh):
             f.write('  threshold {}\n'.format(SECTIONS['find-large-spots']['spot-threshold']['value']))
             f.write('  sigma {}\n'.format(SECTIONS['find-large-spots']['gauss-sigma']['value']))
             if EZVARS['filters']['rm_spots_use_median']['value']:
-                f.write('  Median filter was used to find spots')
-                for i in SECTIONS['find-large-spots'].keys():
-                    f.write(f"\t{i}\t{SECTIONS['find-large-spots'][i]['value']}\n")
-            #     f.write(f"\tMedian width {SECTIONS['find-large-spots']['median-width']['value']}\n")
-            #     f.write(f"\tDilation disk radius {SECTIONS['find-large-spots']['dilation-disk-radius']['value']}\n")
-            #     f.write(f"\tGrow threshold {SECTIONS['find-large-spots']['grow-threshold']['value']}\n")
-            # self.spot_thr_sign_entry.setCurrentText(str(SECTIONS['find-large-spots']['spot-threshold-mode']['value']))
-            # self.median_direction_entry.setCurrentText(str(SECTIONS['find-large-spots']['median-direction']['value']))
+                f.write('  Median filter was used to find spots\n')
+                # for i in SECTIONS['find-large-spots'].keys():
+                #     f.write(f"\t{i}\t{SECTIONS['find-large-spots'][i]['value']}\n")
+                f.write(f"\tMedian width {SECTIONS['find-large-spots']['median-width']['value']}\n")
+                f.write(f"\tDilation disk radius {SECTIONS['find-large-spots']['dilation-disk-radius']['value']}\n")
+                f.write(f"\tGrow threshold {SECTIONS['find-large-spots']['grow-threshold']['value']}\n")
+                f.write(f"\tThreshold mode {SECTIONS['find-large-spots']['spot-threshold-mode']['value']}\n")
+                f.write(f"\tMedian direction {SECTIONS['find-large-spots']['median-direction']['value']}\n")
         else:
             f.write('  Remove large spots disabled\n')
         if EZVARS['retrieve-phase']['apply-pr']['value']:
