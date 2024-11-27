@@ -6,8 +6,13 @@ import logging
 import math
 import os
 from collections import OrderedDict
-gi.require_version('Ufo', '0.0')
-from gi.repository import Ufo
+try:
+    gi.require_version('Ufo', '0.0')
+    from gi.repository import Ufo
+except ModuleNotFoundError as e:
+    print(str(e))
+except ValueError as e:
+    print(str(e))
 
 LOG = logging.getLogger(__name__)
 RESOURCES = None
