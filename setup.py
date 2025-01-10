@@ -23,7 +23,8 @@ setup(
         'pyqtconsole',
         'pyxdg',
         'qtpynodeeditor',
-        'tifffile'
+        'tifffile',
+        'scikit-image',
     ],
     description="A fast, versatile and user-friendly image "\
                 "processing toolkit for computed tomography",
