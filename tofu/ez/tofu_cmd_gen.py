@@ -247,15 +247,16 @@ def get_pr_tofu_cmd(ctset):
     # so we need a separate "universal" command which considers all previous steps
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
+    flats2_dir = indir[3] if ctset[1] == 4 else None
 
-    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, ctset[1], indir[3], out_pattern)
+    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, flats2_dir, out_pattern)
 
-def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, typ, darks2_dir, out_pattern):
+def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern):
     cmd = 'tofu preprocess --fix-nan-and-inf --projection-filter none --delta 1e-6'
     cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.\
                 format(darks_dir, flats_dir, tomo_dir)
-    if typ == 4:
-        cmd += ' --flats2 {}'.format(darks2_dir)
+    if flats2_dir:
+        cmd += ' --flats2 {}'.format(flats2_dir)
     cmd += ' --output {}'.format(out_pattern)
     cmd += ' --energy {} --propagation-distance {}' \
            ' --pixel-size {} --regularization-rate {:0.2f}' \
