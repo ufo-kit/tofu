@@ -150,13 +150,13 @@ class ROIandHistGroup(QGroupBox):
         self.first_row_entry.setText(str(SECTIONS['reading']['y']['value']))
         self.num_rows_entry.setText(str(SECTIONS['reading']['height']['value']))
         self.nth_row_entry.setText(str(SECTIONS['reading']['y-step']['value']))
-        self.clip_histo_checkbox.setChecked(EZVARS['inout']['clip_hist']['value'])
         if int(SECTIONS['general']['output-bitdepth']['value']) == 8:
             self.eight_bit_rButton.setChecked(True)
             self.sixteen_bit_rButton.setChecked(False)
         elif int(SECTIONS['general']['output-bitdepth']['value']) == 16:
             self.eight_bit_rButton.setChecked(False)
             self.sixteen_bit_rButton.setChecked(True)
+        self.clip_histo_checkbox.setChecked(EZVARS['inout']['clip_hist']['value'])
         self.min_val_entry.setText(str(SECTIONS['general']['output-minimum']['value']))
         self.max_val_entry.setText(str(SECTIONS['general']['output-maximum']['value']))
         self.crop_slices_checkbox.setChecked(EZVARS['inout']['output-ROI']['value'])
