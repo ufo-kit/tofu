@@ -14,7 +14,7 @@ class CentreOfRotationGroup(QGroupBox):
     """
     Centre of Rotation settings
     """
-    enable_360Batch_Group_in_Advanced = pyqtSignal()
+    enable_360Batch_Group_in_Advanced = pyqtSignal(bool)
     def __init__(self):
         super().__init__()
 
@@ -87,7 +87,7 @@ class CentreOfRotationGroup(QGroupBox):
         self.unstitched360_rButton.setText("Input is unstitched half acq. mode data (Use Stitching Tab to setup params)")
         self.unstitched360_rButton.setToolTip("Works only for input directories with 3 depth levels \n"
                                               "Outer loops -> Inner loop CT sets -> flats/darks/tomo")
-        self.unstitched360_rButton.clicked.connect(self.set_rButton_360option)
+        self.unstitched360_rButton.clicked.connect(self.set_rButton)
 
         # TODO Used for proper spacing - should be a better way
         self.blank_label = QLabel("                                ")
@@ -128,6 +128,7 @@ class CentreOfRotationGroup(QGroupBox):
 
     def set_rButton(self):
         dict_entry = EZVARS['COR']['search-method']
+        enable_360Batch_group = False
         if self.auto_correlate_rButton.isChecked():
             LOG.debug("Auto Correlate")
             add_value_to_dict_entry(dict_entry, 1)
@@ -140,12 +141,11 @@ class CentreOfRotationGroup(QGroupBox):
         elif self.image_midpoint_rButton.isChecked():
             LOG.debug("Use image midpoint")
             add_value_to_dict_entry(dict_entry, 4)
-        self.enable_360Batch_Group_in_Advanced.emit()
-
-    def set_rButton_360option(self):
-        dict_entry = EZVARS['COR']['search-method']
-        add_value_to_dict_entry(dict_entry, 5)
-        self.enable_360Batch_Group_in_Advanced.emit()
+        elif self.unstitched360_rButton.isChecked():
+            LOG.debug("Use Stitching Tab - Batch360")
+            add_value_to_dict_entry(dict_entry, 5)
+            enable_360Batch_group = True
+        self.enable_360Batch_Group_in_Advanced.emit(enable_360Batch_group)
 
 
     def set_rButton_from_params(self):
