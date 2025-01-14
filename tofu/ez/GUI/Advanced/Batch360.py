@@ -95,8 +95,8 @@ class Batch360Group(QGroupBox):
         self.dummy_text.setText(str(EZVARS_aux['half-acq']['list_olaps']['value']))
 
 
-    def enable_by_trigger_from_main_tab(self):
-        if not self.isEnabled():
+    def enable_by_trigger_from_main_tab(self, enabled):
+        if enabled:
             self.setEnabled(True)
             self.find_olap_stitch_and_reco_rButton.setChecked(True)
             self.set_rButton()
