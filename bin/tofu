@@ -223,8 +223,12 @@ def main():
         cmd_parser.set_defaults(_func=func)
 
     args = config.parse_known_args(parser, subparser=True)
+    try:
+        log_level = logging.DEBUG if args.verbose else logging.INFO
+    except AttributeError:
+        parser.print_usage()
+        return
 
-    log_level = logging.DEBUG if args.verbose else logging.INFO
     LOG.setLevel(log_level)
 
     stream_handler = logging.StreamHandler(sys.stdout)
