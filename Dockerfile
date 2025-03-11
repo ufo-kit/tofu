@@ -1,4 +1,4 @@
-FROM debian:12-slim
+FROM debian:12-slim as developer
 ARG DEBIAN_FRONTEND=noninteractive
 
 COPY requirements-ufo.txt /
