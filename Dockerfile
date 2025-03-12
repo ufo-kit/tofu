@@ -1,7 +1,9 @@
-FROM debian:12-slim as developer
-ARG DEBIAN_FRONTEND=noninteractive
+ARG PYTHON_VERSION=3.11
 
-COPY requirements-ufo.txt /
+FROM debian:12-slim AS ufo-builder
+ARG UFO=master
+ARG UFO_FILTERS=master
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
         # General build requirements
@@ -47,14 +49,49 @@ RUN mkdir -p /etc/OpenCL/vendors && \
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
-RUN git clone --depth 1 https://github.com/ufo-kit/ufo-core.git --branch master && \
-    git clone --depth 1 https://github.com/ufo-kit/ufo-filters.git --branch master && \
+RUN git clone --depth 1 https://github.com/ufo-kit/ufo-core.git --branch ${UFO} && \
+    git clone --depth 1 https://github.com/ufo-kit/ufo-filters.git --branch ${UFO_FILTERS} && \
     git clone --depth 1 https://github.com/ufo-kit/tofu --branch master
 
 RUN cd /ufo-core && meson build --libdir=lib -Dbashcompletiondir=$HOME/.local/share/bash-completion/completions && cd build && ninja install
 RUN cd /ufo-filters && \
     sed -i -E "s/find_program.'python/find_program('python3/" src/meson.build && sed -i -E "s/find_program.'python/find_program('python3/" tests/meson.build && \
-    meson build --libdir=lib -Dcontrib_filters=True && cd build && ninja install
+    meson build --libdir=lib -Dcontrib_filters=True && \
+    cd build && ninja install
+
+FROM python:${PYTHON_VERSION} AS developer
+COPY --from=ufo-builder /usr/local/ /usr/local/
+COPY --from=ufo-builder /ufo-core/python /ufo-core/python
+
+# Add any system dependencies for the developer/build environment here
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgirepository1.0-dev \
+    python-gi-dev \
+    libjson-glib-dev \
+    ocl-icd-opencl-dev \
+    # runtime
+    libclfft2 \
+    # ocl-icd-libopencl1 \ # runtime
+    # libjson-glib-1.0-0 \ # runtime
+    # qt5
+    libqt5gui5 \
+    dbus \
+    && rm -rf /var/lib/apt/lists/*
+
+# OpenCL nvidia
+RUN mkdir -p /etc/OpenCL/vendors && \
+    echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+# Things to remove
+COPY requirements-ufo.txt /
+COPY --from=ufo-builder /tofu /tofu
+
+# Required for ufo-core/python meson build to find ufo
+ENV LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
+ENV GI_TYPELIB_PATH=/usr/local/lib/girepository-1.0:$GI_TYPELIB_PATH
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 
 # Use a venv to avoid interfering with system Python.
 ENV VIRTUAL_ENV=/opt/venv
