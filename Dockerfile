@@ -70,6 +70,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ocl-icd-opencl-dev \
     # runtime
     libclfft2 \
+    libhdf5-103-1 \
+    libzmq5 \
     # ocl-icd-libopencl1 \ # runtime
     # libjson-glib-1.0-0 \ # runtime
     # qt5
@@ -123,6 +125,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgirepository-1.0-1 \
     libclfft2 \
     ocl-icd-libopencl1 \
+    libhdf5-103-1 \
+    libzmq5 \
     # qt5
     libqt5gui5 \
     dbus \
