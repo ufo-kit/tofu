@@ -3,6 +3,7 @@
     "name": "Tofu Developer Container",
     "build": {
         "dockerfile": "../Dockerfile",
+        "context": "..",
         "target": "developer"
     },
     "remoteEnv": {
@@ -38,5 +39,9 @@
     // Mount the parent as /workspaces so we can pip install peers as editable
     "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind",
     // After the container is created, install the python project in editable form
-    "postCreateCommand": "pip install $([ -f dev-requirements.txt ] && echo '-c dev-requirements.txt') -e '.'"
+    "postCreateCommand": "pip install $([ -f dev-requirements.txt ] && echo '-c dev-requirements.txt') -e '.'",
+    // User mounts
+    "mounts": [
+        "source=/scratch,target=/scratch,type=bind"
+    ]
 }
