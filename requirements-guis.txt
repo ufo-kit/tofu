@@ -1,8 +1,0 @@
-PyGObject
-imageio
-numpy
-networkx
-PyQt5
-pyqtconsole
-pyxdg
-qtpynodeeditor
