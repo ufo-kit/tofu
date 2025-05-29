@@ -54,7 +54,6 @@ RUN git clone --depth 1 https://github.com/ufo-kit/ufo-core.git --branch ${UFO} 
 
 RUN cd /ufo-core && meson build --libdir=lib -Dbashcompletiondir=$HOME/.local/share/bash-completion/completions && cd build && ninja install
 RUN cd /ufo-filters && \
-    sed -i -E "s/find_program.'python/find_program('python3/" src/meson.build && sed -i -E "s/find_program.'python/find_program('python3/" tests/meson.build && \
     meson build --libdir=lib -Dcontrib_filters=True && \
     cd build && ninja install
 
