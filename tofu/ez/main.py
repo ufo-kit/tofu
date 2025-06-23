@@ -236,8 +236,6 @@ def execute_reconstruction():
         # so we get CT sets from this directory instead of the original input
         W, lvl0 = get_CTdirs_list(os.path.join(
             EZVARS_aux['half-acq']['workdir']['value'], 'stitched-data'), fdt_names)
-        # and set axis of rotation parameter to the image's middle column
-        add_value_to_dict_entry(EZVARS['COR']['search-method'], 4)
         # then proceed as usual
 
     # get list of already reconstructed sets
@@ -287,7 +285,7 @@ def execute_reconstruction():
             # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
             #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
-            if EZVARS['COR']['search-method']['value'] != 4:
+            if EZVARS['COR']['search-method']['value'] < 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
                     ax = find_axis_corr(ctset,
@@ -305,8 +303,8 @@ def execute_reconstruction():
                                         nviews, wh)
                 else:
                     ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
-            # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
-            elif EZVARS['COR']['search-method']['value'] == 4:
+            # If EZVARS['COR']['search-method']['value'] >= 4 then bypass axis search and use image midpoint
+            elif EZVARS['COR']['search-method']['value'] >= 4:
                 ax = find_axis_image_midpoint(wh)
                 print("Bypassing axis search and using image midpoint: {}".format(ax))
             add_value_to_dict_entry(SECTIONS['cone-beam-weight']['center-position-x'], str(ax))
