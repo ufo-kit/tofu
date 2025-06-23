@@ -403,8 +403,11 @@ class EZStitchGroup(QGroupBox):
                                 bool(self.flipud_checkbox.isChecked()))
 
     def set_est_olap(self):
+        estimate_overlap = bool(self.est_olap_checkbox.isChecked())
+        LOG.debug("Estimate vertical overlap automatically: " + str(estimate_overlap))
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['estimate_num_olap_rows'],
-                                bool(self.est_olap_checkbox.isChecked()))
+                                estimate_overlap)
+        self.num_overlaps_entry.setDisabled(estimate_overlap)
 
     def set_overlap(self):
         LOG.debug("Num overlapping rows: " + str(self.num_overlaps_entry.text()))
