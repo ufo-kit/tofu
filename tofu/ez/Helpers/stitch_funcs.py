@@ -81,7 +81,7 @@ def find_depth_level_to_CT_sets(input_dir, slice_dir):
     tmp = os.path.join(input_dir, subdirs[0], slice_dir)
     if os.path.exists(tmp):
         return 1, tmp
-    second_subdirs = sorted(os.listdir(os.path.join(tmp, subdirs[0])))
+    second_subdirs = sorted(os.listdir(os.path.join(input_dir, subdirs[0])))
     tmp = os.path.join(input_dir, subdirs[0], second_subdirs[0], slice_dir)
     if os.path.exists(tmp):
         return 2, tmp

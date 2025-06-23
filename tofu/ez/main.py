@@ -349,12 +349,12 @@ def execute_reconstruction():
         rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
+        # Stitch multiple data set or just one?
+        dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
+                                                EZVARS_aux['vert-sti']['subdir-name']['value'])
+        if pth == "":
+            print(f"Cannot format path to a directory with slices. Check directory structure")
         if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
-            # Stitch multiple data set or just one?
-            dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                                    EZVARS_aux['vert-sti']['subdir-name']['value'])
-            if pth == "":
-                print(f"Cannot format path to a directory with slices. Check directory structure")
             olap = find_vert_olap_2_vsteps(pth,
                                            EZVARS_aux['vert-sti']['ind_z00']['value'],
                                            EZVARS_aux['vert-sti']['ind_z01_start']['value'],
