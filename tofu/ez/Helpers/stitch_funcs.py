@@ -8,8 +8,8 @@ import os
 import shutil
 import numpy as np
 import tifffile
-from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader
-from tofu.ez.util import get_data_cube_info
+from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader, SequenceReaderError
+from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
@@ -125,6 +125,12 @@ def main_sti_mp():
 def sti_one_set(in_dir_path, out_dir_path):
     indir, indtype = make_ort_sections(in_dir_path)
     outfilepattern = os.path.join(out_dir_path, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
+    if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
+        olap = find_vert_olap_2_vsteps(in_dir_path,
+                                       EZVARS_aux['vert-sti']['ind_z00']['value'],
+                                       EZVARS_aux['vert-sti']['ind_z01_start']['value'],
+                                       EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
+        add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
     dx = int(EZVARS_aux['vert-sti']['num_olap_rows']['value'])
     # second: stitch them
     Vsteps = sorted(os.listdir(indir))
@@ -439,7 +445,10 @@ def find_vert_overlap(z00_name, z01_name, ind_z00, ind_start_z01, ind_stop_z01):
     ssim_ind = np.zeros((num_ref_im, 1))
     #TODO: must be parallelized
     for i in range(num_ref_im):
-        im1 = tsr.read(ind_start_z01 + i)
+        try:
+            im1 = tsr.read(ind_start_z01 + i)
+        except SequenceReaderError:
+            continue
         ssim_ind[i] = ssim(im0, im1, data_range=(max(im0.max(), im1.max()) -
                                                    min(im0.min(), im1.min())))
         print(f"Similarity with slice {ind_start_z01 + i} = {ssim_ind[i]}")

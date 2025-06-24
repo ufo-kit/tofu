@@ -611,14 +611,6 @@ class EZStitchGroup(QGroupBox):
 
 
         print("======= Begin Stitching =======")
-        # if overlap has to be estimated:
-        if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
-            olap = find_vert_olap_2_vsteps(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z00']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z01_start']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
-            self.num_overlaps_entry.setText(str(olap))
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
         # Interpolate overlapping regions and equalize intensity
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
                 EZVARS_aux['vert-sti']['task_type']['value'] == 1:
