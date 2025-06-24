@@ -354,13 +354,6 @@ def execute_reconstruction():
                                                 EZVARS_aux['vert-sti']['subdir-name']['value'])
         if pth == "":
             print(f"Cannot format path to a directory with slices. Check directory structure")
-        if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
-            olap = find_vert_olap_2_vsteps(pth,
-                                           EZVARS_aux['vert-sti']['ind_z00']['value'],
-                                           EZVARS_aux['vert-sti']['ind_z01_start']['value'],
-                                           EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
-            print(f"Number of overlapping lines is {olap}.")
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
         # validate slice range (common problem)
         # TODO: must use function from ezsttich_qt by signal
         nviews, wh, multipage = get_dims(pth)
