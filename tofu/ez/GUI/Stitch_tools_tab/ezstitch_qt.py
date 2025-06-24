@@ -316,7 +316,10 @@ class EZStitchGroup(QGroupBox):
         if self.invoke_after_reco_checkbox.isChecked():
             add_value_to_dict_entry(EZVARS_aux['vert-sti']['dovertsti'], True)
             self.input_dir_entry.setEnabled(False)
-            self.output_dir_entry.setText(f"{EZVARS['inout']['output-dir']['value']}-ort-stitched")
+            if self.output_dir_entry.text() in (
+                    EZVARS['inout']['output-dir']['value'],
+                    EZVARS_aux['vert-sti']['output-dir']['ezdefault']):
+                self.output_dir_entry.setText(f"{EZVARS['inout']['output-dir']['value']}-vert-stitched")
             self.set_output_entry()
             self.tmp_dir_entry.setText(f"{EZVARS['inout']['tmp-dir']['value']}")
             self.set_temp_entry()
