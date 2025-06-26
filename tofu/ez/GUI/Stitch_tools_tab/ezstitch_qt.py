@@ -593,17 +593,21 @@ class EZStitchGroup(QGroupBox):
                     rmtree(dir_path)
                 except:
                     warning_message(f"Error while deleting {dir_type} directory")
-                    return
+                    return False
+                else:
+                    return True
             else:
-                return
+                return False
 
 
 
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
 
-        self.verify_safe2delete(EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
-        self.verify_safe2delete(EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
+        if not self.verify_safe2delete(EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary"):
+            return
+        if not self.verify_safe2delete(EZVARS_aux['vert-sti']['output-dir']['value'], "Output"):
+            return
         
         # if self.validate_input_structure_1set() or self.validate_row_entries():
         #     return
