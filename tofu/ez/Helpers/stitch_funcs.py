@@ -138,6 +138,8 @@ def sti_one_set(in_dir_path, out_dir_path):
     first = read_image(tmp)
     N, M = first.shape
     Nnew = N - dx
+    if Nnew < 0:
+        raise ValueError(f"Vertical overlap {dx} larger than input image height {N}")
     ramp = np.linspace(0, 1, dx)
 
     J = range((EZVARS_aux['vert-sti']['stop']['value'] - EZVARS_aux['vert-sti']['start']['value']) //
