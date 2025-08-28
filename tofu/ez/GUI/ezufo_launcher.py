@@ -1,7 +1,12 @@
 import logging
 import os
 import sys
-from PyQt5 import QtWidgets as qtw
+
+try:
+    from PyQt5 import QtWidgets as qtw
+except ModuleNotFoundError:
+    raise ModuleNotFoundError("Cannot import modules for ez, please install tofu with [ez] extras.")
+
 
 from tofu.ez.GUI.Main.centre_of_rotation import CentreOfRotationGroup
 from tofu.ez.GUI.Main.filters import FiltersGroup

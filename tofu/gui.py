@@ -13,7 +13,7 @@ try:
     import tofu.vis.qt
     from PyQt5 import QtGui, QtCore, uic, QtWidgets
 except ImportError:
-    raise ImportError("Cannot import modules for GUI, please install PyQt4 and pyqtgraph")
+    raise ImportError("Cannot import modules for GUI, please install tofu with [gui] extras.")
 
 
 LOG = logging.getLogger(__name__)
