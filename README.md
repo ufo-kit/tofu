@@ -27,14 +27,22 @@ or to install via PyPI:
 
     pip install ufo-tofu
 
-in a prepared virtualenv or as root for system-wide installation. Note, that if
-you do plan to use the graphical user interface you need PyQt5, pyqtgraph and
-PyOpenGL. You are strongly advised to install PyQt through your system package
-manager, you can install pyqtgraph and PyOpenGL using the pip package manager
-though:
+in a prepared virtualenv or as root for system-wide installation.
 
-    pip install pyqtgraph PyOpenGL
+Note that graphical user interfaces require additional packages. You are strongly advised to install PyQt through your system package
+manager. You can install the requirements for the different guis as extras:
 
+    pip install .[gui]
+    # OR
+    pip install ufo-tofu[gui]
+
+depending if you are installing from source or PyPI. 
+
+`tofu flow` and `tofu ez` are supported similarly:
+
+    pip install .[flow]
+    pip install .[ez]
+    pip install .[interactive,gui,flow,ez,test]         # All extras 
 
 ## Usage
 
