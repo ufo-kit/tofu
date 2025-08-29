@@ -11,7 +11,7 @@ def batch_stitch():
     if os.path.exists(stitched_data_dir_name) and \
             len(os.listdir(stitched_data_dir_name)) > 0:
         print("# Clean directory for stitched data")
-        return
+        return 1
     add_value_to_dict_entry(EZVARS_aux['stitch360']['olap_switch'], 2)
     add_value_to_dict_entry(EZVARS_aux['stitch360']['crop'], True)
 
