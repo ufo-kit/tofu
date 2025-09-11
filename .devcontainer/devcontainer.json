@@ -1,0 +1,47 @@
+// For format details, see https://containers.dev/implementors/json_reference/
+{
+    "name": "Tofu Developer Container",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": "..",
+        "target": "developer"
+    },
+    "remoteEnv": {
+        // Allow X11 apps to run inside the container
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+    "customizations": {
+        "vscode": {
+            // Set *default* container specific settings.json values on container create.
+            "settings": {
+                "python.defaultInterpreterPath": "/venv/bin/python"
+            },
+            // Add the IDs of extensions you want installed when the container is created.
+            "extensions": [
+                "ms-python.python",
+                // "github.vscode-github-actions",
+                // "tamasfe.even-better-toml",
+                // "redhat.vscode-yaml",
+                // "ryanluker.vscode-coverage-gutters",
+                // "charliermarsh.ruff",
+                // "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "runArgs": [
+        // Allow the container to access the host X11 display and EPICS CA
+        "--net=host",
+        // Make sure SELinux does not disable with access to host filesystems like tmp
+        "--security-opt=label=disable",
+        // Enable GPU access (via CDI)
+        "--device=nvidia.com/gpu=all"
+    ],
+    // Mount the parent as /workspaces so we can pip install peers as editable
+    "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind",
+    // After the container is created, install the python project in editable form
+    "postCreateCommand": "pip install $([ -f dev-requirements.txt ] && echo '-c dev-requirements.txt') -e '.'",
+    // User mounts
+    "mounts": [
+        "source=/scratch,target=/scratch,type=bind"
+    ]
+}
