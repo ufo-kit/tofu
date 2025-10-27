@@ -480,7 +480,8 @@ class EZStitchGroup(QGroupBox):
         nslices, hw, multipage = get_dims(pth)
         return nslices, hw[0], hw[1]
 
-    def validate_requested_section_indices(self):
+
+    def validate_slice_range(self):
         nslices, N, M = self.get_cube_dims()
         if EZVARS_aux['vert-sti']['reslice_all']['value']:
             EZVARS_aux['vert-sti']['start']['value'] = 0
@@ -495,38 +496,6 @@ class EZStitchGroup(QGroupBox):
             if EZVARS_aux['vert-sti']['stop']['value'] > N:
                 EZVARS_aux['vert-sti']['stop']['value'] = N
 
-        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
-            # if EZVARS_aux['vert-sti']['start']['value'] > N or \
-            #         (EZVARS_aux['vert-sti']['stop']['value'] > N):
-            #     QMessageBox.warning(self, "Error", f"Requested range of sections "
-            #                                        f"{self.start_stop_step_entry.text()} \n"
-            #                                        f"exceeds the number of rows in CT slices (max {M})")
-            #     return 1
-        return 0
-
-    def validate_slice_range(self):
-        dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                                EZVARS_aux['vert-sti']['subdir-name']['value'])
-        try:
-            nviews, wh, multipage = get_dims(pth)
-        except:
-            self.err = "Problem with validating slice range: cannot read dimensions of Input slices."
-            return 1
-
-        if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
-            tmp = EZVARS_aux['vert-sti']['start']['value']
-            EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
-            EZVARS_aux['vert-sti']['stop']['value'] = tmp
-
-        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
-            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
-
-        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
-        return 0
 
     def validate_input_structure_1set(self):
         Vsteps = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
@@ -614,7 +583,12 @@ class EZStitchGroup(QGroupBox):
         # Interpolate overlapping regions and equalize intensity
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
                 EZVARS_aux['vert-sti']['task_type']['value'] == 1:
-            self.validate_requested_section_indices()
+            try:
+                self.validate_slice_range()
+            except ValueError as e:
+                LOG.error(e)
+                warning_message("Problem with validating slice range: cannot read dimensions of Input slices.")
+                return
             main_sti_mp()
         else: 
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
