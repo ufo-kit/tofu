@@ -469,22 +469,16 @@ class EZStitchGroup(QGroupBox):
         return 0
 
     def get_cube_dims(self):
-        pth = ""
-        subdirs = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
-        if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       EZVARS_aux['vert-sti']['subdir-name']['value'])):
-            pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       EZVARS_aux['vert-sti']['subdir-name']['value'])
-        else:
-            second_subdirs = sorted(os.listdir(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0])))
-            if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
-                pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
-        im_names = glob.glob(os.path.join(pth, '*.tif'))
-        nslices = len(im_names)
-        N, M = read_image(im_names[0]).shape
-        return nslices, N, M
+        """
+        Find the first set of slices and determine the cube dimensions
+
+        Returns (number of slices, image_rows, image_columns)
+        """
+        _, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
+                                             EZVARS_aux['vert-sti']['subdir-name']['value']
+                                             )
+        nslices, hw, multipage = get_dims(pth)
+        return nslices, hw[0], hw[1]
 
     def validate_requested_section_indices(self):
         nslices, N, M = self.get_cube_dims()
