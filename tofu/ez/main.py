@@ -19,7 +19,7 @@ from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
 from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
-    complete_message, find_depth_level_to_CT_sets
+    complete_message, find_depth_level_to_CT_sets, validate_slice_range
 from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
@@ -349,17 +349,14 @@ def execute_reconstruction():
         rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
-        # Stitch multiple data set or just one?
-        dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                                EZVARS_aux['vert-sti']['subdir-name']['value'])
-        if pth == "":
-            print(f"Cannot format path to a directory with slices. Check directory structure")
         # validate slice range (common problem)
-        # TODO: must use function from ezsttich_qt by signal
-        nviews, wh, multipage = get_dims(pth)
-        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
-            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
-        main_sti_mp()
+        try:
+            validate_slice_range()
+        except ValueError as e:
+            print(f"Cannot format path to a directory with slices. Check directory structure")
+            LOG.error(e)
+        else:
+            main_sti_mp()
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:

@@ -9,7 +9,7 @@ import shutil
 import numpy as np
 import tifffile
 from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader, SequenceReaderError
-from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry
+from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
@@ -86,6 +86,34 @@ def find_depth_level_to_CT_sets(input_dir, slice_dir):
     if os.path.exists(tmp):
         return 2, tmp
     return 0, ""
+
+def get_cube_dims():
+    """
+    Find the first set of slices and determine the cube dimensions
+
+    Returns (number of slices, image_rows, image_columns)
+    """
+    _, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
+                                         EZVARS_aux['vert-sti']['subdir-name']['value']
+                                         )
+    nslices, hw, multipage = get_dims(pth)
+    return nslices, hw[0], hw[1]
+
+
+def validate_slice_range():
+    nslices, N, M = get_cube_dims()
+    if EZVARS_aux['vert-sti']['reslice_all']['value']:
+        EZVARS_aux['vert-sti']['start']['value'] = 0
+        EZVARS_aux['vert-sti']['stop']['value'] = N
+        EZVARS_aux['vert-sti']['step']['value'] = 1
+    else:
+        if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
+            tmp = EZVARS_aux['vert-sti']['start']['value']
+            EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
+            EZVARS_aux['vert-sti']['stop']['value'] = tmp
+
+        if EZVARS_aux['vert-sti']['stop']['value'] > N:
+            EZVARS_aux['vert-sti']['stop']['value'] = N
 
 def load_an_image_from_the_input_dir(input_dir, slice_dir):
     return 0

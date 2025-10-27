@@ -19,13 +19,18 @@ from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
     find_vert_olap_2_vsteps,
-    find_depth_level_to_CT_sets)
+    find_depth_level_to_CT_sets,
+    validate_slice_range,
+    get_cube_dims,
+)
 from tofu.ez.GUI.message_dialog import warning_message
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 from tofu.ez.util import import_values, export_values, read_image, get_dims
 import glob
 
 LOG = logging.getLogger(__name__)
+
+
 
 class EZStitchGroup(QGroupBox):
     def __init__(self):
@@ -453,7 +458,7 @@ class EZStitchGroup(QGroupBox):
 
     def validate_row_entries(self):
         self.validate_input_structure_1set()
-        nslices, N, M = self.get_cube_dims()
+        nslices, N, M = get_cube_dims()
         if EZVARS_aux['vert-sti']['ind_z01_stop']['value'] > nslices:
             QMessageBox.warning(self, "Error", f'Stop index of the search range '
                                                f'exceeds the total number of slices (max {nslices})')
@@ -467,34 +472,6 @@ class EZStitchGroup(QGroupBox):
                                                f'exceeds the total number of slices (max {nslices})')
             return 1
         return 0
-
-    def get_cube_dims(self):
-        """
-        Find the first set of slices and determine the cube dimensions
-
-        Returns (number of slices, image_rows, image_columns)
-        """
-        _, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                             EZVARS_aux['vert-sti']['subdir-name']['value']
-                                             )
-        nslices, hw, multipage = get_dims(pth)
-        return nslices, hw[0], hw[1]
-
-
-    def validate_slice_range(self):
-        nslices, N, M = self.get_cube_dims()
-        if EZVARS_aux['vert-sti']['reslice_all']['value']:
-            EZVARS_aux['vert-sti']['start']['value'] = 0
-            EZVARS_aux['vert-sti']['stop']['value'] = N
-            EZVARS_aux['vert-sti']['step']['value'] = 1
-        else:
-            if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
-                tmp = EZVARS_aux['vert-sti']['start']['value']
-                EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
-                EZVARS_aux['vert-sti']['stop']['value'] = tmp
-
-            if EZVARS_aux['vert-sti']['stop']['value'] > N:
-                EZVARS_aux['vert-sti']['stop']['value'] = N
 
 
     def validate_input_structure_1set(self):
@@ -584,7 +561,7 @@ class EZStitchGroup(QGroupBox):
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
                 EZVARS_aux['vert-sti']['task_type']['value'] == 1:
             try:
-                self.validate_slice_range()
+                validate_slice_range()
             except ValueError as e:
                 LOG.error(e)
                 warning_message("Problem with validating slice range: cannot read dimensions of Input slices.")
