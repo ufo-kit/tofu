@@ -357,6 +357,8 @@ def execute_reconstruction():
             LOG.error(e)
         else:
             main_sti_mp()
+        if not EZVARS['inout']['keep-tmp']['value']:
+            rmtree(EZVARS['vert-sti']['tmp-dir']['value'])
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:
