@@ -346,7 +346,6 @@ def execute_reconstruction():
     print("========================================")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:
         print("======= Begin Vertical Stitching =======")
-        rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
         # validate slice range (common problem)
@@ -357,8 +356,10 @@ def execute_reconstruction():
             LOG.error(e)
         else:
             main_sti_mp()
-        if not EZVARS['inout']['keep-tmp']['value']:
-            rmtree(EZVARS['vert-sti']['tmp-dir']['value'])
+            if not EZVARS['inout']['keep-tmp']['value']:
+                vert_sti_tmp = EZVARS_aux['vert-sti']['tmp-dir']['value']
+                for dir in os.listdir(vert_sti_tmp):
+                    rmtree(os.path.join(vert_sti_tmp, dir))
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:
