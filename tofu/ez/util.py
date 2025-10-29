@@ -136,18 +136,17 @@ def fmt_in_out_path(tmpdir, indir, raw_proj_dir_name, croutdir=True):
     in_proj_dir, out_proj_dir = "qqq", "qqq"
     if Nsteps == 0:  # no projections in temporary directory
         in_proj_dir = os.path.join(indir, raw_proj_dir_name)
-        out_proj_dir = "proj-step1"
+        out_proj_dir = os.path.join(tmpdir, "proj-step1")
     elif Nsteps > 0:  # there are directories proj-stepX in tmp dir
         in_proj_dir = proj_dirs[-1]
         out_proj_dir = "{}{}".format(in_proj_dir[:-1], Nsteps + 1)
     else:
         raise ValueError("Something is wrong with in/out filenames")
     # physically create output directory
-    tmp = os.path.join(tmpdir, out_proj_dir)
-    if croutdir and not os.path.exists(tmp):
-        os.makedirs(tmp)
+    if croutdir and not os.path.exists(out_proj_dir):
+        os.makedirs(out_proj_dir)
     # return names of input directory and output pattern with abs path
-    return in_proj_dir, os.path.join(tmp, "proj-%04i.tif")
+    return in_proj_dir, os.path.join(out_proj_dir, "proj-%04i.tif")
 
 def enquote(string, escape=False):
     addition = '\\"' if escape else '"'
