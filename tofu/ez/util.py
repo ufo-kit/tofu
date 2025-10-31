@@ -17,12 +17,12 @@ import logging
 
 def get_dims(pth):
     # get number of projections and projections dimensions
-    first_proj = get_first_filename(pth)
+    first_proj = get_first_filename(pth, valid_exts=['.tif', '.tiff'])
     multipage = False
     try:
         shape = get_image_shape(first_proj)
     except:
-        raise ValueError("Failed to determine size and number of projections in {}".format(pth))
+        raise ValueError(f"Failed to determine size and number of images in {pth} from {first_proj}")
     if len(shape) == 2:  # single page input
         return len(get_filenames(pth)), [shape[-2], shape[-1]], multipage
     elif len(shape) == 3:  # multipage input
