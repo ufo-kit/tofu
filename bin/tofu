@@ -191,7 +191,6 @@ def main():
                         version='%(prog)s {}'.format(__version__))
 
     sino_params = ('flat-correction', 'sinos')
-    reco_params = ('flat-correction', 'reconstruction')
     tomo_params = config.TOMO_PARAMS
     lamino_params = config.LAMINO_PARAMS
     gui_params = tomo_params + ('gui', )
