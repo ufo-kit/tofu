@@ -129,13 +129,12 @@ def tomo(params):
                 g.connect_nodes(crop, bp)
             else:
                 bp.props.axis_pos = axis + padding_width / 2
-                crop.props.x = padding_width // 2
-                crop.props.y = padding_width // 2
-                crop.props.width = width
-                crop.props.height = width
+                bp.props.roi_x = padding_width // 2
+                bp.props.roi_y = padding_width // 2
+                bp.props.roi_width = width
+                bp.props.roi_height = width
                 g.connect_nodes(ifft, bp)
-                g.connect_nodes(bp, crop)
-                last_node = crop
+                last_node = bp
         else:
             if params.crop_width:
                 ifft.props.crop_width = int(params.crop_width)
