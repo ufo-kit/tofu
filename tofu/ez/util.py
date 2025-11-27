@@ -23,6 +23,8 @@ def get_dims(pth):
     multipage = False
     try:
         shape = get_image_shape(first_proj)
+    except ImportError:
+        raise
     except:
         raise ValueError(f"Failed to determine size and number of images in {pth} from {first_proj}")
     if len(shape) == 2:  # single page input

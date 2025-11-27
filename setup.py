@@ -27,6 +27,7 @@ setup(
         'flow': ['PyQt5', 'networkx', 'pyqtconsole', 'pyxdg', 'qtpynodeeditor', 'pyqtgraph'],
         'test': ['pytest', 'pytest-qt'],
         'ez': ['PyQt5', 'PyYAML', 'pyqtgraph', 'matplotlib'],
+        'edf': ['fabio'],
     },
     description="A fast, versatile and user-friendly image "\
                 "processing toolkit for computed tomography",
