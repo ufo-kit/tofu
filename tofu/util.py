@@ -52,7 +52,8 @@ def make_subargs(args, subargs):
     *subargs* list."""
     namespace = argparse.Namespace()
     for subarg in subargs:
-        setattr(namespace, subarg, getattr(args, subarg))
+        if hasattr(args, subarg):
+            setattr(namespace, subarg, getattr(args, subarg))
 
     return namespace
 
