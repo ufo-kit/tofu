@@ -11,6 +11,30 @@ from tofu.tasks import get_task, get_writer
 LOG = logging.getLogger(__name__)
 
 
+def create_distortion_correction_pipeline(args, graph, source, processing_node=None):
+    x_reader = get_task('read')
+    y_reader = get_task('read')
+    distortion = get_task(
+        'map-coordinates',
+        processing_node=processing_node,
+        addressing_mode=args.distortion_padding_mode,
+        interpolation=args.distortion_interpolation
+    )
+
+    # Readers
+    roi_args = make_subargs(args, ['y', 'height', 'y_step'])
+    set_node_props(x_reader, roi_args)
+    set_node_props(y_reader, roi_args)
+    setup_read_task(x_reader, args.x_field, args)
+    setup_read_task(y_reader, args.y_field, args)
+
+    graph.connect_nodes_full(source, distortion, 0)
+    graph.connect_nodes_full(x_reader, distortion, 1)
+    graph.connect_nodes_full(y_reader, distortion, 2)
+
+    return distortion
+
+
 def create_flat_correct_pipeline(args, graph, processing_node=None):
     """
     Create flat field correction pipeline. All the settings are provided in
@@ -373,6 +397,11 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
             if current:
                 graph.connect_nodes(current, absorptivity)
             current = absorptivity
+
+    if args.x_field and args.y_field:
+        current = create_distortion_correction_pipeline(
+            args, graph, current, processing_node=processing_node
+        )
 
     if args.transpose_input:
         transpose = get_task('transpose')
