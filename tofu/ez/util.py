@@ -4,6 +4,8 @@ Created on Apr 20, 2020
 @author: gasilos
 """
 import os, glob, tifffile
+
+from tofu.ez.ctdir_walker import VALID_EXTS
 from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
@@ -17,7 +19,7 @@ import logging
 
 def get_dims(pth):
     # get number of projections and projections dimensions
-    first_proj = get_first_filename(pth, valid_exts=['.tif', '.tiff'])
+    first_proj = get_first_filename(pth, valid_exts=VALID_EXTS)
     multipage = False
     try:
         shape = get_image_shape(first_proj)
@@ -34,7 +36,8 @@ def get_dims(pth):
     return -6, [-6, -6]
 
 def get_data_cube_info(pth):
-    im_names = glob.glob(os.path.join(pth, '*.tif'))
+    ext = os.path.splitext(get_first_filename(pth, valid_exts=VALID_EXTS))[1]
+    im_names = glob.glob(os.path.join(pth, '*' + ext))
     nslices = len(im_names)
     im = read_image(im_names[0])
     N, M = im.shape
