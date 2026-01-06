@@ -48,7 +48,7 @@ def make_ort_sections(ctset_path):
     :param ctdir Name of the ctdir - blank string if not using multiple ctdirs:
     :return:
     """
-    Vsteps = sorted(os.listdir(ctset_path))
+    Vsteps = sorted_sub_directories(ctset_path)
     #determine input data type
     tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
     nslices, N, M, indtype_digit, indtype, npasses = get_data_cube_info(tmp)
@@ -76,12 +76,18 @@ def make_ort_sections(ctset_path):
         indir = EZVARS_aux['vert-sti']['input-dir']['value']
     return indir, indtype
 
+def sorted_sub_directories(path: os.PathLike) -> list[str]:
+    """Return a sorted list of sub-directories sorted by sub-directory name"""
+    with os.scandir(path) as entries:
+        subdirs = sorted([entry.name for entry in entries if entry.is_dir()])
+    return subdirs
+
 def find_depth_level_to_CT_sets(input_dir, slice_dir):
-    subdirs = sorted(os.listdir(input_dir))
+    subdirs = sorted_sub_directories(input_dir)
     tmp = os.path.join(input_dir, subdirs[0], slice_dir)
     if os.path.exists(tmp):
         return 1, tmp
-    second_subdirs = sorted(os.listdir(os.path.join(input_dir, subdirs[0])))
+    second_subdirs = sorted_sub_directories(os.path.join(input_dir, subdirs[0]))
     tmp = os.path.join(input_dir, subdirs[0], second_subdirs[0], slice_dir)
     if os.path.exists(tmp):
         return 2, tmp
@@ -123,7 +129,7 @@ def main_sti_mp():
     #if indir + some z00 subdir + sli + *.tif does not exist then use original
     if not os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
         os.makedirs(EZVARS_aux['vert-sti']['output-dir']['value'])
-    subdirs = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
+    subdirs = sorted_sub_directories(EZVARS_aux['vert-sti']['input-dir']['value'])
     if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
                                    EZVARS_aux['vert-sti']['subdir-name']['value'])):
         print(" - Working with one CT directory which contains multiple vertical views")
@@ -134,7 +140,7 @@ def main_sti_mp():
             conc_one_set(EZVARS_aux['vert-sti']['input-dir']['value'],
                             EZVARS_aux['vert-sti']['output-dir']['value'])
     else:
-        second_subdirs = sorted(os.listdir(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0])))
+        second_subdirs = sorted_sub_directories(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0]))
         if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
                                        second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
             print(" - Working with several CT directories which contain multiple vertical views")
@@ -161,7 +167,7 @@ def sti_one_set(in_dir_path, out_dir_path):
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
     dx = int(EZVARS_aux['vert-sti']['num_olap_rows']['value'])
     # second: stitch them
-    Vsteps = sorted(os.listdir(indir))
+    Vsteps = sorted_sub_directories(indir)
     tmp = glob.glob(os.path.join(indir, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif'))[0]
     first = read_image(tmp)
     N, M = first.shape
@@ -226,7 +232,7 @@ def exec_sti_mp(indir, pout, N, Nnew, Vsteps, dx, M, ramp, indtype, j):
 def conc_one_set(indir, pout):
     indir, indtype = make_ort_sections(indir)
     outfilepattern = os.path.join(pout, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
-    zfold = sorted(os.listdir(indir))
+    zfold = sorted_sub_directories(indir)
     l = len(zfold)
     tmp = glob.glob(os.path.join(indir, zfold[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif'))
     J = range((EZVARS_aux['vert-sti']['stop']['value'] - EZVARS_aux['vert-sti']['start']['value']) //
@@ -297,8 +303,7 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    subdirs = [dI for dI in os.listdir(indir) \
-            if os.path.isdir(os.path.join(indir, dI))]
+    subdirs = sorted_sub_directories(indir)
 
     for i, sdir in enumerate(subdirs):
         print(f"Stitching images in {sdir}")
@@ -332,8 +337,7 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    subdirs = [dI for dI in os.listdir(indir) \
-            if os.path.isdir(os.path.join(indir, dI))]
+    subdirs = sorted_sub_directories(indir)
 
     for i, sdir in enumerate(subdirs):
         print(f"Stitching images in {sdir}")
@@ -405,7 +409,7 @@ def main_360_mp_depth2():
     cra = np.max(dax)-dax
     # Axis on the right ? Must open one file to find out ><
     tmpname = os.path.join(EZVARS_aux['stitch360']['input-dir']['value'], ctdirs_rel_paths[0])
-    subdirs = [dI for dI in os.listdir(tmpname) if os.path.isdir(os.path.join(tmpname, dI))]
+    subdirs = sorted_sub_directories(tmpname)
     M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
     if np.min(dax) > M//2:
         cra = dax - np.min(dax)
@@ -439,7 +443,7 @@ def check_last_index(axis_list):
     return last_index
 
 def find_vert_olap_all_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
-    Vsteps = sorted(os.listdir(ctset_path))
+    Vsteps = sorted_sub_directories(ctset_path)
     num_vsteps = len(Vsteps)
     olaps = np.zeros((num_vsteps-1, 1))
     for i in range(num_vsteps-1):
@@ -454,7 +458,7 @@ def find_vert_olap_all_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
 
 def find_vert_olap_2_vsteps(ctset_path, ind_z00, ind_start_z01, ind_stop_z01):
     #taking two sub-scans near the center of the sample
-    vsteps = sorted(os.listdir(ctset_path))
+    vsteps = sorted_sub_directories(ctset_path)
     num_vsteps = len(vsteps)
     z00_name = os.path.join(ctset_path, vsteps[num_vsteps//2-1],
                             EZVARS_aux['vert-sti']['subdir-name']['value'])
