@@ -890,7 +890,6 @@ PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 RGBA_BP_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase', 'rgba-backproject')
-FFC_FLT_PARAMS = ('preprocess', 'flat-correction')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
