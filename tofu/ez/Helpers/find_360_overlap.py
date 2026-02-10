@@ -231,23 +231,23 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
         cro = EZVARS_aux['find360olap']['stop']['value'] - axis
         if axis > wh[1] // 2:
             cro = axis - EZVARS_aux['find360olap']['start']['value']
-        par_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched', f"{axis:04}")
+        stitched = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched', f"{axis:04}")
         print(f"Stitching flats/darks/tomo")
-        main_360sti_ufol_depth1(path2crop_frames, par_dir, axis, cro)
-        dirdark = os.path.join(par_dir, dirdark)
-        dirflats = os.path.join(par_dir, dirflats)
-        dirtomo = os.path.join(par_dir, 'proj-step1')
-        dirflats2 = os.path.join(par_dir, dirflats2)
-        if not os.path.exists(dirflats2):
-            dirflats2 = None
-        par_dir = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched-pr', f"{axis:04}")
-        out_pattern = os.path.join(par_dir, "proj-%04i.tif")
+        main_360sti_ufol_depth1(path2crop_frames, stitched, axis, cro)
+        dirs = (
+            os.path.join(stitched, dirdark),
+            os.path.join(stitched, dirflats),
+            os.path.join(stitched, 'proj-step1'),
+            os.path.join(stitched, dirflats2) if os.path.exists(os.path.join(stitched, dirflats2)) else None
+        )
+        stitched_pr = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched-pr', f"{axis:04}")
+        out_pattern = os.path.join(stitched_pr, "proj-%04i.tif")
         print(f"Phase retrieval")
-        cmd = fmt_pr_cmd(dirdark, dirflats, dirtomo, dirflats2, out_pattern)
+        cmd = fmt_pr_cmd(*dirs, out_pattern)
         os.system(cmd)
         print(f"Generating sinogram for the target row")
         cmd = "tofu sinos"
-        cmd += " --projections {}".format(par_dir)
+        cmd += " --projections {}".format(stitched_pr)
         cmd += " --output {}".format(os.path.join(sin_tmp_dir, 'sin-axis-' + str(axis).zfill(4) + '.tif'))
         cmd += " --number {}".format(nviews//2)
         cmd += f" --y={mrg} --height=1"
