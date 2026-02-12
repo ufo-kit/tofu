@@ -12,7 +12,11 @@ try:
 except ModuleNotFoundError as e:
     print(str(e))
 except ValueError as e:
-    print(str(e))
+    try:
+        gi.require_version('Ufo', '1.0')
+        from gi.repository import Ufo
+    except ValueError as e:
+        print(str(e))
 
 LOG = logging.getLogger(__name__)
 RESOURCES = None
