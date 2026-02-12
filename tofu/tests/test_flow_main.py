@@ -422,7 +422,10 @@ class TestApplicationWindow:
 
     def test_on_save_json(self, qtbot, monkeypatch, app_window):
         import gi
-        gi.require_version('Ufo', '0.0')
+        try:
+            gi.require_version('Ufo', '0.0')
+        except ValueError:
+            gi.require_version('Ufo', '1.0')
         from gi.repository import Ufo
 
         # Don't pop up file dialog

@@ -9,7 +9,10 @@ import re
 import gi
 from tofu import config, __version__
 
-gi.require_version('Ufo', '0.0')
+try:
+    gi.require_version('Ufo', '0.0')
+except ValueError:
+    gi.require_version('Ufo', '1.0')
 
 
 LOG = logging.getLogger('tofu')
