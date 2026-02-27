@@ -61,6 +61,12 @@ class FFCGroup(QGroupBox):
         self.flat_scale_entry.setValidator(get_double_validator())
         self.flat_scale_entry.editingFinished.connect(self.set_flat_scale)
 
+        self.reduction_label = QLabel("Reduction Mode:")
+        self.median_reduction_rButton = QRadioButton("Median")
+        self.median_reduction_rButton.clicked.connect(self.set_reduction_mode)
+        self.average_reduction_rButton = QRadioButton("Average")
+        self.average_reduction_rButton.clicked.connect(self.set_reduction_mode)
+
         self.set_layout()
 
     def set_layout(self):
@@ -69,26 +75,34 @@ class FFCGroup(QGroupBox):
         layout.addWidget(self.flat_scale_label, 0, 0)
         layout.addWidget(self.flat_scale_entry, 0, 1)
 
+        reduction_layout = QHBoxLayout()
+        reduction_layout.addWidget(self.reduction_label)
+        reduction_layout.addWidget(self.median_reduction_rButton)
+        reduction_layout.addWidget(self.average_reduction_rButton)
+
+        layout.addLayout(reduction_layout, 1, 0, 1, 2)
+
         rbutton_layout = QHBoxLayout()
         rbutton_layout.addWidget(self.method_label)
         rbutton_layout.addWidget(self.eigen_rButton)
         rbutton_layout.addWidget(self.average_rButton)
         rbutton_layout.addWidget(self.ssim_rButton)
 
-        layout.addWidget(self.enable_sinFFC_checkbox, 1, 0)
-        layout.addItem(rbutton_layout, 2, 0, 1, 2)
-        layout.addWidget(self.eigen_pco_repetitions_label, 3, 0)
-        layout.addWidget(self.eigen_pco_repetitions_entry, 3, 1)
-        layout.addWidget(self.eigen_pco_downsample_label, 4, 0)
-        layout.addWidget(self.eigen_pco_downsample_entry, 4, 1)
-        layout.addWidget(self.downsample_label, 5, 0)
-        layout.addWidget(self.downsample_entry, 5, 1)
+        layout.addWidget(self.enable_sinFFC_checkbox, 2, 0)
+        layout.addItem(rbutton_layout, 3, 0, 1, 2)
+        layout.addWidget(self.eigen_pco_repetitions_label, 4, 0)
+        layout.addWidget(self.eigen_pco_repetitions_entry, 4, 1)
+        layout.addWidget(self.eigen_pco_downsample_label, 5, 0)
+        layout.addWidget(self.eigen_pco_downsample_entry, 5, 1)
+        layout.addWidget(self.downsample_label, 6, 0)
+        layout.addWidget(self.downsample_entry, 6, 1)
 
         self.setLayout(layout)
 
     def load_values(self):
         self.enable_sinFFC_checkbox.setChecked(EZVARS['flat-correction']['smart-ffc']['value'])
         self.set_method_from_params()
+        self.set_reduction_mode_from_params()
         self.eigen_pco_repetitions_entry.setText(str(EZVARS['flat-correction']['eigen-pco-reps']['value']))
         self.eigen_pco_downsample_entry.setText(str(EZVARS['flat-correction']['eigen-pco-downsample']['value']))
         self.downsample_entry.setText(str(EZVARS['flat-correction']['downsample']['value']))
@@ -147,3 +161,19 @@ class FFCGroup(QGroupBox):
             self.eigen_rButton.setChecked(False)
             self.average_rButton.setChecked(False)
             self.ssim_rButton.setChecked(True)
+
+    def set_reduction_mode(self):
+        if self.median_reduction_rButton.isChecked():
+            LOG.debug("Reduction Mode: Median")
+            EZVARS['flat-correction']['reduction-mode']['value'] = "median"
+        elif self.average_reduction_rButton.isChecked():
+            LOG.debug("Reduction Mode: Average")
+            EZVARS['flat-correction']['reduction-mode']['value'] = "average"
+
+    def set_reduction_mode_from_params(self):
+        if EZVARS['flat-correction']['reduction-mode']['value'] == "median":
+            self.median_reduction_rButton.setChecked(True)
+            self.average_reduction_rButton.setChecked(False)
+        elif EZVARS['flat-correction']['reduction-mode']['value'] == "average":
+            self.median_reduction_rButton.setChecked(False)
+            self.average_reduction_rButton.setChecked(True)
