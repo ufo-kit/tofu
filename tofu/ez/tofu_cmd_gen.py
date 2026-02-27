@@ -239,7 +239,7 @@ def get_pr_tofu_cmd_sinFFC(ctset):
     cmd += ' --projection-crop-after filter'
     return cmd
 
-def get_pr_tofu_cmd(ctset):
+def get_pr_tofu_cmd(ctset, reduction_mode="median"):
     # indir will format paths to flats darks and tomo2 correctly even if they were
     # pre-processed, however path to the input directory with projections
     # cannot be formatted with that command correctly
@@ -249,7 +249,7 @@ def get_pr_tofu_cmd(ctset):
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     flats2_dir = indir[3] if ctset[1] == 4 else None
 
-    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, flats2_dir, out_pattern)
+    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, flats2_dir, out_pattern, reduction_mode=reduction_mode)
 
 def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern, reduction_mode="median"):
     cmd = 'tofu preprocess --fix-nan-and-inf --projection-filter none --delta 1e-6'
