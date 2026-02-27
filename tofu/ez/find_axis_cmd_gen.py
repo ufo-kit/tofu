@@ -13,15 +13,15 @@ from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.tofu_cmd_gen import check_lamino, gpu_optim
 
-def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
+def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     cmd = 'tofu reco'
     if EZVARS['advanced']['more-reco-params']['value'] is True:
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
         cmd += " --overall-angle 180"
-    cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(
-        indir[0], indir[1], enquote(indir[2])
+    cmd += " --darks {} --flats {} --reduction-mode {} --projections {}".format(
+        indir[0], indir[1], reduction_mode, enquote(indir[2])
     )
     cmd += " --number {}".format(nviews)
     if EZVARS['COR']['min-std-apply-pr']['value']:
