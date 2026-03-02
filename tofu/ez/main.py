@@ -19,7 +19,7 @@ from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
 from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
-    complete_message, find_depth_level_to_CT_sets
+    complete_message, find_depth_level_to_CT_sets, validate_slice_range
 from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
@@ -236,8 +236,6 @@ def execute_reconstruction():
         # so we get CT sets from this directory instead of the original input
         W, lvl0 = get_CTdirs_list(os.path.join(
             EZVARS_aux['half-acq']['workdir']['value'], 'stitched-data'), fdt_names)
-        # and set axis of rotation parameter to the image's middle column
-        add_value_to_dict_entry(EZVARS['COR']['search-method'], 4)
         # then proceed as usual
 
     # get list of already reconstructed sets
@@ -287,7 +285,7 @@ def execute_reconstruction():
             # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
             #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
-            if EZVARS['COR']['search-method']['value'] != 4:
+            if EZVARS['COR']['search-method']['value'] < 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
                     ax = find_axis_corr(ctset,
@@ -305,8 +303,8 @@ def execute_reconstruction():
                                         nviews, wh)
                 else:
                     ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
-            # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
-            elif EZVARS['COR']['search-method']['value'] == 4:
+            # If EZVARS['COR']['search-method']['value'] >= 4 then bypass axis search and use image midpoint
+            elif EZVARS['COR']['search-method']['value'] >= 4:
                 ax = find_axis_image_midpoint(wh)
                 print("Bypassing axis search and using image midpoint: {}".format(ax))
             add_value_to_dict_entry(SECTIONS['cone-beam-weight']['center-position-x'], str(ax))
@@ -348,27 +346,20 @@ def execute_reconstruction():
     print("========================================")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:
         print("======= Begin Vertical Stitching =======")
-        rmtree(EZVARS['inout']['tmp-dir']['value'])
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
-        if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
-            # Stitch multiple data set or just one?
-            dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                                    EZVARS_aux['vert-sti']['subdir-name']['value'])
-            if pth == "":
-                print(f"Cannot format path to a directory with slices. Check directory structure")
-            olap = find_vert_olap_2_vsteps(pth,
-                                           EZVARS_aux['vert-sti']['ind_z00']['value'],
-                                           EZVARS_aux['vert-sti']['ind_z01_start']['value'],
-                                           EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
-            print(f"Number of overlapping lines is {olap}.")
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
         # validate slice range (common problem)
-        # TODO: must use function from ezsttich_qt by signal
-        nviews, wh, multipage = get_dims(pth)
-        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
-            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
-        main_sti_mp()
+        try:
+            validate_slice_range()
+        except ValueError as e:
+            print(f"Cannot format path to a directory with slices. Check directory structure")
+            LOG.error(e)
+        else:
+            main_sti_mp()
+            if not EZVARS['inout']['keep-tmp']['value']:
+                vert_sti_tmp = EZVARS_aux['vert-sti']['tmp-dir']['value']
+                for dir in os.listdir(vert_sti_tmp):
+                    rmtree(os.path.join(vert_sti_tmp, dir))
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:

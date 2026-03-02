@@ -221,12 +221,16 @@ def get_image_shape(filename):
     return shape
 
 
-def get_first_filename(path):
-    """Returns the first valid image filename in *path*."""
+def get_first_filename(path, valid_exts: list[str] = None):
+    """Returns the first valid image filename in *path*. If *valid_exts* is set, only return files
+    with the extension matching *valid_exts*."""
     if not path:
         raise RuntimeError("Path to sinograms or projections not set.")
 
     filenames = get_filenames(path)
+
+    if valid_exts is not None:
+        filenames = [f for f in filenames if os.path.splitext(f)[1] in valid_exts]
 
     if not filenames:
         raise RuntimeError("No files found in `{}'".format(path))

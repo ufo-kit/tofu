@@ -178,13 +178,18 @@ def evaluate_metrics_360_olap_search(images, out_prefix, x_data, *args, **kwargs
             path = out_prefix + "/" + metric
             np.savetxt(path+".txt", merged[metric], fmt="%g")
             #and plot it as well
-            from matplotlib import pyplot as plt
-            plt.figure()
-            plt.plot(x_data, merged[metric])
-            plt.title(metric)
-            plt.grid()
-            plt.savefig(path + ".tif")
-            plt.close()
+            try:
+                from matplotlib import pyplot as plt
+            except ImportError:
+                pass
+            else:
+                plt.figure()
+                plt.plot(x_data, merged[metric])
+                plt.title(metric)
+                plt.grid()
+                plt.savefig(path + ".png")
+                plt.close()
+
 
     return merged
 

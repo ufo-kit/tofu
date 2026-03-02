@@ -607,10 +607,12 @@ class ConfigGroup(QGroupBox):
         self.set_preproc()
         self.set_preproc_entry()
         if EZVARS_aux['vert-sti']['dovertsti']['value']:
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'],
-                                    f"{EZVARS['inout']['output-dir']['value']}-ort-stitched")
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['tmp-dir'],
-                                    f"{EZVARS['inout']['tmp-dir']['value']}")
+            # Warn if output dir collision
+            if EZVARS['inout']['output-dir']['value'] == EZVARS_aux['vert-sti']['output-dir']['value']:
+                vert_out = f"{EZVARS['inout']['output-dir']['value']}-vert-stitched"
+                print("Vertical stitching output directory should not be the same as input.")
+                print(f"Adjusting from {EZVARS_aux['vert-sti']['output-dir']['value']} to {vert_out}")
+                add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'], vert_out)
         run_reco = partial(self.run_reconstruction, batch_run=False)
         #I had to add a little sleep as on some Linux ditributions params won't fully set before the main() begins
         QTimer.singleShot(100, run_reco)

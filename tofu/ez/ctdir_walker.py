@@ -7,6 +7,8 @@ Created on Apr 5, 2018
 import os
 from tofu.ez.params import EZVARS
 
+VALID_EXTS = ['.tif', '.tiff', '.edf']
+
 class WalkCTdirs:
     """
     Walks in the directory structure and creates list of paths to CT folders
@@ -146,7 +148,7 @@ class WalkCTdirs:
 
     def _checktifs(self, tmpath):
         """
-        Checks each whether item in directory tmppath is a .tif file
+        Checks each whether item in directory tmppath is a supported file
         :param tmpath: Path to directory
         :return: 0 if invalid item found in directory - 1 if no invalid items found in directory
         """
@@ -154,8 +156,8 @@ class WalkCTdirs:
             if os.path.isdir(i):
                 print(f"Directory {tmpath} contains a subdirectory")
                 return 0
-            if i.split(".")[-1] != "tif":
-                print(f"Directory {tmpath} has files which are not tif images or containers")
+            if os.path.splitext(i)[1] not in VALID_EXTS:
+                print(f"Directory {tmpath} has files which are not supported images or containers")
                 return 0
         return 1
 

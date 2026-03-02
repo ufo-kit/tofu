@@ -19,13 +19,18 @@ from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
     find_vert_olap_2_vsteps,
-    find_depth_level_to_CT_sets)
+    find_depth_level_to_CT_sets,
+    validate_slice_range,
+    get_cube_dims,
+)
 from tofu.ez.GUI.message_dialog import warning_message
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
 from tofu.ez.util import import_values, export_values, read_image, get_dims
 import glob
 
 LOG = logging.getLogger(__name__)
+
+
 
 class EZStitchGroup(QGroupBox):
     def __init__(self):
@@ -316,7 +321,10 @@ class EZStitchGroup(QGroupBox):
         if self.invoke_after_reco_checkbox.isChecked():
             add_value_to_dict_entry(EZVARS_aux['vert-sti']['dovertsti'], True)
             self.input_dir_entry.setEnabled(False)
-            self.output_dir_entry.setText(f"{EZVARS['inout']['output-dir']['value']}-ort-stitched")
+            if self.output_dir_entry.text() in (
+                    EZVARS['inout']['output-dir']['value'],
+                    EZVARS_aux['vert-sti']['output-dir']['ezdefault']):
+                self.output_dir_entry.setText(f"{EZVARS['inout']['output-dir']['value']}-vert-stitched")
             self.set_output_entry()
             self.tmp_dir_entry.setText(f"{EZVARS['inout']['tmp-dir']['value']}")
             self.set_temp_entry()
@@ -403,8 +411,11 @@ class EZStitchGroup(QGroupBox):
                                 bool(self.flipud_checkbox.isChecked()))
 
     def set_est_olap(self):
+        estimate_overlap = bool(self.est_olap_checkbox.isChecked())
+        LOG.debug("Estimate vertical overlap automatically: " + str(estimate_overlap))
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['estimate_num_olap_rows'],
-                                bool(self.est_olap_checkbox.isChecked()))
+                                estimate_overlap)
+        self.num_overlaps_entry.setDisabled(estimate_overlap)
 
     def set_overlap(self):
         LOG.debug("Num overlapping rows: " + str(self.num_overlaps_entry.text()))
@@ -447,7 +458,7 @@ class EZStitchGroup(QGroupBox):
 
     def validate_row_entries(self):
         self.validate_input_structure_1set()
-        nslices, N, M = self.get_cube_dims()
+        nslices, N, M = get_cube_dims()
         if EZVARS_aux['vert-sti']['ind_z01_stop']['value'] > nslices:
             QMessageBox.warning(self, "Error", f'Stop index of the search range '
                                                f'exceeds the total number of slices (max {nslices})')
@@ -462,71 +473,6 @@ class EZStitchGroup(QGroupBox):
             return 1
         return 0
 
-    def get_cube_dims(self):
-        pth = ""
-        subdirs = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
-        if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       EZVARS_aux['vert-sti']['subdir-name']['value'])):
-            pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       EZVARS_aux['vert-sti']['subdir-name']['value'])
-        else:
-            second_subdirs = sorted(os.listdir(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0])))
-            if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
-                pth = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
-        im_names = glob.glob(os.path.join(pth, '*.tif'))
-        nslices = len(im_names)
-        N, M = read_image(im_names[0]).shape
-        return nslices, N, M
-
-    def validate_requested_section_indices(self):
-        nslices, N, M = self.get_cube_dims()
-        if EZVARS_aux['vert-sti']['reslice_all']['value']:
-            EZVARS_aux['vert-sti']['start']['value'] = 0
-            EZVARS_aux['vert-sti']['stop']['value'] = N
-            EZVARS_aux['vert-sti']['step']['value'] = 1
-        else:
-            if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
-                tmp = EZVARS_aux['vert-sti']['start']['value']
-                EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
-                EZVARS_aux['vert-sti']['stop']['value'] = tmp
-
-            if EZVARS_aux['vert-sti']['stop']['value'] > N:
-                EZVARS_aux['vert-sti']['stop']['value'] = N
-
-        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
-            # if EZVARS_aux['vert-sti']['start']['value'] > N or \
-            #         (EZVARS_aux['vert-sti']['stop']['value'] > N):
-            #     QMessageBox.warning(self, "Error", f"Requested range of sections "
-            #                                        f"{self.start_stop_step_entry.text()} \n"
-            #                                        f"exceeds the number of rows in CT slices (max {M})")
-            #     return 1
-        return 0
-
-    def validate_slice_range(self):
-        dtmp, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                                EZVARS_aux['vert-sti']['subdir-name']['value'])
-        try:
-            nviews, wh, multipage = get_dims(pth)
-        except:
-            self.err = "Problem with validating slice range: cannot read dimensions of Input slices."
-            return 1
-
-        if EZVARS_aux['vert-sti']['start']['value'] > EZVARS_aux['vert-sti']['stop']['value']:
-            tmp = EZVARS_aux['vert-sti']['start']['value']
-            EZVARS_aux['vert-sti']['start']['value'] = EZVARS_aux['vert-sti']['stop']['value']
-            EZVARS_aux['vert-sti']['stop']['value'] = tmp
-
-        if EZVARS_aux['vert-sti']['stop']['value'] > wh[0]:
-            EZVARS_aux['vert-sti']['stop']['value'] = wh[0]
-
-        self.start_stop_step_entry.setText(f"{EZVARS_aux['vert-sti']['start']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['stop']['value']},"
-                                           f"{EZVARS_aux['vert-sti']['step']['value']}")
-        return 0
 
     def validate_input_structure_1set(self):
         Vsteps = sorted(os.listdir(EZVARS_aux['vert-sti']['input-dir']['value']))
@@ -587,17 +533,23 @@ class EZStitchGroup(QGroupBox):
                     rmtree(dir_path)
                 except:
                     warning_message(f"Error while deleting {dir_type} directory")
-                    return
+                    raise FileExistsError
             else:
-                return
+                raise FileExistsError
 
 
 
     def stitch_button_pressed(self):
         LOG.debug("Stitch button pressed")
 
-        self.verify_safe2delete(EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
-        self.verify_safe2delete(EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
+        try:
+            self.verify_safe2delete(EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
+        except FileExistsError:
+            return
+        try:
+            self.verify_safe2delete(EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
+        except FileExistsError:
+            return
         
         # if self.validate_input_structure_1set() or self.validate_row_entries():
         #     return
@@ -605,18 +557,15 @@ class EZStitchGroup(QGroupBox):
 
 
         print("======= Begin Stitching =======")
-        # if overlap has to be estimated:
-        if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
-            olap = find_vert_olap_2_vsteps(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z00']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z01_start']['value'],
-                                    EZVARS_aux['vert-sti']['ind_z01_stop']['value'])
-            self.num_overlaps_entry.setText(str(olap))
-            add_value_to_dict_entry(EZVARS_aux['vert-sti']['num_olap_rows'], olap)
         # Interpolate overlapping regions and equalize intensity
         if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
                 EZVARS_aux['vert-sti']['task_type']['value'] == 1:
-            self.validate_requested_section_indices()
+            try:
+                validate_slice_range()
+            except ValueError as e:
+                LOG.error(e)
+                warning_message("Problem with validating slice range: cannot read dimensions of Input slices.")
+                return
             main_sti_mp()
         else: 
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
