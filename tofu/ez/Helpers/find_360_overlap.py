@@ -112,14 +112,18 @@ def find_overlap():
     return dict(zip(ctdirs, olap_estimates))
 
 def make_sinos_noPR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
+    reduction_func = np.median
+    if EZVARS['flat-correction']['reduction-mode']['value'] == 'average':
+        reduction_func = np.mean
+
     try:
-        row_flat = np.median(extract_row(
+        row_flat = reduction_func(extract_row(
             os.path.join(ctset, dirflats), EZVARS_aux['find360olap']['row']['value']))
     except:
         print(f"Problem loading flats in {ctset}")
         return 1
     try:
-        row_dark = np.mean(extract_row(
+        row_dark = reduction_func(extract_row(
             os.path.join(ctset, dirdark), EZVARS_aux['find360olap']['row']['value']))
     except:
         print(f"Problem loading darks in {ctset}")
@@ -136,7 +140,7 @@ def make_sinos_noPR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     tmpstr = os.path.join(ctset, dirflats2)
     if os.path.exists(tmpstr):
         try:
-            row_flat2 = np.median(extract_row(tmpstr, EZVARS_aux['find360olap']['row']['value']))
+            row_flat2 = reduction_func(extract_row(tmpstr, EZVARS_aux['find360olap']['row']['value']))
         except:
             print(f"Problem loading flats2 in {ctset}")
             return 1
@@ -243,7 +247,7 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
         stitched_pr = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched-pr', f"{axis:04}")
         out_pattern = os.path.join(stitched_pr, "proj-%04i.tif")
         print(f"Phase retrieval")
-        cmd = fmt_pr_cmd(*dirs, out_pattern)
+        cmd = fmt_pr_cmd(*dirs, out_pattern, reduction_mode=EZVARS['flat-correction']['reduction-mode']['value'])
         os.system(cmd)
         print(f"Generating sinogram for the target row")
         cmd = "tofu sinos"
