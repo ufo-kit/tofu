@@ -462,25 +462,17 @@ def reverse_tupleize(num_items=None, conv=float):
 
     return combine_to_string
 
-def get_median_flat(path2flat):
+def get_reduced_flat(path2flat, reduction_mode="median"):
     tsr = TiffSequenceReader(path2flat)
     tmp = tsr.read(0)
     data = np.empty((tsr.num_images, tmp.shape[0], tmp.shape[1]), np.uint16)
     for i in range(tsr.num_images):
         data[i, :, :] = tsr.read(i)
     tsr.close()
-    x = np.median(data, axis=0)
-    del data
-    return x
-
-def get_mean_flat(path2flat):
-    tsr = TiffSequenceReader(path2flat)
-    tmp = tsr.read(0)
-    data = np.empty((tsr.num_images, tmp.shape[0], tmp.shape[1]), np.uint16)
-    for i in range(tsr.num_images):
-        data[i, :, :] = tsr.read(i)
-    tsr.close()
-    x = np.mean(data, axis=0)
+    if reduction_mode == "average":
+        x = np.mean(data, axis=0)
+    else:
+        x = np.median(data, axis=0)
     del data
     return x
 
