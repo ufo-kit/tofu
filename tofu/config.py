@@ -852,11 +852,44 @@ SECTIONS['ez'] = {
         'metavar': 'PATH'},
 }
 
+SECTIONS['rgba-backproject'] = {
+    'burst': {
+        'default': None,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of projections processed per kernel invocation"},
+    'overall-angle': {
+        'default': None,
+        'ezdefault': 360,
+        'type': float,
+        'unit': "deg",
+        'help': "The total angle over which projections were taken"},
+    'center-position-x': {
+        'default': None,
+        'type': tupleize(),
+        'unit': "pixel",
+        'help': "X rotation axis position on a projection"},
+    'center-position-z': {
+        'default': None,
+        'ezdefault': "0",
+        'type': tupleize(),
+        'unit': "pixel",
+        'help': "Z rotation axis position on a projection"},
+    'region': {
+        'default': "0,1,1",
+        'type': tupleize(num_items=3),
+        'help': "z axis parameter region as from,to,step"},
+    'rgbabp-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'clamp',
+        'help': "Padded values assignment for the filtered projection"}
+}
+
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
+RGBA_BP_PARAMS = ('preprocess', 'flat-correction', 'retrieve-phase', 'rgba-backproject')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
@@ -864,7 +897,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint')
+              'Inpaint', 'Minimal IO', 'RGBA Backproject')
 
 
 # Add unit info to help strings
