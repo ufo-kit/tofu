@@ -68,7 +68,7 @@ def get_CTdirs_list(inpath, fdt_names):
         return W.ctsets, W.lvl0
 
 
-def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
+def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reduction_mode="median"):
     """formats list of processing commands for a CT set"""
     # two helper variables to note that PR/FFC has been done at some step
     swiFFC = True  # FFC is always required
@@ -102,7 +102,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
         cmds.append('echo " - Creating mask of large bad spots in flat field"')
         cmds.append(get_find_spots_cmd(EZVARS['inout']['tmp-dir']['value']))
         cmds.append('echo " - Flat-correcting and removing large spots"')
-        cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews)
+        cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews, reduction_mode=reduction_mode)
         # reset location of input data
         ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
         cmds.extend(cmds_inpaint)
@@ -116,10 +116,10 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
         if swiFFC:  # we still need need flat correction #Inpaint No
             cmds.append('echo " - Phase retrieval with flat-correction"')
             if EZVARS['flat-correction']['smart-ffc']['value']:
-                cmds.append(get_pr_sinFFC_cmd(ctset))
+                cmds.append(get_pr_sinFFC_cmd(ctset, reduction_mode=reduction_mode))
                 cmds.append(get_pr_tofu_cmd_sinFFC(ctset))
             elif not EZVARS['flat-correction']['smart-ffc']['value']:
-                cmds.append(get_pr_tofu_cmd(ctset))
+                cmds.append(get_pr_tofu_cmd(ctset, reduction_mode=reduction_mode))
         else:  # Inpaint Yes
             cmds.append('echo " - Phase retrieval from flat-corrected projections"')
             cmds.extend(get_pr_ufo_cmd(nviews, wh))
@@ -132,14 +132,14 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
         if swiFFC:  # we still need to do flat-field correction
             if EZVARS['flat-correction']['smart-ffc']['value']:
                 # Create flat corrected images using sinFFC
-                cmds.append(get_sinFFC_cmd(ctset))
+                cmds.append(get_sinFFC_cmd(ctset, reduction_mode=reduction_mode))
                 # Feed the flat corrected images to sino gram generation
                 cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'],
                                                 nviews, wh, n_per_pass))
             elif not EZVARS['flat-correction']['smart-ffc']['value']:
                 cmds.append('echo " - Make sinograms with flat-correction"')
                 cmds.append(get_sinos_ffc_cmd(ctset, EZVARS['inout']['tmp-dir']['value'],
-                                              nviews, wh, n_per_pass))
+                                              nviews, wh, n_per_pass, reduction_mode=reduction_mode))
         else:  # we do not need flat-field correction
             cmds.append('echo " - Make sinograms without flat-correction"')
             cmds.append(get_sinos_noffc_cmd(ctset[0], EZVARS['inout']['tmp-dir']['value'],
@@ -184,10 +184,10 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
     # Finally - call to tofu reco
     cmds.append('echo " - CT with axis {}; ffc:{}, PR:{}"'.format(ax, swiFFC, swiPR))
     if EZVARS['flat-correction']['smart-ffc']['value'] and swiFFC:
-        cmds.append(get_sinFFC_cmd(ctset))
-        cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, False, swiPR))
+        cmds.append(get_sinFFC_cmd(ctset, reduction_mode=reduction_mode))
+        cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, False, swiPR, reduction_mode=reduction_mode))
     else:  # If not using sinFFC
-        cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, swiFFC, swiPR))
+        cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, swiFFC, swiPR, reduction_mode=reduction_mode))
 
     return nviews, wh
 
@@ -202,6 +202,8 @@ def execute_reconstruction():
     if EZVARS['inout']['clip_hist']['value']:
         if SECTIONS['general']['output-minimum']['value'] > SECTIONS['general']['output-maximum']['value']:
             raise ValueError('hmin must be smaller than hmax to convert to 8bit without contrast inversion')
+
+    reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
 
     # get list of all good CT directories to be reconstructed
 
@@ -302,7 +304,7 @@ def execute_reconstruction():
                                         os.path.join(EZVARS['inout']['output-dir']['value'], setid),
                                         EZVARS['COR']['search-interval']['value'],
                                         EZVARS['COR']['patch-size']['value'],
-                                        nviews, wh)
+                                        nviews, wh, reduction_mode=reduction_mode)
                 else:
                     ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
             # If EZVARS['COR']['search-method']['value'] == 4 then bypass axis search and use image midpoint
@@ -319,7 +321,7 @@ def execute_reconstruction():
             cmds.append('echo "Cleaning temporary directory"'.format(setid))
             clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
             # call function which formats commands for this data set
-            nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass)
+            nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reduction_mode=reduction_mode)
             save_params(setid, ax, nviews, wh)
             print('{}\t{}'.format('CTset:', ctset[0]))
             print('{:>30}\t{}'.format('Axis:', ax))
