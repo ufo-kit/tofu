@@ -127,35 +127,33 @@ def load_an_image_from_the_input_dir(input_dir, slice_dir):
     return 0
 
 def main_sti_mp():
-    #Check whether indir is CTdir or parent containing CTdirs
-    #if indir + some z00 subdir + sli + *.tif does not exist then use original
     if not os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
         os.makedirs(EZVARS_aux['vert-sti']['output-dir']['value'])
-    subdirs = sorted_sub_directories(EZVARS_aux['vert-sti']['input-dir']['value'])
-    if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                   EZVARS_aux['vert-sti']['subdir-name']['value'])):
-        print(" - Working with one CT directory which contains multiple vertical views")
-        if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
-            sti_one_set(EZVARS_aux['vert-sti']['input-dir']['value'],
-                        EZVARS_aux['vert-sti']['output-dir']['value'])
-        else:
-            conc_one_set(EZVARS_aux['vert-sti']['input-dir']['value'],
-                            EZVARS_aux['vert-sti']['output-dir']['value'])
+
+    if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
+        stitch_func = sti_one_set
+    elif EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+        stitch_func = conc_one_set
     else:
-        second_subdirs = sorted_sub_directories(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0]))
-        if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
-            print(" - Working with several CT directories which contain multiple vertical views")
-            for ctdir in subdirs:
-                print(f"-> Working on {str(ctdir)} dataset")
-                indir = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], ctdir)
-                outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
-                if not os.path.exists(outdir):
-                    os.makedirs(outdir)
-                if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
-                    sti_one_set(indir, outdir)
-                else:
-                    conc_one_set(indir, outdir)
+        raise ValueError("Wrong task type value. Must be 0 for stitching or 1 for concatenation")
+
+    vert_sets = []
+    for root, dirs, files in os.walk(EZVARS_aux['vert-sti']['input-dir']['value']):
+        if EZVARS_aux['vert-sti']['subdir-name']['value'] in dirs:
+            vert_sets.append(os.path.dirname(root))
+    vert_sets = sorted(list(set(vert_sets)))
+    if len(vert_sets) == 1:
+        print(" - Working with one CT directory which contains multiple vertical views")
+    elif len(vert_sets) > 1:
+        print(" - Working with several CT directories which contain multiple vertical views")
+
+    for vert_set in vert_sets:
+        ctdir = os.path.relpath(vert_set, start=EZVARS_aux['vert-sti']['input-dir']['value'])
+        print(f"-> Working on {str(ctdir)} dataset")
+        outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        stitch_func(vert_set, outdir)
 
 
 def sti_one_set(in_dir_path, out_dir_path):
