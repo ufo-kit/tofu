@@ -19,7 +19,6 @@ from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
     find_vert_olap_2_vsteps,
-    find_depth_level_to_CT_sets,
     validate_slice_range,
     get_cube_dims,
 )
