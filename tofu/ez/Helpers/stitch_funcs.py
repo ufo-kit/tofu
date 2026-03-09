@@ -82,27 +82,29 @@ def sorted_sub_directories(path: os.PathLike) -> list[str]:
         subdirs = sorted([entry.name for entry in entries if entry.is_dir()])
     return subdirs
 
-def find_depth_level_to_CT_sets(input_dir, slice_dir):
-    subdirs = sorted_sub_directories(input_dir)
-    tmp = os.path.join(input_dir, subdirs[0], slice_dir)
-    if os.path.exists(tmp):
-        return 1, tmp
-    second_subdirs = sorted_sub_directories(os.path.join(input_dir, subdirs[0]))
-    tmp = os.path.join(input_dir, subdirs[0], second_subdirs[0], slice_dir)
-    if os.path.exists(tmp):
-        return 2, tmp
-    return 0, ""
 
-def get_cube_dims():
+def get_cube_dims(search_dir=None, subdir_name=None):
     """
     Find the first set of slices and determine the cube dimensions
 
     Returns (number of slices, image_rows, image_columns)
     """
-    _, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                         EZVARS_aux['vert-sti']['subdir-name']['value']
-                                         )
-    nslices, hw, multipage = get_dims(pth)
+    if search_dir is None:
+        search_dir = EZVARS_aux['vert-sti']['input-dir']['value']
+    if subdir_name is None:
+        subdir_name = EZVARS_aux['vert-sti']['subdir-name']['value']
+    path_to_slices = None
+    for root, dirs, files in os.walk(search_dir):
+        for name in dirs:
+            if name == subdir_name:
+                path_to_slices = os.path.join(root, name)
+                break
+        else:
+            continue
+        break
+    if path_to_slices is None:
+        raise FileNotFoundError(f"Could not find a directory named {subdir_name} in {search_dir}")
+    nslices, hw, multipage = get_dims(path_to_slices)
     return nslices, hw[0], hw[1]
 
 
