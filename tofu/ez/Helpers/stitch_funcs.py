@@ -41,23 +41,25 @@ def findCTdirs(root: str, tomo_name: str):
     return ctdirs, lvl0
 
 
-def make_ort_sections(ctset_path):
+def make_ort_sections(ctset_path, tmp_dir_path):
     """
-    :param parameters: GUI params
-    :param dir_type 1 if CTDir containing Z00-Z0N slices - 2 if parent directory containing CTdirs each containing Z slices:
-    :param ctdir Name of the ctdir - blank string if not using multiple ctdirs:
-    :return:
+    Generate orthogonal sections using tofu sinos command.
+    Returns the original path if orthogonal sections are not generated, otherwise returns the path to the orthogonal sections.
+    :param ctset_path: Path to the directory containing the vertical views (one CTDir with Z00-Z0N subdirs)
+    :param tmp_dir_path: Path to the temporary directory where the orthogonal sections will be stored.
+    :return: Path to the directory containing the orthogonal sections and dtype of the input images
     """
     Vsteps = sorted_sub_directories(ctset_path)
     #determine input data type
     tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
     nslices, N, M, indtype_digit, indtype, npasses = get_data_cube_info(tmp)
 
+    indir = ctset_path
     if EZVARS_aux['vert-sti']['ort']['value']:
         print(" - Creating orthogonal sections")
         for vstep in Vsteps:
             in_name = os.path.join(ctset_path, vstep, EZVARS_aux['vert-sti']['subdir-name']['value'])
-            out_name = os.path.join(EZVARS_aux['vert-sti']['tmp-dir']['value'],
+            out_name = os.path.join(tmp_dir_path,
                                     vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], 'sli-%04i.tif')
             # todo: size check and num-passes argument
             cmd = 'tofu sinos --projections {} --output {}'.format(in_name, out_name)
@@ -71,9 +73,7 @@ def make_ort_sections(ctset_path):
             print(cmd)
             os.system(cmd)
             time.sleep(10)
-        indir = EZVARS_aux['vert-sti']['tmp-dir']['value']
-    else:
-        indir = EZVARS_aux['vert-sti']['input-dir']['value']
+        indir = tmp_dir_path
     return indir, indtype
 
 def sorted_sub_directories(path: os.PathLike) -> list[str]:
@@ -150,14 +150,15 @@ def main_sti_mp():
     for vert_set in vert_sets:
         ctdir = os.path.relpath(vert_set, start=EZVARS_aux['vert-sti']['input-dir']['value'])
         print(f"-> Working on {str(ctdir)} dataset")
+        tmpdir = os.path.join(EZVARS_aux['vert-sti']['tmp-dir']['value'], ctdir)
         outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        stitch_func(vert_set, outdir)
+        stitch_func(vert_set, tmpdir, outdir)
 
 
-def sti_one_set(in_dir_path, out_dir_path):
-    indir, indtype = make_ort_sections(in_dir_path)
+def sti_one_set(in_dir_path, tmp_dir_path, out_dir_path):
+    indir, indtype = make_ort_sections(in_dir_path, tmp_dir_path)
     outfilepattern = os.path.join(out_dir_path, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
     if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
         olap = find_vert_olap_2_vsteps(in_dir_path,
@@ -229,9 +230,9 @@ def exec_sti_mp(indir, pout, N, Nnew, Vsteps, dx, M, ramp, indtype, j):
         tifffile.imwrite(pout, Large.astype(np.float32))
 
 
-def conc_one_set(indir, pout):
-    indir, indtype = make_ort_sections(indir)
-    outfilepattern = os.path.join(pout, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
+def conc_one_set(in_dir_path, tmp_dir_path, out_dir_path):
+    indir, indtype = make_ort_sections(in_dir_path, tmp_dir_path)
+    outfilepattern = os.path.join(out_dir_path, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
     zfold = sorted_sub_directories(indir)
     l = len(zfold)
     tmp = glob.glob(os.path.join(indir, zfold[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif'))
