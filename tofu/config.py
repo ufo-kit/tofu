@@ -164,6 +164,24 @@ SECTIONS['flat-correction'] = {
         'action': 'store_true',
         'help': 'Do absorption correction'}}
 
+SECTIONS['distortion-correction'] = {
+    'x-field': {
+        'default': None,
+        'type': str,
+        'help': "Location with the x displacement field"},
+    'y-field': {
+        'default': None,
+        'type': str,
+        'help': "Location with the y displacement field"},
+    'distortion-interpolation': {
+        'default': 'linear',
+        'choices': ['nearest', 'linear', 'cubic'],
+        'help': "Interpolation method for distortion correction"},
+    'distortion-padding-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'clamp_to_edge',
+        'help': "Distortion padded values assignment"}}
+
 SECTIONS['retrieve-phase'] = {
     'retrieval-method': {
         'choices': ['tie', 'ctf', 'qp', 'qp2'],
@@ -854,7 +872,7 @@ SECTIONS['ez'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase', 'distortion-correction')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 
