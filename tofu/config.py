@@ -293,6 +293,11 @@ SECTIONS['tomographic-reconstruction'] = {
         'type': float,
         'unit': "rad",
         'help': "Angle offset of first projection"},
+    'interpolation': {
+        'default': "cubic",
+        'type': str,
+        'help': "Interpolation method (texture is actually linear, but implemented differently)",
+        'choices': ['nearest', 'texture', 'linear', 'cubic']},
     'method': {
         'default': 'fbp',
         'type': str,
