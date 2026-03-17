@@ -354,8 +354,8 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
         numfiles = len(sorted(glob.glob(os.path.join(inpath, '*.tif'))))
         tfs = TiffSequenceReader(inpath)
         numim = tfs.num_images
-        if numim < 2:
-            print("Warning: less than 2 images, skipping this dir")
+        if numim < 1:
+            print("Warning: no images, skipping this dir")
             continue
         if (numfiles > 1) and (numfiles != numim):
             print("Warning: cannot work with several bigtiff files. Input must be either"
@@ -365,7 +365,10 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
         if numfiles == 1:
             bigtiff = True
         numpairs = numim // 2
-        print(f"{numpairs} pairs will be stitched in {sdir}")
+        if numpairs:
+            print(f"{numpairs} pairs will be stitched in {sdir}")
+        elif numpairs == 0:
+            print(f"Single image in {sdir}, duplicating.")
         im = tfs.read(0)
         tfs.close()
         h, w = im.shape

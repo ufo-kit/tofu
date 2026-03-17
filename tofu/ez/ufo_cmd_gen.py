@@ -217,13 +217,18 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
     st = 'start'
     if bigtiff:
         st = 'image-start'
+    start = num
+    if num == 0:
+        # Single image treated as a pair (darks / flats)
+        start = 0
+        num = 1
     if ax <= w // 2:
-        cmd += f" [read path={inpath} {st}={num} number={num} ! flip," \
+        cmd += f" [read path={inpath} {st}={start} number={num} ! flip," \
                 f" read path={inpath} number={num}]" \
                 f" ! stitch shift={w - 2*ax}"
     else:
         cmd += f" [read path={inpath} number={num} ! flip,"\
-               f" read path={inpath} {st}={num} number={num}]" \
+               f" read path={inpath} {st}={start} number={num}]" \
                f" ! stitch shift={w - 2*ax}"
         ax = w - ax
     cmd += " blend=True adjust-mean=TRUE !"
