@@ -29,6 +29,11 @@ def extract_row(dir_name, row):
     if (row < 0) or (row > N):
         row = N//2
     num_images = tsr.num_images
+    if num_images == 1:
+        print(f"Single image in {dir_name}, duplicating.")
+        num_images = 2
+        tsr._filenames = 2 * tsr._filenames
+        assert num_images == tsr.num_images
     if num_images % 2 == 1:
         # print(f"odd number of images ({num_images}) in {dir_name}, "
         #       f"discarding the last one before stitching pairs")
