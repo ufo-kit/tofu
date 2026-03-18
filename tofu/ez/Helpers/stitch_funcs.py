@@ -8,7 +8,8 @@ import os
 import shutil
 import numpy as np
 import tifffile
-from tofu.util import read_image, get_image_shape, get_filenames, TiffSequenceReader, SequenceReaderError
+from tofu.util import read_image, get_image_shape, TiffSequenceReader, SequenceReaderError, \
+    get_first_filename
 from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
@@ -401,10 +402,7 @@ def main_360_mp_depth2():
               f"180-deg parallel-beam scans")
         return
 
-    tmp = len(EZVARS_aux['stitch360']['input-dir']['value'])
-    ctdirs_rel_paths = []
-    for i in range(num_sets):
-        ctdirs_rel_paths.append(ctdirs[i][tmp+1:len(ctdirs[i])])
+    ctdirs_rel_paths = [os.path.relpath(ctdir, start=EZVARS_aux['stitch360']['input-dir']['value']) for ctdir in ctdirs]
     print(f"Found the {num_sets} directories in the input with relative paths: {ctdirs_rel_paths}")
 
     # make_ort_sections axis and crop arrays
@@ -420,9 +418,8 @@ def main_360_mp_depth2():
     # compute crop:
     cra = np.max(dax)-dax
     # Axis on the right ? Must open one file to find out ><
-    tmpname = os.path.join(EZVARS_aux['stitch360']['input-dir']['value'], ctdirs_rel_paths[0])
-    subdirs = sorted_sub_directories(tmpname)
-    M = get_image_shape(get_filenames(os.path.join(tmpname, subdirs[0]))[0])[-1]
+    first_tomo_dir = os.path.join(ctdirs[0], EZVARS['inout']['tomo-dir']['value'])
+    M = get_image_shape(get_first_filename(first_tomo_dir))[-1]
     if np.min(dax) > M//2:
         cra = dax - np.min(dax)
     print(f'Crop by: {cra}')
