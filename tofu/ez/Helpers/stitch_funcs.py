@@ -384,6 +384,19 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
         os.system(cmd)
 
 
+def compute_crop(dax, image_shape):
+    """Compute the crop values required to output matching image widths after stitching
+
+    Required for vertical stitching after reconstruction.
+
+    Returns a sequence of crop values the same length as dax
+    """
+    cra = np.max(dax) - dax
+    M = image_shape[-1]
+    if np.min(dax) > M//2:
+        cra = dax - np.min(dax)
+    return cra
+
 def main_360_mp_depth2():
     ctdirs, lvl0 = findCTdirs(EZVARS_aux['stitch360']['input-dir']['value'],
                                 EZVARS['inout']['tomo-dir']['value'])
@@ -416,12 +429,10 @@ def main_360_mp_depth2():
             dax[i] = int(dax[i])
     print(f'Overlaps: {dax}')
     # compute crop:
-    cra = np.max(dax)-dax
     # Axis on the right ? Must open one file to find out ><
     first_tomo_dir = os.path.join(ctdirs[0], EZVARS['inout']['tomo-dir']['value'])
-    M = get_image_shape(get_first_filename(first_tomo_dir))[-1]
-    if np.min(dax) > M//2:
-        cra = dax - np.min(dax)
+    image_shape = get_image_shape(get_first_filename(first_tomo_dir))
+    cra = compute_crop(dax, image_shape)
     print(f'Crop by: {cra}')
 
     for i, ctdir in enumerate(ctdirs):
