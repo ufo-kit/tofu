@@ -618,13 +618,9 @@ class ConfigGroup(QGroupBox):
         QTimer.singleShot(100, run_reco)
 
     def run_reconstruction(self, batch_run):
-        try:            
-            s = execute_reconstruction()
-            if s:
-                msg = f"Processed {s} sets. See output in terminal for details."
-            else:
-                msg = "All sets are already in Output directory. \n"
-                msg += "Clean it or select a different Output."
+        try:
+            num_proc_sets = execute_reconstruction()
+            msg = f"Processed {num_proc_sets} sets. See output in terminal for details."
             QMessageBox.information(self, "Finished", msg)
             if not EZVARS['inout']['dryrun']['value']:
                 self.signal_reco_done.emit()
