@@ -1,8 +1,10 @@
 from tofu.ez.params import EZVARS_aux, EZVARS
 import os
 from tofu.ez.util import add_value_to_dict_entry
-from tofu.ez.Helpers.stitch_funcs import main_360_mp_depth2
+from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1, compute_crop
 from tofu.ez.Helpers.find_360_overlap import find_overlap
+from tofu.util import get_first_filename, get_image_shape
+
 
 def batch_stitch():
     #TODO: check that directory is empty - if loaded from params check is not applied
@@ -12,32 +14,35 @@ def batch_stitch():
             len(os.listdir(stitched_data_dir_name)) > 0:
         print("# Clean directory for stitched data")
         return 1
-    add_value_to_dict_entry(EZVARS_aux['stitch360']['olap_switch'], 2)
-    add_value_to_dict_entry(EZVARS_aux['stitch360']['crop'], True)
 
     print(EZVARS_aux['axes-list'])
-    for outscandir in EZVARS_aux['axes-list'].keys():
+    for outscandir, innerloopdict in EZVARS_aux['axes-list'].items():
         print(f"# Stitching half acq mode data in {outscandir}")
-        # setting params for stitch360
-        add_value_to_dict_entry(EZVARS_aux['stitch360']['input-dir'], str(outscandir))
-        add_value_to_dict_entry(EZVARS_aux['stitch360']['output-dir'], os.path.join(
-                               stitched_data_dir_name,
-                               str(outscandir[len(os.path.dirname(outscandir)) + 1:]))
-                               )
-        os.makedirs(EZVARS_aux['stitch360']['output-dir']['value'])
-        add_value_to_dict_entry(EZVARS_aux['stitch360']['olap_list'], '')
-        # extract string of overlaps from the EZVARS_aux['axes-list'] subsections:
-        for innerloopdir in EZVARS_aux['axes-list'][outscandir].keys():
-            EZVARS_aux['stitch360']['olap_list']['value'] += \
-                str(EZVARS_aux['axes-list'][outscandir][innerloopdir]) + ','
-        EZVARS_aux['stitch360']['olap_list']['value'] = \
-            EZVARS_aux['stitch360']['olap_list']['value'][:-1]
+        innerloopdirs = list(innerloopdict)
+        dax = list(innerloopdict.values())
         print(f'# Stitching inner loop CT scans in {outscandir} with '
-              f"overlaps {EZVARS_aux['stitch360']['olap_list']['value']}")
-        try:
-            main_360_mp_depth2()
-        except:
-            return 1
+              f"overlaps {dax}")
+
+        print(f'Overlaps: {dax}')
+        first_tomo_dir = os.path.join(outscandir,
+                                      innerloopdirs[0],
+                                      EZVARS['inout']['tomo-dir']['value'])
+        image_shape = get_image_shape(get_first_filename(first_tomo_dir))
+        cra = compute_crop(dax, image_shape)
+        print(f'Crop by: {cra}')
+        for innerloopdir, ax, crop in zip(innerloopdirs, dax, cra):
+            ctdir = os.path.join(outscandir, innerloopdir)
+            outdir = os.path.join(stitched_data_dir_name, os.path.basename(outscandir), innerloopdir)
+            print("================================================================")
+            print(" -> Working On: " + str(ctdir))
+            print(f"    axis position {ax}, margin to crop {crop} pixels")
+            try:
+                main_360sti_ufol_depth1(indir=ctdir,
+                                        outdir=outdir,
+                                        ax=ax,
+                                        cro=crop,)
+            except:
+                return 1
     return 0
 
 def batch_olap_search():
