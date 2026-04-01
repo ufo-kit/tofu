@@ -18,7 +18,7 @@ from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 #from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 from tofu.ez.evaluate_sharpness import evaluate_metrics_360_olap_search
 from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1
-from tofu.ez.util import get_data_cube_info, get_dims
+from tofu.ez.util import get_dims
 from tofu.ez.ufo_cmd_gen import get_pre_cmd
 from tofu.ez.tofu_cmd_gen import fmt_pr_cmd
 

@@ -53,7 +53,7 @@ def get_data_cube_info(pth):
         bit = 32; dt = 'float32'
     ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
     n_per_pass = int(0.9 * ram_amount_bytes / (N * M * 4))
-    return nslices, N, M, bit, dt, n_per_pass
+    return nslices, N, M, bit, dt, n_per_pass, ext
 
 def bad_vert_ROI(multipage, path2proj, y, height):
     if multipage:
