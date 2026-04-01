@@ -14,6 +14,8 @@ from PyQt5.QtWidgets import (
 )
 from shutil import rmtree
 import logging
+
+from tofu.ez.GUI.verify_delete import verify_safe2delete
 from tofu.ez.params import EZVARS_aux, EZVARS
 from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
@@ -522,19 +524,6 @@ class EZStitchGroup(QGroupBox):
             else:
                 return
 
-    def verify_safe2delete(self, dir_path, dir_type):
-        if os.path.exists(dir_path) and len(os.listdir(dir_path)) > 0:
-            qm = QMessageBox()
-            rep = qm.question(self, '', f"{dir_type} dir is not empty. Is it safe to delete it?",
-                              qm.Yes | qm.No)
-            if rep == qm.Yes:
-                try:
-                    rmtree(dir_path)
-                except:
-                    warning_message(f"Error while deleting {dir_type} directory")
-                    raise FileExistsError
-            else:
-                raise FileExistsError
 
 
 
@@ -542,11 +531,11 @@ class EZStitchGroup(QGroupBox):
         LOG.debug("Stitch button pressed")
 
         try:
-            self.verify_safe2delete(EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
+            verify_safe2delete(self, EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
         except FileExistsError:
             return
         try:
-            self.verify_safe2delete(EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
+            verify_safe2delete(self, EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
         except FileExistsError:
             return
         
