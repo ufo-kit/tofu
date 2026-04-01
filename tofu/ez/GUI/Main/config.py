@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
 )
 from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
+
+from tofu.ez.GUI.verify_delete import verify_safe2delete
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.util import import_values, export_values, get_fdt_names
 from tofu.ez.GUI.message_dialog import warning_message
@@ -613,6 +615,14 @@ class ConfigGroup(QGroupBox):
                 print("Vertical stitching output directory should not be the same as input.")
                 print(f"Adjusting from {EZVARS_aux['vert-sti']['output-dir']['value']} to {vert_out}")
                 add_value_to_dict_entry(EZVARS_aux['vert-sti']['output-dir'], vert_out)
+        if EZVARS['COR']['search-method']['value'] == 5:
+            # Check half-acq workdir "stitched-data" is empty before starting
+            stitched_data_dir_name = os.path.join(EZVARS_aux['half-acq']['workdir']['value'],
+                                                  'stitched-data')
+            try:
+                verify_safe2delete(self, stitched_data_dir_name, "Half-acq stitched data")
+            except FileExistsError:
+                return
         run_reco = partial(self.run_reconstruction, batch_run=False)
         #I had to add a little sleep as on some Linux ditributions params won't fully set before the main() begins
         QTimer.singleShot(100, run_reco)
