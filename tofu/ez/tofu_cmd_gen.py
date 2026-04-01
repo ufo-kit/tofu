@@ -8,7 +8,7 @@ import numpy as np
 from tofu.ez.ufo_cmd_gen import fmt_in_out_path
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.ez.util import make_inpaths, fmt_in_out_path, get_data_cube_info
+from tofu.ez.util import make_inpaths, fmt_in_out_path
 
 
 # TODO: check amount of RAM and generate sinograms in multiple passes if needed

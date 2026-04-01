@@ -10,7 +10,7 @@ import numpy as np
 import tifffile
 from tofu.util import read_image, get_image_shape, TiffSequenceReader, SequenceReaderError, \
     get_first_filename
-from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims
+from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims, enquote
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
@@ -53,13 +53,13 @@ def make_ort_sections(ctset_path, tmp_dir_path):
     Vsteps = sorted_sub_directories(ctset_path)
     #determine input data type
     tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
-    nslices, N, M, indtype_digit, indtype, npasses = get_data_cube_info(tmp)
+    nslices, N, M, indtype_digit, indtype, npasses, ext = get_data_cube_info(tmp)
 
     indir = ctset_path
     if EZVARS_aux['vert-sti']['ort']['value']:
         print(" - Creating orthogonal sections")
         for vstep in Vsteps:
-            in_name = os.path.join(ctset_path, vstep, EZVARS_aux['vert-sti']['subdir-name']['value'])
+            in_name = enquote(os.path.join(ctset_path, vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], f"*{ext}"))
             out_name = os.path.join(tmp_dir_path,
                                     vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], 'sli-%04i.tif')
             # todo: size check and num-passes argument
