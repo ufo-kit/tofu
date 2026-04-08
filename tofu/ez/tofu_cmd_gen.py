@@ -343,7 +343,7 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr, reduction_mode="me
 
 def get_find_spots_cmd(tmpdir):
     ######### CREATE MASK #########
-    flat1_file = os.path.join(tmpdir, "flat-median.tif")
+    flat1_file = os.path.join(tmpdir, "flat-reduced.tif")
     mask_file = os.path.join(tmpdir, "mask.tif")
     cmd = 'tofu find-large-spots'
     cmd += f" --images {flat1_file}"
