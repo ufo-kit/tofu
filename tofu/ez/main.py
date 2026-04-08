@@ -214,6 +214,7 @@ def execute_reconstruction():
 
     # if we deal with unstitched half acqusition mode data we have to
     # convert all frames to ordinary 180-deg projections first
+    shared_flatsdarks_orig_value = None
     if EZVARS['COR']['search-method']['value'] == 5:
         if EZVARS_aux['half-acq']['task_type']['value']: # task_type=1 meaning overlaps must be estimated first
             print('# +++++++++++++++++++++++++++++++++++++++++++++++')
@@ -233,6 +234,12 @@ def execute_reconstruction():
             print(f"Something went wrong with stitching of half acq mode data "
                   "examine output for errors")
             return
+        # Disable shared-flatsdarks as the stitched versions are now present in each
+        # stitched-data ctset
+        shared_flatsdarks_orig_value = EZVARS['inout']['shared-flatsdarks']['value']
+        if shared_flatsdarks_orig_value is True:
+            add_value_to_dict_entry(EZVARS['inout']['shared-flatsdarks'], False)
+
         # at this point we have stitched projections in working directory for batch 360
         # so we get CT sets from this directory instead of the original input
         W, lvl0 = get_CTdirs_list(os.path.join(
@@ -343,7 +350,8 @@ def execute_reconstruction():
             print(cmd)
     if not EZVARS['inout']['keep-tmp']['value']:
         clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
-
+    if shared_flatsdarks_orig_value and shared_flatsdarks_orig_value != EZVARS['inout']['shared-flatsdarks']['value']:
+        add_value_to_dict_entry(EZVARS['inout']['shared-flatsdarks'], shared_flatsdarks_orig_value)
     print("========================================")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:
         print("======= Begin Vertical Stitching =======")

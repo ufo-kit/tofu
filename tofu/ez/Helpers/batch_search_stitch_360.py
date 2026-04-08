@@ -1,3 +1,4 @@
+from tofu.ez.ctdir_walker import substitute_shared_flatsdarks
 from tofu.ez.params import EZVARS_aux, EZVARS
 import os
 from tofu.ez.util import add_value_to_dict_entry
@@ -30,6 +31,9 @@ def batch_stitch():
         image_shape = get_image_shape(get_first_filename(first_tomo_dir))
         cra = compute_crop(dax, image_shape)
         print(f'Crop by: {cra}')
+
+        substitute_subdirs = substitute_shared_flatsdarks()
+
         for innerloopdir, ax, crop in zip(innerloopdirs, dax, cra):
             ctdir = os.path.join(outscandir, innerloopdir)
             outdir = os.path.join(stitched_data_dir_name, os.path.basename(outscandir), innerloopdir)
@@ -40,7 +44,9 @@ def batch_stitch():
                 main_360sti_ufol_depth1(indir=ctdir,
                                         outdir=outdir,
                                         ax=ax,
-                                        cro=crop,)
+                                        cro=crop,
+                                        substitute_subdirs=substitute_subdirs,
+                                        )
             except:
                 return 1
     return 0
