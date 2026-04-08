@@ -77,8 +77,8 @@ class FFCGroup(QGroupBox):
 
         reduction_layout = QHBoxLayout()
         reduction_layout.addWidget(self.reduction_label)
-        reduction_layout.addWidget(self.median_reduction_rButton)
         reduction_layout.addWidget(self.average_reduction_rButton)
+        reduction_layout.addWidget(self.median_reduction_rButton)
 
         layout.addLayout(reduction_layout, 1, 0, 1, 2)
 
