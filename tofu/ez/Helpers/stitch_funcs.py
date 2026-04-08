@@ -8,6 +8,8 @@ import os
 import shutil
 import numpy as np
 import tifffile
+
+from tofu.ez.ctdir_walker import substitute_shared_flatsdarks
 from tofu.util import read_image, get_image_shape, TiffSequenceReader, SequenceReaderError, \
     get_first_filename
 from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims, enquote
@@ -343,15 +345,28 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
             break
     print("========== Done ==========")
 
-def main_360sti_ufol_depth1(indir, outdir, ax, cro):
+def main_360sti_ufol_depth1(indir, outdir, ax, cro, substitute_subdirs=None):
+    """
+    indir: path to ctset with tomo/flats/darks/flats2 subdirectories
+    outdir: path to output directory
+    ax: overlap value
+    cro: desired crop
+    substitute_subdirs: dictionary of subdirs and replacement paths (used for shared flats/darks)
+    """
+    if substitute_subdirs is None:
+        substitute_subdirs = {}
+
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    subdirs = sorted_sub_directories(indir)
+    subdirs_list = sorted_sub_directories(indir)
+    subdirs = {sd: os.path.join(indir, sd) for sd in subdirs_list}
+    subdirs.update(substitute_subdirs)
 
-    for i, sdir in enumerate(subdirs):
+    for sdir, inpath in subdirs.items():
         print(f"Stitching images in {sdir}")
-        inpath = os.path.join(indir, sdir)
+        if sdir in substitute_subdirs:
+            print(f"Using shared path for {sdir}: {inpath}")
         numfiles = len(sorted(glob.glob(os.path.join(inpath, '*.tif'))))
         tfs = TiffSequenceReader(inpath)
         numim = tfs.num_images
@@ -382,7 +397,6 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro):
         cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro)
         #print(cmd)
         os.system(cmd)
-
 
 def compute_crop(dax, image_shape):
     """Compute the crop values required to output matching image widths after stitching
@@ -435,6 +449,8 @@ def main_360_mp_depth2():
     cra = compute_crop(dax, image_shape)
     print(f'Crop by: {cra}')
 
+    substitute_subdirs = substitute_shared_flatsdarks()
+
     for i, ctdir in enumerate(ctdirs):
         print("================================================================")
         print(" -> Working On: " + str(ctdir))
@@ -443,7 +459,8 @@ def main_360_mp_depth2():
         #main_360_mp_depth1
         main_360sti_ufol_depth1(ctdir,
             os.path.join(EZVARS_aux['stitch360']['output-dir']['value'], ctdirs_rel_paths[i]),
-                           int(dax[i]), int(cra[i]))
+                           int(dax[i]), int(cra[i]),
+                                substitute_subdirs=substitute_subdirs)
 
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 

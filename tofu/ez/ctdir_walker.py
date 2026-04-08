@@ -186,3 +186,24 @@ class WalkCTdirs:
 
     def Getlvl0(self):
         return self.lvl0
+
+
+def substitute_shared_flatsdarks() -> dict[str, str]:
+    """
+    Return a dictionary with structure {"flats": "/path/to/shared/flats"}
+    which respects EZVARS settings
+    """
+    substitutes = {}
+    if EZVARS['inout']['shared-flatsdarks']['value']:
+        for type in ['darks', 'flats', 'flats2']:
+            if type == 'flats2' and not EZVARS['inout']['shared-flats-after']['value']:
+                continue
+            key = f'path2-shared-{type}'
+            path = EZVARS['inout'][key]['value']
+            if not os.path.exists(path):
+                print(f"Shared {type} not found: {path}")
+                continue
+            name = EZVARS['inout'][f'{type}-dir']['value']
+            substitutes[name] = path
+
+    return substitutes
