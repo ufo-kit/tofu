@@ -115,7 +115,7 @@ def get_pre_cmd( ctset, pre_cmd, tmpdir):
         cmds[i] += " ! write filename={}".format(enquote(out_pattern))
     return cmds
 
-def get_inp_cmd(ctset, tmpdir, N, nviews):
+def get_inp_cmd(ctset, tmpdir, N, nviews, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     cmds = []
     # ######### CREATE MASK #########
@@ -154,7 +154,7 @@ def get_inp_cmd(ctset, tmpdir, N, nviews):
         cmds.append(cmd)
     elif not EZVARS['flat-correction']['smart-ffc']['value']:
         cmd = 'tofu flatcorrect --fix-nan-and-inf'
-        cmd += ' --darks {} --flats {} --reduction-mode median'.format(indir[0], indir[1])
+        cmd += ' --darks {} --flats {} --reduction-mode {}'.format(indir[0], indir[1], reduction_mode)
         cmd += ' --projections {}'.format(in_proj_dir)
         cmd += ' --output {}'.format(out_pattern)
         if ctset[1] == 4:

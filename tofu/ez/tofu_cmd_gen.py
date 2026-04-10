@@ -58,7 +58,7 @@ def check_bigtif(cmd, swi):
         cmd += " --output-bytes-per-file 0"
     return cmd
 
-def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh):
+def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh, reduction_mode="median"):
     # direct CT reconstruction from input dir to output dir;
     # obsolete, replaced by tofu reco, see get_reco_cmd() lower
     indir = make_inpaths(ctset[0], ctset[1])
@@ -68,7 +68,7 @@ def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh):
     indir[2] = os.path.join(os.path.split(indir[2])[0], os.path.split(in_proj_dir)[1])
     # format command
     cmd = "tofu tomo --absorptivity --fix-nan-and-inf"
-    cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(indir[0], indir[1], indir[2])
+    cmd += " --darks {} --flats {} --reduction-mode {} --projections {}".format(indir[0], indir[1], reduction_mode, indir[2])
     if ctset[1] == 4:  # must be equivalent to len(indir)>3
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --output {}".format(out_pattern)
@@ -131,12 +131,12 @@ def get_ct_sin_cmd(out_pattern, ax, nviews, wh):
     cmd = check_bigtif(cmd, EZVARS['inout']['bigtiff-output']['value'])
     return cmd
 
-def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass):
+def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                     ctset[0], EZVARS['inout']['tomo-dir']['value'], False)
     cmd = 'tofu sinos --absorptivity --fix-nan-and-inf'
-    cmd += ' --darks {} --flats {} --reduction-mode median '.format(indir[0], indir[1])
+    cmd += ' --darks {} --flats {} --reduction-mode {} '.format(indir[0], indir[1], reduction_mode)
     if ctset[1] == 4:
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --projections {}".format(in_proj_dir)
@@ -186,12 +186,12 @@ def get_sinos2proj_cmd(proj_height, n_per_pass):
     cmd += f" --pass-size {n_per_pass}"
     return cmd
 
-def get_sinFFC_cmd(ctset):
+def get_sinFFC_cmd(ctset, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode {} --projections {}'.format(indir[0], indir[1], reduction_mode, in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -202,12 +202,12 @@ def get_sinFFC_cmd(ctset):
     cmd += ' --downsample {}'.format(EZVARS['flat-correction']['downsample']['value'])
     return cmd
 
-def get_pr_sinFFC_cmd(ctset):
+def get_pr_sinFFC_cmd(ctset, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     in_proj_dir, out_pattern = fmt_in_out_path(
         EZVARS['inout']['tmp-dir']['value'], ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode {} --projections {}'.format(indir[0], indir[1], reduction_mode, in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -239,7 +239,7 @@ def get_pr_tofu_cmd_sinFFC(ctset):
     cmd += ' --projection-crop-after filter'
     return cmd
 
-def get_pr_tofu_cmd(ctset):
+def get_pr_tofu_cmd(ctset, reduction_mode="median"):
     # indir will format paths to flats darks and tomo2 correctly even if they were
     # pre-processed, however path to the input directory with projections
     # cannot be formatted with that command correctly
@@ -249,12 +249,12 @@ def get_pr_tofu_cmd(ctset):
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     flats2_dir = indir[3] if ctset[1] == 4 else None
 
-    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, flats2_dir, out_pattern)
+    return fmt_pr_cmd(indir[0], indir[1], in_proj_dir, flats2_dir, out_pattern, reduction_mode=reduction_mode)
 
-def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern):
+def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern, reduction_mode="median"):
     cmd = 'tofu preprocess --fix-nan-and-inf --projection-filter none --delta 1e-6'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.\
-                format(darks_dir, flats_dir, tomo_dir)
+    cmd += ' --darks {} --flats {} --reduction-mode {} --projections {}'.\
+                format(darks_dir, flats_dir, reduction_mode, tomo_dir)
     if flats2_dir:
         cmd += ' --flats2 {}'.format(flats2_dir)
     cmd += ' --output {}'.format(out_pattern)
@@ -267,7 +267,7 @@ def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern):
     cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
     return cmd
 
-def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
+def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr, reduction_mode="median"):
     # direct CT reconstruction from input dir to output dir;
     # or CT reconstruction after preprocessing only
     indir = make_inpaths(ctset[0], ctset[1])
@@ -285,7 +285,7 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
     cmd += ' --output {}'.format(out_pattern)
     if ffc:
         cmd += ' --fix-nan-and-inf'
-        cmd += ' --darks {} --flats {} --reduction-mode median'.format(indir[0], indir[1])
+        cmd += ' --darks {} --flats {} --reduction-mode {}'.format(indir[0], indir[1], reduction_mode)
         if ctset[1] == 4:  # must be equivalent to len(indir)>3
             cmd += ' --flats2 {}'.format(indir[3])
         if not pr:
@@ -343,7 +343,7 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
 
 def get_find_spots_cmd(tmpdir):
     ######### CREATE MASK #########
-    flat1_file = os.path.join(tmpdir, "flat-median.tif")
+    flat1_file = os.path.join(tmpdir, "flat-reduced.tif")
     mask_file = os.path.join(tmpdir, "mask.tif")
     cmd = 'tofu find-large-spots'
     cmd += f" --images {flat1_file}"

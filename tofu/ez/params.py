@@ -459,6 +459,10 @@ EZVARS['flat-correction'] = {
         'ezdefault': 1.0,
         'type': float, 
         'help': "Scaling falt"}, #(?) has the same name in SECTION
+    'reduction-mode': {
+        'ezdefault': "average",
+        'type': str,
+        'help': "Reduction mode for dark/flat fields: median or average"},
 }
 
 #TODO ADD CHECKING NLMDN SETTINGS
