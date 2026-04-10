@@ -217,7 +217,7 @@ def execute_reconstruction():
     shared_flatsdarks_orig_value = None
     if EZVARS['COR']['search-method']['value'] == 5:
         if EZVARS_aux['half-acq']['task_type']['value']: # task_type=1 meaning overlaps must be estimated first
-            print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+            print('# +++++++++++++++++++++++++++++++++++++++++++++++', flush=True)
             print('# Estimating overlaps for half acq mode data sets')
             print('# +++++++++++++++++++++++++++++++++++++++++++++++')
             if batch_olap_search():
@@ -227,7 +227,7 @@ def execute_reconstruction():
                                        'ezvars_aux_from_overlap_search.yaml' ), ['ezvars_aux'])
         # at this point we are ready to stitch projections
         #list of overlaps is in the EZVARS_aux['axes-list']
-        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++', flush=True)
         print("# Batch stitching half acq mode data sets")
         print('# +++++++++++++++++++++++++++++++++++++++++++++++')
         if batch_stitch():
@@ -249,7 +249,7 @@ def execute_reconstruction():
     # get list of already reconstructed sets
     recd_sets = findSlicesDirs(EZVARS['inout']['output-dir']['value'])
     # find axis of rotation and populate list of reconstruction commands
-    print("*********** AXIS INFO ************")
+    print("*********** AXIS INFO ************", flush=True)
     # if axis is defined by user then make appropriate list
     if EZVARS['COR']['search-method']['value'] == 3:
         axlist = EZVARS['COR']['user-defined-ax']['value'].split(',')
@@ -342,7 +342,7 @@ def execute_reconstruction():
             print("{} has been already reconstructed".format(ctset[0]))
     # execute commands = start reconstruction
     start = time.time()
-    print("*********** PROCESSING ************")
+    print("*********** PROCESSING ************", flush=True)
     for cmd in cmds:
         if not EZVARS['inout']['dryrun']['value']:
             os.system(cmd)
@@ -354,7 +354,7 @@ def execute_reconstruction():
         add_value_to_dict_entry(EZVARS['inout']['shared-flatsdarks'], shared_flatsdarks_orig_value)
     print("========================================")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:
-        print("======= Begin Vertical Stitching =======")
+        print("======= Begin Vertical Stitching =======", flush=True)
         add_value_to_dict_entry(EZVARS_aux['vert-sti']['input-dir'],
                                 EZVARS['inout']['output-dir']['value'])
         # validate slice range (common problem)
