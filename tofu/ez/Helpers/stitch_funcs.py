@@ -41,23 +41,25 @@ def findCTdirs(root: str, tomo_name: str):
     return ctdirs, lvl0
 
 
-def make_ort_sections(ctset_path):
+def make_ort_sections(ctset_path, tmp_dir_path):
     """
-    :param parameters: GUI params
-    :param dir_type 1 if CTDir containing Z00-Z0N slices - 2 if parent directory containing CTdirs each containing Z slices:
-    :param ctdir Name of the ctdir - blank string if not using multiple ctdirs:
-    :return:
+    Generate orthogonal sections using tofu sinos command.
+    Returns the original path if orthogonal sections are not generated, otherwise returns the path to the orthogonal sections.
+    :param ctset_path: Path to the directory containing the vertical views (one CTDir with Z00-Z0N subdirs)
+    :param tmp_dir_path: Path to the temporary directory where the orthogonal sections will be stored.
+    :return: Path to the directory containing the orthogonal sections and dtype of the input images
     """
     Vsteps = sorted_sub_directories(ctset_path)
     #determine input data type
     tmp = os.path.join(ctset_path, Vsteps[0], EZVARS_aux['vert-sti']['subdir-name']['value'])
     nslices, N, M, indtype_digit, indtype, npasses = get_data_cube_info(tmp)
 
+    indir = ctset_path
     if EZVARS_aux['vert-sti']['ort']['value']:
         print(" - Creating orthogonal sections")
         for vstep in Vsteps:
             in_name = os.path.join(ctset_path, vstep, EZVARS_aux['vert-sti']['subdir-name']['value'])
-            out_name = os.path.join(EZVARS_aux['vert-sti']['tmp-dir']['value'],
+            out_name = os.path.join(tmp_dir_path,
                                     vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], 'sli-%04i.tif')
             # todo: size check and num-passes argument
             cmd = 'tofu sinos --projections {} --output {}'.format(in_name, out_name)
@@ -71,9 +73,7 @@ def make_ort_sections(ctset_path):
             print(cmd)
             os.system(cmd)
             time.sleep(10)
-        indir = EZVARS_aux['vert-sti']['tmp-dir']['value']
-    else:
-        indir = EZVARS_aux['vert-sti']['input-dir']['value']
+        indir = tmp_dir_path
     return indir, indtype
 
 def sorted_sub_directories(path: os.PathLike) -> list[str]:
@@ -82,27 +82,29 @@ def sorted_sub_directories(path: os.PathLike) -> list[str]:
         subdirs = sorted([entry.name for entry in entries if entry.is_dir()])
     return subdirs
 
-def find_depth_level_to_CT_sets(input_dir, slice_dir):
-    subdirs = sorted_sub_directories(input_dir)
-    tmp = os.path.join(input_dir, subdirs[0], slice_dir)
-    if os.path.exists(tmp):
-        return 1, tmp
-    second_subdirs = sorted_sub_directories(os.path.join(input_dir, subdirs[0]))
-    tmp = os.path.join(input_dir, subdirs[0], second_subdirs[0], slice_dir)
-    if os.path.exists(tmp):
-        return 2, tmp
-    return 0, ""
 
-def get_cube_dims():
+def get_cube_dims(search_dir=None, subdir_name=None):
     """
     Find the first set of slices and determine the cube dimensions
 
     Returns (number of slices, image_rows, image_columns)
     """
-    _, pth = find_depth_level_to_CT_sets(EZVARS_aux['vert-sti']['input-dir']['value'],
-                                         EZVARS_aux['vert-sti']['subdir-name']['value']
-                                         )
-    nslices, hw, multipage = get_dims(pth)
+    if search_dir is None:
+        search_dir = EZVARS_aux['vert-sti']['input-dir']['value']
+    if subdir_name is None:
+        subdir_name = EZVARS_aux['vert-sti']['subdir-name']['value']
+    path_to_slices = None
+    for root, dirs, files in os.walk(search_dir):
+        for name in dirs:
+            if name == subdir_name:
+                path_to_slices = os.path.join(root, name)
+                break
+        else:
+            continue
+        break
+    if path_to_slices is None:
+        raise FileNotFoundError(f"Could not find a directory named {subdir_name} in {search_dir}")
+    nslices, hw, multipage = get_dims(path_to_slices)
     return nslices, hw[0], hw[1]
 
 
@@ -125,39 +127,38 @@ def load_an_image_from_the_input_dir(input_dir, slice_dir):
     return 0
 
 def main_sti_mp():
-    #Check whether indir is CTdir or parent containing CTdirs
-    #if indir + some z00 subdir + sli + *.tif does not exist then use original
     if not os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
         os.makedirs(EZVARS_aux['vert-sti']['output-dir']['value'])
-    subdirs = sorted_sub_directories(EZVARS_aux['vert-sti']['input-dir']['value'])
-    if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                   EZVARS_aux['vert-sti']['subdir-name']['value'])):
-        print(" - Working with one CT directory which contains multiple vertical views")
-        if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
-            sti_one_set(EZVARS_aux['vert-sti']['input-dir']['value'],
-                        EZVARS_aux['vert-sti']['output-dir']['value'])
-        else:
-            conc_one_set(EZVARS_aux['vert-sti']['input-dir']['value'],
-                            EZVARS_aux['vert-sti']['output-dir']['value'])
+
+    if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
+        stitch_func = sti_one_set
+    elif EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+        stitch_func = conc_one_set
     else:
-        second_subdirs = sorted_sub_directories(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0]))
-        if os.path.exists(os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], subdirs[0],
-                                       second_subdirs[0], EZVARS_aux['vert-sti']['subdir-name']['value'])):
-            print(" - Working with several CT directories which contain multiple vertical views")
-            for ctdir in subdirs:
-                print(f"-> Working on {str(ctdir)} dataset")
-                indir = os.path.join(EZVARS_aux['vert-sti']['input-dir']['value'], ctdir)
-                outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
-                if not os.path.exists(outdir):
-                    os.makedirs(outdir)
-                if EZVARS_aux['vert-sti']['task_type']['value'] == 0:
-                    sti_one_set(indir, outdir)
-                else:
-                    conc_one_set(indir, outdir)
+        raise ValueError("Wrong task type value. Must be 0 for stitching or 1 for concatenation")
+
+    vert_sets = []
+    for root, dirs, files in os.walk(EZVARS_aux['vert-sti']['input-dir']['value']):
+        if EZVARS_aux['vert-sti']['subdir-name']['value'] in dirs:
+            vert_sets.append(os.path.dirname(root))
+    vert_sets = sorted(list(set(vert_sets)))
+    if len(vert_sets) == 1:
+        print(" - Working with one CT directory which contains multiple vertical views")
+    elif len(vert_sets) > 1:
+        print(" - Working with several CT directories which contain multiple vertical views")
+
+    for vert_set in vert_sets:
+        ctdir = os.path.relpath(vert_set, start=EZVARS_aux['vert-sti']['input-dir']['value'])
+        print(f"-> Working on {str(ctdir)} dataset")
+        tmpdir = os.path.join(EZVARS_aux['vert-sti']['tmp-dir']['value'], ctdir)
+        outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        stitch_func(vert_set, tmpdir, outdir)
 
 
-def sti_one_set(in_dir_path, out_dir_path):
-    indir, indtype = make_ort_sections(in_dir_path)
+def sti_one_set(in_dir_path, tmp_dir_path, out_dir_path):
+    indir, indtype = make_ort_sections(in_dir_path, tmp_dir_path)
     outfilepattern = os.path.join(out_dir_path, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
     if EZVARS_aux['vert-sti']['estimate_num_olap_rows']['value']:
         olap = find_vert_olap_2_vsteps(in_dir_path,
@@ -229,9 +230,9 @@ def exec_sti_mp(indir, pout, N, Nnew, Vsteps, dx, M, ramp, indtype, j):
         tifffile.imwrite(pout, Large.astype(np.float32))
 
 
-def conc_one_set(indir, pout):
-    indir, indtype = make_ort_sections(indir)
-    outfilepattern = os.path.join(pout, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
+def conc_one_set(in_dir_path, tmp_dir_path, out_dir_path):
+    indir, indtype = make_ort_sections(in_dir_path, tmp_dir_path)
+    outfilepattern = os.path.join(out_dir_path, EZVARS_aux['vert-sti']['subdir-name']['value'] + '-sti-{:>04}.tif')
     zfold = sorted_sub_directories(indir)
     l = len(zfold)
     tmp = glob.glob(os.path.join(indir, zfold[0], EZVARS_aux['vert-sti']['subdir-name']['value'], '*.tif'))
