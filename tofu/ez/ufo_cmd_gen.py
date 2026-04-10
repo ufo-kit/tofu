@@ -212,7 +212,7 @@ def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str):
         cmd += f" bits={SECTIONS['general']['output-bitdepth']['value']} rescale=False"
     return cmd
 
-def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
+def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0, reduction_mode=None):
     cmd = 'ufo-launch'
     st = 'start'
     if bigtiff:
@@ -222,13 +222,21 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
         # Single image treated as a pair (darks / flats)
         start = 0
         num = 1
+    set_1 = f"read path={inpath} {st}={start} number={num}"
+    set_2 = f"read path={inpath} number={num}"
+    if reduction_mode == 'average':
+        set_2 = set_2 + " ! average"
+        set_1 = set_2
+    elif reduction_mode == 'median':
+        set_2 = set_2 + f" ! stack number={num} ! flatten mode=median"
+        set_1 = set_2
     if ax <= w // 2:
-        cmd += f" [read path={inpath} {st}={start} number={num} ! flip," \
-                f" read path={inpath} number={num}]" \
+        cmd += f" [{set_1} ! flip," \
+                f" {set_2}]" \
                 f" ! stitch shift={w - 2*ax}"
     else:
-        cmd += f" [read path={inpath} number={num} ! flip,"\
-               f" read path={inpath} {st}={start} number={num}]" \
+        cmd += f" [{set_2} ! flip,"\
+               f" {set_1}]" \
                f" ! stitch shift={w - 2*ax}"
         ax = w - ax
     cmd += " blend=True adjust-mean=TRUE !"

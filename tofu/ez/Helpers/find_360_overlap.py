@@ -18,7 +18,7 @@ from tofu.ez.ufo_cmd_gen import get_filter2d_sinos_cmd
 #from tofu.ez.find_axis_cmd_gen import evaluate_images_simp
 from tofu.ez.evaluate_sharpness import evaluate_metrics_360_olap_search
 from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1
-from tofu.ez.util import get_dims
+from tofu.ez.util import get_dims, get_fd_names
 from tofu.ez.ufo_cmd_gen import get_pre_cmd
 from tofu.ez.tofu_cmd_gen import fmt_pr_cmd
 
@@ -235,6 +235,8 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
     for cmd in cmds:
         #print(cmd)
         os.system(cmd)
+    reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
+    fd_names = get_fd_names()
     for axis in ax_range:
         print(f"Making sinogram for axis {axis}")
         cro = EZVARS_aux['find360olap']['stop']['value'] - axis
@@ -242,7 +244,10 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
             cro = axis - EZVARS_aux['find360olap']['start']['value']
         stitched = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched', f"{axis:04}")
         print(f"Stitching flats/darks/tomo")
-        main_360sti_ufol_depth1(path2crop_frames, stitched, axis, cro)
+        main_360sti_ufol_depth1(path2crop_frames, stitched, axis, cro,
+                                reduction_mode=reduction_mode,
+                                fd_names=fd_names,
+                                )
         dirs = (
             os.path.join(stitched, dirdark),
             os.path.join(stitched, dirflats),
@@ -252,7 +257,7 @@ def make_sinos_PR(ctset, dirflats, dirdark, dirflats2, ax_range, sin_tmp_dir):
         stitched_pr = os.path.join(EZVARS_aux['find360olap']['tmp-dir']['value'], 'stitched-pr', f"{axis:04}")
         out_pattern = os.path.join(stitched_pr, "proj-%04i.tif")
         print(f"Phase retrieval")
-        cmd = fmt_pr_cmd(*dirs, out_pattern, reduction_mode=EZVARS['flat-correction']['reduction-mode']['value'])
+        cmd = fmt_pr_cmd(*dirs, out_pattern, reduction_mode=reduction_mode)
         os.system(cmd)
         print(f"Generating sinogram for the target row")
         cmd = "tofu sinos"

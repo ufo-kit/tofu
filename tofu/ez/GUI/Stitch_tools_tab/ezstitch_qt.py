@@ -23,7 +23,7 @@ from tofu.ez.Helpers.stitch_funcs import (
     get_cube_dims,
 )
 from tofu.ez.GUI.message_dialog import warning_message
-from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator, get_fd_names
 from tofu.ez.util import import_values, export_values, read_image, get_dims
 import glob
 
@@ -570,9 +570,15 @@ class EZStitchGroup(QGroupBox):
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
             #                     EZVARS_aux['vert-sti']['output-dir']['value'],
             #                     self.parameters['ezstitch_axis_of_rotation'], 0)
+            reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
+            fd_names = get_fd_names()
             main_360sti_ufol_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
                                EZVARS_aux['vert-sti']['output-dir']['value'],
-                               EZVARS_aux['vert-sti']['cor']['value'], 0)
+                               EZVARS_aux['vert-sti']['cor']['value'],
+                                    cro=0,
+                                    reduction_mode=reduction_mode,
+                                    fd_names=fd_names,
+                                    )
         if os.path.isdir(EZVARS_aux['vert-sti']['output-dir']['value']):
             params_file_path = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], 
                                             'ezmview_params.yaml')

@@ -515,3 +515,6 @@ def get_fdt_names():
             EZVARS['inout']['flats-dir']['value'],
             EZVARS['inout']['tomo-dir']['value'],
             EZVARS['inout']['flats2-dir']['value']]
+
+def get_fd_names():
+    return tuple(EZVARS['inout'][f'{fd_type}-dir']['value'] for fd_type in ['darks', 'flats', 'flats2'])
