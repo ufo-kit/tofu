@@ -404,7 +404,7 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro,
         if im.dtype == 'uint8':
             bits = 8
         elif im.dtype == 'uint16':
-            bits = 16,
+            bits = 16
         outpath = os.path.join(outdir, sdir)
         cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro, current_reduction_mode)
         #print(cmd)
