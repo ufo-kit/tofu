@@ -12,7 +12,7 @@ import tifffile
 from tofu.ez.ctdir_walker import substitute_shared_flatsdarks
 from tofu.util import read_image, get_image_shape, TiffSequenceReader, SequenceReaderError, \
     get_first_filename
-from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims, enquote
+from tofu.ez.util import get_data_cube_info, add_value_to_dict_entry, get_dims, enquote, get_fd_names
 from tofu.ez.image_read_write import get_image_dtype
 import multiprocessing as mp
 from functools import partial
@@ -345,13 +345,19 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
             break
     print("========== Done ==========")
 
-def main_360sti_ufol_depth1(indir, outdir, ax, cro, substitute_subdirs=None):
+def main_360sti_ufol_depth1(indir, outdir, ax, cro,
+                            substitute_subdirs=None,
+                            reduction_mode=None,
+                            fd_names=(),
+                            ):
     """
     indir: path to ctset with tomo/flats/darks/flats2 subdirectories
     outdir: path to output directory
     ax: overlap value
     cro: desired crop
     substitute_subdirs: dictionary of subdirs and replacement paths (used for shared flats/darks)
+    reduction_mode: Flats / darks will be reduced by "average" or "median" before stitching
+    fd_names: Sequence of flats / darks / flats2 subdir names in the input ctset
     """
     if substitute_subdirs is None:
         substitute_subdirs = {}
@@ -380,11 +386,17 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro, substitute_subdirs=None):
         bigtiff = False
         if numfiles == 1:
             bigtiff = True
-        numpairs = numim // 2
-        if numpairs:
-            print(f"{numpairs} pairs will be stitched in {sdir}")
-        elif numpairs == 0:
-            print(f"Single image in {sdir}, duplicating.")
+        if reduction_mode is not None and sdir in fd_names:
+            numpairs = numim
+            current_reduction_mode = reduction_mode
+            print(f"{current_reduction_mode} of {numpairs} images will be stitched for {sdir}")
+        else:
+            numpairs = numim // 2
+            current_reduction_mode = None
+            if numpairs:
+                print(f"{numpairs} pairs will be stitched in {sdir}")
+            elif numpairs == 0:
+                print(f"Single image in {sdir}, duplicating.")
         im = tfs.read(0)
         tfs.close()
         h, w = im.shape
@@ -394,7 +406,7 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro, substitute_subdirs=None):
         elif im.dtype == 'uint16':
             bits = 16,
         outpath = os.path.join(outdir, sdir)
-        cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro)
+        cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro, current_reduction_mode)
         #print(cmd)
         os.system(cmd)
 
@@ -450,6 +462,8 @@ def main_360_mp_depth2():
     print(f'Crop by: {cra}')
 
     substitute_subdirs = substitute_shared_flatsdarks()
+    reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
+    fd_names = get_fd_names()
 
     for i, ctdir in enumerate(ctdirs):
         print("================================================================")
@@ -460,7 +474,10 @@ def main_360_mp_depth2():
         main_360sti_ufol_depth1(ctdir,
             os.path.join(EZVARS_aux['stitch360']['output-dir']['value'], ctdirs_rel_paths[i]),
                            int(dax[i]), int(cra[i]),
-                                substitute_subdirs=substitute_subdirs)
+                                substitute_subdirs=substitute_subdirs,
+                                reduction_mode=reduction_mode,
+                                fd_names=fd_names,
+                                )
 
         # print(ctdir, os.path.join(parameters['360multi_output_dir'], ctdirs_rel_paths[i]), dax[i], cra[i])
 

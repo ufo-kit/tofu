@@ -1,7 +1,7 @@
 from tofu.ez.ctdir_walker import substitute_shared_flatsdarks
 from tofu.ez.params import EZVARS_aux, EZVARS
 import os
-from tofu.ez.util import add_value_to_dict_entry
+from tofu.ez.util import add_value_to_dict_entry, get_fd_names
 from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1, compute_crop
 from tofu.ez.Helpers.find_360_overlap import find_overlap
 from tofu.util import get_first_filename, get_image_shape
@@ -33,6 +33,8 @@ def batch_stitch():
         print(f'Crop by: {cra}')
 
         substitute_subdirs = substitute_shared_flatsdarks()
+        reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
+        fd_names = get_fd_names()
 
         for innerloopdir, ax, crop in zip(innerloopdirs, dax, cra):
             ctdir = os.path.join(outscandir, innerloopdir)
@@ -46,6 +48,8 @@ def batch_stitch():
                                         ax=ax,
                                         cro=crop,
                                         substitute_subdirs=substitute_subdirs,
+                                        reduction_mode=reduction_mode,
+                                        fd_names=fd_names,
                                         )
             except:
                 return 1
