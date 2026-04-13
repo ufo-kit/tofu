@@ -21,6 +21,7 @@ from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_sea
 from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
     complete_message, find_depth_level_to_CT_sets
 from shutil import rmtree
+from tofu.ez.Helpers.hereon_h5 import set_params_from_h5log
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ def get_CTdirs_list(inpath, fdt_names):
         # Check if common flats/darks/flats2 are type 3 or 4
         W.checkCTdirs()
         # Need to check if common flats/darks contain only .tif files
-        W.checkCTfiles()
+        #W.checkCTfiles()
         W.sortbadgoodsets()
         return W.ctsets, W.lvl0
 
@@ -262,6 +263,9 @@ def execute_reconstruction():
     for i, ctset in enumerate(W):
         # ctset is a tuple containing a path and a type (3 or 4)
         if not already_recd(ctset[0], lvl0, recd_sets):
+            #we check if it is Hereon/PetraIII CT set
+            if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
+                set_params_from_h5log(ctset[0])
             setid = ctset[0][len(lvl0) + 1:]
             num_proc_sets += 1
             # determine initial number of projections and their shape

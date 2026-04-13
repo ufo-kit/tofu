@@ -4,8 +4,10 @@ Created on Apr 5, 2018
 @author: gasilos
 """
 
-import os
+import os, h5py
 from tofu.ez.params import EZVARS
+from tofu.ez.Helpers.hereon_h5 import h5log2params
+from tofu.ez.util import add_value_to_dict_entry
 
 class WalkCTdirs:
     """
@@ -23,6 +25,7 @@ class WalkCTdirs:
         self.typ = []
         self.total = 0
         self.good = 0
+        self.huct = []
         self.verb = verb
         self._fdt_names = fdt_names
         self.common_flats = EZVARS['inout']['path2-shared-flats']['value']
@@ -38,12 +41,72 @@ class WalkCTdirs:
         Walks directories rooted at "Input Directory" location
         Appends their absolute path to ctdir if they contain a directory with same name as "tomo" entry in GUI
         """
+        self.print_tree()
         for root, dirs, files in os.walk(self.lvl0):
-            for name in dirs:
-                if name == self._fdt_names[2]:
+            for dname in dirs:
+                # standard anka/bmit filestructure
+                if dname == self._fdt_names[2]:
+                    print(f"Found standard directory with projections in {root}")
                     self.ctdirs.append(root)
+                    self.huct.append(0)
+                # hereon filestructure with h5 files
+            for fname in files:
+                if fname.endswith('.h5'):
+                    print(f"in FindCTdirs root {root} fname {fname}")
+                    self.ctdirs.append(self.make_symlink_ctdir(root, fname))
+                    self.huct.append(1)
+                    print("Found h5 file!")
+                    break
+
         self.ctdirs = list(set(self.ctdirs))
         self.ctdirs.sort()
+        import numpy as np
+        if sum(self.huct) > 0:
+            self.lvl0 = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
+            #add_value_to_dict_entry(EZVARS['inout']['input-dir'], self.lvl0)
+
+
+    def make_symlink_ctdir(self, ctset, h5fname):
+        """
+        creates ufo-like CT directory structure populated with symlinks to P05/P07 files
+        """
+        import numpy as np
+        h5log = h5py.File(os.path.join(ctset,h5fname),'r')
+        tmplvl0dir = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
+        if not os.path.exists(tmplvl0dir):
+            os.mkdir(tmplvl0dir)
+        symname = os.path.join(tmplvl0dir, os.path.basename(ctset))
+        print(f"in makesymlinks  {symname}")
+        os.mkdir(symname)
+        tmpdar = os.path.join(symname, EZVARS['inout']['darks-dir']['value'])
+        tmpref = os.path.join(symname, EZVARS['inout']['flats-dir']['value'])
+        tmpimg = os.path.join(symname, EZVARS['inout']['tomo-dir']['value'])
+        os.mkdir(tmpdar)
+        os.mkdir(tmpref)
+        os.mkdir(tmpimg)
+        for i, imk in enumerate(h5log['entry']['scan']['data']['image_key']['value']):
+            if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
+                imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()[1:]
+            elif int(h5log['entry']['beamline']['name'][()].decode()[2]) == 7:
+                imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()
+            else:
+                print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
+                return
+            iind = f"{i:05}"
+            if imk == 2:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpdar,'dar_'+iind+'.tif')}")
+            elif imk == 1:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpref,'ref_'+iind+'.tif')}")
+            elif imk == 0:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpimg,'img_'+iind+'.tif')}")
+        # Extract necessary hereon data
+        h5log2params(h5log, symname)
+        h5log.close()
+        return symname
+
 
     def checkCTdirs(self):
         """
@@ -141,6 +204,8 @@ class WalkCTdirs:
                 and self._checktifs(os.path.join(ctdir, self._fdt_names[3]))
             ):
                 continue
+            elif self.huct:
+                continue
             else:
                 self.typ[i] = 0
 
@@ -162,25 +227,30 @@ class WalkCTdirs:
     def sortbadgoodsets(self):
         """
         Reduces type of all directories to either
-        Good with flats 2 (1) or good without flats2 (0) or bad (<0)
+        Good with flats 2 (4) or good without flats2 (3) or bad (<0)
         """
         self.total = len(self.ctdirs)
-        self.ctsets = sorted(zip(self.ctdirs, self.typ), key=lambda s: s[0])
+        self.ctsets = sorted(zip(self.ctdirs, self.typ, self.huct), key=lambda s: s[0])
         self.total = len(self.ctsets)
-        self.good = [int(y) > 2 for x, y in self.ctsets].count(True)
+        self.good = [int(y) > 2 for x, y, z  in self.ctsets].count(True)
 
+        #print('sorting good bad')
+        print(f"This is what was found in the input directory {self.lvl0}")
         tmp = len(self.lvl0)
         if self.verb:
-            print("Total folders {}, good folders {}".format(self.total, self.good))
-            print("{:>20}\t{}".format("Path to CT set", "Typ: 0 bad, 3 no flats2, 4 with flats2"))
+            print("Total CT-like dirs {}, good CT dirs {}".format(self.total, self.good))
+            print("{:>20}\t{}".format("Path to CT set", "Type: 0 bad, 3 no flats2, 4 with flats2"))
             for ctdir in self.ctsets:
-                msg1 = ctdir[0][tmp:]
-                if msg1 == "":
-                    msg1 = "."
+                msg1 = "."+ctdir[0][tmp:]
+                #msg1 = os.path.basename(ctdir[0])
+                # if msg1 == "":
+                #     msg1 = "."
                 print("{:>20}\t{}".format(msg1, ctdir[1]))
 
         # keep paths to directories with good ct data only:
         self.ctsets = [q for q in self.ctsets if int(q[1] > 0)]
+
+        print('Finished sorting goodbad')
 
     def Getlvl0(self):
         return self.lvl0

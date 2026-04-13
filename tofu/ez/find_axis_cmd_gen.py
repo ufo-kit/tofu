@@ -14,12 +14,23 @@ from tofu.config import SECTIONS
 from tofu.ez.tofu_cmd_gen import check_lamino, gpu_optim
 
 def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
+    ax_range_list = ax_range.split(",")
+    range_min = ax_range_list[0]
+    range_max = ax_range_list[1]
+    step = ax_range_list[2]
     indir = make_inpaths(ctset[0], ctset[1])
-    cmd = 'tofu reco'
+    if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
+        w = wh[1]/2
+        cmd = f"for SHIFT in $(seq {float(range_min)-w} {step} {float(range_max)-w}); do echo COR search with axis $(python -c \"print({w} + $SHIFT)\"); tofu reco"
+    else:
+        cmd = 'tofu reco'
     if EZVARS['advanced']['more-reco-params']['value'] is True:
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
-        cmd += " --overall-angle 180"
+        if ctset[2]:
+            cmd += f" --overall-angle {SECTIONS['general-reconstruction']['overall-angle']['value']}"
+        else:
+            cmd += ' --overall-angle 180'
     cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(
         indir[0], indir[1], enquote(indir[2])
     )
@@ -34,22 +45,27 @@ def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
         cmd += " --absorptivity --fix-nan-and-inf"
     if ctset[1] == 4:
         cmd += " --flats2 {}".format(indir[3])
-    out_pattern = os.path.join(tmpdir, "axis-search/sli")
-    cmd += " --output {}".format(enquote(out_pattern))
     cmd += " --x-region={},{},{}".format(int(-p_width / 2), int(p_width / 2), 1)
     cmd += " --y-region={},{},{}".format(int(-p_width / 2), int(p_width / 2), 1)
     image_height = wh[0]
-    ax_range_list = ax_range.split(",")
-    range_min = ax_range_list[0]
-    range_max = ax_range_list[1]
-    step = ax_range_list[2]
-    range_string = str(range_min) + "," + str(range_max) + "," + str(step)
-    cmd += " --region={}".format(range_string)
     res = [float(num) for num in ax_range.split(",")]
     cmd += " --output-bytes-per-file 0"
-    cmd += ' --z-parameter center-position-x'
-    cmd += ' --z {}'.format(EZVARS['COR']['search-row']['value'] - int(image_height/2))
     cmd += gpu_optim()
+    out_pattern = os.path.join(tmpdir, "axis-search/sli")
+    if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
+        cmd += f" --center-position-z {EZVARS['COR']['search-row']['value'] + 0.5} --region=0.0,1.0,1.0"
+        cmd += f" --center-position-x $(python -c \"import numpy as np; print(','.join([str(i) for i in np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',') + $SHIFT]))\")"
+        #cor0 = np.loadtxt(f"{os.path.join(ctset[0],'cors.txt')}", delimiter=',')[0]
+        #outp = os.path.join(tmpdir, f"axis-search/sli-$(python -c \"import numpy as np; print(np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',')[0] + $SHIFT)\").tif")
+        outp = os.path.join(tmpdir, f"axis-search/sli-$(python -c \"print({w} + $SHIFT)\").tif")
+        cmd += " --output {}".format(outp)
+        cmd += '; done'
+    else:
+        cmd += " --output {}".format(enquote(out_pattern))
+        cmd += ' --z {}'.format(EZVARS['COR']['search-row']['value'] - image_height//2)
+        cmd += ' --z-parameter center-position-x'
+        range_string = str(range_min) + "," + str(range_max) + "," + str(step)
+        cmd += " --region={}".format(range_string)
     print(cmd)
     os.system(cmd)
     points, maximum = evaluate_images_simp(out_pattern + "*.tif", "msag")
@@ -109,7 +125,13 @@ def find_axis_corr(ctset, vcrop, y, height, multipage):
     conv = fftconvolve(first, last[::-1, :], mode="same")
     center = np.unravel_index(conv.argmax(), conv.shape)[1]
 
-    return (width / 2.0 + center) / 2.0
+    x = (width / 2.0 + center) / 2.0
+    if os.path.exists(os.path.join(ctset[0], 'cors.txt')):
+        with open(os.path.join(ctset[0], 'cors.txt')) as f:
+            tmp = f.read()
+        cors = tmp.split(',')
+        return x+float(cors[0])-float(cors[-1])
+    return x
 
 # Find midpoint width of image and return its value
 def find_axis_image_midpoint(height_width):

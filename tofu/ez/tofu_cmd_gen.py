@@ -279,7 +279,11 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
     if EZVARS['advanced']['more-reco-params']['value'] is True:
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
-        cmd += ' --overall-angle 180'
+        if ctset[2]:
+            cmd += f" --overall-angle {SECTIONS['general-reconstruction']['overall-angle']['value']}"
+        else:
+            cmd += ' --overall-angle 180'
+    # Hereon CT set with multiple 180 intervals ?
     ##############
     cmd += '  --projections {}'.format(in_proj_dir)
     cmd += ' --output {}'.format(out_pattern)
@@ -300,7 +304,10 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
                 .format(SECTIONS['retrieve-phase']['energy']['value'], SECTIONS['retrieve-phase']['propagation-distance']['value'][0],
                         SECTIONS['retrieve-phase']['pixel-size']['value'], SECTIONS['retrieve-phase']['regularization-rate']['value'])
         )
-    cmd += " --center-position-x {}".format(ax)
+    if os.path.exists(os.path.join(ctset[0],'cors.txt')):
+        cmd+= f" --center-position-x $(cat {os.path.join(ctset[0],'cors.txt')})"
+    else:
+        cmd += " --center-position-x {}".format(ax)
     # if args.nviews==0:
     cmd += " --number {}".format(nviews)
     # elif args.nviews>0:

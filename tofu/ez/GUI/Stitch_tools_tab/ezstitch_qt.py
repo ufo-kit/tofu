@@ -18,6 +18,7 @@ from tofu.ez.params import EZVARS_aux, EZVARS
 from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
+    main_360_mp_depth1,
     find_vert_olap_2_vsteps,
     find_depth_level_to_CT_sets)
 from tofu.ez.GUI.message_dialog import warning_message
@@ -619,9 +620,9 @@ class EZStitchGroup(QGroupBox):
             self.validate_requested_section_indices()
             main_sti_mp()
         else: 
-            # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
-            #                     EZVARS_aux['vert-sti']['output-dir']['value'],
-            #                     self.parameters['ezstitch_axis_of_rotation'], 0)
+            # main_360_mp_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
+            #                    EZVARS_aux['vert-sti']['output-dir']['value'],
+            #                    EZVARS_aux['vert-sti']['cor']['value'], 0)
             main_360sti_ufol_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
                                EZVARS_aux['vert-sti']['output-dir']['value'],
                                EZVARS_aux['vert-sti']['cor']['value'], 0)
