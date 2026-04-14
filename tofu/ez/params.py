@@ -14,6 +14,7 @@ def save_parameters(params, file_path):
 
 EZVARS = OrderedDict()
 EZVARS_aux = OrderedDict()
+EZVARS_prep = OrderedDict()
 
 EZVARS_aux['find360olap'] = {
     'input-dir': {
@@ -532,4 +533,102 @@ EZVARS['advanced'] = {
         'type': bool,
         'help': "TODO"
     }   
+}
+
+EZVARS_prep['prepro'] = {
+    'bin': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'bin3d': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'crop': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'sdir_only': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'subdir': {
+        'ezdefault': "sli",
+        'type': str,
+        'help': "TODO"},
+    'output-dir': {
+        #'ezdefault': os.path.join(os.path.expanduser('~'),"images-processed"),
+        'ezdefault': '/data/hereon/wp/user/gasilovs/tmp',
+        'type': str,
+        'help': "TODO"},
+    'bigtiff': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
+    'input-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"images"),
+        'type': str,
+        'help': "TODO"},
+    'x': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'width': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'y': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'height': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_lim_range': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'im_start': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_range': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_step': {
+        'ezdefault': 1,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'bin_size': {
+        'ezdefault': 2,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'clip_hist': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'out8bit': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
+    'min_int_val': {
+        'ezdefault': -0.0003,
+        'type': float,
+        'help': "TODO"},
+    'max_int_val': {
+        'ezdefault': 0.0002,
+        'type': float,
+        'help': "TODO"},
+    'use_generic_ufo_cmd':
+        {
+            'ezdefault': False,
+            'type': bool,
+            'help': "TODO"},
+    'generic_ufo_cmd': {
+        'ezdefault': "remove-outliers size=3 threshold=500 sign=1",
+        'type': str,
+        'help': "TODO"},
+
 }

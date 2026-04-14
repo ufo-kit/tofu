@@ -4,7 +4,7 @@ Created on Apr 20, 2020
 @author: gasilos
 """
 import os, glob, tifffile
-from tofu.ez.params import EZVARS, EZVARS_aux
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
 from PyQt5.QtCore import QRegExp
@@ -86,7 +86,7 @@ def make_copy_of_flat(flatdir, flat_copy_name, dryrun):
 
 
 def clean_tmp_dirs(tmpdir, fdt_names):
-    tmp_pattern = ["proj", "sino", "mask", "flat", "dark", "radi"]#, "link"]
+    tmp_pattern = ["proj", "sino", "mask", "flat", "dark", "radi"]#, "prep", "link"]
     tmp_pattern += fdt_names
     # clean directories in tmpdir if their names match pattern
     if os.path.exists(tmpdir):
@@ -194,19 +194,25 @@ def export_values(filePath, param_sections):
             try:
                 combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
             except:
-                print("Error: cannot import EZVARS_aux section")
+                print("Error: cannot export EZVARS_aux section")
                 return 1
         if i == 'tofu':
             try:
                 combined_dict['sections'] = extract_values_from_dict(SECTIONS)
             except:
-                print("Error: cannot import TOFU section")
+                print("Error: cannot export TOFU section")
                 return 1
         if i == 'ezvars':
             try:
                 combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
             except:
-                print("Error: cannot import EZVARS section")
+                print("Error: cannot export EZVARS section")
+                return 1
+        if i == 'ezvars_prep':
+            try:
+                combined_dict['ezvars_prep'] = extract_values_from_dict(EZVARS_prep)
+            except:
+                print("Error: cannot export EZVARS_prep section")
                 return 1
     print("Exporting values to: " + str(filePath))
     #print(combined_dict)
@@ -237,6 +243,12 @@ def import_values(filePath, param_sections):
                 import_values_from_dict(EZVARS_aux, yaml_data['ezvars_aux'])
             except:
                 print("Error: cannot import EZVARS_aux section")
+                return 1
+        if i == 'ezvars_prep':
+            try:
+                import_values_from_dict(EZVARS_prep, yaml_data['ezvars_prep'])
+            except:
+                print("Error: cannot import EZVARS_prep section")
                 return 1
     print("Finished importing")
     return 0

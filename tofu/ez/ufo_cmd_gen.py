@@ -242,3 +242,68 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
         cmd += f" bits={bits} rescale=FALSE"
     #print(cmd)
     return cmd
+
+
+def fmt_crop_bin(inpath, outpath):
+    from tofu.ez.params import EZVARS_prep
+    from tofu.ez.util import get_dims
+    from tofu.ez.image_read_write import get_image_dtype
+    numim, [N, M], btif = get_dims(inpath)
+    bits, dt = get_image_dtype(inpath)
+    inptrn = os.path.join(inpath, "*.tif")
+    cmd = 'ufo-launch'
+    # READ
+    cmd += f" read path={enquote(inptrn)}"
+    if EZVARS_prep['prepro']['im_lim_range']['value']:
+        if EZVARS_prep['prepro']['im_range']['value'] < 1:
+            EZVARS_prep['prepro']['im_range']['value'] = numim
+        if (EZVARS_prep['prepro']['im_start']['value'] + \
+            EZVARS_prep['prepro']['im_range']['value']) > numim:
+            EZVARS_prep['prepro']['im_range']['value'] = numim - EZVARS_prep['prepro']['im_start']['value']
+        if not btif:
+            cmd += f" start={EZVARS_prep['prepro']['im_start']['value']}" \
+                   f" step={EZVARS_prep['prepro']['im_step']['value']}"
+        else:
+            cmd += f" image-start={EZVARS_prep['prepro']['im_start']['value']}" \
+                   f" image-step={EZVARS_prep['prepro']['im_step']['value']}"
+        cmd += f" number={EZVARS_prep['prepro']['im_range']['value']}"
+        numim = EZVARS_prep['prepro']['im_range']['value'] // EZVARS_prep['prepro']['im_step']['value']
+    # CROP
+    if EZVARS_prep['prepro']['crop']['value']:
+        if EZVARS_prep['prepro']['width']['value'] > 0 or \
+                EZVARS_prep['prepro']['height']['value'] > 0:
+            cmd += " ! crop"
+        if EZVARS_prep['prepro']['width']['value'] > 0:
+            if EZVARS_prep['prepro']['x']['value'] + \
+                    EZVARS_prep['prepro']['width']['value'] > M:
+                EZVARS_prep['prepro']['width']['value'] = M - EZVARS_prep['prepro']['x']['value']
+            cmd += f" x={EZVARS_prep['prepro']['x']['value']}"
+            cmd += f" width={EZVARS_prep['prepro']['width']['value']}"
+        if EZVARS_prep['prepro']['height']['value'] > 0:
+            if EZVARS_prep['prepro']['y']['value'] + \
+                    EZVARS_prep['prepro']['height']['value'] > N:
+                EZVARS_prep['prepro']['height']['value'] = N - EZVARS_prep['prepro']['y']['value']
+            cmd += f" y={EZVARS_prep['prepro']['y']['value']}"
+            cmd += f" height={EZVARS_prep['prepro']['height']['value']}"
+    # BIN
+    if EZVARS_prep['prepro']['bin']['value']:
+        if EZVARS_prep['prepro']['bin3d']['value']:
+            cmd += f" ! stack number={numim}"
+        cmd += f" ! bin size={EZVARS_prep['prepro']['bin_size']['value']}"
+        if EZVARS_prep['prepro']['bin3d']['value']:
+            cmd += " ! slice"
+    # WRITE
+    cmd += f" ! write filename={os.path.join(outpath, 'im-%05i.tif')}"
+    cmd = check_bigtif(cmd, EZVARS_prep['prepro']['bigtiff']['value'])
+    if not EZVARS_prep['prepro']['clip_hist']['value']:
+        if (int(bits) == 16) or (int(bits) == 8):
+            cmd += f" bits={bits} rescale=FALSE"
+    else:
+        b = 16
+        if EZVARS_prep['prepro']['out8bit']['value']:
+            b = 8
+        cmd += f" bits={b} rescale=TRUE"
+        cmd += ' minimum={} maximum={}'. \
+            format(EZVARS_prep['prepro']['min_int_val']['value'],
+                   EZVARS_prep['prepro']['max_int_val']['value'])
+    return cmd

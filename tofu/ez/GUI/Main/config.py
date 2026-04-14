@@ -302,6 +302,7 @@ class ConfigGroup(QGroupBox):
         dir = self.input_dir_entry.text().strip()
         add_value_to_dict_entry(dict_entry, dir)
         self.input_dir_entry.setText(dir)
+        #TODO if preprocess is enabled update the input dir there accordingly
 
     def select_output_dir(self):
         dir_explore = QFileDialog(self)
@@ -442,6 +443,7 @@ class ConfigGroup(QGroupBox):
         if tmp_dir:
             self.temp_dir_entry.setText(tmp_dir)
             self.set_temp_dir()
+        #TODO if preprocess is enabled the output dir there must be updated to tmp/preprocessed
 
     def set_temp_dir(self):
         LOG.debug(str(self.temp_dir_entry.text()))
@@ -569,7 +571,7 @@ class ConfigGroup(QGroupBox):
             fileName = fileName + ".yaml"
         # Create and write to YAML file based on given fileName
         # self.yaml_io.write_yaml(fileName, parameters.params)
-        export_values(fileName, ['ezvars', 'tofu', 'ezvars_aux'])
+        export_values(fileName, ['ezvars', 'tofu', 'ezvars_aux','ezvars_prep'])
 
     def import_settings_button_pressed(self):
         """
@@ -587,7 +589,7 @@ class ConfigGroup(QGroupBox):
         )
         if filePath:
             LOG.debug("Import YAML Path: " + filePath)
-            import_values(filePath, ['ezvars', 'tofu', 'ezvars_aux'])
+            import_values(filePath, ['ezvars', 'tofu', 'ezvars_aux', 'ezvars_prep'])
             self.signal_update_vals_from_params.emit()
 
     def reco_button_pressed(self):

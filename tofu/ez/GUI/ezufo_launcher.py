@@ -17,7 +17,7 @@ from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
 from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
-from tofu.ez.params import EZVARS, EZVARS_aux
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.ez.util import load_values_from_ezdefault, get_fdt_names
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
@@ -28,6 +28,7 @@ from tofu.ez.GUI.Stitch_tools_tab.ezstitch_qt import EZStitchGroup
 from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
 from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
+from tofu.ez.GUI.Preprocessing_tab import PreprocessingGroup, DummyBox
 # from tofu.ez.Helpers.batch_search_stitch_360 import Batcher
 from tofu.ez.GUI.login_dialog import Login
 
@@ -61,6 +62,7 @@ class GUI(qtw.QWidget):
         load_values_from_ezdefault(EZVARS)
         load_values_from_ezdefault(SECTIONS)
         load_values_from_ezdefault(EZVARS_aux)
+        load_values_from_ezdefault(EZVARS_prep)
 
         # Call login dialog
         # self.login_parameters = {}
@@ -119,14 +121,19 @@ class GUI(qtw.QWidget):
         self.multi_stitch_group = MultiStitch360Group()
         self.multi_stitch_group.load_values()
 
-        self.ezmview_group = EZMViewGroup()
-        self.ezmview_group.init_values()
-
         self.ezstitch_group = EZStitchGroup()
         self.ezstitch_group.load_values()
 
         self.overlap_group = Overlap360Group()
         self.overlap_group.load_values()
+
+        # Preprocessing Tab
+        self.ezmview_group = EZMViewGroup()
+        self.ezmview_group.init_values()
+        self.crop_bin_group = PreprocessingGroup()
+        self.crop_bin_group.load_values()
+
+        self.dummy_box = DummyBox()
         
         #######################################################
 
@@ -189,7 +196,7 @@ class GUI(qtw.QWidget):
         advanced_layout.addWidget(self.optimization_group, 1, 1)
         advanced_layout.addWidget(self.nlmdn_group, 0, 1)
         advanced_layout.addWidget(self.ffc_group, 2, 0)
-        advanced_layout.addWidget(self.ezmview_group, 2, 1)
+        #advanced_layout.addWidget(self.ezmview_group, 2, 1)
 
         helpers_layout = qtw.QGridLayout()
         helpers_layout.addWidget(self.overlap_group, 0, 0, 2, 1)
@@ -197,10 +204,16 @@ class GUI(qtw.QWidget):
         helpers_layout.addWidget(self.multi_stitch_group, 2, 0, 2, 1)
         helpers_layout.addWidget(self.ezstitch_group, 0, 1, 3, 1)
 
+        prep_layout = qtw.QGridLayout()
+        prep_layout.addWidget(self.ezmview_group, 0, 2)
+        prep_layout.addWidget(self.crop_bin_group, 0, 0)
+        prep_layout.addWidget(self.dummy_box, 0, 1)
+
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
         self.tabs.addTab(self.tab2, "Reco+")
         self.tabs.addTab(self.tab3, "Stitching tools")
+        self.tabs.addTab(self.tab4, "Preprocessing")
         self.tabs.addTab(self.tab5, "Image Viewer")
 
         # Create main tab
@@ -214,6 +227,10 @@ class GUI(qtw.QWidget):
         # Create helpers tab
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
+
+        # Create misc tab
+        self.tab4.layout = prep_layout
+        self.tab4.setLayout(self.tab4.layout)
 
         # Create image tab
         self.tab5.layout = image_layout
@@ -241,6 +258,7 @@ class GUI(qtw.QWidget):
         self.overlap_group.load_values()
         self.batch360_group.load_values()
         self.ezstitch_group.load_values()
+        #TODO add bin_crop_groupbox
 
     def switch_to_image_tab(self):
         """
