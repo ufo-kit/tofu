@@ -283,7 +283,9 @@ class EZStitchGroup(QGroupBox):
         self.setLayout(layout)
 
     def load_values(self):
+        self.invoke_after_reco_checkbox.blockSignals(True)
         self.invoke_after_reco_checkbox.setChecked(EZVARS_aux['vert-sti']['dovertsti']['value'])
+        self.invoke_after_reco_checkbox.blockSignals(False)
         self.input_dir_entry.setText(str(EZVARS_aux['vert-sti']['input-dir']['value']))
         self.tmp_dir_entry.setText(str(EZVARS_aux['vert-sti']['tmp-dir']['value']))
         self.output_dir_entry.setText(str(EZVARS_aux['vert-sti']['output-dir']['value']))
