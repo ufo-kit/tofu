@@ -155,6 +155,9 @@ class GUI(qtw.QWidget):
         self.centre_of_rotation_group.enable_360Batch_Group_in_Advanced.connect(
             self.batch360_group.enable_by_trigger_from_main_tab
         )
+        self.centre_of_rotation_group.enable_360Batch_Group_in_Advanced.connect(
+            self.overlap_group.enable_by_trigger_from_main_tab
+        )
         # self.batch360_group.imported_good_list_signal.connect(
         #     self.update_overlap_list
         # )
