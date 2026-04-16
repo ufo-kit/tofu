@@ -202,6 +202,15 @@ class Overlap360Group(QGroupBox):
     def set_patch_size(self):
         add_value_to_dict_entry(EZVARS_aux['find360olap']['patch-size'],
                                 int(self.patch_size_entry.text()))
+
+    def enable_by_trigger_from_main_tab(self, enabled):
+        self.input_dir_button.setEnabled(not enabled)
+        self.input_dir_entry.setEnabled(not enabled)
+        self.temp_dir_button.setEnabled(not enabled)
+        self.temp_dir_entry.setEnabled(not enabled)
+        self.output_dir_button.setEnabled(not enabled)
+        self.output_dir_entry.setEnabled(not enabled)
+
     def set_RR_checkbox(self):
         add_value_to_dict_entry(EZVARS_aux['find360olap']['doRR'], self.doRR.isChecked())
 
