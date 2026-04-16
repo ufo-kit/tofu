@@ -68,7 +68,7 @@ def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh):
     indir[2] = os.path.join(os.path.split(indir[2])[0], os.path.split(in_proj_dir)[1])
     # format command
     cmd = "tofu tomo --absorptivity --fix-nan-and-inf"
-    cmd += " --darks {} --flats {} --reduction-mode median --projections {}".format(indir[0], indir[1], indir[2])
+    cmd += " --darks {} --flats {} --projections {}".format(indir[0], indir[1], indir[2])
     if ctset[1] == 4:  # must be equivalent to len(indir)>3
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --output {}".format(out_pattern)
@@ -136,7 +136,7 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass):
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                     ctset[0], EZVARS['inout']['tomo-dir']['value'], False)
     cmd = 'tofu sinos --absorptivity --fix-nan-and-inf'
-    cmd += ' --darks {} --flats {} --reduction-mode median '.format(indir[0], indir[1])
+    cmd += ' --darks {} --flats {} '.format(indir[0], indir[1])
     if ctset[1] == 4:
         cmd += " --flats2 {}".format(indir[3])
     cmd += " --projections {}".format(in_proj_dir)
@@ -191,7 +191,7 @@ def get_sinFFC_cmd(ctset):
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'],
                                                ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --projections {}'.format(indir[0], indir[1], in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -207,7 +207,7 @@ def get_pr_sinFFC_cmd(ctset):
     in_proj_dir, out_pattern = fmt_in_out_path(
         EZVARS['inout']['tmp-dir']['value'], ctset[0], EZVARS['inout']['tomo-dir']['value'])
     cmd = 'bmit_sin --fix-nan'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.format(indir[0], indir[1], in_proj_dir)
+    cmd += ' --darks {} --flats {} --projections {}'.format(indir[0], indir[1], in_proj_dir)
     if ctset[1] == 4:
         cmd += ' --flats2 {}'.format(indir[3])
     cmd += ' --output {}'.format(os.path.dirname(out_pattern))
@@ -253,7 +253,7 @@ def get_pr_tofu_cmd(ctset):
 
 def fmt_pr_cmd(darks_dir, flats_dir, tomo_dir, flats2_dir, out_pattern):
     cmd = 'tofu preprocess --fix-nan-and-inf --projection-filter none --delta 1e-6'
-    cmd += ' --darks {} --flats {} --reduction-mode median --projections {}'.\
+    cmd += ' --darks {} --flats {} --projections {}'.\
                 format(darks_dir, flats_dir, tomo_dir)
     if flats2_dir:
         cmd += ' --flats2 {}'.format(flats2_dir)
@@ -280,16 +280,21 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
         if ctset[2]:
+            # Hereon CT set with multiple 180 intervals ?
             cmd += f" --overall-angle {SECTIONS['general-reconstruction']['overall-angle']['value']}"
         else:
+            # Ordinary parallel beam data
             cmd += ' --overall-angle 180'
-    # Hereon CT set with multiple 180 intervals ?
     ##############
-    cmd += '  --projections {}'.format(in_proj_dir)
+    cmd += ' --projections {}'.format(in_proj_dir)
+    bf = 1
+    if EZVARS['inout']['bin_before_fbp']['value']:
+        bf = SECTIONS['reading']['resize']['value']
+        cmd += f' --resize {bf}'
     cmd += ' --output {}'.format(out_pattern)
     if ffc:
         cmd += ' --fix-nan-and-inf'
-        cmd += ' --darks {} --flats {} --reduction-mode median'.format(indir[0], indir[1])
+        cmd += ' --darks {} --flats {}'.format(indir[0], indir[1])
         if ctset[1] == 4:  # must be equivalent to len(indir)>3
             cmd += ' --flats2 {}'.format(indir[3])
         if not pr:
@@ -305,9 +310,11 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
                         SECTIONS['retrieve-phase']['pixel-size']['value'], SECTIONS['retrieve-phase']['regularization-rate']['value'])
         )
     if os.path.exists(os.path.join(ctset[0],'cors.txt')):
+        #if binning is enabled file with cors is already correct
         cmd+= f" --center-position-x $(cat {os.path.join(ctset[0],'cors.txt')})"
     else:
-        cmd += " --center-position-x {}".format(ax)
+        #but here we must take desired binning into account
+        cmd += " --center-position-x {}".format(ax/bf)
     # if args.nviews==0:
     cmd += " --number {}".format(nviews)
     # elif args.nviews>0:
@@ -328,17 +335,21 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
             a = SECTIONS['reading']['y']['value'] - h2
             b = SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value'] - h2
             c = SECTIONS['reading']['y-step']['value']
+    # we do not bin vertical ROI
+    # a, b = a//bf, b//bf
     cmd += ' --region={},{},{}'.format(a, b, c)
     # crop of reconstructed slice in the axial plane
-    b = wh[1] / 2
+    b = wh[1] // bf / 2
     if EZVARS['inout']['output-ROI']['value']:
         if EZVARS['inout']['output-x']['value'] != 0 or EZVARS['inout']['output-width']['value'] != 0:
-            cmd += ' --x-region={},{},{}'.format(EZVARS['inout']['output-x']['value'] - b,
-                    EZVARS['inout']['output-x']['value'] + EZVARS['inout']['output-width']['value'] - b, 1)
+            cmd += ' --x-region={},{},{}'.format(EZVARS['inout']['output-x']['value']//bf - b,
+                    EZVARS['inout']['output-x']['value']//bf + EZVARS['inout']['output-width']['value']//bf - b, 1)
         if EZVARS['inout']['output-y']['value'] != 0 or EZVARS['inout']['output-height']['value'] != 0:
-            cmd += ' --y-region={},{},{}'.format(EZVARS['inout']['output-y']['value'] - b,
-                    EZVARS['inout']['output-y']['value'] + EZVARS['inout']['output-height']['value'] - b, 1)
-    # cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'], SECTIONS['reading']['y']['value'], SECTIONS['reading']['height']['value'], SECTIONS['reading']['y-step']['value'], wh[0])
+            cmd += ' --y-region={},{},{}'.format(EZVARS['inout']['output-y']['value']//bf - b,
+                    EZVARS['inout']['output-y']['value']//bf + EZVARS['inout']['output-height']['value']//bf - b, 1)
+    if EZVARS['inout']['bin_before_fbp']['value']:
+        cmd += f' --x-region={-b},{b},{1} --y-region={-b},{b},{1}'
+        # cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'], SECTIONS['reading']['y']['value'], SECTIONS['reading']['height']['value'], SECTIONS['reading']['y-step']['value'], wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],

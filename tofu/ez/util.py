@@ -85,8 +85,8 @@ def make_copy_of_flat(flatdir, flat_copy_name, dryrun):
     return cmd
 
 
-def clean_tmp_dirs(tmpdir, fdt_names):
-    tmp_pattern = ["proj", "sino", "mask", "flat", "dark", "radi"]#, "prep", "link"]
+def clean_tmp_dirs(tmpdir, fdt_names, extradirs=[]):
+    tmp_pattern = ["proj", "sino", "mask", "radi"] + extradirs
     tmp_pattern += fdt_names
     # clean directories in tmpdir if their names match pattern
     if os.path.exists(tmpdir):
@@ -288,8 +288,12 @@ def save_params(ctsetname, ax, nviews, wh):
         f.write('*** Preprocessing ***\n')
         tmp = 'None'
         if EZVARS['inout']['preprocess']['value']:
-            tmp = EZVARS['inout']['preprocess-command']['value']
-        f.write('  '+tmp+'\n')
+            if EZVARS_prep['prepro']['extended_prepro']['value']:
+                tmp = 'Extended preprocessing was selected'
+            else:
+                tmp = f"Removed outliers with size {EZVARS_prep['prepro']['rmout_size']['value']} and "
+                tmp +=f"threshold {EZVARS_prep['prepro']['rmout_thr']['value']}"
+            f.write('  '+tmp+'\n')
         f.write('*** Image filters ***\n')
         if EZVARS['filters']['rm_spots']['value']:
             f.write(' Remove large spots enabled\n')

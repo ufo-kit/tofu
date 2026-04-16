@@ -9,9 +9,10 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
+from PyQt5.QtCore import pyqtSignal
 import logging
 import os
-from tofu.ez.params import EZVARS_prep
+from tofu.ez.params import EZVARS_prep, EZVARS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator
 from tofu.ez.ufo_cmd_gen import fmt_crop_bin
 from tofu.ez.GUI.message_dialog import warning_message
@@ -20,12 +21,121 @@ from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
 
+class PreprocessingGroupMainTab(QGroupBox):
+    signal_prepro_more = pyqtSignal()
+    def __init__(self):
+        super().__init__()
+
+        self.preproc_title_checkbox = QCheckBox("Preprocess raw images:    ")
+        self.preproc_title_checkbox.stateChanged.connect(self.set_enable_preproc)
+
+        self.preproc_title_checkbox.setToolTip(
+            "Use to suppress \"Zingers\" by removing the hot-spots (outliers)"
+            "or  to apply more operations to raw images \n"
+            'before the reconstruction begins'
+        )
+
+        self.preproc_switch_rmout_only = QRadioButton()
+        self.preproc_switch_rmout_only.setText("Remove positive outliers:  ")
+        self.preproc_switch_rmout_only.setChecked(True)
+        self.preproc_switch_rmout_only.clicked.connect(self.set_choose_preproc)
+
+        self.preproc_rmout_size_label = QLabel()
+        self.preproc_rmout_size_label.setText("Size of window [pxls]")
+        self.preproc_rmout_size_entry = QLineEdit()
+        self.preproc_rmout_size_entry.setValidator(get_int_validator())
+        self.preproc_rmout_size_entry.editingFinished.connect(self.set_choose_preproc)
+        #self.preproc_rmout_size_entry.setFixedWidth(40)
+
+        self.preproc_rmout_thr_label = QLabel()
+        self.preproc_rmout_thr_label.setText("Threshold")
+        self.preproc_rmout_thr_entry = QLineEdit()
+        self.preproc_rmout_thr_entry.setValidator(get_int_validator())
+        self.preproc_rmout_size_entry.editingFinished.connect(self.set_rmout_thr)
+        #self.preproc_rmout_thr_entry.setFixedWidth(40)
+
+        self.preproc_switch_more = QRadioButton()
+        self.preproc_switch_more.setText("More operations")
+        self.preproc_switch_more.setToolTip(
+            "More operations from Preprocessing tab including generic ufo-launch pipeline."
+        )
+        self.preproc_switch_more.clicked.connect(self.set_choose_preproc)
+
+        self.preproc_spacer = QLabel()
+        self.preproc_spacer.setText("     ")
+        self.preproc_spacer.setFixedWidth(50)
+
+        self.preproc_entry = QLineEdit()
+        #self.preproc_entry.editingFinished.connect(self.set_preproc_entry)
+
+        self.set_layout()
+
+    def set_layout(self):
+        layout = QGridLayout()
+
+        layout.addWidget(self.preproc_title_checkbox, 0, 0)
+        layout.addWidget(self.preproc_switch_rmout_only, 0, 1)
+        layout.addWidget(self.preproc_rmout_size_label, 0, 2)
+        layout.addWidget(self.preproc_rmout_size_entry, 0 ,3)
+        layout.addWidget(self.preproc_spacer, 0, 4)
+        layout.addWidget(self.preproc_rmout_thr_label, 0, 5)
+        layout.addWidget(self.preproc_rmout_thr_entry, 0 ,6)
+
+        c=7
+        layout.addWidget(self.preproc_spacer, 0, c)
+        c+=1
+        layout.addWidget(self.preproc_spacer, 0, c)
+
+        c+=1
+        layout.addWidget(self.preproc_switch_more, 0, c)
+
+        self.setLayout(layout)
+
+    def load_values(self):
+        self.preproc_title_checkbox.setChecked(bool(EZVARS['inout']['preprocess']['value']))
+        if EZVARS_prep['prepro']['extended_prepro']['value']:
+            self.preproc_switch_more.setChecked(True)
+            self.preproc_switch_rmout_only.setChecked(False)
+        else:
+            self.preproc_switch_more.setChecked(False)
+            self.preproc_switch_rmout_only.setChecked(True)
+        self.preproc_rmout_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_thr']['value']))
+        self.preproc_rmout_size_entry.setText(str(EZVARS_prep['prepro']['rmout_size']['value']))
+        return
+
+    def set_enable_preproc(self):
+        dict_entry = EZVARS['inout']['preprocess']
+        add_value_to_dict_entry(dict_entry, bool(self.preproc_title_checkbox.isChecked()))
+        # if self.preproc_title_checkbox.isChecked():
+        #     add_value_to_dict_entry(dict_entry, bool(self.preproc_title_checkbox.isChecked()))
+        # else:
+        #     add_value_to_dict_entry(dict_entry, self.preproc_title_checkbox.isChecked())
+
+    def set_choose_preproc(self):
+        if self.preproc_switch_rmout_only.isChecked():
+            self.preproc_switch_more.setChecked(False)
+            add_value_to_dict_entry(EZVARS_prep['prepro']['extended_prepro'], False)
+        if self.preproc_switch_more.isChecked():
+            add_value_to_dict_entry(EZVARS_prep['prepro']['extended_prepro'], True)
+            self.preproc_switch_rmout_only.setChecked(False)
+            self.signal_prepro_more.emit()
+
+
+    def set_rmout_size(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_size'], int(self.preproc_rmout_size_entry.text()))
+
+    def set_rmout_thr(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_thr'], int(self.preproc_rmout_thr_entry.text()))
+
+
+
+
 
 class PreprocessingGroup(QGroupBox):
     def __init__(self):
         super().__init__()
 
-        self.setTitle("Crop, bin, change bit-depth")
+        self.setTitle("Apply basic image filters change the data cube bit-depth")
         self.setStyleSheet('QGroupBox {color: Green;}')
 
         self.input_dir_button = QPushButton("Select input directory")
@@ -111,7 +221,7 @@ class PreprocessingGroup(QGroupBox):
 
 
         self.clip_histo_checkbox = QCheckBox()
-        self.clip_histo_checkbox.setText("Clip histogram and save images in")
+        self.clip_histo_checkbox.setText("Clip the histogram and change the data cube bit-depth to")
         self.clip_histo_checkbox.stateChanged.connect(self.set_clip_histo)
 
         self.bit8_rButton = QRadioButton()
@@ -157,51 +267,7 @@ class PreprocessingGroup(QGroupBox):
     def set_layout(self):
         layout = QGridLayout()
 
-        # box1 = QGridLayout()
-        # box1.addWidget(self.input_dir_button, 0, 0)
-        # box1.addWidget(self.input_dir_entry, 1, 0)
-        # box1.addWidget(self.output_dir_button, 2, 0)
-        # box1.addWidget(self.output_dir_entry, 3, 0)
-        # box1.addWidget(self.bigtiff_checkbox, 4, 0)
-        # box1.addWidget(self.subdir_checkbox, 5, 0)
-        # box1.addWidget(self.subdir_entry, 6, 0)
-        # layout.addItem(box1, 0, 0)
-
-        # READ
-        layout.addWidget(self.input_dir_button, 0, 0)
-        layout.addWidget(self.input_dir_entry, 1, 0)
-        layout.addWidget(self.subdir_checkbox, 2, 0)
-        layout.addWidget(self.subdir_entry, 3, 0)
-        box3 = QGridLayout()
-        box3.addWidget(self.im_range_checkbox, 0, 0, 1, 9)
-        box3.addWidget(self.im_start_label, 1, 0, 1, 1)
-        box3.addWidget(self.im_start_entry, 1, 1, 1, 1)
-        box3.addWidget(self.dummy_label, 1, 3, 1, 1)
-        box3.addWidget(self.im_range_label, 1, 4, 1, 1)
-        box3.addWidget(self.im_range_entry, 1, 5, 1, 1)
-        box3.addWidget(self.dummy_label, 1, 6, 1, 1)
-        box3.addWidget(self.im_step_label, 1, 7, 1, 1)
-        box3.addWidget(self.im_step_entry, 1, 8, 1, 1)
-        layout.addItem(box3, 4, 0)
-
-        l=5
-        #WRITE
-        layout.addWidget(self.output_dir_button, l, 0); l+=1
-        layout.addWidget(self.output_dir_entry, l, 0); l+=1
-        layout.addWidget(self.bigtiff_checkbox, l, 0); l += 1
-        box5 = QGridLayout()
-        box5.addWidget(self.clip_histo_checkbox, 0, 0)
-        box5.addWidget(self.dummy_label, 0, 1)
-        box5.addWidget(self.bit8_rButton, 0, 2)
-        box5.addWidget(self.dummy_label, 0, 3)
-        box5.addWidget(self.bit16_rButton, 0, 4)
-        box5.addWidget(self.min_val_label, 1, 0)
-        box5.addWidget(self.min_val_entry, 1, 1)
-        box5.addWidget(self.dummy_label, 1, 2)
-        box5.addWidget(self.max_val_label, 1, 3)
-        box5.addWidget(self.max_val_entry, 1, 4)
-        layout.addItem(box5, l, 0); l+=1
-
+        l=0
         box2 = QGridLayout()
         box2.addWidget(self.do_crop_checkbox, 0, 0, 1, 5)
         box2.addWidget(self.x_label, 1, 0)
@@ -215,8 +281,8 @@ class PreprocessingGroup(QGroupBox):
         box2.addWidget(self.height_label, 2, 3)
         box2.addWidget(self.height_entry, 2, 4)
         layout.addItem(box2, l, 0); l+=1
-
-
+        
+        
         box4 = QGridLayout()
         box4.addWidget(self.do_bin_checkbox, 0, 0)
         box4.addWidget(self.bin2D_rButton, 0, 1)
@@ -225,12 +291,51 @@ class PreprocessingGroup(QGroupBox):
         box4.addWidget(self.bin_size_label, 0, 4)
         box4.addWidget(self.bin_size_entry, 0, 5)
         layout.addItem(box4, l, 0); l+=1
-
+        
         box5 = QGridLayout()
         box5.addWidget(self.preproc_checkbox, 0, 0)
         box5.addWidget(self.preproc_entry, 1, 0)
         layout.addItem(box5, l, 0); l+=1
 
+        # READ and write here in the widget
+
+        box1 = QGridLayout()
+        box1.addWidget(self.input_dir_button, 0, 0)
+        box1.addWidget(self.input_dir_entry, 1, 0)
+        box1.addWidget(self.subdir_checkbox, 2, 0)
+        box1.addWidget(self.subdir_entry, 3, 0)
+        layout.addItem(box1, l,0); l+=1
+
+        box3 = QGridLayout()
+        box3.addWidget(self.im_range_checkbox, 0, 0, 1, 9)
+        box3.addWidget(self.im_start_label, 1, 0, 1, 1)
+        box3.addWidget(self.im_start_entry, 1, 1, 1, 1)
+        box3.addWidget(self.dummy_label, 1, 3, 1, 1)
+        box3.addWidget(self.im_range_label, 1, 4, 1, 1)
+        box3.addWidget(self.im_range_entry, 1, 5, 1, 1)
+        box3.addWidget(self.dummy_label, 1, 6, 1, 1)
+        box3.addWidget(self.im_step_label, 1, 7, 1, 1)
+        box3.addWidget(self.im_step_entry, 1, 8, 1, 1)
+        layout.addItem(box3, l, 0); l+=1
+
+        #WRITE
+        layout.addWidget(self.output_dir_button, l, 0); l+=1
+        layout.addWidget(self.output_dir_entry, l, 0); l+=1
+        layout.addWidget(self.bigtiff_checkbox, l, 0); l += 1
+        box5 = QGridLayout()
+        box5.addWidget(self.clip_histo_checkbox, 0, 0, 1, 2)
+        box5.addWidget(self.dummy_label, 0, 1)
+        box5.addWidget(self.bit8_rButton, 0, 2)
+        box5.addWidget(self.dummy_label, 0, 3)
+        box5.addWidget(self.bit16_rButton, 0, 4)
+        box5.addWidget(self.min_val_label, 1, 0)
+        box5.addWidget(self.min_val_entry, 1, 1)
+        box5.addWidget(self.dummy_label, 1, 2)
+        box5.addWidget(self.max_val_label, 1, 3)
+        box5.addWidget(self.max_val_entry, 1, 4)
+        layout.addItem(box5, l, 0); l+=1
+
+        
         layout.addWidget(self.apply_button, l, 0)
 
 
@@ -269,8 +374,8 @@ class PreprocessingGroup(QGroupBox):
             self.bit16_rButton.setChecked(True)
         self.min_val_entry.setText(str(EZVARS_prep['prepro']['min_int_val']['value']))
         self.max_val_entry.setText(str(EZVARS_prep['prepro']['max_int_val']['value']))
-        self.preproc_checkbox.setChecked(EZVARS_prep['prepro']['use_generic_ufo_cmd']['value'])
-        self.preproc_entry.setText(EZVARS_prep['prepro']['generic_ufo_cmd']['value'])
+        # self.preproc_checkbox.setChecked(EZVARS_prep['prepro']['use_generic_ufo_cmd']['value'])
+        # self.preproc_entry.setText(EZVARS_prep['prepro']['generic_ufo_cmd']['value'])
 
 
 
@@ -386,8 +491,7 @@ class PreprocessingGroup(QGroupBox):
                                os.path.join(EZVARS_prep['prepro']['output-dir']['value'],indir)))
         for cmd in cmds:
             print(cmd)
-        #print(cmd)
-        #os.system(cmd)
+            os.system(cmd)
 
     def verify_safe2delete(self, dir_path):
         if os.path.exists(dir_path) and len(os.listdir(dir_path)) > 0:

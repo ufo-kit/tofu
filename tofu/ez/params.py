@@ -262,10 +262,6 @@ EZVARS['inout'] = {
         'ezdefault': False, 
         'type': bool, 
         'help': "TODO"},
-    'preprocess-command': {
-        'ezdefault': "remove-outliers size=3 threshold=500 sign=1", 
-        'type': str, 
-        'help': "TODO"},
     'output-ROI': {
         'ezdefault': False,
         'type': bool, 
@@ -286,6 +282,10 @@ EZVARS['inout'] = {
         'ezdefault': 0,
         'type': restrict_value((0,None),dtype=int), 
         'help': "Crop slices: height"},
+    'bin_before_fbp': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'dryrun': {
         'ezdefault': False, 
         'type': bool, 
@@ -536,6 +536,10 @@ EZVARS['advanced'] = {
 }
 
 EZVARS_prep['prepro'] = {
+    'extended_prepro': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'bin': {
         'ezdefault': False,
         'type': bool,
@@ -594,7 +598,7 @@ EZVARS_prep['prepro'] = {
         'type': restrict_value((0,None),dtype=int),
         'help': "TODO"},
     'im_range': {
-        'ezdefault': 0,
+        'ezdefault': 10000,
         'type': restrict_value((0,None),dtype=int),
         'help': "TODO"},
     'im_step': {
@@ -630,5 +634,12 @@ EZVARS_prep['prepro'] = {
         'ezdefault': "remove-outliers size=3 threshold=500 sign=1",
         'type': str,
         'help': "TODO"},
-
+    'rmout_size': {
+        'ezdefault': 3,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'rmout_thr': {
+        'ezdefault': 500,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
 }

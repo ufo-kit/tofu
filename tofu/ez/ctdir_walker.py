@@ -11,10 +11,23 @@ from tofu.ez.util import add_value_to_dict_entry
 
 class WalkCTdirs:
     """
-    Walks in the directory structure and creates list of paths to CT folders
-    Determines flats before/after
-    and checks that folders contain only tiff files
-    fdt_names = flats/darks/tomo directory names
+    Usage:
+    First findCTdirs is called to creates list of paths to "potential" CT directories
+    "Potential" CT directory is any directory containing subdirectory "tomo" or an h5 file
+    if h5 file is found function creates a standard directory structure with flats/darks/tomo subdirectories
+    which are populated with symbolic links to respective tif files stored in a standard P05/P07 file sequence
+    Secondly a check can be performed to determine whether CT data is consistent or not
+    That is kind of optional. Back when python argparser didn't support regex well I used to check that
+    flats/darks/tomo directory only contains tif files.
+    TODO: a *.tif must be added everywhere in command formatters?
+    Any other kind of tests and checks cna be performed at this step.
+    Step three: function SortGoodBad creates
+    a list with "good" CT directries with are described by a tuple of length 3
+    (path, type, hereon?) (str, int, bool)
+    TODO: create a class to describe a CT set instead of having a list
+    then an array of CTsets can contain all information about it, e.g.
+    type, origin, dimensions, experimental params such as pixel size and propagation distance, etc.
+    Note: fdt_names variable stores flats/darks/tomo directory names
     """
 
     def __init__(self, inpath, fdt_names, verb=True):
@@ -41,7 +54,6 @@ class WalkCTdirs:
         Walks directories rooted at "Input Directory" location
         Appends their absolute path to ctdir if they contain a directory with same name as "tomo" entry in GUI
         """
-        self.print_tree()
         for root, dirs, files in os.walk(self.lvl0):
             for dname in dirs:
                 # standard anka/bmit filestructure
@@ -52,7 +64,6 @@ class WalkCTdirs:
                 # hereon filestructure with h5 files
             for fname in files:
                 if fname.endswith('.h5'):
-                    print(f"in FindCTdirs root {root} fname {fname}")
                     self.ctdirs.append(self.make_symlink_ctdir(root, fname))
                     self.huct.append(1)
                     print("Found h5 file!")
@@ -60,8 +71,10 @@ class WalkCTdirs:
 
         self.ctdirs = list(set(self.ctdirs))
         self.ctdirs.sort()
-        import numpy as np
-        if sum(self.huct) > 0:
+        if sum(self.huct) > 0: #we are working with hereon data sets hence
+            # we reset input directory to the temporary directory which
+            # contains symbolic links to images. Symbolic links
+            # are ordered as a standard flats/darks/tomo structure
             self.lvl0 = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
             #add_value_to_dict_entry(EZVARS['inout']['input-dir'], self.lvl0)
 
@@ -75,8 +88,7 @@ class WalkCTdirs:
         tmplvl0dir = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
         if not os.path.exists(tmplvl0dir):
             os.mkdir(tmplvl0dir)
-        symname = os.path.join(tmplvl0dir, os.path.basename(ctset))
-        print(f"in makesymlinks  {symname}")
+        symname = os.path.join(tmplvl0dir, ctset[len(self.lvl0)+1:])
         os.mkdir(symname)
         tmpdar = os.path.join(symname, EZVARS['inout']['darks-dir']['value'])
         tmpref = os.path.join(symname, EZVARS['inout']['flats-dir']['value'])
@@ -250,7 +262,7 @@ class WalkCTdirs:
         # keep paths to directories with good ct data only:
         self.ctsets = [q for q in self.ctsets if int(q[1] > 0)]
 
-        print('Finished sorting goodbad')
+        #print('Finished sorting goodbad')
 
     def Getlvl0(self):
         return self.lvl0

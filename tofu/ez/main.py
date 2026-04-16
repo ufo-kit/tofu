@@ -90,13 +90,14 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
                                      EZVARS['inout']['path2-shared-flats']['value'])
         medflat_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat-median.tif")
         imwrite(medflat_file, get_median_flat(path2flat))
-    if EZVARS['inout']['preprocess']['value']:
-        cmds.append('echo " - Applying filter(s) to images "')
-        cmds_prepro = get_pre_cmd(ctset, EZVARS['inout']['preprocess-command']['value'],
-                                      EZVARS['inout']['tmp-dir']['value'])
+    if EZVARS['inout']['preprocess']['value'] and \
+                    (not EZVARS_prep['prepro']['extended_prepro']):
+        print("!!!!!! I'm removing outliers as usual!")
+        cmds.append('echo " - Removing outliers "')
+        cmds_prepro = get_rmout_cmd(ctset, EZVARS['inout']['tmp-dir']['value'])
         cmds.extend(cmds_prepro)
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
     ###################################################
     if EZVARS['filters']['rm_spots']['value'] or EZVARS['filters']['rm_spots_use_median']['value']:
         # generate commands to remove sci. spots from projections
@@ -105,7 +106,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
         cmds.append('echo " - Flat-correcting and removing large spots"')
         cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews)
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
         cmds.extend(cmds_inpaint)
         swiFFC = False  # no need to do FFC anymore
 
@@ -180,10 +181,11 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass):
         cmds.append('echo " - Generating proj from filtered sinograms"')
         cmds.append(get_sinos2proj_cmd(wh[0], n_per_pass))
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
 
     # Finally - call to tofu reco
     cmds.append('echo " - CT with axis {}; ffc:{}, PR:{}"'.format(ax, swiFFC, swiPR))
+    # External flat-field correction?
     if EZVARS['flat-correction']['smart-ffc']['value'] and swiFFC:
         cmds.append(get_sinFFC_cmd(ctset))
         cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, False, swiPR))
@@ -205,8 +207,33 @@ def execute_reconstruction():
             raise ValueError('hmin must be smaller than hmax to convert to 8bit without contrast inversion')
 
     # get list of all good CT directories to be reconstructed
-
     print('*********** Analyzing input directory ************')
+    if (EZVARS['inout']['preprocess']['value'] and
+            EZVARS_prep['prepro']['extended_prepro']['value'] and
+            (EZVARS_prep['prepro']['bin']['value'] or
+            EZVARS_prep['prepro']['crop']['value']) ):
+        print('*********** Preprocessing with bin/crop is enabled ************')
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        print('Preprocessing data now, images will be saved in subdirectory \"preprocessed\" in tmp')
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        indirs = []
+        for root, dirs, files in os.walk(EZVARS['inout']['input-dir']['value']):
+            for fname in files:
+                if fname.endswith('.tif'):
+                    indirs.append(root[len(EZVARS['inout']['input-dir']['value'])+1:])
+                    break
+        cmdsprepro = []
+        for indir in indirs:
+            cmdsprepro.append(fmt_crop_bin(os.path.join(EZVARS['inout']['input-dir']['value'], indir),
+                    os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed',indir)))
+        for cmd in cmdsprepro:
+            print(cmd)
+            os.system(cmd)
+        print('+++++++++++++++++++++++++++++++++++++++++++++++')
+        print('Preprocessing is over, starting axis search and reconstruction')
+        print('+++++++++++++++++++++++++++++++++++++++++++++++')
+        add_value_to_dict_entry(EZVARS['inout']['input-dir'], \
+                os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'))
     fdt_names = get_fdt_names()
     # Find valid CT directories in the input directory
     W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
@@ -343,11 +370,12 @@ def execute_reconstruction():
     print("*********** PROCESSING ************")
     for cmd in cmds:
         if not EZVARS['inout']['dryrun']['value']:
+            print(cmd)
             os.system(cmd)
         else:
             print(cmd)
     if not EZVARS['inout']['keep-tmp']['value']:
-        clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
+        clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names, ['prep','link'])
 
     print("========================================")
     if EZVARS_aux['vert-sti']['dovertsti']['value']:

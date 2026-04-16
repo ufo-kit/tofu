@@ -13,7 +13,7 @@ from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_
 
 LOG = logging.getLogger(__name__)
 
-
+#TODO add button so that the method can be tested and used separately from everything else
 class FFCGroup(QGroupBox):
     """
     Flat Field Correction Settings

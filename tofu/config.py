@@ -109,6 +109,7 @@ SECTIONS['reading'] = {
         'help': 'Read every \"step\" file'},
     'resize': {
         'default': None,
+        'ezdefault': 2,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Bin pixels before processing'},
     'retries': {

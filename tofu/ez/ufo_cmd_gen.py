@@ -5,7 +5,7 @@ Created on Apr 6, 2018
 """
 import os
 from tofu.util import next_power_of_two
-from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.ez.util import enquote, make_inpaths, fmt_in_out_path
 
@@ -112,6 +112,27 @@ def get_pre_cmd( ctset, pre_cmd, tmpdir):
         cmds.append("ufo-launch")
         cmds[i] += " read path={} ! ".format(enquote(in_pattern))
         cmds[i] += pre_cmd
+        cmds[i] += " ! write filename={}".format(enquote(out_pattern))
+    return cmds
+
+def get_rmout_cmd( ctset, tmpdir):
+    indir = make_inpaths(ctset[0], ctset[1])
+    outdir = make_outpaths(tmpdir, ctset[1])
+    # add index to the name of the output directory with projections
+    # if enabled preprocessing is always the first step
+    outdir[2] = os.path.join(tmpdir, "proj-step1")
+    # we also must create this directory to format paths correctly
+    if not os.path.exists(outdir[2]):
+        os.makedirs(outdir[2])
+    cmds = []
+    for i, fol in enumerate(indir):
+        in_pattern = os.path.join(fol, "*.tif")
+        out_pattern = os.path.join(outdir[i], "frame-%04i.tif")
+        cmds.append("ufo-launch")
+        cmds[i] += " read path={} ! ".format(enquote(in_pattern))
+        cmds[i] += f"remove-outliers sign=1"
+        cmds[i] += f" size={EZVARS_prep['prepro']['rmout_size']['value']}"
+        cmds[i] += f" threshold={EZVARS_prep['prepro']['rmout_thr']['value']}"
         cmds[i] += " ! write filename={}".format(enquote(out_pattern))
     return cmds
 
@@ -255,19 +276,17 @@ def fmt_crop_bin(inpath, outpath):
     # READ
     cmd += f" read path={enquote(inptrn)}"
     if EZVARS_prep['prepro']['im_lim_range']['value']:
-        if EZVARS_prep['prepro']['im_range']['value'] < 1:
-            EZVARS_prep['prepro']['im_range']['value'] = numim
-        if (EZVARS_prep['prepro']['im_start']['value'] + \
-            EZVARS_prep['prepro']['im_range']['value']) > numim:
-            EZVARS_prep['prepro']['im_range']['value'] = numim - EZVARS_prep['prepro']['im_start']['value']
         if not btif:
             cmd += f" start={EZVARS_prep['prepro']['im_start']['value']}" \
                    f" step={EZVARS_prep['prepro']['im_step']['value']}"
         else:
+            #TODO if there are mulitple bigtiff files one would need to find the
+            #bigtiff file with starting image and then compute the offset to image-start within the file
             cmd += f" image-start={EZVARS_prep['prepro']['im_start']['value']}" \
                    f" image-step={EZVARS_prep['prepro']['im_step']['value']}"
         cmd += f" number={EZVARS_prep['prepro']['im_range']['value']}"
         numim = EZVARS_prep['prepro']['im_range']['value'] // EZVARS_prep['prepro']['im_step']['value']
+    # TODO here remove outliers must be inserted
     # CROP
     if EZVARS_prep['prepro']['crop']['value']:
         if EZVARS_prep['prepro']['width']['value'] > 0 or \
@@ -288,17 +307,17 @@ def fmt_crop_bin(inpath, outpath):
     # BIN
     if EZVARS_prep['prepro']['bin']['value']:
         if EZVARS_prep['prepro']['bin3d']['value']:
-            cmd += f" ! stack number={numim}"
+            cmd += f" ! stack number={numim//EZVARS_prep['prepro']['bin_size']['value']}"
         cmd += f" ! bin size={EZVARS_prep['prepro']['bin_size']['value']}"
         if EZVARS_prep['prepro']['bin3d']['value']:
             cmd += " ! slice"
     # WRITE
     cmd += f" ! write filename={os.path.join(outpath, 'im-%05i.tif')}"
     cmd = check_bigtif(cmd, EZVARS_prep['prepro']['bigtiff']['value'])
-    if not EZVARS_prep['prepro']['clip_hist']['value']:
-        if (int(bits) == 16) or (int(bits) == 8):
-            cmd += f" bits={bits} rescale=FALSE"
-    else:
+    # if not EZVARS_prep['prepro']['clip_hist']['value']:
+    #     # if (int(bits) == 16) or (int(bits) == 8):
+    #     #     cmd += f" bits={bits} rescale=FALSE"
+    if EZVARS_prep['prepro']['clip_hist']['value']:
         b = 16
         if EZVARS_prep['prepro']['out8bit']['value']:
             b = 8

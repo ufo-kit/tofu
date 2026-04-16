@@ -41,6 +41,11 @@ class AdvancedGroup(QGroupBox):
         self.axis_rotation_y_entry = QLineEdit()
         self.axis_rotation_y_entry.editingFinished.connect(self.set_rotation_about_beam)
 
+        self.rotate_vol_label = QLabel()
+        self.rotate_vol_label.setText("Rotate slices counterclockwise by [deg]")
+        self.rotate_vol_entry = QLineEdit()
+        self.rotate_vol_entry.setValidator(get_double_validator())
+
         self.set_layout()
 
     def set_layout(self):
@@ -49,14 +54,16 @@ class AdvancedGroup(QGroupBox):
         self.lamino_group.setCheckable(True)
         self.lamino_group.setChecked(False)
         lamino_layout = QGridLayout()
-        lamino_layout.addWidget(self.lamino_angle_label, 0, 0)
-        lamino_layout.addWidget(self.lamino_angle_entry, 0, 1)
-        lamino_layout.addWidget(self.overall_rotation_label, 1, 0)
-        lamino_layout.addWidget(self.overall_rotation_entry, 1, 1)
-        lamino_layout.addWidget(self.center_position_z_label, 2, 0)
-        lamino_layout.addWidget(self.center_position_z_entry, 2, 1)
-        lamino_layout.addWidget(self.axis_rotation_y_label, 3, 0)
-        lamino_layout.addWidget(self.axis_rotation_y_entry, 3, 1)
+
+        lamino_layout.addWidget(self.lamino_angle_label, 1, 0)
+        lamino_layout.addWidget(self.lamino_angle_entry, 1, 1)
+        lamino_layout.addWidget(self.overall_rotation_label, 2, 0)
+        lamino_layout.addWidget(self.overall_rotation_entry, 2, 1)
+        lamino_layout.addWidget(self.center_position_z_label, 3, 0)
+        lamino_layout.addWidget(self.center_position_z_entry, 3, 1)
+        lamino_layout.addWidget(self.axis_rotation_y_label, 4, 0)
+        lamino_layout.addWidget(self.axis_rotation_y_entry, 4, 1)
+
         self.lamino_group.setLayout(lamino_layout)
 
         layout.addWidget(self.lamino_group)
@@ -98,4 +105,5 @@ class AdvancedGroup(QGroupBox):
         dict_entry = SECTIONS['general-reconstruction']['axis-angle-y']
         add_value_to_dict_entry(dict_entry, str(self.axis_rotation_y_entry.text()))
         self.axis_rotation_y_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
+
 
