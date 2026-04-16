@@ -4,6 +4,7 @@ Created on Apr 20, 2020
 @author: gasilos
 """
 import os, glob, tifffile
+import shutil
 
 from tofu.ez.ctdir_walker import VALID_EXTS
 from tofu.ez.params import EZVARS, EZVARS_aux
@@ -97,7 +98,11 @@ def clean_tmp_dirs(tmpdir, fdt_names):
     if os.path.exists(tmpdir):
         for filename in os.listdir(tmpdir):
             if filename[:4] in tmp_pattern:
-                os.system("rm -rf {}".format(os.path.join(tmpdir, filename)))
+                path = os.path.join(tmpdir, filename)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
 
 def make_inpaths(lvl0, flats2):
     """
