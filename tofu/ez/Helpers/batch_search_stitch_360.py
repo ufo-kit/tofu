@@ -1,7 +1,7 @@
 from tofu.ez.ctdir_walker import substitute_shared_flatsdarks
 from tofu.ez.params import EZVARS_aux, EZVARS
 import os
-from tofu.ez.util import add_value_to_dict_entry, get_fd_names
+from tofu.ez.util import add_value_to_dict_entry, get_fd_names, export_values
 from tofu.ez.Helpers.stitch_funcs import main_360sti_ufol_depth1, compute_crop
 from tofu.ez.Helpers.find_360_overlap import find_overlap
 from tofu.util import get_first_filename, get_image_shape
@@ -19,6 +19,12 @@ def batch_stitch():
     print(EZVARS_aux['axes-list'])
     for outscandir, innerloopdict in EZVARS_aux['axes-list'].items():
         print(f"# Stitching half acq mode data in {outscandir}")
+        outscandir_out = os.path.join(stitched_data_dir_name, os.path.basename(outscandir))
+        if not os.path.exists(outscandir_out):
+            os.makedirs(outscandir_out)
+        # Export the parameters used to get stitched-data
+        export_values(os.path.join(outscandir_out, "tofuez_all_parameters.yaml"),
+                      ['ezvars', 'tofu', 'ezvars_aux'])
         innerloopdirs = list(innerloopdict)
         dax = list(innerloopdict.values())
         print(f'# Stitching inner loop CT scans in {outscandir} with '
@@ -38,7 +44,7 @@ def batch_stitch():
 
         for innerloopdir, ax, crop in zip(innerloopdirs, dax, cra):
             ctdir = os.path.join(outscandir, innerloopdir)
-            outdir = os.path.join(stitched_data_dir_name, os.path.basename(outscandir), innerloopdir)
+            outdir = os.path.join(outscandir_out, innerloopdir)
             print("================================================================")
             print(" -> Working On: " + str(ctdir))
             print(f"    axis position {ax}, margin to crop {crop} pixels")
