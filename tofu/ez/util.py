@@ -137,24 +137,32 @@ def make_inpaths(lvl0, flats2):
             add_value_to_dict_entry(EZVARS['inout']['shared-df-used'], True)
         return indir
 
+_PROJ_STEPS = 0
+
+def reset_proj_steps():
+    global _PROJ_STEPS
+    _PROJ_STEPS = 0
+
 def fmt_in_out_path(tmpdir, indir, raw_proj_dir_name, croutdir=True):
+    global _PROJ_STEPS
     # suggests input and output path to directory with proj
     # depending on number of processing steps applied so far
-    li = sorted(glob.glob(os.path.join(tmpdir, "proj-step*")))
-    proj_dirs = [d for d in li if os.path.isdir(d)]
-    Nsteps = len(proj_dirs)
-    in_proj_dir, out_proj_dir = "qqq", "qqq"
-    if Nsteps == 0:  # no projections in temporary directory
+    if _PROJ_STEPS == 0:  # no projections in temporary directory
         in_proj_dir = os.path.join(indir, raw_proj_dir_name)
-        out_proj_dir = os.path.join(tmpdir, "proj-step1")
-    elif Nsteps > 0:  # there are directories proj-stepX in tmp dir
-        in_proj_dir = proj_dirs[-1]
-        out_proj_dir = "{}{}".format(in_proj_dir[:-1], Nsteps + 1)
+    elif _PROJ_STEPS > 0:  # there are directories proj-stepX in tmp dir
+        in_proj_dir = os.path.join(tmpdir, f"proj-step{_PROJ_STEPS}")
     else:
         raise ValueError("Something is wrong with in/out filenames")
-    # physically create output directory
-    if croutdir and not os.path.exists(out_proj_dir):
-        os.makedirs(out_proj_dir)
+
+    out_step = _PROJ_STEPS + 1
+    out_proj_dir = os.path.join(tmpdir, f"proj-step{out_step}")
+
+    # create output directory and advance the pipeline step
+    if croutdir:
+        _PROJ_STEPS = out_step
+        if not os.path.exists(out_proj_dir):
+            os.makedirs(out_proj_dir)
+
     # return names of input directory and output pattern with abs path
     return in_proj_dir, os.path.join(out_proj_dir, "proj-%04i.tif")
 
