@@ -322,8 +322,10 @@ def execute_reconstruction():
             # rm files in temporary directory first of all to
             # format paths correctly and to avoid problems
             # when reconstructing ct sets with variable number of rows or projections
-            cmds.append('echo "Cleaning temporary directory"'.format(setid))
-            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
+            cmds.append('echo "Cleaning temporary directory"')
+            script_str = "import sys; from tofu.ez.util import clean_tmp_dirs; clean_tmp_dirs(sys.argv[1], sys.argv[2:])"
+            args_str = " ".join(f'"{name}"' for name in fdt_names)
+            cmds.append(f'python -c \'{script_str}\' "{EZVARS["inout"]["tmp-dir"]["value"]}" {args_str}')
             # call function which formats commands for this data set
             nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reduction_mode=reduction_mode)
             save_params(setid, ax, nviews, wh)
