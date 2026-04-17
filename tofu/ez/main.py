@@ -87,7 +87,8 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
             path2flat = os.path.join(ctset[0],
                                      EZVARS['inout']['path2-shared-flats']['value'])
         medflat_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat-median.tif")
-        imwrite(medflat_file, get_median_flat(path2flat))
+        script_str = "import sys; from tifffile import imwrite; from tofu.ez.util import get_median_flat; imwrite(sys.argv[1], get_median_flat(sys.argv[2]))"
+        cmds.append(f'python -c \'{script_str}\' "{medflat_file}" "{path2flat}"')
     if EZVARS['inout']['preprocess']['value']:
         cmds.append('echo " - Applying filter(s) to images "')
         cmds_prepro = get_pre_cmd(ctset, EZVARS['inout']['preprocess-command']['value'],
