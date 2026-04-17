@@ -328,6 +328,7 @@ def execute_reconstruction():
             args_str = " ".join(f'"{name}"' for name in fdt_names)
             cmds.append(f'python -c \'{script_str}\' "{EZVARS["inout"]["tmp-dir"]["value"]}" {args_str}')
             # call function which formats commands for this data set
+            reset_proj_steps()
             nviews, wh = frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reduction_mode=reduction_mode)
             save_params(setid, ax, nviews, wh)
             print('{}\t{}'.format('CTset:', ctset[0]))
