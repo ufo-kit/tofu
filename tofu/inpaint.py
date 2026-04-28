@@ -1,7 +1,10 @@
 import gi
 import logging
 import numpy as np
-gi.require_version('Ufo', '0.0')
+try:
+    gi.require_version('Ufo', '0.0')
+except ValueError:
+    gi.require_version('Ufo', '1.0')
 from gi.repository import Ufo
 from tofu.tasks import get_memory_in, get_task, get_writer
 from tofu.util import (

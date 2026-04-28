@@ -11,7 +11,10 @@ import numpy as np
 import pkg_resources
 import os
 import re
-gi.require_version('Ufo', '0.0')
+try:
+    gi.require_version('Ufo', '0.0')
+except ValueError:
+    gi.require_version('Ufo', '1.0')
 from gi.repository import Ufo
 from PyQt5 import QtCore
 from PyQt5.QtCore import QObject, Qt, pyqtSignal

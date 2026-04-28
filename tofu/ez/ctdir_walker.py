@@ -9,6 +9,8 @@ from tofu.ez.params import EZVARS, EZVARS_prep
 from tofu.ez.Helpers.hereon_h5 import h5log2params
 from tofu.ez.util import add_value_to_dict_entry
 
+VALID_EXTS = ['.tif', '.tiff', '.edf']
+
 class WalkCTdirs:
     """
     Usage:
@@ -259,7 +261,7 @@ class WalkCTdirs:
 
     def _checktifs(self, tmpath):
         """
-        Checks each whether item in directory tmppath is a .tif file
+        Checks each whether item in directory tmppath is a supported file
         :param tmpath: Path to directory
         :return: 0 if invalid item found in directory - 1 if no invalid items found in directory
         """
@@ -267,8 +269,8 @@ class WalkCTdirs:
             if os.path.isdir(i):
                 print(f"Directory {tmpath} contains a subdirectory")
                 return 0
-            if i.split(".")[-1] != "tif":
-                print(f"Directory {tmpath} has files which are not tif images or containers")
+            if os.path.splitext(i)[1] not in VALID_EXTS:
+                print(f"Directory {tmpath} has files which are not supported images or containers")
                 return 0
         return 1
 
