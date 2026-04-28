@@ -5,7 +5,7 @@ from tofu.config import SECTIONS
 from tofu.ez.params import EZVARS, EZVARS_prep
 import os
 
-def h5log2params(h5log, odir):
+def h5log2params(h5log, odir, ):
     #First extracting sample_x positions
     if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
         sx = np.array(h5log["entry"]["scan"]["data"]["s_stage_x"]["value"])[np.where(np.array(h5log['entry']['scan'] \
@@ -17,16 +17,19 @@ def h5log2params(h5log, odir):
         print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
         return
     ps = h5log['entry']['hardware']['camera']['pixelsize'][0] / h5log['entry']['hardware']['camera']['magnification'][0]
+    # TODO also adjust the pixel size acording to binning
     shifts = np.array(-(sx - sx[0])/ps)
     if EZVARS['inout']['bin_before_fbp']['value']:
         shifts/=SECTIONS['reading']['resize']['value']
-    if np.std(shifts)>5:
+        # TODO also before the scan
+    if np.std(shifts)>5: # if sample moved left right more than 5 pixels it was definetely done intentionally
         print(f'\"Wackel\" scan')
         #shifts with respect to image middle column
         #shifts = np.array(-sx/ps + h5log['entry']['hardware']['camera']['sensorsize_x'][0]/2).astype(int)
         midc = h5log['entry']['hardware']['camera']['roi_width'][0] / 2
         if EZVARS['inout']['bin_before_fbp']['value']:
             midc/=SECTIONS['reading']['resize']['value']
+            # TODO also before the scan and do everything at one place
         cent_pos_x_arr_string = ','.join(map(str, midc + shifts))
         with open(os.path.join(odir, 'cors.txt'), "w") as text_file:
             text_file.write(cent_pos_x_arr_string)

@@ -644,20 +644,20 @@ class ConfigGroup(QGroupBox):
     def adjust_params_if_bincrop_enabled_dialog(self):
         if (EZVARS_prep['prepro']['bin']['value'] or
                     EZVARS_prep['prepro']['crop']['value']):
-            msg = "You want to bin and(or) crop the input data. \n"
+            msg = "You want to bin and(or) crop the input data at the first step. \n"
             msg += "This will change the data cube size. "
             msg += "Input data must be fully preprocessed before the axis search and all other steps. \n"
             msg += "The axis search interval, ROI, pixel size, and other parameters must be adjusted accordingly. \n"
             msg += "Would you like to adjust them automatically now ?\n"
             msg += "Note: the correctness of results cannot be guaranteed, please double check everything. \n"
             qm = QMessageBox()
-            rep = qm.question(self, '', msg,
+            rep = qm.question(self, 'Adjust params automatically?', msg,
                               qm.Yes | qm.No)
             if rep == qm.Yes:
                 self.signal_reco_start_with_bincrop.emit()
                 return 0
             if rep == qm.No:
-                rep = qm.question(self, 'Proceed with reconstruction?', msg,
+                rep = qm.question(self, 'Proceed with reconstruction?', 'Proceed with reconstruction?',
                                   qm.Yes | qm.No)
                 if rep == qm.Yes:
                     return 0

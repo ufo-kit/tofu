@@ -566,7 +566,7 @@ EZVARS_prep['prepro'] = {
         'type': str,
         'help': "TODO"},
     'bigtiff': {
-        'ezdefault': True,
+        'ezdefault': False,
         'type': bool,
         'help': "TODO"},
     'input-dir': {
@@ -631,15 +631,31 @@ EZVARS_prep['prepro'] = {
             'type': bool,
             'help': "TODO"},
     'generic_ufo_cmd': {
-        'ezdefault': "remove-outliers size=3 threshold=500 sign=1",
+        'ezdefault': "flip direction=horizontal ! ",
         'type': str,
         'help': "TODO"},
-    'rmout_size': {
+    'rmout_pos': {
+            'ezdefault': False,
+            'type': bool,
+            'help': "TODO"},
+    'rmout_pos_size': {
         'ezdefault': 3,
         'type': restrict_value((0,None),dtype=int),
         'help': "TODO"},
-    'rmout_thr': {
+    'rmout_pos_thr': {
         'ezdefault': 500,
+        'type': restrict_value((0,None),dtype=float),
+        'help': "TODO"},
+    'rmout_neg': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'rmout_neg_size': {
+        'ezdefault': 3,
         'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'rmout_neg_thr': {
+        'ezdefault': 500,
+        'type': restrict_value((0,None),dtype=float),
         'help': "TODO"},
 }

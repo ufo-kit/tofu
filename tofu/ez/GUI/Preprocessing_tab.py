@@ -14,7 +14,7 @@ import logging
 import os
 from tofu.ez.params import EZVARS_prep, EZVARS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator
-from tofu.ez.ufo_cmd_gen import fmt_crop_bin
+from tofu.ez.ufo_cmd_gen import fmt_prepro
 from tofu.ez.GUI.message_dialog import warning_message
 from shutil import rmtree
 
@@ -99,8 +99,8 @@ class PreprocessingGroupMainTab(QGroupBox):
         else:
             self.preproc_switch_more.setChecked(False)
             self.preproc_switch_rmout_only.setChecked(True)
-        self.preproc_rmout_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_thr']['value']))
-        self.preproc_rmout_size_entry.setText(str(EZVARS_prep['prepro']['rmout_size']['value']))
+        self.preproc_rmout_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_pos_thr']['value']))
+        self.preproc_rmout_size_entry.setText(str(EZVARS_prep['prepro']['rmout_pos_size']['value']))
         return
 
     def set_enable_preproc(self):
@@ -122,10 +122,10 @@ class PreprocessingGroupMainTab(QGroupBox):
 
 
     def set_rmout_size(self):
-        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_size'], int(self.preproc_rmout_size_entry.text()))
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_pos_size'], int(self.preproc_rmout_size_entry.text()))
 
     def set_rmout_thr(self):
-        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_thr'], int(self.preproc_rmout_thr_entry.text()))
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_pos_thr'], int(self.preproc_rmout_thr_entry.text()))
 
 
 
@@ -157,8 +157,44 @@ class PreprocessingGroup(QGroupBox):
         self.subdir_entry = QLineEdit()
         #self.input_dir_entry.editingFinished.connect(self.set_input_entry)
 
-        self.dummy_label = QLabel("\t")
+        # 1 REMOVE OUTLIERS
+        
+        self.rmout_label = QLabel()
+        self.rmout_label.setText("Remove outliers:    ")
+        
+        self.rmout_pos_checkbox = QCheckBox("Positive ")
+        self.rmout_pos_checkbox.setChecked(False)
+        self.rmout_pos_checkbox.clicked.connect(self.set_rmout_pos_enable)
+        
+        self.rmout_pos_size_label = QLabel()
+        self.rmout_pos_size_label.setText("Size of window [pxls] ")
+        self.rmout_pos_size_entry = QLineEdit()
+        self.rmout_pos_size_entry.editingFinished.connect(self.set_rmout_pos_size)
+        #self.rmout_pos_size_entry.setFixedWidth(40)
+        
+        self.rmout_pos_thr_label = QLabel()
+        self.rmout_pos_thr_label.setText("  Threshold ")
+        self.rmout_pos_thr_entry = QLineEdit()
+        self.rmout_pos_size_entry.editingFinished.connect(self.set_rmout_pos_size)
+        #self.preproc_rmout_thr_entry.setFixedWidth(40)
 
+        self.rmout_neg_checkbox = QCheckBox("  Negative ")
+        self.rmout_neg_checkbox.setChecked(False)
+        self.rmout_neg_checkbox.clicked.connect(self.set_rmout_neg_enable)
+
+        self.rmout_neg_size_label = QLabel()
+        self.rmout_neg_size_label.setText("  Size of window ")
+        self.rmout_neg_size_entry = QLineEdit()
+        self.rmout_neg_size_entry.editingFinished.connect(self.set_rmout_neg_size)
+        #self.rmout_neg_size_entry.setFixedWidth(40)
+
+        self.rmout_neg_thr_label = QLabel()
+        self.rmout_neg_thr_label.setText("  Threshold")
+        self.rmout_neg_thr_entry = QLineEdit()
+        self.rmout_neg_size_entry.editingFinished.connect(self.set_rmout_neg_size)
+
+
+        # 2 CROP
         self.do_crop_checkbox = QCheckBox("Crop images. (0,0) is top left corner")
         self.do_crop_checkbox.stateChanged.connect(self.set_do_crop)
 
@@ -186,6 +222,10 @@ class PreprocessingGroup(QGroupBox):
         self.height_entry.setValidator(get_int_validator())
         self.height_entry.editingFinished.connect(self.set_height)
 
+        self.dummy_label = QLabel()
+        self.dummy_label.setText("    ")
+
+        # ------ READ RANGE
         self.im_range_checkbox = QCheckBox("Apply only to a range of images")
         self.im_range_checkbox.stateChanged.connect(self.set_im_lim_range)
 
@@ -245,17 +285,17 @@ class PreprocessingGroup(QGroupBox):
         self.max_val_entry.editingFinished.connect(self.set_max_val)
 
 
-        self.preproc_checkbox = QCheckBox()
-        self.preproc_checkbox.setText("Append a generic ufo-launch pipeline, f.i.")
-        self.preproc_checkbox.setToolTip(
+        self.generic_ufo_pipeline_checkbox = QCheckBox()
+        self.generic_ufo_pipeline_checkbox.setText("Append a generic ufo-launch pipeline, f.i.")
+        self.generic_ufo_pipeline_checkbox.setToolTip(
             "Selected ufo filters will be applied to each "
             "image before reconstruction begins. \n"
             'To print the list of filters use "ufo-query -l" command. \n'
             'Parameters of each filter can be seen with "ufo-query -p filtername".'
         )
-        self.preproc_checkbox.stateChanged.connect(self.set_preproc)
-        self.preproc_entry = QLineEdit()
-        self.preproc_entry.editingFinished.connect(self.set_preproc_entry)
+        self.generic_ufo_pipeline_checkbox.stateChanged.connect(self.set_generic_ufo_pipeline)
+        self.generic_ufo_pipeline_entry = QLineEdit()
+        self.generic_ufo_pipeline_entry.editingFinished.connect(self.set_generic_ufo_pipeline_entry)
 
         self.apply_button = QPushButton()
         self.apply_button.setText("Apply filters")
@@ -267,7 +307,24 @@ class PreprocessingGroup(QGroupBox):
     def set_layout(self):
         layout = QGridLayout()
 
+
         l=0
+        box_rmout = QGridLayout()
+        box_rmout.addWidget(self.rmout_label, 0, 0)
+        box_rmout.addWidget(self.rmout_pos_checkbox, 0, 1)
+        box_rmout.addWidget(self.rmout_pos_size_label, 0, 2)
+        box_rmout.addWidget(self.rmout_pos_size_entry, 0, 3)
+        box_rmout.addWidget(self.rmout_pos_thr_label, 0, 4)
+        box_rmout.addWidget(self.rmout_pos_thr_entry, 0, 5)
+        box_rmout.addWidget(self.dummy_label, 0, 6)
+        box_rmout.addWidget(self.rmout_neg_checkbox, 0, 7)
+        box_rmout.addWidget(self.rmout_neg_size_label, 0, 8)
+        box_rmout.addWidget(self.rmout_neg_size_entry, 0, 9)
+        box_rmout.addWidget(self.rmout_neg_thr_label, 0, 10)
+        box_rmout.addWidget(self.rmout_neg_thr_entry, 0, 11)
+        layout.addItem(box_rmout, l, 0); l+=1
+
+        l=1
         box2 = QGridLayout()
         box2.addWidget(self.do_crop_checkbox, 0, 0, 1, 5)
         box2.addWidget(self.x_label, 1, 0)
@@ -293,8 +350,8 @@ class PreprocessingGroup(QGroupBox):
         layout.addItem(box4, l, 0); l+=1
         
         box5 = QGridLayout()
-        box5.addWidget(self.preproc_checkbox, 0, 0)
-        box5.addWidget(self.preproc_entry, 1, 0)
+        box5.addWidget(self.generic_ufo_pipeline_checkbox, 0, 0)
+        box5.addWidget(self.generic_ufo_pipeline_entry, 1, 0)
         layout.addItem(box5, l, 0); l+=1
 
         # READ and write here in the widget
@@ -348,6 +405,14 @@ class PreprocessingGroup(QGroupBox):
         self.bigtiff_checkbox.setChecked(EZVARS_prep['prepro']['bigtiff']['value'])
         self.subdir_checkbox.setChecked(EZVARS_prep['prepro']['sdir_only']['value'])
         self.subdir_entry.setText(str(EZVARS_prep['prepro']['subdir']['value']))
+        # RMOUT
+        self.rmout_pos_checkbox.setChecked(EZVARS_prep['prepro']['rmout_pos']['value'])
+        self.rmout_pos_size_entry.setText(str(EZVARS_prep['prepro']['rmout_pos_size']['value']))
+        self.rmout_pos_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_pos_thr']['value']))
+        self.rmout_neg_checkbox.setChecked(EZVARS_prep['prepro']['rmout_neg']['value'])
+        self.rmout_neg_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_neg_size']['value']))
+        self.rmout_neg_thr_entry.setText(str(EZVARS_prep['prepro']['rmout_neg_thr']['value']))
+        # CROP
         self.do_crop_checkbox.setChecked(EZVARS_prep['prepro']['crop']['value'])
         self.x_entry.setText(str(EZVARS_prep['prepro']['x']['value']))
         self.width_entry.setText(str(EZVARS_prep['prepro']['width']['value']))
@@ -374,12 +439,8 @@ class PreprocessingGroup(QGroupBox):
             self.bit16_rButton.setChecked(True)
         self.min_val_entry.setText(str(EZVARS_prep['prepro']['min_int_val']['value']))
         self.max_val_entry.setText(str(EZVARS_prep['prepro']['max_int_val']['value']))
-        # self.preproc_checkbox.setChecked(EZVARS_prep['prepro']['use_generic_ufo_cmd']['value'])
-        # self.preproc_entry.setText(EZVARS_prep['prepro']['generic_ufo_cmd']['value'])
-
-
-
-
+        self.generic_ufo_pipeline_checkbox.setChecked(EZVARS_prep['prepro']['use_generic_ufo_cmd']['value'])
+        self.generic_ufo_pipeline_entry.setText(EZVARS_prep['prepro']['generic_ufo_cmd']['value'])
 
     def input_button_pressed(self):
         dir_explore = QFileDialog(self)
@@ -400,6 +461,30 @@ class PreprocessingGroup(QGroupBox):
     def set_bigtiff(self):
         add_value_to_dict_entry(EZVARS_prep['prepro']['bigtiff'], bool(self.bigtiff_checkbox.isChecked()))
 
+
+
+    # ************* REMOVE OUTLIERS ***************
+    def set_rmout_pos_enable(self):
+        dict_entry = EZVARS_prep['prepro']['rmout_pos']
+        add_value_to_dict_entry(dict_entry, bool(self.rmout_pos_checkbox.isChecked()))
+
+    def set_rmout_pos_size(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_pos_size'], int(self.rmout_pos_size_entry.text()))
+
+    def set_rmout_pos_thr(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_pos_thr'], float(self.rmout_pos_thr_entry.text()))
+
+    def set_rmout_neg_enable(self):
+        dict_entry = EZVARS_prep['prepro']['rmout_neg']
+        add_value_to_dict_entry(dict_entry, bool(self.rmout_neg_checkbox.isChecked()))
+
+    def set_rmout_neg_size(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_neg_size'], int(self.rmout_neg_size_entry.text()))
+
+    def set_rmout_neg_thr(self):
+        add_value_to_dict_entry(EZVARS_prep['prepro']['rmout_neg_thr'], float(self.rmout_neg_thr_entry.text()))
+
+    # ************ CROP ******************
     def set_do_crop(self):
         add_value_to_dict_entry(EZVARS_prep['prepro']['crop'], bool(self.do_crop_checkbox.isChecked()))
 
@@ -462,36 +547,25 @@ class PreprocessingGroup(QGroupBox):
     def set_max_val(self):
         add_value_to_dict_entry(EZVARS_prep['prepro']['max_int_val'], float(self.max_val_entry.text()))
 
-    def set_preproc(self):
-        LOG.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
+    def set_generic_ufo_pipeline(self):
+        LOG.debug("generic_ufo_pipeline: " + str(self.generic_ufo_pipeline_checkbox.isChecked()))
         dict_entry = EZVARS_prep['prepro']['use_generic_ufo_cmd']
-        add_value_to_dict_entry(dict_entry, self.preproc_checkbox.isChecked())
+        add_value_to_dict_entry(dict_entry, self.generic_ufo_pipeline_checkbox.isChecked())
 
-    def set_preproc_entry(self):
-        LOG.debug(self.preproc_entry.text())
+    def set_generic_ufo_pipeline_entry(self):
+        LOG.debug(self.generic_ufo_pipeline_entry.text())
         dict_entry = EZVARS_prep['prepro']['generic_ufo_cmd']
-        text  = self.preproc_entry.text().strip()
+        text  = self.generic_ufo_pipeline_entry.text().strip()
         add_value_to_dict_entry(dict_entry, text)
-        self.preproc_entry.setText(text)
+        self.generic_ufo_pipeline_entry.setText(text)
 
     def apply_button_pressed(self):
+        import glob
+        print("***** APPLYING UFO-FILTERS TO TIF FILES ****** ")
         self.verify_safe2delete(EZVARS_prep['prepro']['output-dir']['value'])
-        indirs = []
-        for root, dirs, files in os.walk(EZVARS_prep['prepro']['input-dir']['value']):
-            for fname in files:
-                if fname.endswith('.tif'):
-                    indirs.append(root[len(EZVARS_prep['prepro']['input-dir']['value'])+1:])
-                    break
-        if len(indirs) == 0:
-            warning_message(f"Didn't find any tiff files in the input directory")
-            return
-        cmds = []
-        for indir in indirs:
-            cmds.append(fmt_crop_bin(os.path.join(EZVARS_prep['prepro']['input-dir']['value'], indir),
-                               os.path.join(EZVARS_prep['prepro']['output-dir']['value'],indir)))
-        for cmd in cmds:
-            print(cmd)
-            os.system(cmd)
+        fmt_and_do_prepro(EZVARS_prep['prepro']['input-dir']['value'],
+                          EZVARS_prep['prepro']['output-dir']['value'])
+
 
     def verify_safe2delete(self, dir_path):
         if os.path.exists(dir_path) and len(os.listdir(dir_path)) > 0:
@@ -506,6 +580,84 @@ class PreprocessingGroup(QGroupBox):
                     return
             else:
                 return
+
+def fmt_and_do_prepro(input_dir, output_dir):
+    print(f"Outputdir in fmtprepro {output_dir}")
+    indirs = []
+    dirs_with_h5 = []
+    for root, dirs, files in os.walk(input_dir):
+        #if there is hereon h5 file we treat the tiff subdirectories differently
+        for fname in files:
+            if fname.endswith('.h5'):
+                dirs_with_h5.append(root[len(input_dir)+1:])
+                dirs[:] = []
+                break
+        #there is no hereon h5 file so we just apply the filter
+        for fname in files:
+            if fname.endswith('.tif'):
+                indirs.append(root[len(input_dir)+1:])
+                print(indirs[-1])
+                break
+    if len(indirs) == 0 and len(dirs_with_h5) == 0:
+        warning_message(f"Didn't find any tiff files in the input directory")
+        return
+    # FORMATTING commands for ordinary directories with tiff files.
+    cmds = []
+    for indir in indirs:
+        print("Formatting comamnd for the relative path {indir}")
+        try:
+            cmds.append(fmt_prepro(os.path.join(input_dir, indir, "*.tif"),
+                               os.path.join(output_dir,indir, 'im-%05i.tif')))
+        except:
+            print(f'Failed to format preprocessing commmand for files in {indir}')
+            pass
+    # FORMATTING commands for Hereon directories tiff files.
+    # Hereon data set has to be converted to fdt structure because ufo-launch cannot preserve the filenames
+    # and there will be a mismatch between names after processing and the list in h5 file
+    # TODO note that we still need the h5 file to extract information for the reconstruction
+    for indir in dirs_with_h5:
+        cmds.extend(fmt_prepro_cmds_hereon_files_2fdt(
+            os.path.join(input_dir, indir),
+            os.path.join(output_dir,indir)
+        ))
+        cmd = f"cp {os.path.join(input_dir, indir, '*_nexus.h5')}"
+        cmd += f" {os.path.join(output_dir,indir)}"
+        cmds.append(cmd)
+    #applying filters
+    for cmd in cmds:
+        print(cmd)
+        os.system(cmd)
+
+def fmt_prepro_cmds_hereon_files_2fdt(indir, outdir):
+    import glob
+    imtypes = ['dar','ref','img']
+    ufodirs = ['darks','flats','tomo']
+    cmds = []
+    tiffdirs = sorted(glob.glob(os.path.join(indir, 'tif*') if os.path.isdir(indir) else indir))
+    if not len(tiffdirs):
+        print(f"Warning: there are no tiff directories in {indir} data set")
+        return
+    for tifdirind, tiffdir in enumerate(tiffdirs):
+        for imty, ufodir in zip(imtypes, ufodirs):
+            outpath = os.path.join(outdir,ufodir)
+            cmds.append(fmt_prepro(os.path.join(tiffdir, f'*{imty}.tif'),
+                                   os.path.join(outpath, f'im-{tifdirind:02}-%05i.tif')))
+    return cmds
+
+def fmt_prepro_cmds_hereon_files_keep_structure(indir, outdir):
+    import glob
+    imtypes = ['dar','ref','img']
+    cmds = []
+    tiffdirs = sorted(glob.glob(os.path.join(indir, 'tif*') if os.path.isdir(indir) else indir))
+    if not len(tiffdirs):
+        print(f"Warning: there are no tiff directories in {indir} data set")
+        return
+    for tifdirind, tiffdir in enumerate(tiffdirs):
+        for imty in imtypes:
+            print(f"Outptr in fmt hereon pp cmds {os.path.join(outdir, tiffdir, f'im-%05i_{imty}.tif')}")
+            cmds.append(fmt_prepro(os.path.join(tiffdir, f'*{imty}.tif'),
+                                   os.path.join(outdir, os.path.basename(tiffdir), f'im-%05i_{imty}.tif')))
+    return cmds
 
 class DummyBox(QGroupBox):
     def __init__(self):

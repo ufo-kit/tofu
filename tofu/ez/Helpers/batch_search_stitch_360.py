@@ -1,8 +1,9 @@
-from tofu.ez.params import EZVARS_aux, EZVARS
+from tofu.ez.params import EZVARS_aux, EZVARS, EZVARS_prep
 import os
 from tofu.ez.util import add_value_to_dict_entry
 from tofu.ez.Helpers.stitch_funcs import main_360_mp_depth2
 from tofu.ez.Helpers.find_360_overlap import find_overlap
+from tofu.ez.GUI.Preprocessing_tab import fmt_and_do_prepro
 
 def batch_stitch():
     #TODO: check that directory is empty - if loaded from params check is not applied
@@ -43,6 +44,19 @@ def batch_stitch():
 def batch_olap_search():
     EZVARS_aux['find360olap']['input-dir']['value'] = \
         EZVARS['inout']['input-dir']['value']
+    # however if the preprocessing enabled we have to do that first
+    # and use the preprocessed data instead of the original input data
+    if (EZVARS['inout']['preprocess']['value'] and
+            EZVARS_prep['prepro']['extended_prepro']['value']):
+        EZVARS_aux['find360olap']['input-dir']['value'] = \
+            os.path.join(EZVARS['inout']['tmp-dir']['value'], 'preprocessed')
+    else:
+        EZVARS_aux['find360olap']['input-dir']['value'] = \
+            EZVARS['inout']['input-dir']['value']
+    #     fmt_and_do_prepro(EZVARS['inout']['input-dir']['value'],
+    #                 os.path.join(EZVARS_aux['half-acq']['workdir']['value'], 'preprocessed-data'))
+    #     EZVARS_aux['find360olap']['input-dir']['value'] = \
+    #         os.path.join(EZVARS_aux['half-acq']['workdir']['value'], 'preprocessed-data')
     EZVARS_aux['find360olap']['tmp-dir']['value'] = \
         os.path.join(EZVARS_aux['half-acq']['workdir']['value'],
                     'temporary-data')

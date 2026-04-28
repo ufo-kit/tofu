@@ -311,7 +311,10 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
         )
     if os.path.exists(os.path.join(ctset[0],'cors.txt')):
         #if binning is enabled file with cors is already correct
-        cmd+= f" --center-position-x $(cat {os.path.join(ctset[0],'cors.txt')})"
+        #cmd+= f" --center-position-x $(cat {os.path.join(ctset[0],'cors.txt')})"
+        axshift = (ax - wh[1]*0.5) / bf
+        cmd += f" --center-position-x $(python -c \"import numpy as np; "
+        cmd += f"print(','.join([str(i) for i in np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',') + {axshift}]))\")"
     else:
         #but here we must take desired binning into account
         cmd += " --center-position-x {}".format(ax/bf)

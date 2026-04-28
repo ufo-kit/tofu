@@ -44,7 +44,7 @@ class ROIandHistGroup(QGroupBox):
         self.nth_row_entry = QLineEdit()
         self.nth_row_entry.setValidator(get_int_validator())
         self.nth_row_entry.editingFinished.connect(self.set_reco_nth_rows)
-        self.nth_row_entry.setFixedWidth(40)
+        self.nth_row_entry.setFixedWidth(80)
 
         self.clip_histo_checkbox = QCheckBox()
         self.clip_histo_checkbox.setText("Clip histogram and save slices in")
@@ -64,14 +64,14 @@ class ROIandHistGroup(QGroupBox):
         self.min_val_entry = QLineEdit()
         #self.min_val_entry.setValidator(get_double_validator())
         self.min_val_entry.editingFinished.connect(self.set_min_val)
-        self.min_val_entry.setFixedWidth(40)
+        self.min_val_entry.setFixedWidth(80)
 
         self.max_val_label = QLabel()
         self.max_val_label.setText("Max value in 32-bit histogram")
         self.max_val_entry = QLineEdit()
         #self.max_val_entry.setValidator(get_double_validator())
         self.max_val_entry.editingFinished.connect(self.set_max_val)
-        self.max_val_entry.setFixedWidth(40)
+        self.max_val_entry.setFixedWidth(80)
 
         self.crop_slices_checkbox = QCheckBox()
         self.crop_slices_checkbox.setText("Crop slices")

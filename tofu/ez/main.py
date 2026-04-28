@@ -22,6 +22,7 @@ from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
     complete_message, find_depth_level_to_CT_sets
 from shutil import rmtree
 from tofu.ez.Helpers.hereon_h5 import set_params_from_h5log
+from tofu.ez.GUI.Preprocessing_tab import fmt_and_do_prepro
 
 LOG = logging.getLogger(__name__)
 
@@ -208,36 +209,30 @@ def execute_reconstruction():
 
     # get list of all good CT directories to be reconstructed
     print('*********** Analyzing input directory ************')
-    if (EZVARS['inout']['preprocess']['value'] and
-            EZVARS_prep['prepro']['extended_prepro']['value'] and
-            (EZVARS_prep['prepro']['bin']['value'] or
-            EZVARS_prep['prepro']['crop']['value']) ):
-        print('*********** Preprocessing with bin/crop is enabled ************')
+    nopp = 1
+    if (EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']['value']):
+            #(EZVARS_prep['prepro']['bin']['value'] or
+            #EZVARS_prep['prepro']['crop']['value']) ):
+        nopp = 0
+        print('*********** Preprocessing is enabled ************')
         print('# +++++++++++++++++++++++++++++++++++++++++++++++')
         print('Preprocessing data now, images will be saved in subdirectory \"preprocessed\" in tmp')
         print('# +++++++++++++++++++++++++++++++++++++++++++++++')
-        indirs = []
-        for root, dirs, files in os.walk(EZVARS['inout']['input-dir']['value']):
-            for fname in files:
-                if fname.endswith('.tif'):
-                    indirs.append(root[len(EZVARS['inout']['input-dir']['value'])+1:])
-                    break
-        cmdsprepro = []
-        for indir in indirs:
-            cmdsprepro.append(fmt_crop_bin(os.path.join(EZVARS['inout']['input-dir']['value'], indir),
-                    os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed',indir)))
-        for cmd in cmdsprepro:
-            print(cmd)
-            os.system(cmd)
+        #indirs = []
+        fmt_and_do_prepro(EZVARS['inout']['input-dir']['value'],
+                          os.path.join(EZVARS['inout']['tmp-dir']['value'], 'preprocessed'))
         print('+++++++++++++++++++++++++++++++++++++++++++++++')
         print('Preprocessing is over, starting axis search and reconstruction')
         print('+++++++++++++++++++++++++++++++++++++++++++++++')
-        add_value_to_dict_entry(EZVARS['inout']['input-dir'], \
-                os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'))
+        # add_value_to_dict_entry(EZVARS['inout']['input-dir'], \
+        #         os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'))
     fdt_names = get_fdt_names()
-    # Find valid CT directories in the input directory
-    W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
-    # W is an array of tuples (path to CT directory, directory type)
+    # Find valid CT directories in the input directory or directory with preprocessed images
+    if nopp:
+        W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
+    else:
+        W, lvl0 = get_CTdirs_list(os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'), fdt_names)
+    # W is an array of tuples (path to CT directory, directory type, hereon?)
 
     # if we deal with unstitched half acqusition mode data we have to
     # convert all frames to ordinary 180-deg projections first
@@ -281,8 +276,9 @@ def execute_reconstruction():
             for i in range(len(W)):
                 axlist.append(ax + i*EZVARS['COR']['user-defined-dax']['value'])
         else:
-            if len(W) != len(axlist):
-                return "There are more data sets in the input dir than entries in the list of axes"
+            if len(W) > len(axlist):
+                print("! PROBLEM: there are more data sets in the input dir than entries in the list of axes")
+                return
             for i in range(len(axlist)):
                 axlist[i] = float(axlist[i])
         print(axlist)
@@ -313,7 +309,7 @@ def execute_reconstruction():
                     print('Vertical ROI exceeds the number of rows')
                     print('Resetting the interval to match the number of rows')
                     SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
-                    nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
+                    nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])+1
             n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
             # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
             #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
@@ -327,8 +323,8 @@ def execute_reconstruction():
                                     SECTIONS['reading']['height']['value'], multipage)
                 # Find axis of rotation using auto: minimize STD of a slice
                 elif EZVARS['COR']['search-method']['value'] == 2:
-                    cmds.append("echo \"Cleaning axis-search in tmp directory\"")
-                    os.system('rm -rf {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')))
+                    # cmds.append("echo \"Cleaning axis-search in tmp directory\"")
+                    # os.system('rm -rf {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')))
                     ax = find_axis_std(ctset,  #EZVARS['inout']['tmp-dir']['value'],
                                         os.path.join(EZVARS['inout']['output-dir']['value'], setid),
                                         EZVARS['COR']['search-interval']['value'],
@@ -370,7 +366,6 @@ def execute_reconstruction():
     print("*********** PROCESSING ************")
     for cmd in cmds:
         if not EZVARS['inout']['dryrun']['value']:
-            print(cmd)
             os.system(cmd)
         else:
             print(cmd)

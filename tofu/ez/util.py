@@ -264,7 +264,7 @@ def save_params(ctsetname, ax, nviews, wh):
         # Dump the params .yaml file
         try:
             filepath = os.path.join(tmp, "tofuez_all_parameters.yaml")
-            export_values(filepath, ['ezvars', 'tofu', 'ezvars_aux'])
+            export_values(filepath, ['ezvars', 'tofu', 'ezvars_aux','ezvars_prep'])
             
         except FileNotFoundError:
             print("Something went wrong when exporting the .yaml parameters file")
@@ -291,8 +291,8 @@ def save_params(ctsetname, ax, nviews, wh):
             if EZVARS_prep['prepro']['extended_prepro']['value']:
                 tmp = 'Extended preprocessing was selected'
             else:
-                tmp = f"Removed outliers with size {EZVARS_prep['prepro']['rmout_size']['value']} and "
-                tmp +=f"threshold {EZVARS_prep['prepro']['rmout_thr']['value']}"
+                tmp = f"Removed outliers with size {EZVARS_prep['prepro']['rmout_pos_size']['value']} and "
+                tmp +=f"threshold {EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
             f.write('  '+tmp+'\n')
         f.write('*** Image filters ***\n')
         if EZVARS['filters']['rm_spots']['value']:

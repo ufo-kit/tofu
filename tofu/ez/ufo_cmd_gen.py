@@ -131,8 +131,8 @@ def get_rmout_cmd( ctset, tmpdir):
         cmds.append("ufo-launch")
         cmds[i] += " read path={} ! ".format(enquote(in_pattern))
         cmds[i] += f"remove-outliers sign=1"
-        cmds[i] += f" size={EZVARS_prep['prepro']['rmout_size']['value']}"
-        cmds[i] += f" threshold={EZVARS_prep['prepro']['rmout_thr']['value']}"
+        cmds[i] += f" size={EZVARS_prep['prepro']['rmout_pos_size']['value']}"
+        cmds[i] += f" threshold={EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
         cmds[i] += " ! write filename={}".format(enquote(out_pattern))
     return cmds
 
@@ -265,13 +265,13 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
     return cmd
 
 
-def fmt_crop_bin(inpath, outpath):
+def fmt_prepro(inptrn, outptrn):
     from tofu.ez.params import EZVARS_prep
     from tofu.ez.util import get_dims
     from tofu.ez.image_read_write import get_image_dtype
-    numim, [N, M], btif = get_dims(inpath)
-    bits, dt = get_image_dtype(inpath)
-    inptrn = os.path.join(inpath, "*.tif")
+    print(inptrn)
+    numim, [N, M], btif = get_dims(os.path.dirname(inptrn))
+    #inptrn = os.path.join(inpath, "*.tif")
     cmd = 'ufo-launch'
     # READ
     cmd += f" read path={enquote(inptrn)}"
@@ -286,7 +286,8 @@ def fmt_crop_bin(inpath, outpath):
                    f" image-step={EZVARS_prep['prepro']['im_step']['value']}"
         cmd += f" number={EZVARS_prep['prepro']['im_range']['value']}"
         numim = EZVARS_prep['prepro']['im_range']['value'] // EZVARS_prep['prepro']['im_step']['value']
-    # TODO here remove outliers must be inserted
+    # Remove outliers
+    cmd = fmt_prepro_rmout(cmd)
     # CROP
     if EZVARS_prep['prepro']['crop']['value']:
         if EZVARS_prep['prepro']['width']['value'] > 0 or \
@@ -312,8 +313,12 @@ def fmt_crop_bin(inpath, outpath):
         if EZVARS_prep['prepro']['bin3d']['value']:
             cmd += " ! slice"
     # WRITE
-    cmd += f" ! write filename={os.path.join(outpath, 'im-%05i.tif')}"
+    # cmd += f" ! write filename={os.path.join(outpath, 'im-%05i.tif')}"
+    cmd += f" ! write filename={outptrn}"
     cmd = check_bigtif(cmd, EZVARS_prep['prepro']['bigtiff']['value'])
+    # in the general case output images are floating point so I've disabled attempt
+    # to preserve the original bitrate as
+    # bits, dt = get_image_dtype(inptrn)
     # if not EZVARS_prep['prepro']['clip_hist']['value']:
     #     # if (int(bits) == 16) or (int(bits) == 8):
     #     #     cmd += f" bits={bits} rescale=FALSE"
@@ -325,4 +330,15 @@ def fmt_crop_bin(inpath, outpath):
         cmd += ' minimum={} maximum={}'. \
             format(EZVARS_prep['prepro']['min_int_val']['value'],
                    EZVARS_prep['prepro']['max_int_val']['value'])
+    return cmd
+
+def fmt_prepro_rmout(cmd):
+    if EZVARS_prep['prepro']['rmout_pos']['value']:
+        cmd += f" ! remove-outliers sign=1"
+        cmd += f" size={EZVARS_prep['prepro']['rmout_pos_size']['value']}"
+        cmd += f" threshold={EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
+    if EZVARS_prep['prepro']['rmout_neg']['value']:
+        cmd += f" ! remove-outliers sign=-1"
+        cmd += f" size={EZVARS_prep['prepro']['rmout_neg_size']['value']}"
+        cmd += f" threshold={EZVARS_prep['prepro']['rmout_neg_thr']['value']}"
     return cmd

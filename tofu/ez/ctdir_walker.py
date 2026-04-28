@@ -4,8 +4,8 @@ Created on Apr 5, 2018
 @author: gasilos
 """
 
-import os, h5py
-from tofu.ez.params import EZVARS
+import os, h5py, glob
+from tofu.ez.params import EZVARS, EZVARS_prep
 from tofu.ez.Helpers.hereon_h5 import h5log2params
 from tofu.ez.util import add_value_to_dict_entry
 
@@ -54,29 +54,60 @@ class WalkCTdirs:
         Walks directories rooted at "Input Directory" location
         Appends their absolute path to ctdir if they contain a directory with same name as "tomo" entry in GUI
         """
+        print(f" ====> Walking over data in {self.lvl0}")
         for root, dirs, files in os.walk(self.lvl0):
-            for dname in dirs:
-                # standard anka/bmit filestructure
+            h5filelist = glob.glob(os.path.join(root,'*.h5')) #perphaps root contains h5 file?
+            fdt = 0
+            for dname in dirs: # is any of the subdirectories named like a dir with CT projections?
                 if dname == self._fdt_names[2]:
-                    print(f"Found standard directory with projections in {root}")
+                   fdt = 1
+                   dirs[:] = [] # once tomo dir is found we stop iterating over subdirectories
+            # now there can be three options:
+            if h5filelist:
+                h5filename = h5filelist[0]
+                if fdt: # (1) this is preprocessed hereon data set saved as fdt subdirectories
                     self.ctdirs.append(root)
-                    self.huct.append(0)
-                # hereon filestructure with h5 files
-            for fname in files:
-                if fname.endswith('.h5'):
-                    self.ctdirs.append(self.make_symlink_ctdir(root, fname))
+                    h5log = h5py.File(h5filename,'r')
+                    h5log2params(h5log, root)
+                    h5log.close()
                     self.huct.append(1)
-                    print("Found h5 file!")
-                    break
+                    print(f"Found preprocessed Hereon CT sequence in {root}, h5file is {h5filename}")
+                else: # (2) this is a raw hereon data set
+                    self.ctdirs.append(self.make_symlink_ctdir(root, h5filename))
+                    self.huct.append(1)
+                    print(f"Found raw Hereon CT sequence in {root} with h5 file {h5filename}")
+            elif fdt: # (3) this is an ordinary fdt structure
+                self.ctdirs.append(root)
+                self.huct.append(0)
+                print(f"Found standard CT set with standard flats/dars/tomo in {root}")
+
+            # for dname in dirs:
+            #     # does any directory at this level contain tomo subdirectory?
+            #     print(f"Walking {dname}")
+            #     print(f"Searching for h5 {glob.glob(os.path.join(dname,'*.h5'))}" )
+            #     if dname == self._fdt_names[2]:
+            #         h5file = glob.glob(os.path.join(root,'*.h5'))
+            #         if h5file:
+            #             # there are both tomo subdir and h5 file in the root so it is preprocessed hereon data
+            #
+            #         else: #data doesn't have an h5 log file
+            #
+            #     elif glob.glob(os.path.join(root,'*.h5')): #perphaps root contains h5 file?
+            #         h5filename = os.path.basename(glob.glob(os.path.join(dname,'*.h5'))[0])
+            #         self.ctdirs.append(self.make_symlink_ctdir(dname, h5filename))
+            #         self.huct.append(1)
+            #         print(f"Found raw Hereon CT sequence in {dname} with h5 file {h5filename}")
+            #         print(f"The root contains {dirs} subdirs which we are not going to iterate in")
+            #         dirs[:] = [] # once h5 found we stop walking in subdirectories
 
         self.ctdirs = list(set(self.ctdirs))
         self.ctdirs.sort()
-        if sum(self.huct) > 0: #we are working with hereon data sets hence
+        if sum(self.huct) > 0 and (not EZVARS_prep['prepro']['extended_prepro']['value']):
+            # we are working with raw hereon data structure hence
             # we reset input directory to the temporary directory which
             # contains symbolic links to images. Symbolic links
             # are ordered as a standard flats/darks/tomo structure
             self.lvl0 = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
-            #add_value_to_dict_entry(EZVARS['inout']['input-dir'], self.lvl0)
 
 
     def make_symlink_ctdir(self, ctset, h5fname):
@@ -88,22 +119,27 @@ class WalkCTdirs:
         tmplvl0dir = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
         if not os.path.exists(tmplvl0dir):
             os.mkdir(tmplvl0dir)
-        symname = os.path.join(tmplvl0dir, ctset[len(self.lvl0)+1:])
-        os.mkdir(symname)
+        symname = os.path.dirname(os.path.join(tmplvl0dir, ctset[len(self.lvl0)+1:]))
+        if symname != tmplvl0dir:
+            os.mkdir(symname)
         tmpdar = os.path.join(symname, EZVARS['inout']['darks-dir']['value'])
         tmpref = os.path.join(symname, EZVARS['inout']['flats-dir']['value'])
         tmpimg = os.path.join(symname, EZVARS['inout']['tomo-dir']['value'])
         os.mkdir(tmpdar)
         os.mkdir(tmpref)
         os.mkdir(tmpimg)
+        blah = 0
+        if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
+            blah = 1
+        elif int(h5log['entry']['beamline']['name'][()].decode()[2]) == 7:
+            blah = 0
+        else:
+            print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
+            return
         for i, imk in enumerate(h5log['entry']['scan']['data']['image_key']['value']):
-            if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
+            imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()
+            if blah:
                 imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()[1:]
-            elif int(h5log['entry']['beamline']['name'][()].decode()[2]) == 7:
-                imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()
-            else:
-                print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
-                return
             iind = f"{i:05}"
             if imk == 2:
                 os.system(f"ln -s {os.path.join(ctset, imname)} \
