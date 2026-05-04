@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QGroupBox,
     QPushButton,
     QLineEdit,

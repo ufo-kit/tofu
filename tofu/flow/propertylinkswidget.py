@@ -1,13 +1,13 @@
-from PyQt5.QtCore import QMimeData, Qt, QDataStream, QByteArray, QIODevice, QModelIndex
-from PyQt5.QtGui import QDrag
-from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView, QTreeView, QVBoxLayout, QWidget
+from pyqtgraph.Qt.QtCore import QMimeData, Qt, QDataStream, QByteArray, QIODevice, QModelIndex
+from pyqtgraph.Qt.QtGui import QDrag
+from pyqtgraph.Qt.QtWidgets import QAbstractItemView, QLabel, QTableView, QTreeView, QVBoxLayout, QWidget
 
 
 def _encode_mime_data(index: QModelIndex):
     """Encode item in *index* into :class:`QMimeData`."""
     mime_data = QMimeData()
     data = QByteArray()
-    stream = QDataStream(data, QIODevice.WriteOnly)
+    stream = QDataStream(data, QIODevice.OpenModeFlag.WriteOnly)
     try:
         stream.writeInt32(index.row())
         stream.writeInt32(index.column())
@@ -24,7 +24,7 @@ class PropertyLinksView(QTableView):
     """Table view for displaying node property links."""
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Delete:
+        if event.key() == Qt.Key.Key_Delete:
             model = self.model()
             for index in self.selectedIndexes():
                 model.remove_item(index)
@@ -56,7 +56,7 @@ class NodesView(QTreeView):
         drag = QDrag(self)
         mime_data = _encode_mime_data(index)
         drag.setMimeData(mime_data)
-        drag.exec_(Qt.CopyAction)
+        drag.exec(Qt.DropAction.CopyAction)
 
         return True
 
@@ -66,7 +66,7 @@ class PropertyLinks(QWidget):
     """Widget displaying nodes in the scene and their property links in one window."""
 
     def __init__(self, node_model, table_model, parent=None):
-        super().__init__(parent=parent, flags=Qt.Window)
+        super().__init__(parent=parent, flags=Qt.WindowType.Window)
         self.setWindowTitle('Property Links')
         self.resize(600, 800)
 
@@ -94,7 +94,7 @@ class PropertyLinks(QWidget):
 
     def show(self):
         self._table_view.resizeColumnsToContents()
-        self._treeview.sortByColumn(0, Qt.AscendingOrder)
+        self._treeview.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         super().show()
 
     def on_table_model_changed(self, item):
@@ -107,4 +107,4 @@ class PropertyLinks(QWidget):
         self._table_view.resizeColumnsToContents()
 
     def on_node_model_changed(self, item):
-        self._treeview.sortByColumn(0, Qt.AscendingOrder)
+        self._treeview.sortByColumn(0, Qt.SortOrder.AscendingOrder)

@@ -2,7 +2,7 @@ import logging
 import os
 from shutil import rmtree
 
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QGridLayout,
     QLabel,
     QGroupBox,
@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from PyQt5.QtCore import Qt
+from pyqtgraph.Qt.QtCore import Qt
 from tofu.ez.ufo_cmd_gen import fmt_nlmdn_ufo_cmd
 from tofu.ez.params import EZVARS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
@@ -105,7 +105,7 @@ class NLMDNGroup(QGroupBox):
         layout.addWidget(self.select_img_button, 1, 2, 1, 2)
         layout.addWidget(self.input_dir_entry, 2, 0, 1, 4)
         layout.addWidget(self.output_dir_button, 3, 0, 1, 2)
-        layout.addWidget(self.save_bigtif_checkbox, 3, 2, 1, 2, Qt.AlignCenter)
+        layout.addWidget(self.save_bigtif_checkbox, 3, 2, 1, 2, Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.output_dir_entry, 4, 0, 1, 4)
         layout.addWidget(self.similarity_radius_label, 5, 0, 1, 2)
         layout.addWidget(self.similarity_radius_entry, 5, 2, 1, 2)
@@ -117,8 +117,8 @@ class NLMDNGroup(QGroupBox):
         layout.addWidget(self.noise_std_entry, 8, 2, 1, 2)
         layout.addWidget(self.window_label, 9, 0, 1, 2)
         layout.addWidget(self.window_entry, 9, 2, 1, 2)
-        layout.addWidget(self.fast_checkbox, 10, 0, 1, 2, Qt.AlignCenter)
-        layout.addWidget(self.sigma_checkbox, 10, 2, 1, 2, Qt.AlignCenter)
+        layout.addWidget(self.fast_checkbox, 10, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.sigma_checkbox, 10, 2, 1, 2, Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(self.help_button, 11, 0, 1, 1)
         layout.addWidget(self.delete_button, 11, 1)

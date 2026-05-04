@@ -1,11 +1,11 @@
 import contextlib
 import json
 import pkg_resources
-from PyQt5.QtCore import Qt
+from pyqtgraph.Qt.QtCore import Qt
 from qtpynodeeditor import PortType
 
 
-MODEL_ROLE = Qt.UserRole + 1
+MODEL_ROLE = Qt.ItemDataRole.UserRole + 1
 PROPERTY_ROLE = MODEL_ROLE + 1
 NODE_ROLE = PROPERTY_ROLE + 1
 

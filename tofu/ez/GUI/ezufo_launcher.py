@@ -3,7 +3,8 @@ import os
 import sys
 
 try:
-    from PyQt5 import QtWidgets as qtw
+    from pyqtgraph.Qt import QtWidgets as qtw
+    from pyqtgraph.Qt.QtGui import QAction
 except ModuleNotFoundError:
     raise ModuleNotFoundError("Cannot import modules for ez, please install tofu with [ez] extras.")
 
@@ -163,7 +164,7 @@ class GUI(qtw.QWidget):
         # )
 
 
-        finish = qtw.QAction("Quit", self)
+        finish = QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
 
         self.show()
@@ -291,7 +292,7 @@ class GUI(qtw.QWidget):
 
     def login(self):
         login_dialog = Login(self.login_parameters)
-        if login_dialog.exec_() != qtw.QDialog.Accepted:
+        if login_dialog.exec() != qtw.QDialog.Accepted:
             self.exit()
         else:
             #self.file_writer_group.root_dir_entry.setText(self.login_parameters['expdir'])
@@ -321,7 +322,7 @@ class GUI(qtw.QWidget):
 def main_qt(args=None):
     app = qtw.QApplication(sys.argv)
     window = GUI()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

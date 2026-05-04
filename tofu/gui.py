@@ -11,7 +11,11 @@ from tofu import reco, config, util, __version__
 
 try:
     import tofu.vis.qt
-    from PyQt5 import QtGui, QtCore, uic, QtWidgets
+    from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
+    try:
+        from PyQt5 import uic
+    except ImportError:
+        from PyQt6 import uic
 except ImportError:
     raise ImportError("Cannot import modules for GUI, please install tofu with [gui] extras.")
 
@@ -42,7 +46,7 @@ def get_filtered_filenames(path, exts=['.tif', '.edf']):
 
 @contextmanager
 def spinning_cursor():
-    QtWidgets.QApplication.setOverrideCursor(QtWidgets.QCursor(QtCore.Qt.WaitCursor))
+    QtWidgets.QApplication.setOverrideCursor(QtWidgets.QCursor(QtCore.Qt.CursorShape.WaitCursor))
     yield
     QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -64,7 +68,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         ui_file = pkg_resources.resource_filename(__name__, 'gui.ui')
         self.ui = uic.loadUi(ui_file, self)
         self.ui.show()
-        self.ui.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.ui.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.ui.tab_widget.setCurrentIndex(0)
         self.ui.slice_dock.setVisible(False)
         self.ui.volume_dock.setVisible(False)
@@ -512,4 +516,4 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 def main(params):
     app = QtWidgets.QApplication(sys.argv)
     ApplicationWindow(app, params)
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

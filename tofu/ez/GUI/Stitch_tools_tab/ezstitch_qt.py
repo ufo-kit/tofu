@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QGroupBox,
     QPushButton,
     QCheckBox,

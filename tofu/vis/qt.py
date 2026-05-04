@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import tifffile
 
-from PyQt5 import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtWidgets
 
 
 LOG = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class ImageViewer(QtWidgets.QWidget):
         image_view.getView().setAspectLocked(True)
         self.image_item = image_view.getImageItem()
 
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.slider.valueChanged.connect(self.update_image)
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -106,7 +106,7 @@ class OverlapViewer(QtWidgets.QWidget):
         image_view.getView().setAspectLocked(True)
         self.image_item = image_view.getImageItem()
 
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
         self.slider.setRange(0, 0)
         self.slider.valueChanged.connect(self.update_image)
 

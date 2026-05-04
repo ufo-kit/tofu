@@ -31,10 +31,10 @@ setup(
     ],
     extras_require={
         'interactive': ['IPython'],
-        'gui': ['PyQt5', 'pyqtgraph'],
-        'flow': ['PyQt5', 'networkx', 'pyqtconsole', 'pyxdg', 'qtpynodeeditor', 'pyqtgraph'],
+        'gui': ['pyqtgraph'],
+        'flow': ['networkx', 'pyqtconsole', 'pyxdg', 'qtpynodeeditor', 'pyqtgraph'],
         'test': ['pytest', 'pytest-qt'],
-        'ez': ['PyQt5', 'PyYAML', 'pyqtgraph', 'matplotlib'],
+        'ez': ['PyYAML', 'pyqtgraph', 'matplotlib'],
         'edf': ['fabio'],
     },
     description="A fast, versatile and user-friendly image "\

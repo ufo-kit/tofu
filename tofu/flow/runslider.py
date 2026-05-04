@@ -1,7 +1,7 @@
 from functools import partial
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QGridLayout, QLineEdit, QWidget, QSlider
+from pyqtgraph.Qt.QtCore import Qt, pyqtSignal, QTimer
+from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt.QtWidgets import QGridLayout, QLineEdit, QWidget, QSlider
 from tofu.flow.models import IntQLineEditViewItem, RangeQLineEditViewItem, UfoIntValidator
 from tofu.flow.util import FlowError
 
@@ -10,8 +10,8 @@ class RunSlider(QWidget):
     value_changed = pyqtSignal(float)
 
     def __init__(self, parent=None):
-        super().__init__(parent=parent, flags=Qt.Window)
-        self.setWindowFlag(Qt.WindowStaysOnTopHint)
+        super().__init__(parent=parent, flags=Qt.WindowType.Window)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
         self.setMaximumHeight(20)
         self.setMinimumWidth(600)
         self.min_edit = QLineEdit()
@@ -25,13 +25,13 @@ class RunSlider(QWidget):
         self.max_edit.setToolTip('Maximum')
         self.max_edit.setMaximumWidth(80)
         self.max_edit.editingFinished.connect(self.on_max_edit_editing_finished)
-        self.slider = QSlider(orientation=Qt.Horizontal)
+        self.slider = QSlider(orientation=Qt.Orientation.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(100)
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
         main_layout = QGridLayout()
-        main_layout.addWidget(self.current_edit, 0, 0, 1, 3, Qt.AlignHCenter)
+        main_layout.addWidget(self.current_edit, 0, 0, 1, 3, Qt.AlignmentFlag.AlignHCenter)
         main_layout.addWidget(self.min_edit, 1, 0)
         main_layout.addWidget(self.slider, 1, 1)
         main_layout.addWidget(self.max_edit, 1, 2)

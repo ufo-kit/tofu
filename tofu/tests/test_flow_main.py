@@ -5,7 +5,7 @@ import pkg_resources
 import pytest
 import sys
 import xdg.BaseDirectory
-from PyQt5.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from pyqtgraph.Qt.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.main import ApplicationWindow, get_filled_registry, GlobalExceptionHandler
 from tofu.flow.scene import UfoScene
@@ -86,7 +86,7 @@ class TestApplicationWindow:
             self.message_shown = True
 
         self.message_shown = False
-        monkeypatch.setattr(QMessageBox, "exec_", exec_)
+        monkeypatch.setattr(QMessageBox, "exec", exec_)
         app_window.on_exception_occured('foo')
 
         assert self.message_shown
@@ -300,7 +300,7 @@ class TestApplicationWindow:
         def exec_(inst):
             self.message_shown = True
 
-        monkeypatch.setattr(QMessageBox, "exec_", exec_)
+        monkeypatch.setattr(QMessageBox, "exec", exec_)
 
         # Nothing opened, nothing happens
         monkeypatch.setattr(QFileDialog, "getOpenFileNames", lambda *args: ([], True))

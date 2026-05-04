@@ -3,9 +3,9 @@ import logging
 import os
 import pathlib
 import sys
-from PyQt5.QtCore import Qt, QObject, QPoint, pyqtSignal
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
-                             QMessageBox, QProgressBar, QMainWindow, QStyle)
+from pyqtgraph.Qt.QtCore import Qt, QObject, QPoint, pyqtSignal
+from pyqtgraph.Qt.QtWidgets import (QApplication, QFileDialog, QWidget, QVBoxLayout, QMenuBar,
+                                    QMessageBox, QProgressBar, QMainWindow, QStyle)
 from qtpynodeeditor import DataModelRegistry, FlowView
 import xdg.BaseDirectory
 
@@ -182,7 +182,7 @@ class ApplicationWindow(QMainWindow):
         msg.setIcon(QMessageBox.Critical)
         msg.setText(text)
         msg.setWindowTitle("Error")
-        msg.exec_()
+        msg.exec()
 
     def on_number_of_inputs_changed(self, value):
         self.progress_bar.setMaximum(value)
@@ -352,7 +352,7 @@ class ApplicationWindow(QMainWindow):
             msg.setDetailedText('\n'.join([f'Node name "{name}" from file "{file_name}"'
                                            for (name, file_name) in overwriting.items()]))
             msg.setWindowTitle('Warning')
-            msg.exec_()
+            msg.exec()
 
     def export_composite(self, node, file_name):
         state = node.model.save()
@@ -403,7 +403,7 @@ class ApplicationWindow(QMainWindow):
             self.console = PythonConsole(formats={
                 'keyword': format('darkBlue', 'bold')
             })
-            self.console.setWindowFlag(Qt.SubWindow, True)
+            self.console.setWindowFlag(Qt.WindowType.SubWindow, True)
             self.console.ctrl_d_exits_console(True)
             self.console.push_local_ns('scene', self.ufo_scene)
             self.console.resize(640, 480)
@@ -418,7 +418,7 @@ class ApplicationWindow(QMainWindow):
             msg = QMessageBox(parent=self)
             msg.setIcon(QMessageBox.Information)
             msg.setText('Click on an input field in the flow to connect the slider')
-            msg.exec_()
+            msg.exec()
         else:
             self.run_slider.show()
             # Make sure it goes to the front if it is currently burried under other windows
@@ -526,7 +526,7 @@ def main():
     sys.excepthook = exception_handler.excepthook
 
     main_window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':
