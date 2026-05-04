@@ -1,7 +1,7 @@
 import re
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtCore import Qt
+from pyqtgraph.Qt.QtWidgets import (
     QDialog,
     QLineEdit,
     QPushButton,
@@ -21,8 +21,8 @@ class Login(QDialog):
         self.login_parameters_dict = login_parameters_dict
 
         self.setWindowTitle("USER LOGIN")
-        self.setWindowModality(Qt.ApplicationModal)
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self.welcome_label = QLabel()
         self.welcome_label.setText("Welcome to BMIT!")
@@ -49,9 +49,9 @@ class Login(QDialog):
 
     def set_layout(self):
         layout = QGridLayout()
-        self.welcome_label.setAlignment(Qt.AlignCenter)
-        self.prompt_label_bl.setAlignment(Qt.AlignCenter)
-        self.prompt_label_expdir.setAlignment(Qt.AlignCenter)
+        self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.prompt_label_bl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.prompt_label_expdir.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.welcome_label, 0, 0, 1, 2)
         layout.addWidget(self.prompt_label_bl, 1, 0, 1, 2)
         layout.addWidget(self.bl_label, 2, 0, 1, 1)

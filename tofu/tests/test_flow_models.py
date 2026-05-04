@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QValidator
-from PyQt5.QtWidgets import QFileDialog, QInputDialog, QLineEdit
+from pyqtgraph.Qt.QtCore import Qt
+from pyqtgraph.Qt.QtGui import QValidator
+from pyqtgraph.Qt.QtWidgets import QFileDialog, QInputDialog, QLineEdit
 from tofu.flow.main import get_filled_registry
 from tofu.flow.models import (CheckBoxViewItem, ComboBoxViewItem, get_composite_model_class,
                               get_composite_model_classes, get_composite_model_classes_from_json,
@@ -271,7 +271,7 @@ def test_check_box_view_item(qtbot):
     assert not vit.get()
 
     check_property_changed_emit(qtbot, vit, True, qtbot.mouseClick,
-                                (vit.widget, Qt.LeftButton), show=True)
+                                (vit.widget, Qt.MouseButton.LeftButton), show=True)
 
 
 def test_combo_box_view_item(qtbot):
@@ -1190,7 +1190,7 @@ class TestUfoReadModel:
     def test_double_clicked(self, qtbot, monkeypatch, read_model):
         from tofu.flow.filedirdialog import FileDirDialog
 
-        monkeypatch.setattr(FileDirDialog, "exec_", lambda *args: 1)
+        monkeypatch.setattr(FileDirDialog, "exec", lambda *args: 1)
         monkeypatch.setattr(FileDirDialog, "selectedFiles", lambda *args: ['foobarbaz'])
         read_model.double_clicked(None)
         assert read_model['path'] == 'foobarbaz'

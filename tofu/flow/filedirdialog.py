@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtWidgets import QFileDialog
+from pyqtgraph.Qt.QtWidgets import QFileDialog
 
 
 class FileDirDialog(QFileDialog):

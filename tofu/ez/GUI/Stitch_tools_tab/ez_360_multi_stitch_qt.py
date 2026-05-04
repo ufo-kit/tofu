@@ -1,6 +1,6 @@
 from functools import partial
 
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QGroupBox,
     QPushButton,
     QCheckBox,
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QRadioButton
 )
-from PyQt5.QtCore import pyqtSignal
+from pyqtgraph.Qt.QtCore import pyqtSignal
 import logging
 from shutil import rmtree
 import os

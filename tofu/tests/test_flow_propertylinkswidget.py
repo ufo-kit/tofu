@@ -1,5 +1,5 @@
 import pytest
-from PyQt5.QtCore import Qt, QItemSelectionModel
+from pyqtgraph.Qt.QtCore import Qt, QItemSelectionModel
 from tofu.flow.propertylinkswidget import NodesView, PropertyLinks, PropertyLinksView
 from tofu.tests.flow_util import get_index_from_treemodel, populate_link_model
 
@@ -31,7 +31,7 @@ def test_property_links_view_delete_key(qtbot, link_model, link_view, nodes):
     link_view.setModel(link_model)
     populate_link_model(link_model, nodes)
     link_view.selectColumn(0)
-    qtbot.keyPress(link_view, Qt.Key_Delete)
+    qtbot.keyPress(link_view, Qt.Key.Key_Delete)
     assert link_model.columnCount() == 2
 
 

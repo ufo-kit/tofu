@@ -10,8 +10,8 @@ from tofu.ez.ctdir_walker import VALID_EXTS
 from tofu.ez.params import EZVARS, EZVARS_aux
 from tofu.config import SECTIONS
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
-from PyQt5.QtCore import QRegExp
-from PyQt5.QtGui import QRegExpValidator
+from pyqtgraph.Qt.QtCore import QRegularExpression
+from pyqtgraph.Qt.QtGui import QRegularExpressionValidator
 import argparse
 from tofu.util import TiffSequenceReader
 import numpy as np
@@ -400,33 +400,33 @@ def add_value_to_dict_entry(dict_entry, value):
 def get_ascii_validator():
     """Returns a validator that only allows the input of visible ASCII characters"""
     regexp = "[-A-Za-z0-9_]*"
-    return QRegExpValidator(QRegExp(regexp))
+    return QRegularExpressionValidator(QRegularExpression(regexp))
 
 
 def get_alphabet_lowercase_validator():
     """Returns a validator that only allows the input of lowercase ASCII characters"""
     regexp = "[a-z]*"
-    return QRegExpValidator(QRegExp(regexp))
+    return QRegularExpressionValidator(QRegularExpression(regexp))
 
 
 def get_int_validator():
     """Returns a validator that only allows the input of integers"""
     # Note: QIntValidator allows commas, which is undesirable
     regexp = "[\-]?[0-9]*"
-    return QRegExpValidator(QRegExp(regexp))
+    return QRegularExpressionValidator(QRegularExpression(regexp))
 
 
 def get_double_validator():
     """Returns a validator that only allows the input of floating point number"""
     # Note: QDoubleValidator allows commas before period, which is undesirable
     regexp = "[\-]?[0-9]*[.]?[0-9]*"
-    return QRegExpValidator(QRegExp(regexp))
+    return QRegularExpressionValidator(QRegularExpression(regexp))
 
 
 def get_tuple_validator():
     """Returns a validator that only allows a tuple of floating point numbers"""
     regexp = "[-0-9,.]*"
-    return QRegExpValidator(QRegExp(regexp))
+    return QRegularExpressionValidator(QRegularExpression(regexp))
 
 
 def load_values_from_ezdefault(dict):
