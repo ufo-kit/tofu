@@ -644,8 +644,9 @@ class ConfigGroup(QGroupBox):
             QMessageBox.information(self, "Invalid Input Error", msg)
 
     def adjust_params_if_bincrop_enabled_dialog(self):
-        if (EZVARS_prep['prepro']['bin']['value'] or
-                    EZVARS_prep['prepro']['crop']['value']):
+        if (EZVARS['inout']['bin_before_fbp']['value'] or
+                (EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro'])
+                ):
             msg = "You want to bin and(or) crop the input data at the first step. \n"
             msg += "This will change the data cube size. "
             msg += "Input data must be fully preprocessed before the axis search and all other steps. \n"

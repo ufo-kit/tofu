@@ -351,13 +351,17 @@ class GUI(qtw.QWidget):
         self.close()
 
     def adjust_params_if_bin_crop(self):
-        bf = int(EZVARS_prep['prepro']['bin_size']['value'])
+        bf = 1
+        if EZVARS['inout']['bin_before_fbp']['value']:
+            bf*=SECTIONS['reading']['resize']['value']
+        if EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']:
+            bf*= int(EZVARS_prep['prepro']['bin_size']['value'])
         v = int(EZVARS_prep['prepro']['y']['value'])
         h = int(EZVARS_prep['prepro']['x']['value'])
         if EZVARS['COR']['search-method']['value'] == 2:
             #EZVARS['COR']['search-interval']['value']
             arl = self.centre_of_rotation_group.search_rotation_entry.text().split(",")
-            tmp = f"{float(arl[0])/bf-h:.1f},{float(arl[1])/bf-h:.1f},{float(arl[2])*bf:.1f}"
+            tmp = f"{(float(arl[0])-h)/bf:.1f},{(float(arl[1])-h)/bf:.1f},{float(arl[2]):.1f}"
             self.centre_of_rotation_group.search_rotation_entry.setText(tmp)
             self.centre_of_rotation_group.set_search_rotation()
             #EZVARS['COR']['patch-size']['value']
@@ -366,7 +370,7 @@ class GUI(qtw.QWidget):
             self.centre_of_rotation_group.set_size_of_reco()
             #EZVARS['COR']['search-row']['value']
             tmp = self.centre_of_rotation_group.search_in_slice_entry.text()
-            self.centre_of_rotation_group.search_in_slice_entry.setText(str(int(tmp)//bf-v))
+            self.centre_of_rotation_group.search_in_slice_entry.setText(str((int(tmp)-v)//bf))
             self.centre_of_rotation_group.set_search_slice()
         if EZVARS['COR']['search-method']['value'] == 3:
             # EZVARS['COR']['user-defined-ax']['value']
@@ -374,18 +378,14 @@ class GUI(qtw.QWidget):
             print(" !!!!!!!!!!!! TRYING TO REFORMAT CORS")
             tmp = ''
             for cor in ucors:
-                tmp+=f"{str(float(cor)/bf - h)},"
+                tmp+=f"{str((float(cor)-h)/bf)},"
             self.centre_of_rotation_group.axis_col_entry.setText(tmp[:-1])
             self.centre_of_rotation_group.set_axis_col()
             # EZVARS['COR']['user-defined-dax']['value']
             tmp = self.centre_of_rotation_group.inc_axis_entry.text()
             self.centre_of_rotation_group.inc_axis_entry.setText(str(int(tmp)//bf))
             self.centre_of_rotation_group.set_axis_inc()
-
-        if EZVARS['COR']['search-method']['value'] == 3:
-
-            self.centre_of_rotation_group.axis_col_entry.setText()
-            self.centre_of_rotation_group.inc_axis_entry.setText()
+        #TODO adjust the vertical ROI as well
         return 0
 
 

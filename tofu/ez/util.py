@@ -5,8 +5,8 @@ Created on Apr 20, 2020
 """
 import os, glob, tifffile
 
-from tofu.ez.ctdir_walker import VALID_EXTS
-from tofu.ez.params import EZVARS, EZVARS_aux
+#from tofu.ez.ctdir_walker import VALID_EXTS
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
 from PyQt5.QtCore import QRegExp
@@ -16,6 +16,8 @@ from tofu.util import TiffSequenceReader
 import numpy as np
 import yaml
 import logging
+
+VALID_EXTS = ['.tif', '.tiff', '.edf']
 
 def get_dims(pth):
     # get number of projections and projections dimensions

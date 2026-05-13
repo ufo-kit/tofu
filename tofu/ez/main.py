@@ -364,6 +364,7 @@ def execute_reconstruction():
     print("*********** PROCESSING ************")
     for cmd in cmds:
         if not EZVARS['inout']['dryrun']['value']:
+            print(cmd)
             os.system(cmd)
         else:
             print(cmd)

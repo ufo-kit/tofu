@@ -5,31 +5,37 @@ from tofu.config import SECTIONS
 from tofu.ez.params import EZVARS, EZVARS_prep
 import os
 
-def h5log2params(h5log, odir, ):
-    #First extracting sample_x positions
-    if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
+def h5log2params(h5log, odir):
+    #First extracting sample_x positions   int(h5log['entry']['beamline']['name'][()].decode()[2])
+    bid = get_beamline_id(h5log)
+    if bid == 5:
         sx = np.array(h5log["entry"]["scan"]["data"]["s_stage_x"]["value"])[np.where(np.array(h5log['entry']['scan'] \
                                     ['data']['image_key']['value'][int(h5log['entry']['scan']['n_dark'][0]):])==0)]
-    elif int(h5log['entry']['beamline']['name'][()].decode()[2]) == 7:
+    elif bid == 7:
         sx = np.array(h5log["entry"]["scan"]["data"]["s_stage_x"]["value"])[np.where(np.array(h5log['entry']['scan'] \
                                     ['data']['image_key']['value'][:])==0)]
     else:
         print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
         return
     ps = h5log['entry']['hardware']['camera']['pixelsize'][0] / h5log['entry']['hardware']['camera']['magnification'][0]
-    # TODO also adjust the pixel size acording to binning
     shifts = np.array(-(sx - sx[0])/ps)
+    # binning multipliers
+    bf = 1
     if EZVARS['inout']['bin_before_fbp']['value']:
-        shifts/=SECTIONS['reading']['resize']['value']
-        # TODO also before the scan
+        bf/=SECTIONS['reading']['resize']['value']
+    if EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']:
+        bf/= int(EZVARS_prep['prepro']['bin_size']['value'])
+    print(f'BINNING FACTOR APPLIED TO VARIABLE AXIS: {bf}')
+    #TODO deal gracefully with the horizontal crop as well?
     if np.std(shifts)>5: # if sample moved left right more than 5 pixels it was definetely done intentionally
         print(f'\"Wackel\" scan')
-        #shifts with respect to image middle column
-        #shifts = np.array(-sx/ps + h5log['entry']['hardware']['camera']['sensorsize_x'][0]/2).astype(int)
-        midc = h5log['entry']['hardware']['camera']['roi_width'][0] / 2
-        if EZVARS['inout']['bin_before_fbp']['value']:
-            midc/=SECTIONS['reading']['resize']['value']
-            # TODO also before the scan and do everything at one place
+        midc = h5log['entry']['hardware']['camera']['roi_width'][0] / 2 * bf
+        shifts*=bf
+        # if we take each nth projection we also have to take each nth axis of rotation
+        if (EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']['value']
+                and EZVARS_prep['prepro']['im_lim_range']['value']):
+            shifts=shifts[::EZVARS_prep['prepro']['im_step']['value']]
+        #TODO once a proper 3d binning is implemented the cors must also be adjusted accordingly
         cent_pos_x_arr_string = ','.join(map(str, midc + shifts))
         with open(os.path.join(odir, 'cors.txt'), "w") as text_file:
             text_file.write(cent_pos_x_arr_string)
@@ -68,3 +74,14 @@ def set_params_from_h5log(odir):
     #
     # add_value_to_dict_entry(SECTIONS['retrieve-phase']['energy'], str(self.photon_energy_entry.text()))
     # add_value_to_dict_entry(SECTIONS['retrieve-phase']['propagation-distance'], str())
+
+def get_beamline_id(h5log):
+    bid = 0
+    try:
+        bid = int(h5log['entry']['beamline']['name'][()].decode()[2])
+    except AttributeError:
+        try:
+            bid = int(h5log['entry']['beamline']['name'][()][0].decode()[2])
+        except:
+            print(f"Cannot extract beamline id from h5 file")
+    return bid

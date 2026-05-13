@@ -6,8 +6,7 @@ Created on Apr 5, 2018
 
 import os, h5py, glob
 from tofu.ez.params import EZVARS, EZVARS_prep
-from tofu.ez.Helpers.hereon_h5 import h5log2params
-from tofu.ez.util import add_value_to_dict_entry
+from tofu.ez.Helpers.hereon_h5 import h5log2params, get_beamline_id
 
 VALID_EXTS = ['.tif', '.tiff', '.edf']
 
@@ -82,26 +81,6 @@ class WalkCTdirs:
                 self.ctdirs.append(root)
                 self.huct.append(0)
                 print(f"Found standard CT set with standard flats/dars/tomo in {root}")
-
-            # for dname in dirs:
-            #     # does any directory at this level contain tomo subdirectory?
-            #     print(f"Walking {dname}")
-            #     print(f"Searching for h5 {glob.glob(os.path.join(dname,'*.h5'))}" )
-            #     if dname == self._fdt_names[2]:
-            #         h5file = glob.glob(os.path.join(root,'*.h5'))
-            #         if h5file:
-            #             # there are both tomo subdir and h5 file in the root so it is preprocessed hereon data
-            #
-            #         else: #data doesn't have an h5 log file
-            #
-            #     elif glob.glob(os.path.join(root,'*.h5')): #perphaps root contains h5 file?
-            #         h5filename = os.path.basename(glob.glob(os.path.join(dname,'*.h5'))[0])
-            #         self.ctdirs.append(self.make_symlink_ctdir(dname, h5filename))
-            #         self.huct.append(1)
-            #         print(f"Found raw Hereon CT sequence in {dname} with h5 file {h5filename}")
-            #         print(f"The root contains {dirs} subdirs which we are not going to iterate in")
-            #         dirs[:] = [] # once h5 found we stop walking in subdirectories
-
         self.ctdirs = list(set(self.ctdirs))
         self.ctdirs.sort()
         if sum(self.huct) > 0 and (not EZVARS_prep['prepro']['extended_prepro']['value']):
@@ -130,17 +109,10 @@ class WalkCTdirs:
         os.mkdir(tmpdar)
         os.mkdir(tmpref)
         os.mkdir(tmpimg)
-        blah = 0
-        if int(h5log['entry']['beamline']['name'][()].decode()[2]) == 5:
-            blah = 1
-        elif int(h5log['entry']['beamline']['name'][()].decode()[2]) == 7:
-            blah = 0
-        else:
-            print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
-            return
+        bid = get_beamline_id(h5log)
         for i, imk in enumerate(h5log['entry']['scan']['data']['image_key']['value']):
             imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()
-            if blah:
+            if bid == 5:
                 imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()[1:]
             iind = f"{i:05}"
             if imk == 2:
