@@ -1,10 +1,18 @@
+from pathlib import Path
+
 from setuptools import setup, find_packages
-from tofu import __version__
+
+
+def read_version():
+    namespace = {}
+    exec(Path('tofu/__init__.py').read_text(), namespace)
+    return namespace['__version__']
+
 
 setup(
     name='ufo-tofu',
     python_requires='>=3',
-    version=__version__,
+    version=read_version(),
     author='Matthias Vogelgesang',
     author_email='matthias.vogelgesang@kit.edu',
     url='http://github.com/ufo-kit/tofu',

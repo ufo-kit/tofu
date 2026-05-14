@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68,<77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ufo-tofu"
+dynamic = ["version", "readme"]
+description = "A fast, versatile and user-friendly image processing toolkit for computed tomography"
+requires-python = ">=3"
+license = { text = "LGPL" }
+authors = [
+    { name = "Matthias Vogelgesang", email = "matthias.vogelgesang@kit.edu" },
+]
+dependencies = [
+    "PyGObject",
+    "imageio",
+    "numpy",
+    "tifffile",
+    "scikit-image",
+]
+
+[project.urls]
+Homepage = "http://github.com/ufo-kit/tofu"
+
+[project.optional-dependencies]
+interactive = ["IPython"]
+gui = ["PyQt5", "pyqtgraph"]
+flow = ["PyQt5", "networkx", "pyqtconsole", "pyxdg", "qtpynodeeditor", "pyqtgraph"]
+test = ["pytest", "pytest-qt"]
+ez = ["PyQt5", "PyYAML", "pyqtgraph", "matplotlib"]
+edf = ["fabio"]
+
+[tool.setuptools]
+packages = { find = {} }
+script-files = ["bin/tofu"]
+license-files = ["LICENSE"]
+
+[tool.setuptools.dynamic]
+version = { attr = "tofu.__version__" }
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[tool.setuptools.package-data]
+tofu = ["gui.ui"]
+"tofu.flow" = ["composites/*.cm", "config.json"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["README.rst"]
