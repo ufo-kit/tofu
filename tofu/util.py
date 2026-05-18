@@ -4,6 +4,7 @@ import gi
 import glob
 import logging
 import math
+import numpy as np
 import os
 from collections import OrderedDict
 try:
@@ -174,7 +175,7 @@ def next_power_of_two(number):
     return 2 ** int(math.ceil(math.log(number, 2)))
 
 
-def read_image(filename, allow_multi=False):
+def read_image(filename, image_start=0, image_step=1, allow_multi=False):
     """Read image from file *filename*. In case of tif files, *filename* can be a regular expression
     matching more files. If *allow_multi* is True and there are more images in the *filename*,
     return them all, not only the first one.
@@ -186,8 +187,10 @@ def read_image(filename, allow_multi=False):
 
     if format_check.lower().endswith('.tif') or format_check.lower().endswith('.tiff'):
         reader = TiffSequenceReader(filename)
-        images = [reader.read(i) for i in range(reader.num_images)]
-        return images if allow_multi else images[0]
+        if allow_multi:
+            return np.array([reader.read(i) for i in range(image_start, reader.num_images, image_step)])
+        else:
+            return reader.read(0)
     elif '.edf' in format_check.lower():
         import fabio
         edf = fabio.edfimage.edfimage()

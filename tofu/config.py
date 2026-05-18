@@ -98,6 +98,10 @@ SECTIONS['reading'] = {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Offset to the first read file'},
+    'image-start': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Offset to the first read image in a file'},
     'number': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -107,6 +111,11 @@ SECTIONS['reading'] = {
         'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
+    'image-step': {
+        'default': 1,
+        'ezdefault': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Read every \"step\" image from a file'},
     'resize': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -844,6 +853,68 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
+SECTIONS['compress'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+    'compress-bits': {
+        'default': 16,
+        'type': int,
+        'choices': [8, 16],
+        'help': "Output dynamic range in bits"},
+    'compress-sigma': {
+        'default': None,
+        'type': float,
+        'help': "Noise standard deviation. If not given it will be estimated."},
+    'compress-delta': {
+        'default': None,
+        'type': float,
+        'help': "Delta parameter"},
+    'compress-psnr': {
+        'default': None,
+        'type': float,
+        'help': "PSNR parameter"},
+    'compress-center': {
+        'default': None,
+        'type': float,
+        'help': "Center parameter"},
+    'compress-input-percentile': {
+        'default': 0.1,
+        'type': restrict_value((0, 100)),
+        'help': "Input percentile from 0 to 100 that defines the source dynamic "
+                "range occupied by --output-percentile"},
+    'compress-output-percentile': {
+        'default': 90,
+        'type': restrict_value((0, 100)),
+        'help': "Output percentile from 0 to 100 of a compander's target dynamic range occupied by "
+                "the --input-percentile parameter"},
+    'compress-auto': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Automatically determine compression parameters"},
+}
+
+SECTIONS['decompress'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+}
+
+SECTIONS['denoise'] = {
+    'denoise-sigma': {
+        'default': None,
+        'type': float,
+        'help': "Sigma parameter"},
+    'denoise-strength': {
+        'default': None,
+        'type': float,
+        'help': "Denoising strength"},
+}
+
 SECTIONS['ez'] = {
     'ezvars': {
         'default': None,
@@ -864,7 +935,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint')
+              'Inpaint', 'Compression', 'Decompression', 'Denoising', 'EZ')
 
 
 # Add unit info to help strings

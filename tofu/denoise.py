@@ -1,0 +1,2 @@
+def denoise(args):
+    pass
