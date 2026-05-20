@@ -1,5 +1,7 @@
 import numpy as np
 from skimage.restoration import estimate_sigma
+from scipy.ndimage import correlate, convolve
+from numpy.fft import fft2, ifft2, fftshift
 
 
 def _as_float_array(image):
@@ -39,3 +41,56 @@ def get_psnr(data_range, rmse):
 def get_sigma(image):
     """Return the standard deviation of image noise."""
     return estimate_sigma(image)
+
+
+def get_pearson_correlation(image, kernel, fast=True):
+    """Get Pearson correlation coefficient between *image* and *kernel*. It is normalized to (-1,
+    1).
+    """
+    image = image.astype(float)
+    kernel = kernel - kernel.mean()
+    box_kernel = np.ones(kernel.shape, dtype=float) / kernel.size
+
+    if fast:
+        hk, wk = kernel.shape
+        hkh, wkh = hk // 2, wk // 2
+        addition = (hk % 2, wk % 2)
+        padded = np.pad(image, ((hk // 2, hk // 2), (wk // 2, wk // 2)), mode="reflect")
+        h, w = padded.shape
+        kernel_padding = ((h - hk) // 2, (w - wk) // 2)
+        padded_kernel = fftshift(
+            np.pad(
+                kernel,
+                (
+                    (kernel_padding[0] + addition[0], kernel_padding[0]),
+                    (kernel_padding[1] + addition[1], kernel_padding[1]),
+                ),
+                mode="constant"
+            )
+        )
+
+        padded_box_kernel = fftshift(
+            np.pad(
+                box_kernel,
+                (
+                    (kernel_padding[0] + addition[0], kernel_padding[0]),
+                    (kernel_padding[1] + addition[1], kernel_padding[1]),
+                ),
+                mode="constant"
+            )
+        )
+
+        # Normalizations by local image means and standard deviations can be realized by additional
+        # convolutions with a box function.
+        corr = ifft2(fft2(padded) * np.conj(fft2(padded_kernel))).real[hkh:-hkh, wkh:-wkh]
+        im_means = ifft2(fft2(padded) * fft2(padded_box_kernel)).real[hkh:-hkh, wkh:-wkh]
+        im_squares = ifft2(fft2(padded ** 2) * fft2(padded_box_kernel)).real[hkh:-hkh, wkh:-wkh]
+    else:
+        # Mainly for debugging
+        corr = correlate(image, kernel, mode="reflect")
+        im_means = convolve(image.astype(float), box_kernel)
+        im_squares = convolve(image.astype(float) ** 2, box_kernel)
+
+    im_std = np.sqrt(im_squares - im_means ** 2)
+
+    return corr / (im_std * np.std(kernel) * kernel.size)

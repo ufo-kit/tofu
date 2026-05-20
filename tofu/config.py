@@ -864,32 +864,30 @@ SECTIONS['compress'] = {
         'type': int,
         'choices': [8, 16],
         'help': "Output dynamic range in bits"},
-    'compress-sigma': {
-        'default': None,
-        'type': float,
-        'help': "Noise standard deviation. If not given it will be estimated."},
     'compress-delta': {
         'default': None,
         'type': float,
-        'help': "Delta parameter"},
-    'compress-psnr': {
+        'help': "Grey values spacing"},
+    'compress-j2k-rmse': {
         'default': None,
         'type': float,
-        'help': "PSNR parameter"},
+        'help': "Desired RMSE after conversion to Jpeg2000"},
     'compress-center': {
         'default': None,
         'type': float,
         'help': "Center parameter"},
+    'compress-softmin': {
+        'default': None,
+        'type': float,
+        'help': "Input dynamic range lower value (if not specified determined based on --compress-input-percentile)"},
+    'compress-softmax': {
+        'default': None,
+        'type': float,
+        'help': "Input dynamic range upper value (if not specified determined based on --compress-input-percentile)"},
     'compress-input-percentile': {
         'default': 0.1,
         'type': restrict_value((0, 100)),
-        'help': "Input percentile from 0 to 100 that defines the source dynamic "
-                "range occupied by --output-percentile"},
-    'compress-output-percentile': {
-        'default': 90,
-        'type': restrict_value((0, 100)),
-        'help': "Output percentile from 0 to 100 of a compander's target dynamic range occupied by "
-                "the --input-percentile parameter"},
+        'help': "Input percentile from 0 to 100 that defines softmin and softmax."},
     'compress-auto': {
         'default': False,
         'action': 'store_true',
