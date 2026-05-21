@@ -268,8 +268,6 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0):
 def fmt_prepro(inptrn, outptrn):
     from tofu.ez.params import EZVARS_prep
     from tofu.ez.util import get_dims
-    from tofu.ez.image_read_write import get_image_dtype
-    print(inptrn)
     numim, [N, M], btif = get_dims(os.path.dirname(inptrn))
     #inptrn = os.path.join(inpath, "*.tif")
     cmd = 'ufo-launch'

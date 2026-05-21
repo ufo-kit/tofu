@@ -18,7 +18,8 @@ def h5log2params(h5log, odir):
         print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
         return
     ps = h5log['entry']['hardware']['camera']['pixelsize'][0] / h5log['entry']['hardware']['camera']['magnification'][0]
-    shifts = np.array(-(sx - sx[0])/ps)
+    #TODO check if the guys are using [bin] record at all
+    shifts = np.array(-(sx - np.mean(sx))/ps)
     # binning multipliers
     bf = 1
     if EZVARS['inout']['bin_before_fbp']['value']:
@@ -46,13 +47,15 @@ def h5log2params(h5log, odir):
                             ['data']['image_key']['value'][int(h5log['entry']['scan']['n_dark'][0]):])==0)]
     nz = len(np.where(srot<srot[1]-srot[0])[0])
     print(f"DEBUG: s_rot was {nz} times at 0 position in {os.path.dirname(odir)}")
+    h5data['overall-angle'] = int(h5log["entry"]["scan"]["mode"][0])
     if nz > 1:
-        h5data['overall-angle'] = nz*360
-    else:
-        if len(np.where(srot>200)) > 0:
-            h5data['overall-angle'] = 360
-        else:
-            h5data['overall-angle'] = 180
+        h5data['overall-angle'] = nz*360 #TODO encode full rotation interval in the h5 file
+    # else:
+    #     if len(np.where(srot>200)) > 0: #that is not a particularly good criterium
+    #         h5data['overall-angle'] = 360
+    #     else:
+    #         print('Cannot determine overall rotation interval')
+
     with open(os.path.join(odir,'h5log.yml'), 'w') as outfile:
         yaml.dump(h5data, outfile)
 

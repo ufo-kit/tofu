@@ -286,6 +286,10 @@ EZVARS['inout'] = {
         'ezdefault': False,
         'type': bool,
         'help': "TODO"},
+    'use_every_nth_proj': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'dryrun': {
         'ezdefault': False, 
         'type': bool, 

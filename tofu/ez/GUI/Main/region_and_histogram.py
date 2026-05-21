@@ -129,6 +129,14 @@ class ROIandHistGroup(QGroupBox):
         self.rotate_vol_entry.editingFinished.connect(self.set_bin_size)
         self.bin_reco_entry.setFixedWidth(40)
 
+        self.fbp_read_step_checkbox = QCheckBox()
+        self.fbp_read_step_checkbox.setText("Read every nth projection")
+        self.fbp_read_step_checkbox.stateChanged.connect(self.set_use_every_nth_proj)
+        self.fbp_read_step_entry = QLineEdit()
+        self.fbp_read_step_entry.setValidator(get_int_validator())
+        self.fbp_read_step_entry.editingFinished.connect(self.set_read_proj_step)
+        self.fbp_read_step_entry.setFixedWidth(40)
+
         # self.setStyleSheet('background-color:Azure')
 
         self.spacer = QLabel()
@@ -145,12 +153,6 @@ class ROIandHistGroup(QGroupBox):
 
         layout.addWidget(self.select_rows_checkbox, 0, 0)
         box0 = QGridLayout()
-        # layout.addWidget(self.first_row_label, 1, 0)
-        # layout.addWidget(self.first_row_entry, 1, 1 )
-        # layout.addWidget(self.num_rows_label, 1, 2)
-        # layout.addWidget(self.num_rows_entry, 1, 3)
-        # layout.addWidget(self.nth_row_label, 1, 4)
-        # layout.addWidget(self.nth_row_entry, 1, 5)
         box0.addWidget(self.first_row_label, 0, 0)
         box0.addWidget(self.first_row_entry, 0, 1, alignment=Qt.AlignmentFlag.AlignLeft )
         box0.addWidget(self.num_rows_label, 0, 2, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -161,9 +163,11 @@ class ROIandHistGroup(QGroupBox):
         l=5
         layout.addWidget(self.rotate_vol_label, l, 0)
         layout.addWidget(self.rotate_vol_entry, l, 1)
-        layout.addWidget(self.spacer, l, 2)
-        layout.addWidget(self.bin_reco_checkbox, l, 3, alignment=Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(self.bin_reco_entry, l, 4)
+        #layout.addWidget(self.spacer, l, 2)
+        layout.addWidget(self.fbp_read_step_checkbox, l, 2)
+        layout.addWidget(self.fbp_read_step_entry, l, 3)
+        layout.addWidget(self.bin_reco_checkbox, l, 4, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.bin_reco_entry, l, 5)
         l+=1
         layout.addWidget(self.crop_slices_checkbox, l, 0)
         l+=1
@@ -177,13 +181,6 @@ class ROIandHistGroup(QGroupBox):
         box1.addWidget(self.height_val_label, 0, 7)
         box1.addWidget(self.height_val_entry, 0, 8, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addItem(box1, l, 0,1,8)
-        # layout.addWidget(self.x_val_entry, l, 1)
-        # layout.addWidget(self.width_val_label, l, 2)#, Qt.AlignRight)
-        # layout.addWidget(self.width_val_entry, l, 3)
-        # layout.addWidget(self.y_val_label, l, 4)
-        # layout.addWidget(self.y_val_entry, l, 5)
-        # layout.addWidget(self.height_val_label, l, 6)
-        # layout.addWidget(self.height_val_entry, l, 7)
         l+=1
         layout.addWidget(self.clip_histo_checkbox, l, 0)
         layout.addWidget(self.eight_bit_rButton, l, 1)
@@ -218,6 +215,8 @@ class ROIandHistGroup(QGroupBox):
         self.rotate_vol_entry.setText(str(reverse_tupleize()(SECTIONS['general-reconstruction']['volume-angle-z']['value'])))
         self.bin_reco_checkbox.setChecked(EZVARS['inout']['bin_before_fbp']['value'])
         self.bin_reco_entry.setText(str(SECTIONS['reading']['resize']['value']))
+        self.fbp_read_step_entry.setText(str(SECTIONS['reading']['step']['value']))
+        self.fbp_read_step_checkbox.setChecked(EZVARS['inout']['use_every_nth_proj']['value'])
 
     def set_bin(self):
         add_value_to_dict_entry(EZVARS['inout']['bin_before_fbp'], self.bin_reco_checkbox.isChecked())
@@ -313,3 +312,13 @@ class ROIandHistGroup(QGroupBox):
         dict_entry = SECTIONS['general-reconstruction']['volume-angle-z']
         add_value_to_dict_entry(dict_entry, str(self.rotate_vol_entry.text()))
         self.rotate_vol_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
+
+    def set_use_every_nth_proj(self):
+        dict_entry = EZVARS['inout']['use_every_nth_proj']
+        add_value_to_dict_entry(dict_entry, self.crop_slices_checkbox.isChecked())
+        return 0
+
+    def set_read_proj_step(self):
+        dict_entry = SECTIONS['reading']['step']
+        add_value_to_dict_entry(dict_entry, int(self.height_val_entry.text()))
+        return 0

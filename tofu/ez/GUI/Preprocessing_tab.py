@@ -582,7 +582,6 @@ class PreprocessingGroup(QGroupBox):
                 return
 
 def fmt_and_do_prepro(input_dir, output_dir):
-    print(f"Outputdir in fmtprepro {output_dir}")
     indirs = []
     dirs_with_h5 = []
     for root, dirs, files in os.walk(input_dir):
