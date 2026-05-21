@@ -100,6 +100,7 @@ def tomo(params):
         bp = get_task('backproject', axis_pos=axis)
         last_node = bp
 
+        bp.props.mode = params.interpolation
         if params.angle:
             bp.props.angle_step = params.angle
 
