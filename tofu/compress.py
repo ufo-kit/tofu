@@ -31,6 +31,10 @@ class Compander(ABC):
         self.delta = delta
         self.dynamic_range = dynamic_range
 
+    def get_scale(self):
+        """Get compander scale factor that maps input to quantized dynamic range."""
+        return 2 / (self.delta * self.dynamic_range)
+
     @abstractmethod
     def compress(self, image):
         """Compress the dynamic range of *image*."""
@@ -39,12 +43,8 @@ class Compander(ABC):
     def expand(self, image):
         """Expand a previously compressed *image*."""
 
-    @abstractmethod
-    def get_scale(self):
-        """Get compander scale factor that maps input to quantized dynamic range."""
-
     def quantize(self, image):
-        return image.astype(get_uint_dtype(self.dynamic_range))
+        return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
 
     @abstractmethod
     def get_linearity_deviation(self, value):
@@ -57,9 +57,6 @@ class TanhCompander(Compander):
     def get_linearity_deviation(self, value):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - np.tanh(scaled) / 2) * self.dynamic_range
-    
-    def get_scale(self):
-        return 2 / (self.delta * self.dynamic_range)
     
     def compress(self, image):
         compressed = (1 + np.tanh((image - self.center) * self.get_scale())) * self.dynamic_range / 2
@@ -80,9 +77,6 @@ class ArctanCompander(Compander):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - 2 / np.pi * np.arctan(scaled) / 2) * self.dynamic_range
     
-    def get_scale(self):
-        return 2 / (self.delta * self.dynamic_range)
-    
     def compress(self, image):
         compressed = (1 + 2 / np.pi * np.arctan((image - self.center) * self.get_scale())) * self.dynamic_range / 2
 
@@ -99,12 +93,51 @@ class ArctanCompander(Compander):
         return np.tan(scaled) / self.get_scale() + self.center
 
 
+class RecipSqRootCompander(Compander):
+    """Compress and expand values using the x / sqrt(1 + x^2) function."""
+
+    def get_linearity_deviation(self, value):
+        scaled = (value - self.center) * self.get_scale()
+        return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
+
+    def compress(self, image):
+        scaled = (image - self.center) * self.get_scale()
+        compressed = (1 + scaled / np.sqrt(1 + scaled ** 2)) * self.dynamic_range / 2
+
+        return self.quantize(compressed)
+
+    def expand(self, image):
+        limit = np.nextafter(1.0, 0.0)
+        scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
+
+        return scaled / np.sqrt(1 - scaled ** 2) / self.get_scale() + self.center
+
+
+class ClipCompander(Compander):
+    """Compress and expand values using the x / sqrt(1 + x^2) function."""
+
+    def get_linearity_deviation(self, value):
+        scaled = (value - self.center) * self.get_scale()
+        return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
+
+    def compress(self, image):
+        scaled = np.clip((image - self.center) * self.get_scale(), -1, 1)
+        compressed = (1 + scaled) * self.dynamic_range / 2
+
+        return self.quantize(compressed)
+
+    def expand(self, image):
+        limit = np.nextafter(1.0, 0.0)
+        scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
+
+        return scaled / self.get_scale() + self.center
+
+
 def optimize_delta_to_sigma(args, sigma, images):
     dynamic_range = 2 ** args.compress_bits - 1
 
-    def obj_func(delta_to_sigma):
-        delta = delta_to_sigma * sigma
-        compander = TanhCompander(
+    def obj_func(delta):
+        compander = ClipCompander(
             args.compress_center,
             delta,
             dynamic_range
@@ -116,13 +149,16 @@ def optimize_delta_to_sigma(args, sigma, images):
             reco = compander.expand(compressed)
             rmses.append(get_rmse(image, reco))
             
-        return np.mean(rmses) / sigma
+        return np.mean(rmses)
     
     res = minimize_scalar(
-        obj_func, bounds=(0.05, 10), method="bounded", options={"xatol": 0.05}
+        obj_func,
+        bounds=(sigma / 20, 10 * sigma),
+        method="bounded",
+        options={"xatol": sigma / 20}
     )
-    LOG.debug("Optimized delta to sigma: %.2f", res.x)
-    LOG.debug("Optimized mean RMSE / sigma after quantization: %.2f", res.fun)
+    LOG.debug("Optimized delta / sigma: %.2f", res.x / sigma)
+    LOG.debug("Optimized RMSE / sigma after quantization: %.2f", res.fun / sigma)
     
     return res.x
 
@@ -134,12 +170,13 @@ def analyze(args, images):
     dynamic_range = 2 ** args.compress_bits - 1
     delta_span = dynamic_range * args.compress_delta
 
-    compander = TanhCompander(
+    compander = ClipCompander(
         args.compress_center,
         args.compress_delta,
         dynamic_range
     )
-    j2k_psnr = get_psnr(dynamic_range, args.compress_j2k_rmse)
+    # Dynamic range rescaled to physical range
+    j2k_psnr = get_psnr(args.compress_delta * dynamic_range, args.compress_j2k_rmse)
     rmse_compander = []
     rmse_decoder = []
     rmse_full = []
@@ -152,24 +189,30 @@ def analyze(args, images):
         expanded_full = compander.expand(decoded)
 
         rmse_compander.append(get_rmse(image, expanded))
-        # rmse_decoder.append(get_rmse(expanded, expanded_full))
-        rmse_decoder.append(get_rmse(compressed, decoded))
+        rmse_decoder.append(get_rmse(expanded, expanded_full))
+        # rmse_decoder.append(get_rmse(compressed, decoded))
         rmse_full.append(get_rmse(image, expanded_full))
         tifffile.imwrite("/mnt/fast3/compression/original.tif", image.astype(np.float32))
         tifffile.imwrite("/mnt/fast3/compression/expanded.tif", expanded.astype(np.float32))
-        tifffile.imwrite("/mnt/fast3/compression/compressed.tif", expanded_full.astype(np.float32))
+        tifffile.imwrite("/mnt/fast3/compression/compressed-orig.tif", expanded_full.astype(np.float32))
+        # tifffile.imwrite(
+        #     "/mnt/fast3/compression/compressed.tif",
+        #     compressed.astype(get_uint_dtype(dynamic_range)),
+        #     compression="jpeg2000",
+        #     compressionargs={"level": j2k_psnr}
+        # )
 
     LOG.debug("Center: %g", args.compress_center)
     LOG.debug("Delta grey level: %g (native data range)", args.compress_delta)
     LOG.debug("Noise sigma: %g (native data range)", sigma)
-    LOG.debug("Quantized noise sigma: %g (grey levels)", sigma / args.compress_delta)
+    LOG.debug("JPEG2000 RMSE: %g", args.compress_j2k_rmse)
     LOG.debug("JPEG2000 PSNR: %.2f", j2k_psnr)
     LOG.debug(
         "Required dynamic range for given delta: %d",
         int(np.ceil(input_span / args.compress_delta)),
     )
     LOG.debug("Data sigma / compress delta: %.2f (should be > 1)", sigma / args.compress_delta)
-    LOG.debug("Quantized span / soft data span: %.2f (should be > 1)", delta_span / input_span)
+    LOG.debug("Dynamic range / soft data dynamic range: %.2f (should be > 1)", delta_span / input_span)
     max_soft_deviation = max(
         compander.get_linearity_deviation(args.compress_softmin),
         compander.get_linearity_deviation(args.compress_softmax),
@@ -189,9 +232,13 @@ def analyze(args, images):
         max_hard_deviation,
         max_hard_deviation / dynamic_range * 100
     )
-    LOG.debug("Mean RMSE / sigma after quantization: %.2f", np.mean(rmse_compander) / sigma)
-    LOG.debug("JPEG2000 RMSE: %.2f / %.2f (target/measured)", args.compress_j2k_rmse, np.mean(rmse_decoder))
-    LOG.debug("Final mean RMSE / sigma after all steps: %.2f", np.mean(rmse_full) / sigma)
+    LOG.debug("RMSE / sigma of quantization: %.2f", np.mean(rmse_compander) / sigma)
+    LOG.debug(
+        "RMSE / sigma of JPEG2000: %.2f / %.2f (measured / target)",
+        np.mean(rmse_decoder) / sigma,
+        args.compress_j2k_rmse / sigma
+    )
+    LOG.debug("RMSE / sigma of all steps: %.2f", np.mean(rmse_full) / sigma)
 
 
 def compress(args):
@@ -224,12 +271,11 @@ def compress(args):
         LOG.debug("delta / sigma not specified, optimizing...")
         sigma = np.median([get_sigma(image) for image in images])
         # delta is max 1/4 of the noise sigma
-        args.compress_delta = max(0.25, optimize_delta_to_sigma(args, sigma, images)) * sigma
-        
+        args.compress_delta = max(sigma / 4, optimize_delta_to_sigma(args, sigma, images))
     if not args.compress_j2k_rmse:
         sigma = np.median([get_sigma(image) for image in images])
-        # j2k compression error max 1/2 of the quantized noise sigma
-        args.compress_j2k_rmse = sigma / args.compress_delta / 2
+        # j2k RMSE wrt original noise sigma is 1/4
+        args.compress_j2k_rmse = sigma / 4
 
     analyze(args, images)
     
