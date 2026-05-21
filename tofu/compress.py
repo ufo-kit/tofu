@@ -47,9 +47,13 @@ class Compander(ABC):
         """Get compander scale factor that maps input to quantized dynamic range."""
         return 2 / (self.delta * self.dynamic_range)
 
-    @abstractmethod
     def compress(self, image):
         """Compress the dynamic range of *image*."""
+        return self.quantize((1 + self.scale(image)) / 2 * self.dynamic_range)
+
+    @abstractmethod
+    def scale(self, image):
+        """Scale the dynamic range of *image* for the compressing function."""
 
     @abstractmethod
     def expand(self, image):
@@ -70,14 +74,8 @@ class TanhCompander(Compander):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - np.tanh(scaled) / 2) * self.dynamic_range
 
-    def compress(self, image):
-        compressed = (
-            (1 + np.tanh((image - self.center) * self.get_scale()))
-            * self.dynamic_range
-            / 2
-        )
-
-        return self.quantize(compressed)
+    def scale(self, image):
+        return np.tanh((image - self.center) * self.get_scale())
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
@@ -95,14 +93,8 @@ class ArctanCompander(Compander):
 
         return np.abs(deviation) * self.dynamic_range
 
-    def compress(self, image):
-        compressed = (
-            (1 + 2 / np.pi * np.arctan((image - self.center) * self.get_scale()))
-            * self.dynamic_range
-            / 2
-        )
-
-        return self.quantize(compressed)
+    def scale(self, image):
+        return 2 / np.pi * np.arctan((image - self.center) * self.get_scale())
 
     def expand(self, image):
         limit = np.nextafter(np.pi / 2, 0.0)
@@ -122,11 +114,9 @@ class RecipSqRootCompander(Compander):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
 
-    def compress(self, image):
+    def scale(self, image):
         scaled = (image - self.center) * self.get_scale()
-        compressed = (1 + scaled / np.sqrt(1 + scaled ** 2)) * self.dynamic_range / 2
-
-        return self.quantize(compressed)
+        return scaled / np.sqrt(1 + scaled ** 2)
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
@@ -142,11 +132,8 @@ class ClipCompander(Compander):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
 
-    def compress(self, image):
-        scaled = np.clip((image - self.center) * self.get_scale(), -1, 1)
-        compressed = (1 + scaled) * self.dynamic_range / 2
-
-        return self.quantize(compressed)
+    def scale(self, image):
+        return np.clip((image - self.center) * self.get_scale(), -1, 1)
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
@@ -220,12 +207,12 @@ def show_compander_tone_curves(args, num_points=1024, show=True):
     fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
 
     for name, compander in companders:
-        line, = ax.plot(values, compander.compress(values), alpha=0.25)
+        line, = ax.plot(values, compander.scale(values), alpha=0.25)
         color = line.get_color()
         if np.any(soft_mask):
             ax.plot(
                 values[soft_mask],
-                compander.compress(values[soft_mask]),
+                compander.scale(values[soft_mask]),
                 color=color,
                 label=name,
                 linewidth=2
@@ -400,7 +387,7 @@ def compress(args):
         args.compress_j2k_rmse = sigma / 4
 
     analyze(args, images)
-    show_compander_results(args, images[0], show=False)
+    # show_compander_results(args, images[0], show=False)
     show_compander_tone_curves(args, show=True)
 
 
