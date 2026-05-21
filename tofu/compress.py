@@ -10,7 +10,19 @@ from scipy.optimize import minimize_scalar
 LOG = logging.getLogger(__name__)
 CPU_COUNT = multiprocessing.cpu_count()
 
-__all__ = ["ArctanCompander", "Compander", "TanhCompander", "compress", "decompress"]
+__all__ = [
+    "ArctanCompander",
+    "ClipCompander",
+    "Compander",
+    "RecipSqRootCompander",
+    "TanhCompander",
+    "compress",
+    "decompress",
+    "get_companders",
+    "get_uint_dtype",
+    "show_compander_results",
+    "show_compander_tone_curves",
+]
 
 
 def get_uint_dtype(dynamic_range):
@@ -48,7 +60,7 @@ class Compander(ABC):
 
     @abstractmethod
     def get_linearity_deviation(self, value):
-        """Get deviation from linearity based on the compressing function in output dynamic range."""    
+        """Get deviation from linearity in output dynamic range."""
 
 
 class TanhCompander(Compander):
@@ -57,9 +69,13 @@ class TanhCompander(Compander):
     def get_linearity_deviation(self, value):
         scaled = (value - self.center) * self.get_scale()
         return np.abs(scaled / 2 - np.tanh(scaled) / 2) * self.dynamic_range
-    
+
     def compress(self, image):
-        compressed = (1 + np.tanh((image - self.center) * self.get_scale())) * self.dynamic_range / 2
+        compressed = (
+            (1 + np.tanh((image - self.center) * self.get_scale()))
+            * self.dynamic_range
+            / 2
+        )
 
         return self.quantize(compressed)
 
@@ -75,10 +91,16 @@ class ArctanCompander(Compander):
 
     def get_linearity_deviation(self, value):
         scaled = (value - self.center) * self.get_scale()
-        return np.abs(scaled / 2 - 2 / np.pi * np.arctan(scaled) / 2) * self.dynamic_range
-    
+        deviation = scaled / 2 - 2 / np.pi * np.arctan(scaled) / 2
+
+        return np.abs(deviation) * self.dynamic_range
+
     def compress(self, image):
-        compressed = (1 + 2 / np.pi * np.arctan((image - self.center) * self.get_scale())) * self.dynamic_range / 2
+        compressed = (
+            (1 + 2 / np.pi * np.arctan((image - self.center) * self.get_scale()))
+            * self.dynamic_range
+            / 2
+        )
 
         return self.quantize(compressed)
 
@@ -133,6 +155,95 @@ class ClipCompander(Compander):
         return scaled / self.get_scale() + self.center
 
 
+def get_companders(args):
+    """Return all available companders initialized from compression arguments."""
+    dynamic_range = 2 ** args.compress_bits - 1
+
+    return [
+        ("tanh", TanhCompander(args.compress_center, args.compress_delta, dynamic_range)),
+        ("arctan", ArctanCompander(args.compress_center, args.compress_delta, dynamic_range)),
+        (
+            "reciprocal square root",
+            RecipSqRootCompander(args.compress_center, args.compress_delta, dynamic_range)
+        ),
+        ("clip", ClipCompander(args.compress_center, args.compress_delta, dynamic_range)),
+    ]
+
+
+def show_compander_results(args, image, colormap="gray", show=True):
+    """Show compressed *image* results for every compander."""
+    import matplotlib.pyplot as plt
+
+    companders = get_companders(args)
+    fig, axes = plt.subplots(
+        2,
+        2,
+        figsize=(8, 8),
+        constrained_layout=True,
+        squeeze=False
+    )
+    axes = axes.ravel()
+    color_image = None
+
+    for ax, (name, compander) in zip(axes, companders):
+        compressed = compander.compress(image)
+        color_image = ax.imshow(
+            compressed,
+            cmap=colormap,
+            vmin=0,
+            vmax=compander.dynamic_range
+        )
+        ax.set_title(name)
+        ax.axis("off")
+
+    fig.colorbar(color_image, ax=axes.tolist())
+
+    if show:
+        plt.show()
+
+    return fig
+
+
+def show_compander_tone_curves(args, num_points=1024, show=True):
+    """Show tone curves for every compander."""
+    import matplotlib.pyplot as plt
+
+    companders = get_companders(args)
+    dynamic_range = 2 ** args.compress_bits - 1
+    span = dynamic_range * args.compress_delta
+    values = np.linspace(
+        args.compress_center - span / 2,
+        args.compress_center + span / 2,
+        num_points
+    )
+    soft_mask = (args.compress_softmin <= values) & (values <= args.compress_softmax)
+    fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
+
+    for name, compander in companders:
+        line, = ax.plot(values, compander.compress(values), alpha=0.25)
+        color = line.get_color()
+        if np.any(soft_mask):
+            ax.plot(
+                values[soft_mask],
+                compander.compress(values[soft_mask]),
+                color=color,
+                label=name,
+                linewidth=2
+            )
+
+    ax.axvline(args.compress_softmin, color="0.4", linestyle="--", linewidth=1)
+    ax.axvline(args.compress_softmax, color="0.4", linestyle="--", linewidth=1)
+    ax.set_xlabel("Input value")
+    ax.set_ylabel("Compressed value")
+    ax.grid(True)
+    ax.legend()
+
+    if show:
+        plt.show()
+
+    return fig
+
+
 def optimize_delta_to_sigma(args, sigma, images):
     dynamic_range = 2 ** args.compress_bits - 1
 
@@ -148,9 +259,9 @@ def optimize_delta_to_sigma(args, sigma, images):
             compressed = compander.compress(image).astype(get_uint_dtype(dynamic_range))
             reco = compander.expand(compressed)
             rmses.append(get_rmse(image, reco))
-            
+
         return np.mean(rmses)
-    
+
     res = minimize_scalar(
         obj_func,
         bounds=(sigma / 20, 10 * sigma),
@@ -159,7 +270,7 @@ def optimize_delta_to_sigma(args, sigma, images):
     )
     LOG.debug("Optimized delta / sigma: %.2f", res.x / sigma)
     LOG.debug("Optimized RMSE / sigma after quantization: %.2f", res.fun / sigma)
-    
+
     return res.x
 
 
@@ -194,7 +305,10 @@ def analyze(args, images):
         rmse_full.append(get_rmse(image, expanded_full))
         tifffile.imwrite("/mnt/fast3/compression/original.tif", image.astype(np.float32))
         tifffile.imwrite("/mnt/fast3/compression/expanded.tif", expanded.astype(np.float32))
-        tifffile.imwrite("/mnt/fast3/compression/compressed-orig.tif", expanded_full.astype(np.float32))
+        tifffile.imwrite(
+            "/mnt/fast3/compression/compressed-orig.tif",
+            expanded_full.astype(np.float32)
+        )
         # tifffile.imwrite(
         #     "/mnt/fast3/compression/compressed.tif",
         #     compressed.astype(get_uint_dtype(dynamic_range)),
@@ -211,8 +325,14 @@ def analyze(args, images):
         "Required dynamic range for given delta: %d",
         int(np.ceil(input_span / args.compress_delta)),
     )
-    LOG.debug("Data sigma / compress delta: %.2f (should be > 1)", sigma / args.compress_delta)
-    LOG.debug("Dynamic range / soft data dynamic range: %.2f (should be > 1)", delta_span / input_span)
+    LOG.debug(
+        "Data sigma / compress delta: %.2f (should be > 1)",
+        sigma / args.compress_delta
+    )
+    LOG.debug(
+        "Dynamic range / soft data dynamic range: %.2f (should be > 1)",
+        delta_span / input_span
+    )
     max_soft_deviation = max(
         compander.get_linearity_deviation(args.compress_softmin),
         compander.get_linearity_deviation(args.compress_softmax),
@@ -242,20 +362,22 @@ def analyze(args, images):
 
 
 def compress(args):
-    dynamic_range = 2 ** args.compress_bits - 1
     images = read_image(
         args.images, image_start=args.image_start, image_step=args.image_step, allow_multi=True
     )
     sigma = None
     side = np.minimum(images.shape[-1], images.shape[-2])
     inner_side = int(side / np.sqrt(2))
-    margin = side - inner_side
     images = images[
         :,
         (images.shape[1] - inner_side) // 2:-(images.shape[1] - inner_side) // 2,
         (images.shape[2] - inner_side) // 2:-(images.shape[2] - inner_side) // 2
     ]
-    if args.compress_softmin is None or args.compress_softmax is None or args.compress_center is None:
+    if (
+        args.compress_softmin is None
+        or args.compress_softmax is None
+        or args.compress_center is None
+    ):
         softmin, center, softmax = np.percentile(
             images,
             (args.compress_input_percentile, 50, 100 - args.compress_input_percentile)
@@ -278,7 +400,9 @@ def compress(args):
         args.compress_j2k_rmse = sigma / 4
 
     analyze(args, images)
-    
+    show_compander_results(args, images[0], show=False)
+    show_compander_tone_curves(args, show=True)
+
 
 def decompress(args):
     pass
