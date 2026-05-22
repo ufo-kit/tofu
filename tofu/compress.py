@@ -3,7 +3,9 @@ import logging
 import multiprocessing
 import numpy as np
 from abc import ABC, abstractmethod
-from tofu.util import read_image
+from gi.repository import Ufo
+from tofu.tasks import get_task, get_writer
+from tofu.util import read_image, run_scheduler, set_node_props, setup_read_task
 from tofu.metrics import get_sigma, get_psnr, get_rmse
 from scipy.optimize import minimize_scalar
 
@@ -93,12 +95,20 @@ class Compander(ABC):
         return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
 
     def create_ufo_task(self):
-        from gi.repository import Ufo
-        pass
+        task = get_task('compand')
+        task.props.center = self.center
+        task.props.delta = self.delta
+        task.props.bits = int(np.log2(self.dynamic_range + 1))
+        task.props.direction = 'forward'
+        task.props.type = self.ufo_type
+
+        return task
 
 
 class TanhCompander(Compander):
     """Compress and expand values using a hyperbolic tangent curve."""
+
+    ufo_type = 'tanh'
 
     def forward(self, scaled):
         return np.tanh(scaled)
@@ -111,6 +121,8 @@ class TanhCompander(Compander):
 
 class ArctanCompander(Compander):
     """Compress and expand values using an arctangent curve."""
+
+    ufo_type = 'arctan'
 
     @property
     def scale_factor(self):
@@ -130,6 +142,8 @@ class ArctanCompander(Compander):
 class RecipSqRootCompander(Compander):
     """Compress and expand values using the x / sqrt(1 + x^2) function."""
 
+    ufo_type = 'recip_sqrt'
+
     def forward(self, scaled):
         return scaled / np.sqrt(1 + scaled ** 2)
 
@@ -142,6 +156,8 @@ class RecipSqRootCompander(Compander):
 
 class ClipCompander(Compander):
     """Compress and expand values using clipping."""
+
+    ufo_type = 'clip'
 
     def forward(self, scaled):
         return np.clip(scaled, -1, 1)
@@ -379,6 +395,26 @@ def analyze(args, images):
     LOG.debug("RMSE / sigma of all steps: %.2f", np.mean(rmse_full) / sigma)
 
 
+def create_compression_pipeline(args, graph):
+    """Create the UFO compression pipeline and return its last task."""
+    reader = get_task('read')
+    set_node_props(reader, args)
+    if not args.images:
+        raise RuntimeError('--images not set')
+    setup_read_task(reader, args.images, args)
+
+    dynamic_range = 2 ** args.compress_bits - 1
+    compander = TanhCompander(
+        args.compress_center,
+        args.compress_delta,
+        dynamic_range
+    ).create_ufo_task()
+
+    graph.connect_nodes(reader, compander)
+
+    return compander
+
+
 def compress(args):
     images = read_image(
         args.images, args=args, allow_multi=True
@@ -414,6 +450,27 @@ def compress(args):
     # show_compander_results(args, images[0], show=False)
     # hardmin, hardmax = np.percentile(images, (0, 100))
     # show_compander_tone_curves(args, hardmin, hardmax, show=True)
+
+    graph = Ufo.TaskGraph()
+    sched = Ufo.Scheduler()
+
+    out_task = get_writer(args)
+    if hasattr(out_task.props, 'bits'):
+        out_task.props.bits = args.compress_bits
+    if hasattr(out_task.props, 'tiff_jpeg2000'):
+        out_task.props.tiff_jpeg2000 = True
+    if hasattr(out_task.props, 'level'):
+        out_task.props.level = int(round(
+            get_psnr(
+                args.compress_delta * (2 ** args.compress_bits - 1),
+                args.compress_j2k_rmse
+            )
+        ))
+
+    current = create_compression_pipeline(args, graph)
+    graph.connect_nodes(current, out_task)
+
+    run_scheduler(sched, graph)
 
 
 def decompress(args):
