@@ -921,10 +921,6 @@ SECTIONS['denoise'] = {
         'default': False,
         'action': 'store_true',
         'help': "Use Gaussian window by computing patch weights"},
-    'denoise-fast': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Use a faster version of the algorithm"},
     'denoise-estimate-sigma': {
         'default': False,
         'action': 'store_true',

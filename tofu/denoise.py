@@ -18,7 +18,7 @@ def set_denoise_props(denoise_task, args):
         'h': args.denoise_h,
         'sigma': args.denoise_sigma,
         'window': args.denoise_window,
-        'fast': args.denoise_fast,
+        'fast': True,
         'estimate_sigma': args.denoise_estimate_sigma,
         'addressing_mode': args.denoise_addressing_mode,
     }
