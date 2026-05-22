@@ -43,13 +43,18 @@ class Compander(ABC):
         self.delta = delta
         self.dynamic_range = dynamic_range
 
-    def get_scale(self):
-        """Get compander scale factor that maps input to quantized dynamic range."""
+    @property
+    def scale_factor(self):
+        """Compander scale factor that maps input to quantized dynamic range."""
         return 2 / (self.delta * self.dynamic_range)
 
-    def compress(self, image):
+    def compress(self, image, quantize=True):
         """Compress the dynamic range of *image*."""
-        return self.quantize((1 + self.scale(image)) / 2 * self.dynamic_range)
+        compressed = (1 + self.scale(image)) / 2 * self.dynamic_range
+        if quantize:
+            compressed = self.quantize(compressed)
+
+        return compressed
 
     @abstractmethod
     def scale(self, image):
@@ -71,30 +76,35 @@ class TanhCompander(Compander):
     """Compress and expand values using a hyperbolic tangent curve."""
 
     def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.get_scale()
+        scaled = (value - self.center) * self.scale_factor
         return np.abs(scaled / 2 - np.tanh(scaled) / 2) * self.dynamic_range
 
     def scale(self, image):
-        return np.tanh((image - self.center) * self.get_scale())
+        return np.tanh((image - self.center) * self.scale_factor)
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
         scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
 
-        return np.arctanh(scaled) / self.get_scale() + self.center
+        return np.arctanh(scaled) / self.scale_factor + self.center
 
 
 class ArctanCompander(Compander):
     """Compress and expand values using an arctangent curve."""
 
+    @property
+    def scale_factor(self):
+        """Get compander scale factor that maps input to quantized dynamic range."""
+        return np.pi / (self.delta * self.dynamic_range)
+
     def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.get_scale()
+        scaled = (value - self.center) * self.scale_factor
         deviation = scaled / 2 - 2 / np.pi * np.arctan(scaled) / 2
 
         return np.abs(deviation) * self.dynamic_range
 
     def scale(self, image):
-        return 2 / np.pi * np.arctan((image - self.center) * self.get_scale())
+        return 2 / np.pi * np.arctan((image - self.center) * self.scale_factor)
 
     def expand(self, image):
         limit = np.nextafter(np.pi / 2, 0.0)
@@ -104,42 +114,42 @@ class ArctanCompander(Compander):
             limit
         )
 
-        return np.tan(scaled) / self.get_scale() + self.center
+        return np.tan(scaled) / self.scale_factor + self.center
 
 
 class RecipSqRootCompander(Compander):
     """Compress and expand values using the x / sqrt(1 + x^2) function."""
 
     def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.get_scale()
+        scaled = (value - self.center) * self.scale_factor
         return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
 
     def scale(self, image):
-        scaled = (image - self.center) * self.get_scale()
+        scaled = (image - self.center) * self.scale_factor
         return scaled / np.sqrt(1 + scaled ** 2)
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
         scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
 
-        return scaled / np.sqrt(1 - scaled ** 2) / self.get_scale() + self.center
+        return scaled / np.sqrt(1 - scaled ** 2) / self.scale_factor + self.center
 
 
 class ClipCompander(Compander):
     """Compress and expand values using the x / sqrt(1 + x^2) function."""
 
     def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.get_scale()
+        scaled = (value - self.center) * self.scale_factor
         return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
 
     def scale(self, image):
-        return np.clip((image - self.center) * self.get_scale(), -1, 1)
+        return np.clip((image - self.center) * self.scale_factor, -1, 1)
 
     def expand(self, image):
         limit = np.nextafter(1.0, 0.0)
         scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
 
-        return scaled / self.get_scale() + self.center
+        return scaled / self.scale_factor + self.center
 
 
 def get_companders(args):
@@ -191,37 +201,58 @@ def show_compander_results(args, image, colormap="gray", show=True):
     return fig
 
 
-def show_compander_tone_curves(args, num_points=1024, show=True):
+def show_compander_tone_curves(args, hardmin, hardmax, num_points=1024, show=True):
     """Show tone curves for every compander."""
     import matplotlib.pyplot as plt
 
     companders = get_companders(args)
-    dynamic_range = 2 ** args.compress_bits - 1
-    span = dynamic_range * args.compress_delta
-    values = np.linspace(
-        args.compress_center - span / 2,
-        args.compress_center + span / 2,
-        num_points
-    )
+
+    values = np.linspace(hardmin, hardmax, num=num_points)
     soft_mask = (args.compress_softmin <= values) & (values <= args.compress_softmax)
     fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
 
     for name, compander in companders:
-        line, = ax.plot(values, compander.scale(values), alpha=0.25)
+        line, = ax.plot(values, compander.compress(values, quantize=False), alpha=0.5)
         color = line.get_color()
         if np.any(soft_mask):
             ax.plot(
                 values[soft_mask],
-                compander.scale(values[soft_mask]),
+                compander.compress(values[soft_mask], quantize=False),
                 color=color,
                 label=name,
                 linewidth=2
             )
 
-    ax.axvline(args.compress_softmin, color="0.4", linestyle="--", linewidth=1)
-    ax.axvline(args.compress_softmax, color="0.4", linestyle="--", linewidth=1)
+    ax.axvline(
+        args.compress_center,
+        color="black",
+        linestyle="-.",
+        linewidth=1,
+        label="center"
+    )
+    ax.axvline(args.compress_softmin, color="0.4", linestyle=":", linewidth=1)
+    ax.axvline(
+        args.compress_softmax,
+        color="0.4",
+        linestyle=":",
+        linewidth=1,
+        label="softmin/softmax"
+    )
+    ax.axvline(
+        hardmin,
+        color="0.2",
+        linestyle="--",
+        linewidth=1,
+    )
+    ax.axvline(
+        hardmax,
+        color="0.2",
+        linestyle="--",
+        linewidth=1,
+        label="hardmin/hardmax"
+    )
     ax.set_xlabel("Input value")
-    ax.set_ylabel("Compressed value")
+    ax.set_ylabel("Quantized value")
     ax.grid(True)
     ax.legend()
 
@@ -388,7 +419,8 @@ def compress(args):
 
     analyze(args, images)
     # show_compander_results(args, images[0], show=False)
-    show_compander_tone_curves(args, show=True)
+    hardmin, hardmax = np.percentile(images, (0, 100))
+    show_compander_tone_curves(args, hardmin, hardmax, show=True)
 
 
 def decompress(args):
