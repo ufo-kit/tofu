@@ -94,12 +94,12 @@ class Compander(ABC):
     def quantize(self, image):
         return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
 
-    def create_ufo_task(self):
+    def create_ufo_task(self, direction='forward'):
         task = get_task('compand')
         task.props.center = self.center
         task.props.delta = self.delta
         task.props.bits = int(np.log2(self.dynamic_range + 1))
-        task.props.direction = 'forward'
+        task.props.direction = direction
         task.props.type = self.ufo_type
 
         return task
@@ -395,8 +395,8 @@ def analyze(args, images):
     LOG.debug("RMSE / sigma of all steps: %.2f", np.mean(rmse_full) / sigma)
 
 
-def create_compression_pipeline(args, graph):
-    """Create the UFO compression pipeline and return its last task."""
+def create_compression_pipeline(args, graph, direction='forward'):
+    """Create the UFO companding pipeline and return its last task."""
     reader = get_task('read')
     set_node_props(reader, args)
     if not args.images:
@@ -408,7 +408,7 @@ def create_compression_pipeline(args, graph):
         args.compress_center,
         args.compress_delta,
         dynamic_range
-    ).create_ufo_task()
+    ).create_ufo_task(direction=direction)
 
     graph.connect_nodes(reader, compander)
 
@@ -474,4 +474,16 @@ def compress(args):
 
 
 def decompress(args):
-    pass
+    if args.compress_center is None:
+        raise RuntimeError('--compress-center must be specified')
+    if args.compress_delta is None:
+        raise RuntimeError('--compress-delta must be specified')
+
+    graph = Ufo.TaskGraph()
+    sched = Ufo.Scheduler()
+
+    out_task = get_writer(args)
+    current = create_compression_pipeline(args, graph, direction='backward')
+    graph.connect_nodes(current, out_task)
+
+    run_scheduler(sched, graph)

@@ -894,14 +894,6 @@ SECTIONS['compress'] = {
         'help': "Automatically determine compression parameters"},
 }
 
-SECTIONS['decompress'] = {
-    'images': {
-        'default': None,
-        'type': str,
-        'help': "Location with input images",
-        'metavar': 'PATH'},
-}
-
 SECTIONS['denoise'] = {
     'denoise-sigma': {
         'default': None,
@@ -933,7 +925,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint', 'Compression', 'Decompression', 'Denoising', 'EZ')
+              'Inpaint', 'Compression', 'Denoising', 'EZ')
 
 
 # Add unit info to help strings

@@ -236,7 +236,7 @@ def main():
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
         ('compress',    run_compress,   ('compress',),                  "Compress images"),
-        ('decompress',  run_decompress, ('decompress',),                "Decompress images"),
+        ('decompress',  run_decompress, ('compress',),                  "Decompress images"),
         ('denoise',     run_denoise,    ('denoise',),                   "Denoise images"),
     ]
 
