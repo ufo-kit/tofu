@@ -92,10 +92,12 @@ class Compander(ABC):
         """Apply the inverse compander curve to scaled output values."""
 
     def quantize(self, image):
+        """Quantize *image* to the compander output dtype."""
         return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
 
-    def create_ufo_task(self, direction='forward'):
-        task = get_task('compand')
+    def create_ufo_task(self, direction='forward', processing_node=None):
+        """Create a UFO compand task from this compander."""
+        task = get_task('compand', processing_node=processing_node)
         task.props.center = self.center
         task.props.delta = self.delta
         task.props.bits = int(np.log2(self.dynamic_range + 1))
@@ -284,6 +286,7 @@ def show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, num_poi
 
 
 def optimize_delta_to_sigma(args, sigma, images):
+    """Find a compression delta that keeps quantization RMSE near *sigma*."""
     dynamic_range = 2 ** args.compress_bits - 1
 
     def obj_func(delta):
@@ -314,6 +317,7 @@ def optimize_delta_to_sigma(args, sigma, images):
 
 
 def analyze(args, images):
+    """Log compression quality estimates for *images*."""
     LOG.debug("Compression info")
     sigma = np.median([get_sigma(image) for image in images])
     dynamic_range = 2 ** args.compress_bits - 1
@@ -392,31 +396,17 @@ def analyze(args, images):
         show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, show=True)
 
 
-def create_compression_pipeline(args, graph, direction='forward'):
-    """Create the UFO companding pipeline and return its last task."""
-    reader = get_task('read')
-    set_node_props(reader, args)
-    if not args.images:
-        raise RuntimeError('--images not set')
-    setup_read_task(reader, args.images, args)
-
-    dynamic_range = 2 ** args.compress_bits - 1
-    compander = TanhCompander(
-        args.compress_center,
-        args.compress_delta,
-        dynamic_range
-    ).create_ufo_task(direction=direction)
-
-    graph.connect_nodes(reader, compander)
-
-    return compander
-
-
-def compress(args):
+def determine_compression_parameters(args):
+    """Determine missing compression parameters from *args.images*."""
     images = None
     sigma = None
 
-    if not args.compress_delta or not args.compress_j2k_rmse or not args.compress_center or args.compress_analyze:
+    if (
+        not args.compress_delta
+        or not args.compress_j2k_rmse
+        or not args.compress_center
+        or getattr(args, 'compress_analyze', False)
+    ):
         images = read_image(args.images, args=args, allow_multi=True)
         args.compress_center = np.percentile(images, 50)
         LOG.debug("--compress-center calculated: %g", args.compress_center)
@@ -434,16 +424,45 @@ def compress(args):
 
     if sigma:
         LOG.debug("Noise sigma: %g", sigma)
+
+    args._compression_images = images
+
+
+def create_compression_pipeline(args, direction='forward', processing_node=None):
+    """Create and configure a UFO companding task."""
+    if direction == 'forward':
+        determine_compression_parameters(args)
+    elif args.compress_center is None or args.compress_delta is None:
+        raise RuntimeError('--compress-center and --compress-delta must be specified')
+
+    dynamic_range = 2 ** args.compress_bits - 1
+    return TanhCompander(
+        args.compress_center,
+        args.compress_delta,
+        dynamic_range
+    ).create_ufo_task(direction=direction, processing_node=processing_node)
+
+
+def compress(args):
+    """Run image compression using a UFO companding pipeline."""
+    compand = create_compression_pipeline(args)
+
     # Dynamic range rescaled to physical range
-    j2k_psnr = get_psnr(args.compress_delta * 2 ** args.compress_bits - 1, args.compress_j2k_rmse)
+    j2k_psnr = get_psnr(args.compress_delta * (2 ** args.compress_bits - 1), args.compress_j2k_rmse)
     LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
 
     if args.compress_analyze:
-        analyze(args, images)
+        analyze(args, args._compression_images)
         return
 
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
+
+    reader = get_task('read')
+    set_node_props(reader, args)
+    if not args.images:
+        raise RuntimeError('--images not set')
+    setup_read_task(reader, args.images, args)
 
     out_task = get_writer(args)
     if hasattr(out_task.props, 'bits'):
@@ -458,13 +477,14 @@ def compress(args):
             )
         ))
 
-    current = create_compression_pipeline(args, graph)
-    graph.connect_nodes(current, out_task)
+    graph.connect_nodes(reader, compand)
+    graph.connect_nodes(compand, out_task)
 
     run_scheduler(sched, graph)
 
 
 def decompress(args):
+    """Run image decompression using a UFO companding pipeline."""
     if args.compress_center is None:
         raise RuntimeError('--compress-center must be specified')
     if args.compress_delta is None:
@@ -473,8 +493,15 @@ def decompress(args):
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
 
+    reader = get_task('read')
+    set_node_props(reader, args)
+    if not args.images:
+        raise RuntimeError('--images not set')
+    setup_read_task(reader, args.images, args)
+
     out_task = get_writer(args)
-    current = create_compression_pipeline(args, graph, direction='backward')
+    current = create_compression_pipeline(args, direction='backward')
+    graph.connect_nodes(reader, current)
     graph.connect_nodes(current, out_task)
 
     run_scheduler(sched, graph)

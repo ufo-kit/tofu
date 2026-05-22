@@ -10,6 +10,7 @@ LOG = logging.getLogger(__name__)
 NAME = "reco.conf"
 SECTIONS = OrderedDict()
 
+
 SECTIONS['general'] = {
     'config': {
         'default': NAME,
@@ -891,14 +892,43 @@ SECTIONS['compress'] = {
 }
 
 SECTIONS['denoise'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+    'denoise-search-radius': {
+        'default': 10,
+        'type': restrict_value((1, 8192), dtype=int),
+        'help': "Search radius in pixels"},
+    'denoise-patch-radius': {
+        'default': 3,
+        'type': restrict_value((1, 100), dtype=int),
+        'help': "Patch radius in pixels"},
+    'denoise-h': {
+        'default': 0.1,
+        'type': restrict_value((0, None)),
+        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less"},
     'denoise-sigma': {
-        'default': None,
-        'type': float,
-        'help': "Sigma parameter"},
-    'denoise-strength': {
-        'default': None,
-        'type': float,
-        'help': "Denoising strength"},
+        'default': 0.0,
+        'type': restrict_value((0, None)),
+        'help': "Noise standard deviation"},
+    'denoise-window': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Use Gaussian window by computing patch weights"},
+    'denoise-fast': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Use a faster version of the algorithm"},
+    'denoise-estimate-sigma': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Estimate noise standard deviation"},
+    'denoise-addressing-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'mirrored_repeat',
+        'help': "Outlier treatment"},
 }
 
 SECTIONS['ez'] = {
