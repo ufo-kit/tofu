@@ -235,7 +235,7 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
-        ('compress',    run_compress,   ('compress',),                  "Compress images"),
+        ('compress',    run_compress,   ('compress', 'denoise'),        "Compress images"),
         ('decompress',  run_decompress, ('compress',),                  "Decompress images"),
         ('denoise',     run_denoise,    ('denoise',),                   "Denoise images"),
     ]

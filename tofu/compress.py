@@ -4,6 +4,7 @@ import multiprocessing
 import numpy as np
 from abc import ABC, abstractmethod
 from gi.repository import Ufo
+from tofu.denoise import create_denoising_pipeline
 from tofu.tasks import get_task, get_writer
 from tofu.util import read_image, run_scheduler, set_node_props, setup_read_task
 from tofu.metrics import get_sigma, get_psnr, get_rmse
@@ -435,6 +436,10 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
     elif args.compress_center is None or args.compress_delta is None:
         raise RuntimeError('--compress-center and --compress-delta must be specified')
 
+    # Dynamic range rescaled to physical range
+    j2k_psnr = get_psnr(args.compress_delta * (2 ** args.compress_bits - 1), args.compress_j2k_rmse)
+    LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
+
     dynamic_range = 2 ** args.compress_bits - 1
     return TanhCompander(
         args.compress_center,
@@ -446,10 +451,6 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
 def compress(args):
     """Run image compression using a UFO companding pipeline."""
     compand = create_compression_pipeline(args)
-
-    # Dynamic range rescaled to physical range
-    j2k_psnr = get_psnr(args.compress_delta * (2 ** args.compress_bits - 1), args.compress_j2k_rmse)
-    LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
 
     if args.compress_analyze:
         analyze(args, args._compression_images)
@@ -477,7 +478,13 @@ def compress(args):
             )
         ))
 
-    graph.connect_nodes(reader, compand)
+    current = reader
+    if getattr(args, 'denoise', False):
+        denoise = create_denoising_pipeline(args)
+        graph.connect_nodes(current, denoise)
+        current = denoise
+
+    graph.connect_nodes(current, compand)
     graph.connect_nodes(compand, out_task)
 
     run_scheduler(sched, graph)

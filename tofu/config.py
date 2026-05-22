@@ -897,6 +897,10 @@ SECTIONS['denoise'] = {
         'type': str,
         'help': "Location with input images",
         'metavar': 'PATH'},
+    'denoise': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Denoise images"},
     'denoise-search-radius': {
         'default': 10,
         'type': restrict_value((1, 8192), dtype=int),
@@ -1039,11 +1043,15 @@ class Params(object):
         self.sections = sections + ('general', 'reading')
     
     def add_parser_args(self, parser):
+        added = set()
         for section in self.sections:
             for name in sorted(SECTIONS[section]):
+                if name in added:
+                    continue
                 opts = without_keys(SECTIONS[section][name], {'ezdefault'})
                 opts.pop('unit', None)
                 parser.add_argument('--{}'.format(name), **opts)
+                added.add(name)
                 
     def add_arguments(self, parser):
         self.add_parser_args(parser)
