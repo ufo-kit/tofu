@@ -92,6 +92,10 @@ class Compander(ABC):
     def quantize(self, image):
         return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
 
+    def create_ufo_task(self):
+        from gi.repository import Ufo
+        pass
+
 
 class TanhCompander(Compander):
     """Compress and expand values using a hyperbolic tangent curve."""
@@ -262,7 +266,7 @@ def optimize_delta_to_sigma(args, sigma, images):
     dynamic_range = 2 ** args.compress_bits - 1
 
     def obj_func(delta):
-        compander = ClipCompander(
+        compander = TanhCompander(
             args.compress_center,
             delta,
             dynamic_range
@@ -295,7 +299,7 @@ def analyze(args, images):
     dynamic_range = 2 ** args.compress_bits - 1
     delta_span = dynamic_range * args.compress_delta
 
-    compander = ClipCompander(
+    compander = TanhCompander(
         args.compress_center,
         args.compress_delta,
         dynamic_range
@@ -377,16 +381,9 @@ def analyze(args, images):
 
 def compress(args):
     images = read_image(
-        args.images, image_start=args.image_start, image_step=args.image_step, allow_multi=True
+        args.images, args=args, allow_multi=True
     )
     sigma = None
-    side = np.minimum(images.shape[-1], images.shape[-2])
-    inner_side = int(side / np.sqrt(2))
-    images = images[
-        :,
-        (images.shape[1] - inner_side) // 2:-(images.shape[1] - inner_side) // 2,
-        (images.shape[2] - inner_side) // 2:-(images.shape[2] - inner_side) // 2
-    ]
     if (
         args.compress_softmin is None
         or args.compress_softmax is None
@@ -415,8 +412,8 @@ def compress(args):
 
     analyze(args, images)
     # show_compander_results(args, images[0], show=False)
-    hardmin, hardmax = np.percentile(images, (0, 100))
-    show_compander_tone_curves(args, hardmin, hardmax, show=True)
+    # hardmin, hardmax = np.percentile(images, (0, 100))
+    # show_compander_tone_curves(args, hardmin, hardmax, show=True)
 
 
 def decompress(args):

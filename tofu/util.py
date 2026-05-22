@@ -175,10 +175,10 @@ def next_power_of_two(number):
     return 2 ** int(math.ceil(math.log(number, 2)))
 
 
-def read_image(filename, image_start=0, image_step=1, allow_multi=False):
+def read_image(filename, args=None, allow_multi=False):
     """Read image from file *filename*. In case of tif files, *filename* can be a regular expression
     matching more files. If *allow_multi* is True and there are more images in the *filename*,
-    return them all, not only the first one.
+    return them all, not only the first one. Use region info from *args*.
     """
     if os.path.isdir(filename):
         format_check = glob.glob(os.path.join(filename, "*"))[0]
@@ -187,10 +187,19 @@ def read_image(filename, image_start=0, image_step=1, allow_multi=False):
 
     if format_check.lower().endswith('.tif') or format_check.lower().endswith('.tiff'):
         reader = TiffSequenceReader(filename)
-        if allow_multi:
-            return np.array([reader.read(i) for i in range(image_start, reader.num_images, image_step)])
-        else:
-            return reader.read(0)
+        num = args.number if args and allow_multi else 1
+        if num is None:
+            num = reader.num_images
+        start = args.image_start if args else 0
+        step = args.image_step if args else 1
+        images = np.array([reader.read(i) for i in range(start, num, step)])
+        height = args.height if args.height else images.shape[-2]
+        if args:
+            # TODO: support width
+            images = images[:, args.y:args.y + height:args.y_step, args.y:args.y + height]
+        if not allow_multi:
+            images = images[0]
+        return images
     elif '.edf' in format_check.lower():
         import fabio
         edf = fabio.edfimage.edfimage()
