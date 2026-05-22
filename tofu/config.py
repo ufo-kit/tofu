@@ -876,22 +876,18 @@ SECTIONS['compress'] = {
         'default': None,
         'type': float,
         'help': "Center parameter"},
-    'compress-softmin': {
-        'default': None,
-        'type': float,
-        'help': "Input dynamic range lower value (if not specified determined based on --compress-input-percentile)"},
-    'compress-softmax': {
-        'default': None,
-        'type': float,
-        'help': "Input dynamic range upper value (if not specified determined based on --compress-input-percentile)"},
     'compress-input-percentile': {
         'default': 0.1,
         'type': restrict_value((0, 100)),
-        'help': "Input percentile from 0 to 100 that defines softmin and softmax."},
-    'compress-auto': {
+        'help': "Input percentile from 0 to 100 that defines softmin and softmax"},
+    'compress-analyze': {
         'default': False,
         'action': 'store_true',
-        'help': "Automatically determine compression parameters"},
+        'help': "Analyze input data, do not do actual processing"},
+    'compress-visualize': {
+        'default': False,
+        'action': 'store_true',
+        'help': "After analysis of the input data, visualize the results"},
 }
 
 SECTIONS['denoise'] = {

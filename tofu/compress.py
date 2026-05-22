@@ -183,7 +183,7 @@ def get_companders(args):
     ]
 
 
-def show_compander_results(args, image, colormap="gray", show=True):
+def show_compander_results(args, image, hardmin, hardmax, colormap="gray", show=True):
     """Show compressed *image* results for every compander."""
     import matplotlib.pyplot as plt
 
@@ -203,8 +203,8 @@ def show_compander_results(args, image, colormap="gray", show=True):
         color_image = ax.imshow(
             compressed,
             cmap=colormap,
-            vmin=0,
-            vmax=compander.dynamic_range
+            vmin= (1 + compander.scale(hardmin)) / 2 * compander.dynamic_range,
+            vmax= (1 + compander.scale(hardmax)) / 2 * compander.dynamic_range
         )
         ax.set_title(name)
         ax.axis("off")
@@ -217,14 +217,14 @@ def show_compander_results(args, image, colormap="gray", show=True):
     return fig
 
 
-def show_compander_tone_curves(args, hardmin, hardmax, num_points=1024, show=True):
+def show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, num_points=1024, show=True):
     """Show tone curves for every compander."""
     import matplotlib.pyplot as plt
 
     companders = get_companders(args)
 
     values = np.linspace(hardmin, hardmax, num=num_points)
-    soft_mask = (args.compress_softmin <= values) & (values <= args.compress_softmax)
+    soft_mask = (softmin <= values) & (values <= softmax)
     fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
 
     for name, compander in companders:
@@ -246,9 +246,14 @@ def show_compander_tone_curves(args, hardmin, hardmax, num_points=1024, show=Tru
         linewidth=1,
         label="center"
     )
-    ax.axvline(args.compress_softmin, color="0.4", linestyle=":", linewidth=1)
     ax.axvline(
-        args.compress_softmax,
+        softmin,
+        color="0.4",
+        linestyle=":",
+        linewidth=1
+    )
+    ax.axvline(
+        softmax,
         color="0.4",
         linestyle=":",
         linewidth=1,
@@ -311,9 +316,13 @@ def optimize_delta_to_sigma(args, sigma, images):
 def analyze(args, images):
     LOG.debug("Compression info")
     sigma = np.median([get_sigma(image) for image in images])
-    input_span = args.compress_softmax - args.compress_softmin
     dynamic_range = 2 ** args.compress_bits - 1
     delta_span = dynamic_range * args.compress_delta
+    hardmin, softmin, softmax, hardmax = np.percentile(
+        images,
+        (0, args.compress_input_percentile, 100 - args.compress_input_percentile, 100)
+    )
+    input_span = hardmax - hardmin
 
     compander = TanhCompander(
         args.compress_center,
@@ -325,7 +334,6 @@ def analyze(args, images):
     rmse_compander = []
     rmse_decoder = []
     rmse_full = []
-    import tifffile
     for image in images:
         compressed = compander.compress(image)
         encoded = imagecodecs.jpeg2k_encode(compressed, numthreads=CPU_COUNT, level=j2k_psnr)
@@ -335,26 +343,11 @@ def analyze(args, images):
 
         rmse_compander.append(get_rmse(image, expanded))
         rmse_decoder.append(get_rmse(expanded, expanded_full))
-        # rmse_decoder.append(get_rmse(compressed, decoded))
         rmse_full.append(get_rmse(image, expanded_full))
-        tifffile.imwrite("/mnt/fast3/compression/original.tif", image.astype(np.float32))
-        tifffile.imwrite("/mnt/fast3/compression/expanded.tif", expanded.astype(np.float32))
-        tifffile.imwrite(
-            "/mnt/fast3/compression/compressed-orig.tif",
-            expanded_full.astype(np.float32)
-        )
-        # tifffile.imwrite(
-        #     "/mnt/fast3/compression/compressed.tif",
-        #     compressed.astype(get_uint_dtype(dynamic_range)),
-        #     compression="jpeg2000",
-        #     compressionargs={"level": j2k_psnr}
-        # )
 
     LOG.debug("Center: %g", args.compress_center)
-    LOG.debug("Delta grey level: %g (native data range)", args.compress_delta)
-    LOG.debug("Noise sigma: %g (native data range)", sigma)
+    LOG.debug("Delta grey level: %g", args.compress_delta)
     LOG.debug("JPEG2000 RMSE: %g", args.compress_j2k_rmse)
-    LOG.debug("JPEG2000 PSNR: %.2f", j2k_psnr)
     LOG.debug(
         "Required dynamic range for given delta: %d",
         int(np.ceil(input_span / args.compress_delta)),
@@ -368,8 +361,8 @@ def analyze(args, images):
         delta_span / input_span
     )
     max_soft_deviation = max(
-        compander.get_linearity_deviation(args.compress_softmin),
-        compander.get_linearity_deviation(args.compress_softmax),
+        compander.get_linearity_deviation(softmin),
+        compander.get_linearity_deviation(softmax),
     )
     hardmin, hardmax = np.percentile(images, (0, 100))
     max_hard_deviation = max(
@@ -394,6 +387,10 @@ def analyze(args, images):
     )
     LOG.debug("RMSE / sigma of all steps: %.2f", np.mean(rmse_full) / sigma)
 
+    if args.compress_visualize:
+        show_compander_results(args, images[images.shape[0] // 2], hardmin, hardmax, show=False)
+        show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, show=True)
+
 
 def create_compression_pipeline(args, graph, direction='forward'):
     """Create the UFO companding pipeline and return its last task."""
@@ -416,40 +413,34 @@ def create_compression_pipeline(args, graph, direction='forward'):
 
 
 def compress(args):
-    images = read_image(
-        args.images, args=args, allow_multi=True
-    )
+    images = None
     sigma = None
-    if (
-        args.compress_softmin is None
-        or args.compress_softmax is None
-        or args.compress_center is None
-    ):
-        softmin, center, softmax = np.percentile(
-            images,
-            (args.compress_input_percentile, 50, 100 - args.compress_input_percentile)
-        )
-        if args.compress_center is None:
-            args.compress_center = center
-        if args.compress_softmin is None:
-            args.compress_softmin = softmin
-        if args.compress_softmax is None:
-            args.compress_softmax = softmax
+
+    if not args.compress_delta or not args.compress_j2k_rmse or not args.compress_center or args.compress_analyze:
+        images = read_image(args.images, args=args, allow_multi=True)
+        args.compress_center = np.percentile(images, 50)
+        LOG.debug("--compress-center calculated: %g", args.compress_center)
 
     if not args.compress_delta:
-        LOG.debug("delta / sigma not specified, optimizing...")
         sigma = np.median([get_sigma(image) for image in images])
         # delta is max 1/4 of the noise sigma
         args.compress_delta = max(sigma / 4, optimize_delta_to_sigma(args, sigma, images))
+        LOG.debug("--compress-delta calculated: %g", args.compress_delta)
     if not args.compress_j2k_rmse:
         sigma = np.median([get_sigma(image) for image in images])
         # j2k RMSE wrt original noise sigma is 1/4
         args.compress_j2k_rmse = sigma / 4
+        LOG.debug("--compress-j2k-rmse calculated using 1 / 4 of noise sigma: %g", args.compress_j2k_rmse)
 
-    analyze(args, images)
-    # show_compander_results(args, images[0], show=False)
-    # hardmin, hardmax = np.percentile(images, (0, 100))
-    # show_compander_tone_curves(args, hardmin, hardmax, show=True)
+    if sigma:
+        LOG.debug("Noise sigma: %g", sigma)
+    # Dynamic range rescaled to physical range
+    j2k_psnr = get_psnr(args.compress_delta * 2 ** args.compress_bits - 1, args.compress_j2k_rmse)
+    LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
+
+    if args.compress_analyze:
+        analyze(args, images)
+        return
 
     graph = Ufo.TaskGraph()
     sched = Ufo.Scheduler()
