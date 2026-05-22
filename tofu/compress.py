@@ -48,6 +48,18 @@ class Compander(ABC):
         """Compander scale factor that maps input to quantized dynamic range."""
         return 2 / (self.delta * self.dynamic_range)
 
+    def normalize(self, image):
+        """Normalize input values around the compander center."""
+        return (image - self.center) * self.scale_factor
+
+    def denormalize(self, scaled):
+        """Denormalize scaled values back to input data units."""
+        return scaled / self.scale_factor + self.center
+
+    def scale(self, image):
+        """Scale the dynamic range of *image* for the compressing function."""
+        return self.forward(self.normalize(image))
+
     def compress(self, image, quantize=True):
         """Compress the dynamic range of *image*."""
         compressed = (1 + self.scale(image)) / 2 * self.dynamic_range
@@ -56,37 +68,41 @@ class Compander(ABC):
 
         return compressed
 
-    @abstractmethod
-    def scale(self, image):
-        """Scale the dynamic range of *image* for the compressing function."""
-
-    @abstractmethod
     def expand(self, image):
         """Expand a previously compressed *image*."""
+        scaled = 2 * image.astype(float) / self.dynamic_range - 1
+
+        return self.denormalize(self.inverse(scaled))
+
+    def get_linearity_deviation(self, value):
+        """Get deviation from linearity in output dynamic range."""
+        scaled = self.normalize(value)
+        deviation = scaled / 2 - self.forward(scaled) / 2
+
+        return np.abs(deviation) * self.dynamic_range
+
+    @abstractmethod
+    def forward(self, scaled):
+        """Apply the compander curve to normalized values."""
+
+    @abstractmethod
+    def inverse(self, scaled):
+        """Apply the inverse compander curve to scaled output values."""
 
     def quantize(self, image):
         return np.rint(image).astype(get_uint_dtype(self.dynamic_range))
-
-    @abstractmethod
-    def get_linearity_deviation(self, value):
-        """Get deviation from linearity in output dynamic range."""
 
 
 class TanhCompander(Compander):
     """Compress and expand values using a hyperbolic tangent curve."""
 
-    def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.scale_factor
-        return np.abs(scaled / 2 - np.tanh(scaled) / 2) * self.dynamic_range
+    def forward(self, scaled):
+        return np.tanh(scaled)
 
-    def scale(self, image):
-        return np.tanh((image - self.center) * self.scale_factor)
-
-    def expand(self, image):
+    def inverse(self, scaled):
         limit = np.nextafter(1.0, 0.0)
-        scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
 
-        return np.arctanh(scaled) / self.scale_factor + self.center
+        return np.arctanh(np.clip(scaled, -limit, limit))
 
 
 class ArctanCompander(Compander):
@@ -97,59 +113,39 @@ class ArctanCompander(Compander):
         """Get compander scale factor that maps input to quantized dynamic range."""
         return np.pi / (self.delta * self.dynamic_range)
 
-    def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.scale_factor
-        deviation = scaled / 2 - 2 / np.pi * np.arctan(scaled) / 2
+    def forward(self, scaled):
+        return 2 / np.pi * np.arctan(scaled)
 
-        return np.abs(deviation) * self.dynamic_range
-
-    def scale(self, image):
-        return 2 / np.pi * np.arctan((image - self.center) * self.scale_factor)
-
-    def expand(self, image):
+    def inverse(self, scaled):
         limit = np.nextafter(np.pi / 2, 0.0)
-        scaled = np.clip(
-            (2 * image.astype(float) / self.dynamic_range - 1) * np.pi / 2,
-            -limit,
-            limit
-        )
+        scaled = np.clip(scaled * np.pi / 2, -limit, limit)
 
-        return np.tan(scaled) / self.scale_factor + self.center
+        return np.tan(scaled)
 
 
 class RecipSqRootCompander(Compander):
     """Compress and expand values using the x / sqrt(1 + x^2) function."""
 
-    def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.scale_factor
-        return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
-
-    def scale(self, image):
-        scaled = (image - self.center) * self.scale_factor
+    def forward(self, scaled):
         return scaled / np.sqrt(1 + scaled ** 2)
 
-    def expand(self, image):
+    def inverse(self, scaled):
         limit = np.nextafter(1.0, 0.0)
-        scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
+        scaled = np.clip(scaled, -limit, limit)
 
-        return scaled / np.sqrt(1 - scaled ** 2) / self.scale_factor + self.center
+        return scaled / np.sqrt(1 - scaled ** 2)
 
 
 class ClipCompander(Compander):
-    """Compress and expand values using the x / sqrt(1 + x^2) function."""
+    """Compress and expand values using clipping."""
 
-    def get_linearity_deviation(self, value):
-        scaled = (value - self.center) * self.scale_factor
-        return np.abs(scaled / 2 - scaled / np.sqrt(1 + scaled ** 2) / 2) * self.dynamic_range
+    def forward(self, scaled):
+        return np.clip(scaled, -1, 1)
 
-    def scale(self, image):
-        return np.clip((image - self.center) * self.scale_factor, -1, 1)
-
-    def expand(self, image):
+    def inverse(self, scaled):
         limit = np.nextafter(1.0, 0.0)
-        scaled = np.clip(2 * image.astype(float) / self.dynamic_range - 1, -limit, limit)
 
-        return scaled / self.scale_factor + self.center
+        return np.clip(scaled, -limit, limit)
 
 
 def get_companders(args):
