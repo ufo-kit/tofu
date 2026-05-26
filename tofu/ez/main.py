@@ -20,7 +20,6 @@ from tofu.config import SECTIONS
 from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
 from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
     complete_message, validate_slice_range
-from shutil import rmtree
 
 LOG = logging.getLogger(__name__)
 
@@ -356,10 +355,6 @@ def execute_reconstruction():
             LOG.error(e)
         else:
             main_sti_mp()
-            if not EZVARS['inout']['keep-tmp']['value']:
-                vert_sti_tmp = EZVARS_aux['vert-sti']['tmp-dir']['value']
-                for dir in os.listdir(vert_sti_tmp):
-                    rmtree(os.path.join(vert_sti_tmp, dir))
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:
