@@ -147,14 +147,22 @@ def main_sti_mp():
     elif len(vert_sets) > 1:
         print(" - Working with several CT directories which contain multiple vertical views")
 
+    keep_tmp_dir = EZVARS['inout']['keep-tmp']['value']
+    tmp_root_dir = EZVARS_aux['vert-sti']['tmp-dir']['value']
     for vert_set in vert_sets:
         ctdir = os.path.relpath(vert_set, start=EZVARS_aux['vert-sti']['input-dir']['value'])
         print(f"-> Working on {str(ctdir)} dataset")
-        tmpdir = os.path.join(EZVARS_aux['vert-sti']['tmp-dir']['value'], ctdir)
+        tmpdir = os.path.join(tmp_root_dir, ctdir)
         outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         stitch_func(vert_set, tmpdir, outdir)
+        if not keep_tmp_dir and os.path.isdir(tmpdir):
+            if os.path.samefile(tmp_root_dir, tmpdir):
+                for dir in os.listdir(tmp_root_dir):
+                    shutil.rmtree(os.path.join(tmp_root_dir, dir))
+            else:
+                shutil.rmtree(tmpdir)
 
 
 def sti_one_set(in_dir_path, tmp_dir_path, out_dir_path):
