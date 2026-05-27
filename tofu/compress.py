@@ -23,7 +23,9 @@ __all__ = [
     "decompress",
     "get_companders",
     "get_uint_dtype",
+    "show_compander_results_pyqtgraph",
     "show_compander_results",
+    "show_compander_tone_curves_pyqtgraph",
     "show_compander_tone_curves",
 ]
 
@@ -36,6 +38,14 @@ def get_uint_dtype(dynamic_range):
         return np.uint16
 
     raise ValueError("data range does not fit into uint16")
+
+
+def run_qt_app(app):
+    """Run a Qt application across PyQt versions."""
+    if hasattr(app, 'exec'):
+        return app.exec()
+
+    return app.exec_()
 
 
 class Compander(ABC):
@@ -268,6 +278,162 @@ def show_compander_results(args, image, hardmin=None, hardmax=None, colormap="gr
     return fig
 
 
+def show_compander_results_pyqtgraph(args, image, hardmin=None, hardmax=None, colormap="gray", show=True):
+    """Show compressed *image* result for the selected compander using pyqtgraph."""
+    import pyqtgraph
+    from PyQt5 import QtCore, QtWidgets
+
+    pyqtgraph.setConfigOptions(antialias=True, imageAxisOrder='row-major')
+
+    compander_name = getattr(args, 'compress_compander', 'tanh')
+    dynamic_range = 2 ** args.compress_bits - 1
+    compander = COMPANDER_TYPES[compander_name](
+        args.compress_center,
+        args.compress_delta,
+        dynamic_range
+    )
+    compressed = compander.compress(image)
+    compressed_softmin, compressed_softmax = np.percentile(compressed, (0.01, 99.99))
+
+    app = QtWidgets.QApplication.instance()
+    owns_app = app is None
+    if owns_app:
+        app = QtWidgets.QApplication([])
+
+    view = pyqtgraph.ImageView(view=pyqtgraph.PlotItem())
+    view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+    view.setWindowTitle("{} compander".format(compander_name))
+    view.getView().setAspectLocked(True)
+    view.setImage(
+        compressed,
+        autoRange=True,
+        autoLevels=False,
+        levels=(compressed_softmin, compressed_softmax)
+    )
+
+    if hasattr(view.ui, 'roiBtn'):
+        view.ui.roiBtn.hide()
+    if hasattr(view.ui, 'menuBtn'):
+        view.ui.menuBtn.hide()
+
+    image_item = view.getImageItem()
+    plot_item = view.getView()
+    default_title = "{} compander".format(compander_name)
+    plot_item.setTitle(default_title)
+
+    def update_mouse_position(event):
+        if not image_item.sceneBoundingRect().contains(event):
+            plot_item.setTitle(default_title)
+            return
+
+        pos = image_item.mapFromScene(event)
+        x = int(pos.x() + 0.5)
+        y = int(pos.y() + 0.5)
+        if 0 <= y < compressed.shape[0] and 0 <= x < compressed.shape[1]:
+            plot_item.setTitle("x={}, y={}, I={:g}".format(x, y, compressed[y, x]))
+        else:
+            plot_item.setTitle(default_title)
+
+    mouse_proxy = pyqtgraph.SignalProxy(
+        image_item.scene().sigMouseMoved,
+        rateLimit=60,
+        slot=lambda event: update_mouse_position(event[0])
+    )
+
+    view._tofu_qapp = app
+    view._tofu_mouse_proxy = mouse_proxy
+    if show:
+        view.show()
+        if owns_app:
+            run_qt_app(app)
+
+    return view
+
+
+def show_compander_tone_curves_pyqtgraph(
+        args, softmin, softmax, hardmin, hardmax, num_points=1024, show=True):
+    """Show tone curves for every compander using pyqtgraph."""
+    import pyqtgraph
+    from PyQt5 import QtCore, QtWidgets
+
+    pyqtgraph.setConfigOptions(antialias=True, background='w', foreground='k')
+
+    app = QtWidgets.QApplication.instance()
+    owns_app = app is None
+    if owns_app:
+        app = QtWidgets.QApplication([])
+
+    companders = get_companders(args)
+    values = np.linspace(hardmin, hardmax, num=num_points)
+    soft_mask = (softmin <= values) & (values <= softmax)
+    curves = [(name, compander.compress(values, quantize=False)) for name, compander in companders]
+    y_min = min(np.min(curve) for _, curve in curves)
+    y_max = max(np.max(curve) for _, curve in curves)
+    if y_min == y_max:
+        y_max = y_min + 1
+
+    plot = pyqtgraph.PlotWidget(title="Compander tone curves")
+    plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+    plot.setWindowTitle("Compander tone curves")
+    plot.setLabel("bottom", "Input value")
+    plot.setLabel("left", "Quantized value")
+    plot.showGrid(x=False, y=False)
+    plot.addLegend()
+
+    for index, (name, curve) in enumerate(curves):
+        color = pyqtgraph.intColor(index, hues=len(curves), minValue=80, maxValue=200)
+        plot.plot(values, curve, pen=pyqtgraph.mkPen(color, width=1))
+        if np.any(soft_mask):
+            plot.plot(
+                values[soft_mask],
+                curve[soft_mask],
+                pen=pyqtgraph.mkPen(color, width=3),
+                name=name
+            )
+
+    center_pen = pyqtgraph.mkPen((0, 0, 0), width=3, style=QtCore.Qt.DashLine)
+    soft_pen = pyqtgraph.mkPen((40, 110, 220), width=2, style=QtCore.Qt.DotLine)
+    hard_pen = pyqtgraph.mkPen((180, 60, 40), width=2, style=QtCore.Qt.DashLine)
+    plot.plot([args.compress_center, args.compress_center], [y_min, y_max], pen=center_pen, name="center")
+    plot.plot([softmin, softmin], [y_min, y_max], pen=soft_pen, name="softmin/softmax")
+    plot.plot([softmax, softmax], [y_min, y_max], pen=soft_pen)
+    plot.plot([hardmin, hardmin], [y_min, y_max], pen=hard_pen, name="hardmin/hardmax")
+    plot.plot([hardmax, hardmax], [y_min, y_max], pen=hard_pen)
+
+    plot.setXRange(hardmin, hardmax, padding=0.02)
+    plot.setYRange(y_min, y_max, padding=0.05)
+
+    def update_mouse_position(event):
+        plot_item = plot.getPlotItem()
+        if not plot_item.sceneBoundingRect().contains(event):
+            plot_item.setTitle("Compander tone curves")
+            return
+
+        pos = plot_item.vb.mapSceneToView(event)
+        x = pos.x()
+        y = pos.y()
+        if hardmin <= x <= hardmax and y_min <= y <= y_max:
+            plot_item.setTitle("x={:g}, y={:g}".format(x, y))
+        else:
+            plot_item.setTitle("Compander tone curves")
+
+    mouse_proxy = pyqtgraph.SignalProxy(
+        plot.scene().sigMouseMoved,
+        rateLimit=60,
+        slot=lambda event: update_mouse_position(event[0])
+    )
+
+    plot._tofu_qapp = app
+    plot._tofu_mouse_proxy = mouse_proxy
+
+    if show:
+        plot.show()
+        if owns_app:
+            run_qt_app(app)
+
+    return plot
+
+
 def show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, num_points=1024, show=True):
     """Show tone curves for every compander."""
     import matplotlib.pyplot as plt
@@ -445,8 +611,32 @@ def analyze(args, images):
     LOG.debug("RMSE / sigma of all steps: %.2f", np.mean(rmse_full) / sigma)
 
     if args.compress_visualize:
-        show_compander_results(args, images[images.shape[0] // 2], hardmin, hardmax, show=False)
-        show_compander_tone_curves(args, softmin, softmax, hardmin, hardmax, show=True)
+        from PyQt5 import QtWidgets
+
+        app = QtWidgets.QApplication.instance()
+        owns_app = app is None
+        if owns_app:
+            app = QtWidgets.QApplication([])
+
+        image_view = show_compander_results_pyqtgraph(
+            args,
+            images[images.shape[0] // 2],
+            hardmin,
+            hardmax,
+            show=False
+        )
+        tone_curves = show_compander_tone_curves_pyqtgraph(
+            args,
+            softmin,
+            softmax,
+            hardmin,
+            hardmax,
+            show=False
+        )
+        image_view.show()
+        tone_curves.show()
+        if owns_app:
+            run_qt_app(app)
 
 
 def determine_compression_parameters(args):

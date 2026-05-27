@@ -24,8 +24,10 @@ setup(
     exclude_package_data={'': ['README.rst']},
     install_requires= [
         'PyGObject',
+        'PyQt5',
         'imageio',
         'numpy',
+        'pyqtgraph',
         'tifffile',
         'scikit-image',
     ],

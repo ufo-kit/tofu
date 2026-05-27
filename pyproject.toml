@@ -13,8 +13,10 @@ authors = [
 ]
 dependencies = [
     "PyGObject",
+    "PyQt5",
     "imageio",
     "numpy",
+    "pyqtgraph",
     "tifffile",
     "scikit-image",
 ]
