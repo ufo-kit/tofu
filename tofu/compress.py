@@ -194,36 +194,62 @@ def get_companders(args):
     ]
 
 
-def show_compander_results(args, image, hardmin, hardmax, colormap="gray", show=True):
+def show_compander_results(args, image, hardmin=None, hardmax=None, colormap="gray", show=True):
     """Show compressed *image* results for every compander."""
     import matplotlib.pyplot as plt
+    from matplotlib.widgets import RangeSlider
 
     companders = get_companders(args)
+    compressed_images = [(name, compander.compress(image)) for name, compander in companders]
+    compressed_values = np.concatenate([compressed.ravel() for _, compressed in compressed_images])
+    compressed_min = np.min(compressed_values)
+    compressed_max = np.max(compressed_values)
+    compressed_softmin, compressed_softmax = np.percentile(compressed_values, (0.01, 99.99))
+    if compressed_min == compressed_max:
+        compressed_max = compressed_min + 1
+    if compressed_softmin == compressed_softmax:
+        compressed_softmax = compressed_max
+
     fig, axes = plt.subplots(
         2,
         2,
         figsize=(8, 8),
-        constrained_layout=True,
         squeeze=False
     )
+    fig.subplots_adjust(bottom=0.14, right=0.9)
     axes = axes.ravel()
-    color_image = None
+    color_images = []
 
-    for ax, (name, compander) in zip(axes, companders):
-        compressed = compander.compress(image)
-        compressed_softmin, compressed_softmax = np.percentile(
-            compressed, (0.001, 100 - 0.001)
-        )
+    for ax, (name, compressed) in zip(axes, compressed_images):
         color_image = ax.imshow(
             compressed,
             cmap=colormap,
             vmin=compressed_softmin,
             vmax=compressed_softmax
         )
+        color_images.append(color_image)
         ax.set_title(name)
         ax.axis("off")
 
-    fig.colorbar(color_image, ax=axes.tolist())
+    colorbar = fig.colorbar(color_images[-1], ax=axes.tolist())
+    slider_ax = fig.add_axes([0.18, 0.04, 0.64, 0.03])
+    slider = RangeSlider(
+        slider_ax,
+        "vmin/vmax",
+        compressed_min,
+        compressed_max,
+        valinit=(compressed_softmin, compressed_softmax)
+    )
+
+    def update_limits(limits):
+        vmin, vmax = limits
+        for color_image in color_images:
+            color_image.set_clim(vmin, vmax)
+        colorbar.update_normal(color_images[-1])
+        fig.canvas.draw_idle()
+
+    slider.on_changed(update_limits)
+    fig._tofu_vrange_slider = slider
 
     if show:
         plt.show()
