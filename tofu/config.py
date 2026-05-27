@@ -865,6 +865,10 @@ SECTIONS['compress'] = {
         'type': int,
         'choices': [8, 16],
         'help': "Output dynamic range in bits"},
+    'compress-compander': {
+        'default': 'tanh',
+        'choices': ['tanh', 'arctan', 'recip_sqrt', 'clip'],
+        'help': "Compander curve"},
     'compress-delta': {
         'default': None,
         'type': float,

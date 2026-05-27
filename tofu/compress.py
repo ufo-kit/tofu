@@ -171,6 +171,14 @@ class ClipCompander(Compander):
         return np.clip(scaled, -limit, limit)
 
 
+COMPANDER_TYPES = {
+    "tanh": TanhCompander,
+    "arctan": ArctanCompander,
+    "recip_sqrt": RecipSqRootCompander,
+    "clip": ClipCompander,
+}
+
+
 def get_companders(args):
     """Return all available companders initialized from compression arguments."""
     dynamic_range = 2 ** args.compress_bits - 1
@@ -203,11 +211,14 @@ def show_compander_results(args, image, hardmin, hardmax, colormap="gray", show=
 
     for ax, (name, compander) in zip(axes, companders):
         compressed = compander.compress(image)
+        compressed_softmin, compressed_softmax = np.percentile(
+            compressed, (0.001, 100 - 0.001)
+        )
         color_image = ax.imshow(
             compressed,
             cmap=colormap,
-            vmin= (1 + compander.scale(hardmin)) / 2 * compander.dynamic_range,
-            vmax= (1 + compander.scale(hardmax)) / 2 * compander.dynamic_range
+            vmin=compressed_softmin,
+            vmax=compressed_softmax
         )
         ax.set_title(name)
         ax.axis("off")
@@ -351,6 +362,10 @@ def analyze(args, images):
         rmse_full.append(get_rmse(image, expanded_full))
 
     LOG.debug("Center: %g", args.compress_center)
+    LOG.debug("hardmin: %g", hardmin)
+    LOG.debug("hardmax: %g", hardmax)
+    LOG.debug("softmin: %g", softmin)
+    LOG.debug("softmax: %g", softmax)
     LOG.debug("Delta grey level: %g", args.compress_delta)
     LOG.debug("JPEG2000 RMSE: %g", args.compress_j2k_rmse)
     LOG.debug(
@@ -441,7 +456,9 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
     LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
 
     dynamic_range = 2 ** args.compress_bits - 1
-    return TanhCompander(
+    compander_cls = COMPANDER_TYPES[getattr(args, 'compress_compander', 'tanh')]
+
+    return compander_cls(
         args.compress_center,
         args.compress_delta,
         dynamic_range
