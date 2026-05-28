@@ -68,8 +68,7 @@ class Login(QDialog):
         self.setLayout(layout)
 
     def select_expdir_func(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
+        options = QFileDialog.Option.DontUseNativeDialog
         root_dir = QFileDialog.getExistingDirectory(
             self, "Select working directory", "/data/gui-test", options=options
         )

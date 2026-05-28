@@ -516,8 +516,8 @@ class EZStitchGroup(QGroupBox):
         if os.path.exists(EZVARS_aux['vert-sti']['output-dir']['value']):
             qm = QMessageBox()
             rep = qm.question(self, '', f"{EZVARS_aux['vert-sti']['output-dir']['value']} \n"
-                                        "will be removed. Continue?", qm.Yes | qm.No)
-            if rep == qm.Yes:
+                                        "will be removed. Continue?", qm.StandardButton.Yes | qm.StandardButton.No)
+            if rep == qm.StandardButton.Yes:
                 try:
                     rmtree(EZVARS_aux['vert-sti']['output-dir']['value'])
                 except:

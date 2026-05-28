@@ -280,8 +280,8 @@ class GUI(qtw.QWidget):
         """
         logging.debug("QUIT")
         reply = qtw.QMessageBox.question(self, 'Quit', 'Are you sure you want to quit?',
-                        qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
-        if reply == qtw.QMessageBox.Yes:
+                        qtw.QMessageBox.StandardButton.Yes | qtw.QMessageBox.StandardButton.No, qtw.QMessageBox.StandardButton.No)
+        if reply == qtw.QMessageBox.StandardButton.Yes:
             # remove all directories with projections
             clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], get_fdt_names())
             # remove axis-search dir too

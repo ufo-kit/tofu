@@ -137,8 +137,8 @@ class Batch360Group(QGroupBox):
             qm = QMessageBox()
             rep = qm.question(self, 'WARNING', "Directory exists and not empty. \n "
                                                "Clean it or select a new directory. \n"
-                                               "Is it SAFE to delete directory now?", qm.Yes | qm.No)
-            if rep == qm.Yes:
+                                               "Is it SAFE to delete directory now?", qm.StandardButton.Yes | qm.StandardButton.No)
+            if rep == qm.StandardButton.Yes:
                 try:
                     rmtree(tmp_dir)
                 except:
@@ -167,7 +167,7 @@ class Batch360Group(QGroupBox):
         Loads external settings from .yaml file specified by user
         Signal is sent to enable updating of displayed GUI values
         """
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self,
             "QFileDialog.getOpenFileName()",

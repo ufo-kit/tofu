@@ -362,11 +362,11 @@ class MultiStitch360Group(QGroupBox):
     def delete_button_pressed(self):
         LOG.debug("Delete button pressed")
         qm = QMessageBox()
-        rep = qm.question(self, '', "Is it safe to delete the output directory?", qm.Yes | qm.No)
+        rep = qm.question(self, '', "Is it safe to delete the output directory?", qm.StandardButton.Yes | qm.StandardButton.No)
         
         if not os.path.exists(EZVARS_aux['stitch360']['output-dir']['value']):
             warning_message("Output directory does not exist")
-        elif rep == qm.Yes:
+        elif rep == qm.StandardButton.Yes:
             print("---- Deleting Data From Output Directory ----")
             try:
                 rmtree(EZVARS_aux['stitch360']['output-dir']['value'])
