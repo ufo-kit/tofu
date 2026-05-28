@@ -189,7 +189,7 @@ class NLMDNGroup(QGroupBox):
 
     def select_image(self):
         LOG.debug("Select one image button pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Open .tif Image File", "", "Tiff Files (*.tif *.tiff)", options=options
         )
@@ -280,9 +280,9 @@ class NLMDNGroup(QGroupBox):
         """
         LOG.debug("DELETE")
         msg = "Delete directory with reconstructed data?"
-        dialog = QMessageBox.warning(self, "Warning: data can be lost", msg, QMessageBox.Yes | QMessageBox.No)
+        dialog = QMessageBox.warning(self, "Warning: data can be lost", msg, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
-        if dialog == QMessageBox.Yes:
+        if dialog == QMessageBox.StandardButton.Yes:
             if os.path.exists(str(EZVARS['nlmdn']['output_pattern']['value'])):
                 LOG.debug("YES")
                 if EZVARS['nlmdn']['output_pattern']['value'] == EZVARS['nlmdn']['input-dir']['value']:
@@ -309,8 +309,8 @@ class NLMDNGroup(QGroupBox):
                 EZVARS['nlmdn']['dryrun']['value']:
             title_text = "Warning: files can be overwritten"
             text1 = "Output directory exists. Files can be overwritten. Proceed?"
-            dialog = QMessageBox.warning(self, title_text, text1, QMessageBox.Yes | QMessageBox.No)
-            if dialog == QMessageBox.Yes:
+            dialog = QMessageBox.warning(self, title_text, text1, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if dialog == QMessageBox.StandardButton.Yes:
                 cmd = fmt_nlmdn_ufo_cmd(EZVARS['nlmdn']['input-dir']['value'],
                                         EZVARS['nlmdn']['output_pattern']['value'])
         else:

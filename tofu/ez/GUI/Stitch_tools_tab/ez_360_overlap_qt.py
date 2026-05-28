@@ -227,8 +227,8 @@ class Overlap360Group(QGroupBox):
             qm = QMessageBox()
             rep = qm.question(self, 'WARNING',
                               "Output directory exists and not empty. Is it SAFE to delete it?",
-                              qm.Yes | qm.No)
-            if rep == qm.Yes:
+                              qm.StandardButton.Yes | qm.StandardButton.No)
+            if rep == qm.StandardButton.Yes:
                 try:
                     rmtree(EZVARS_aux['find360olap']['output-dir']['value'])
                 except:
@@ -239,8 +239,8 @@ class Overlap360Group(QGroupBox):
         if os.path.exists(EZVARS_aux['find360olap']['tmp-dir']['value']) and \
                 len(os.listdir(EZVARS_aux['find360olap']['tmp-dir']['value'])) > 0:
             qm = QMessageBox()
-            rep = qm.question(self, 'WARNING', "Temporary dir exist and not empty. Is it SAFE to delete it?", qm.Yes | qm.No)
-            if rep == qm.Yes:
+            rep = qm.question(self, 'WARNING', "Temporary dir exist and not empty. Is it SAFE to delete it?", qm.StandardButton.Yes | qm.StandardButton.No)
+            if rep == qm.StandardButton.Yes:
                 try:
                     rmtree(EZVARS_aux['find360olap']['tmp-dir']['value'])
                 except:

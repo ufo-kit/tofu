@@ -146,7 +146,7 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Open image button pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self, "Open .tif Image File", "", "Tiff Files (*.tif *.tiff)", options=options
         )
@@ -175,7 +175,7 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Save image to file")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filepath, _ = QFileDialog.getSaveFileName(
             self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
         )
@@ -207,7 +207,7 @@ class ImageViewerGroup(QGroupBox):
             try:
                 tiff_list = (".tif", ".tiff")
                 msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
+                msg.setIcon(QMessageBox.Icon.Information)
                 msg.setWindowTitle("Loading Images...")
                 msg.setText("Loading Images from Directory")
                 msg.show()
@@ -230,7 +230,7 @@ class ImageViewerGroup(QGroupBox):
         try:
             tiff_list = (".tif", ".tiff")
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Loading Images...")
             msg.setText("Loading Images from Directory")
             msg.show()
@@ -257,7 +257,7 @@ class ImageViewerGroup(QGroupBox):
         if directory:
             bit_depth_string = self.check_bit_depth(self.bit_depth)
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to Directory")
             msg.show()
@@ -271,14 +271,14 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Open big tiff button pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self, "QFileDialog.getOpenFileName()", "", "All Files (*)", options=options
         )
         if filePath:
             LOG.debug("Import image path: " + filePath)
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Loading Images...")
             msg.setText("Loading Images from BigTiff")
             msg.show()
@@ -298,13 +298,13 @@ class ImageViewerGroup(QGroupBox):
         LOG.debug("Save stack to bigtiff button pressed")
         LOG.debug("Saving with bitdepth: " + str(self.bit_depth))
         dir_explore = QFileDialog()
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filepath, _ = QFileDialog.getSaveFileName(
             self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
         )
         if filepath:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to BigTiff")
             msg.show()

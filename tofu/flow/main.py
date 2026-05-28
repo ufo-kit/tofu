@@ -416,7 +416,7 @@ class ApplicationWindow(QMainWindow):
     def on_run_slider_action(self):
         if not self.run_slider.view_item:
             msg = QMessageBox(parent=self)
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setText('Click on an input field in the flow to connect the slider')
             msg.exec()
         else:
