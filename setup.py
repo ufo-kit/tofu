@@ -23,11 +23,13 @@ setup(
     scripts=['bin/tofu'],
     exclude_package_data={'': ['README.rst']},
     install_requires= [
+        'imagecodecs',
         'PyGObject',
         'PyQt5',
         'imageio',
         'numpy',
         'pyqtgraph',
+        'scipy',
         'tifffile',
         'scikit-image',
     ],

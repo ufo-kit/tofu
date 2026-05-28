@@ -543,7 +543,8 @@ def analyze(args, images):
     )
     input_span = hardmax - hardmin
 
-    compander = TanhCompander(
+    compander_cls = COMPANDER_TYPES[getattr(args, 'compress_compander', 'tanh')]
+    compander = compander_cls(
         args.compress_center,
         args.compress_delta,
         dynamic_range
@@ -645,21 +646,21 @@ def determine_compression_parameters(args):
     sigma = None
 
     if (
-        not args.compress_delta
-        or not args.compress_j2k_rmse
-        or not args.compress_center
+        args.compress_delta is None
+        or args.compress_j2k_rmse is None
+        or args.compress_center is None
         or getattr(args, 'compress_analyze', False)
     ):
         images = read_image(args.images, args=args, allow_multi=True)
         args.compress_center = np.percentile(images, 50)
         LOG.debug("--compress-center calculated: %g", args.compress_center)
 
-    if not args.compress_delta:
+    if args.compress_delta is None:
         sigma = np.median([get_sigma(image) for image in images])
         # delta is max 1/4 of the noise sigma
         args.compress_delta = max(sigma / 4, optimize_delta_to_sigma(args, sigma, images))
         LOG.debug("--compress-delta calculated: %g", args.compress_delta)
-    if not args.compress_j2k_rmse:
+    if args.compress_j2k_rmse is None:
         sigma = np.median([get_sigma(image) for image in images])
         # j2k RMSE wrt original noise sigma is 1/4
         args.compress_j2k_rmse = sigma / 4

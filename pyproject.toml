@@ -12,11 +12,13 @@ authors = [
     { name = "Matthias Vogelgesang", email = "matthias.vogelgesang@kit.edu" },
 ]
 dependencies = [
+    "imagecodecs",
     "PyGObject",
     "PyQt5",
     "imageio",
     "numpy",
     "pyqtgraph",
+    "scipy",
     "tifffile",
     "scikit-image",
 ]
