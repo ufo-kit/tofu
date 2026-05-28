@@ -280,8 +280,14 @@ def show_compander_results(args, image, hardmin=None, hardmax=None, colormap="gr
 
 def show_compander_results_pyqtgraph(args, image, hardmin=None, hardmax=None, colormap="gray", show=True):
     """Show compressed *image* result for the selected compander using pyqtgraph."""
-    import pyqtgraph
     from PyQt5 import QtCore, QtWidgets
+
+    app = QtWidgets.QApplication.instance()
+    owns_app = app is None
+    if owns_app:
+        app = QtWidgets.QApplication([])
+
+    import pyqtgraph
 
     pyqtgraph.setConfigOptions(antialias=True, imageAxisOrder='row-major')
 
@@ -294,11 +300,6 @@ def show_compander_results_pyqtgraph(args, image, hardmin=None, hardmax=None, co
     )
     compressed = compander.compress(image)
     compressed_softmin, compressed_softmax = np.percentile(compressed, (0.01, 99.99))
-
-    app = QtWidgets.QApplication.instance()
-    owns_app = app is None
-    if owns_app:
-        app = QtWidgets.QApplication([])
 
     view = pyqtgraph.ImageView(view=pyqtgraph.PlotItem())
     view.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -320,28 +321,42 @@ def show_compander_results_pyqtgraph(args, image, hardmin=None, hardmax=None, co
     plot_item = view.getView()
     default_title = "{} compander".format(compander_name)
     plot_item.setTitle(default_title)
+    readout = pyqtgraph.TextItem(default_title, color='w', anchor=(0.5, 0), fill=(0, 0, 0, 160))
+    readout.setZValue(10)
+    plot_item.addItem(readout, ignoreBounds=True)
+
+    def update_readout_position():
+        x_range, y_range = plot_item.vb.viewRange()
+        y_span = y_range[1] - y_range[0]
+        readout.setPos((x_range[0] + x_range[1]) / 2, y_range[0] + 0.01 * y_span)
+
+    update_readout_position()
+    update_readout_position_callback = lambda *args: update_readout_position()
+    plot_item.vb.sigRangeChanged.connect(update_readout_position_callback)
 
     def update_mouse_position(event):
         if not image_item.sceneBoundingRect().contains(event):
             plot_item.setTitle(default_title)
+            readout.setText(default_title)
             return
 
         pos = image_item.mapFromScene(event)
         x = int(pos.x() + 0.5)
         y = int(pos.y() + 0.5)
         if 0 <= y < compressed.shape[0] and 0 <= x < compressed.shape[1]:
-            plot_item.setTitle("x={}, y={}, I={:g}".format(x, y, compressed[y, x]))
+            title = "x={}, y={}, I={:g}".format(x, y, compressed[y, x])
+            plot_item.setTitle(title)
+            readout.setText(title)
         else:
             plot_item.setTitle(default_title)
+            readout.setText(default_title)
 
-    mouse_proxy = pyqtgraph.SignalProxy(
-        image_item.scene().sigMouseMoved,
-        rateLimit=60,
-        slot=lambda event: update_mouse_position(event[0])
-    )
+    image_item.scene().sigMouseMoved.connect(update_mouse_position)
 
     view._tofu_qapp = app
-    view._tofu_mouse_proxy = mouse_proxy
+    view._tofu_mouse_callback = update_mouse_position
+    view._tofu_mouse_readout = readout
+    view._tofu_readout_position_callback = update_readout_position_callback
     if show:
         view.show()
         if owns_app:
@@ -353,15 +368,16 @@ def show_compander_results_pyqtgraph(args, image, hardmin=None, hardmax=None, co
 def show_compander_tone_curves_pyqtgraph(
         args, softmin, softmax, hardmin, hardmax, num_points=1024, show=True):
     """Show tone curves for every compander using pyqtgraph."""
-    import pyqtgraph
     from PyQt5 import QtCore, QtWidgets
-
-    pyqtgraph.setConfigOptions(antialias=True, background='w', foreground='k')
 
     app = QtWidgets.QApplication.instance()
     owns_app = app is None
     if owns_app:
         app = QtWidgets.QApplication([])
+
+    import pyqtgraph
+
+    pyqtgraph.setConfigOptions(antialias=True, background='w', foreground='k')
 
     companders = get_companders(args)
     values = np.linspace(hardmin, hardmax, num=num_points)
