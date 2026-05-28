@@ -14,6 +14,14 @@ This is useful when the data are floating point or have a wider useful dynamic
 range than the chosen output integer type. The compander keeps high precision
 near a chosen center value and spends less precision farther away from it.
 
+.. warning::
+
+   Be careful when compressing data arrays that contain metadata values, such
+   as timestamps, frame counters or other non-image measurements. These values
+   can affect the estimated compression parameters and may be quantized or
+   lossily encoded along with the image data. Store metadata separately, or
+   exclude it from the data passed to ``tofu compress``.
+
 Tone Mapping
 ~~~~~~~~~~~~
 
