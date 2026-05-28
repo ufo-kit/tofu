@@ -32,6 +32,11 @@ class CentreOfRotationGroup(QGroupBox):
         )
         self.auto_minimize_rButton.clicked.connect(self.set_rButton)
 
+        self.cor_search_rel = QCheckBox()
+        self.cor_search_rel.setText("Set search range relative to the center column")
+        self.cor_search_rel.stateChanged.connect(self.set_search_params_rel)
+        self.cor_search_rel.setChecked(True)
+
         self.auto_minimize_apply_pr = QCheckBox()
         self.auto_minimize_apply_pr.setText("Apply PR while searching")
         self.auto_minimize_apply_pr.stateChanged.connect(self.set_minimize_apply_pr)
@@ -49,13 +54,13 @@ class CentreOfRotationGroup(QGroupBox):
         self.search_in_slice_label = QLabel()
         self.search_in_slice_label.setText("Search in slice from row number")
         self.search_in_slice_entry = QLineEdit()
-        self.search_in_slice_entry.setValidator(get_int_validator())
+        #self.search_in_slice_entry.setValidator(get_int_validator())
         self.search_in_slice_entry.editingFinished.connect(self.set_search_slice)
 
         self.size_of_recon_label = QLabel()
         self.size_of_recon_label.setText("Size of reconstructed patch [pixel]")
         self.size_of_recon_entry = QLineEdit()
-        self.size_of_recon_entry.setValidator(get_int_validator())
+        #self.size_of_recon_entry.setValidator(get_int_validator())
         self.size_of_recon_entry.editingFinished.connect(self.set_size_of_reco)
 
         self.axis_col_label = QLabel()
@@ -101,7 +106,8 @@ class CentreOfRotationGroup(QGroupBox):
         layout.addWidget(self.blank_label, 0, 1)
         layout.addWidget(self.blank_label2, 0, 2)
         layout.addWidget(self.auto_minimize_rButton, 1, 0)
-        layout.addWidget(self.auto_minimize_apply_pr, 1, 1)
+        layout.addWidget(self.cor_search_rel, 1, 1)
+        layout.addWidget(self.auto_minimize_apply_pr, 1, 2)
         layout.addWidget(self.search_rotation_label, 2, 0)
         layout.addWidget(self.search_rotation_entry, 2, 1, 1, 2)
         layout.addWidget(self.search_in_slice_label, 3, 0)
@@ -125,6 +131,8 @@ class CentreOfRotationGroup(QGroupBox):
         self.size_of_recon_entry.setText(str(EZVARS['COR']['patch-size']['value']))
         self.axis_col_entry.setText(str(EZVARS['COR']['user-defined-ax']['value']))
         self.inc_axis_entry.setText(str(EZVARS['COR']['user-defined-dax']['value']))
+        self.cor_search_rel.setChecked(EZVARS['COR']['cor-rel-search']['value'])
+        self.auto_minimize_apply_pr.setChecked(EZVARS['COR']['min-std-apply-pr']['value'])
 
     def set_rButton(self):
         dict_entry = EZVARS['COR']['search-method']
@@ -197,6 +205,10 @@ class CentreOfRotationGroup(QGroupBox):
         LOG.debug("PR while min std ax search: " + str(self.auto_minimize_apply_pr.isChecked()))
         dict_entry = EZVARS['COR']['min-std-apply-pr']
         add_value_to_dict_entry(dict_entry, self.auto_minimize_apply_pr.isChecked())
+
+    def set_search_params_rel(self):
+        dict_entry = EZVARS['COR']['cor-rel-search']
+        add_value_to_dict_entry(dict_entry, self.cor_search_rel.isChecked())
 
     def set_axis_col(self):
         if check_that_num_failed(self.axis_col_entry.text()):

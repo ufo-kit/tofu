@@ -13,15 +13,18 @@ from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.tofu_cmd_gen import check_lamino, gpu_optim
 
-def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
-    ax_range_list = ax_range.split(",")
+def find_axis_std(ctset, nviews, wh, tmpdir):
+    ax_range_list = EZVARS['COR']['search-interval']['value'].split(",")
     range_min = ax_range_list[0]
     range_max = ax_range_list[1]
     step = ax_range_list[2]
     indir = make_inpaths(ctset[0], ctset[1])
+    w = wh[1]/2
     if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
-        w = wh[1]/2
-        cmd = f"for SHIFT in $(seq {float(range_min)-w} {step} {float(range_max)-w}); do echo COR search with axis $(python -c \"print({w} + $SHIFT)\"); tofu reco"
+        if EZVARS['COR']['cor-rel-search']['value']:
+            cmd = f"for SHIFT in $(seq {float(range_min)} {step} {float(range_max)}); do echo COR search with axis $(python -c \"print({w} + $SHIFT)\"); tofu reco"
+        else:
+            cmd = f"for SHIFT in $(seq {float(range_min)-w} {step} {float(range_max)-w}); do echo COR search with axis $(python -c \"print({w} + $SHIFT)\"); tofu reco"
     else:
         cmd = 'tofu reco'
     if EZVARS['advanced']['more-reco-params']['value'] is True:
@@ -45,15 +48,24 @@ def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
         cmd += " --absorptivity --fix-nan-and-inf"
     if ctset[1] == 4:
         cmd += " --flats2 {}".format(indir[3])
-    cmd += " --x-region={},{},{}".format(int(-p_width / 2), int(p_width / 2), 1)
-    cmd += " --y-region={},{},{}".format(int(-p_width / 2), int(p_width / 2), 1)
+    p_width = EZVARS['COR']['patch-size']['value'] // 2
+    if p_width<1:
+        p_width = int(w*EZVARS['COR']['patch-size']['value'])
+    cmd += " --x-region={},{},{}".format(-p_width, p_width, 1)
+    cmd += " --y-region={},{},{}".format(-p_width, p_width, 1)
     image_height = wh[0]
-    res = [float(num) for num in ax_range.split(",")]
+    res = [float(num) for num in EZVARS['COR']['search-interval']['value'].split(",")]
+    if EZVARS['COR']['cor-rel-search']['value']:
+        res[0]+=w
     cmd += " --output-bytes-per-file 0"
     cmd += gpu_optim()
     out_pattern = os.path.join(tmpdir, "axis-search/sli")
+    # which row
+    srow = EZVARS['COR']['search-row']['value']
+    if srow<1:
+        srow = int(image_height*srow)
     if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
-        cmd += f" --center-position-z {EZVARS['COR']['search-row']['value'] + 0.5} --region=0.0,1.0,1.0"
+        cmd += f" --center-position-z {srow + 0.5} --region=0.0,1.0,1.0"
         cmd += f" --center-position-x $(python -c \"import numpy as np; print(','.join([str(i) for i in np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',') + $SHIFT]))\")"
         #cor0 = np.loadtxt(f"{os.path.join(ctset[0],'cors.txt')}", delimiter=',')[0]
         #outp = os.path.join(tmpdir, f"axis-search/sli-$(python -c \"import numpy as np; print(np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',')[0] + $SHIFT)\").tif")
@@ -62,9 +74,12 @@ def find_axis_std(ctset, tmpdir, ax_range, p_width, nviews, wh):
         cmd += '; done'
     else:
         cmd += " --output {}".format(enquote(out_pattern))
-        cmd += ' --z {}'.format(EZVARS['COR']['search-row']['value'] - image_height//2)
+        cmd += ' --z {}'.format(srow - image_height//2)
         cmd += ' --z-parameter center-position-x'
-        range_string = str(range_min) + "," + str(range_max) + "," + str(step)
+        if EZVARS['COR']['cor-rel-search']['value']:
+            range_string = str(w-range_min) + "," + str(w+range_max) + "," + str(step)
+        else:
+            range_string = str(w-range_min) + "," + str(w+range_max) + "," + str(step)
         cmd += " --region={}".format(range_string)
     print(cmd)
     os.system(cmd)

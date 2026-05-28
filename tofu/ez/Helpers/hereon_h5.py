@@ -19,7 +19,8 @@ def h5log2params(h5log, odir):
         return
     ps = h5log['entry']['hardware']['camera']['pixelsize'][0] / h5log['entry']['hardware']['camera']['magnification'][0]
     #TODO check if the guys are using [bin] record at all
-    shifts = np.array(-(sx - np.mean(sx))/ps)
+    shifts = np.array(-(sx - np.mean(sx))/ps) #data sets from 2025
+    #shifts = np.array((sx - np.mean(sx))/ps) #XIMEA 2026 driver flips images left-right when saving tiffs
     # binning multipliers
     bf = 1
     if EZVARS['inout']['bin_before_fbp']['value']:

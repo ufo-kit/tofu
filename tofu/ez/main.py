@@ -323,11 +323,8 @@ def execute_reconstruction():
                 elif EZVARS['COR']['search-method']['value'] == 2:
                     # cmds.append("echo \"Cleaning axis-search in tmp directory\"")
                     # os.system('rm -rf {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')))
-                    ax = find_axis_std(ctset,  #EZVARS['inout']['tmp-dir']['value'],
-                                        os.path.join(EZVARS['inout']['output-dir']['value'], setid),
-                                        EZVARS['COR']['search-interval']['value'],
-                                        EZVARS['COR']['patch-size']['value'],
-                                        nviews, wh)
+                    ax = find_axis_std(ctset, nviews, wh,
+                                       os.path.join(EZVARS['inout']['output-dir']['value'], setid))
                 else:
                     ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
             # If EZVARS['COR']['search-method']['value'] >= 4 then bypass axis search and use image midpoint

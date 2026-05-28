@@ -254,6 +254,10 @@ EZVARS['inout'] = {
         'ezdefault': False,
         'type': bool, 
         'help': "TODO"},
+    'inpur-roi-rel': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'clip_hist': {
         'ezdefault': False,
         'type': bool, 
@@ -342,17 +346,24 @@ EZVARS['COR'] = {
         'ezdefault': 1,
         'type': int, 
         'help': "TODO"},
+    'cor-rel-search': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
     'search-interval': {
-        'ezdefault': "1010,1030,0.5",
+        #'ezdefault': "1010,1030,0.5",
+        'ezdefault': "-50,50,5",
         'type': str, 
         'help': "TODO"},
     'patch-size': {
-        'ezdefault': 800,
-        'type': restrict_value((0,None),dtype=int), 
+        #'ezdefault': 800,
+        'ezdefault': 0.75,
+        'type': restrict_value((0,None),dtype=float),
         'help': "Size of reconstructed patch [pixel]"},
     'search-row': {
-        'ezdefault': 400,
-        'type': restrict_value((0,None), dtype=int), 
+        #'ezdefault': 400,
+        'ezdefault': 0.5,
+        'type': restrict_value((0,None), dtype=float),
         'help': "Search in slice from row number"},
     'min-std-apply-pr': {
         'ezdefault': False,
