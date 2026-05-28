@@ -118,7 +118,7 @@ First run analysis and visualization:
 
 .. code-block:: bash
 
-   tofu --verbose compress \
+   tofu compress --verbose \
        --images reco \
        --output compressed-%04d.tif \
        --compress-analyze \
