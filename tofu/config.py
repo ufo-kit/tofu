@@ -166,7 +166,7 @@ SECTIONS['flat-correction'] = {
 
 SECTIONS['retrieve-phase'] = {
     'retrieval-method': {
-        'choices': ['tie', 'ctf', 'qp', 'qp2'],
+        'choices': ['tie', 'ctf', 'qp', 'qp2', 'ict'],
         'default': 'tie',
         'help': "Phase retrieval method"},
     'energy': {
@@ -233,6 +233,14 @@ SECTIONS['retrieve-phase'] = {
         'default': 0.01,
         'type': float,
         'help': "Thresholding rate (typical values between [0.01, 0.1])"},
+    'ict-alpha': {
+        'default': 0.1,
+        'type': float,
+        'help': "ICT regularization"},
+    'ict-alpha-threshold': {
+        'default': 0.0,
+        'type': float,
+        'help': "Below this threshold there is no ICT regularization"},
     'frequency-cutoff': {
         'default': 1e30,
         'type': float,
