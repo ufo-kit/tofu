@@ -181,9 +181,16 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
         fltr.props.scale = args.projection_filter_scale
         fltr.props.cutoff = args.projection_filter_cutoff
         graph.connect_nodes(phase_retrieve, fltr)
-        graph.connect_nodes(fltr, ifft_phase_retrieve)
+        before_ifft = fltr
     else:
-        graph.connect_nodes(phase_retrieve, ifft_phase_retrieve)
+        before_ifft = phase_retrieve
+
+    if getattr(args, 'sharpen', False):
+        sharpen = get_sharpening_task(args, processing_node=processing_node)
+        graph.connect_nodes(before_ifft, sharpen)
+        before_ifft = sharpen
+
+    graph.connect_nodes(before_ifft, ifft_phase_retrieve)
 
     if args.retrieval_method == 'tie' and args.tie_approximate_logarithm:
         # a = 2 / 10^R, b = -10^R / 2, c = thickness_conversion
@@ -343,6 +350,29 @@ def create_projection_filtering_pipeline(args, graph, processing_node=None):
     return (pad, last)
 
 
+def create_sharpening_pipeline(args, graph, processing_node=None):
+    fft = get_task('fft', processing_node=processing_node)
+    sharpen = get_sharpening_task(args, processing_node=processing_node)
+    ifft = get_task('ifft', processing_node=processing_node)
+
+    fft.props.dimensions = 2
+    ifft.props.dimensions = 2
+
+    graph.connect_nodes(fft, sharpen)
+    graph.connect_nodes(sharpen, ifft)
+
+    return (fft, ifft)
+
+
+def get_sharpening_task(args, processing_node=None):
+    sharpen = get_task('frequency-sharpen', processing_node=processing_node)
+    sharpen.props.method = args.sharpen_method
+    sharpen.props.strength = args.sharpen_strength
+    sharpen.props.lorentz_fwhm = args.sharpen_lorentz_fwhm
+
+    return sharpen
+
+
 def create_preprocessing_pipeline(args, graph, source=None, processing_node=None,
                                   cone_beam_weight=True, make_reader=True):
     """If *make_reader* is True, create a read task if *source* is None and no dark and flat fields
@@ -401,7 +431,9 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
             graph.connect_nodes(current, weight)
         current = weight
 
-    if args.energy is not None and args.propagation_distance is not None:
+    has_phase_retrieval = args.energy is not None and args.propagation_distance is not None
+
+    if has_phase_retrieval:
         pr_first, pr_last = create_phase_retrieval_pipeline(args, graph,
                                                             processing_node=processing_node)
         if current:
@@ -413,6 +445,12 @@ def create_preprocessing_pipeline(args, graph, source=None, processing_node=None
         if current:
             graph.connect_nodes(current, pf_first)
         current = pf_last
+    if getattr(args, 'sharpen', False) and not has_phase_retrieval:
+        fs_first, fs_last = create_sharpening_pipeline(args, graph,
+                                                       processing_node=processing_node)
+        if current:
+            graph.connect_nodes(current, fs_first)
+        current = fs_last
 
     return current
 

@@ -509,6 +509,24 @@ SECTIONS['preprocess'] = {
         'help': "Whether to crop projections after filtering (can cause truncation "
                 "artifacts) or after backprojection"}}
 
+SECTIONS['sharpening'] = {
+    'sharpen': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Apply frequency-domain sharpening to preprocessed projections"},
+    'sharpen-method': {
+        'choices': ['laplace', 'discrete-laplace', 'lorentz'],
+        'default': 'laplace',
+        'help': "Frequency-domain sharpening method"},
+    'sharpen-strength': {
+        'default': 1.0,
+        'type': float,
+        'help': "Frequency-domain sharpening strength"},
+    'sharpen-lorentz-fwhm': {
+        'default': 1.0,
+        'type': float,
+        'help': "Lorentz FWHM used by --sharpen-method lorentz"}}
+
 SECTIONS['cone-beam-weight'] = {
     'source-position-y': {
         'default': "-Inf",
@@ -862,7 +880,7 @@ SECTIONS['ez'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'sharpening', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 
@@ -871,8 +889,8 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint')
+              'Preprocess', 'Sharpening', 'Cone beam weight', 'General reconstruction',
+              'Find large spots', 'Inpaint', 'EZ')
 
 
 # Add unit info to help strings
