@@ -161,6 +161,8 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     phase_retrieve.props.pixel_size = args.pixel_size
     phase_retrieve.props.regularization_rate = args.regularization_rate
     phase_retrieve.props.thresholding_rate = args.thresholding_rate
+    phase_retrieve.props.ict_alpha = args.ict_alpha
+    phase_retrieve.props.ict_alpha_threshold = args.ict_alpha_threshold
     phase_retrieve.props.frequency_cutoff = args.frequency_cutoff
     fft_phase_retrieve.props.dimensions = 2
     ifft_phase_retrieve.props.dimensions = 2
@@ -228,6 +230,9 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
             # multiplied by the thickness_conversion gives the projected thickness
             thickness_conversion *= -10 ** args.regularization_rate / 2
             expression = expression.format(2 / 10 ** args.regularization_rate, thickness_conversion)
+        elif args.retrieval_method == 'ict':
+            thickness_conversion *= -10 ** args.regularization_rate / 2
+            expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : -log (v) * {}'.format(thickness_conversion)
         else:
             expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
         LOG.debug("Phase contrast conversion expression: `%s'", expression)
