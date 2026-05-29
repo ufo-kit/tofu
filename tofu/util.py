@@ -398,6 +398,8 @@ def fbp_filtering_in_phase_retrieval(args):
     if args.energy is None or args.propagation_distance is None:
         # No phase retrieval at all
         return False
+    if args.retrieval_method == 'ict':
+        return False
     return (
         args.projection_filter != 'none' and (
             args.retrieval_method != 'tie' or
