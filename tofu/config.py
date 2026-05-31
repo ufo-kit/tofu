@@ -525,7 +525,11 @@ SECTIONS['sharpening'] = {
     'sharpen-lorentz-fwhm': {
         'default': 1.0,
         'type': float,
-        'help': "Lorentz FWHM used by --sharpen-method lorentz"}}
+        'help': "Lorentz FWHM used by --sharpen-method lorentz"},
+    'sharpen-max-boost': {
+        'default': 0.0,
+        'type': float,
+        'help': "Maximum additional sharpening boost; 0 disables tanh limiting"}}
 
 SECTIONS['cone-beam-weight'] = {
     'source-position-y': {

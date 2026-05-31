@@ -369,6 +369,7 @@ def get_sharpening_task(args, processing_node=None):
     sharpen.props.method = args.sharpen_method
     sharpen.props.strength = args.sharpen_strength
     sharpen.props.lorentz_fwhm = args.sharpen_lorentz_fwhm
+    sharpen.props.max_boost = args.sharpen_max_boost
 
     return sharpen
 

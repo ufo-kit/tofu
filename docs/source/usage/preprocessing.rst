@@ -150,6 +150,8 @@ The arguments are:
 - ``--sharpen-strength``: Sharpening strength (default: ``1.0``);
 - ``--sharpen-lorentz-fwhm``: Lorentz FWHM used by ``--sharpen-method lorentz``
   (default: ``1.0``).
+- ``--sharpen-max-boost``: Maximum additional sharpening boost. A value of
+  ``0`` disables tanh limiting (default: ``0.0``).
 
 
 Projection Filtering for Back Projection
