@@ -874,6 +874,21 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
+SECTIONS['filter-visualization'] = {
+    'interactive': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Open an interactive filter visualization window"},
+    'plot-output': {
+        'default': None,
+        'type': str,
+        'help': "Optional path where the filter row plot will be written",
+        'metavar': 'PATH'},
+    'no-show': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Do not open a matplotlib window"}}
+
 SECTIONS['ez'] = {
     'ezvars': {
         'default': None,
@@ -887,6 +902,7 @@ TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction'
 PREPROC_PARAMS = ('preprocess', 'sharpening', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
+FILTER_VISUALIZATION_PARAMS = ('retrieve-phase', 'sharpening', 'filter-visualization')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
@@ -894,7 +910,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Sharpening', 'Cone beam weight', 'General reconstruction',
-              'Find large spots', 'Inpaint', 'EZ')
+              'Find large spots', 'Inpaint', 'Filter visualization', 'EZ')
 
 
 # Add unit info to help strings

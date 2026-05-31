@@ -1,0 +1,1650 @@
+"""Visualize frequency filters produced by UFO preprocessing tasks."""
+import copy
+import logging
+import sys
+
+import gi
+import numpy as np
+
+try:
+    gi.require_version('Ufo', '0.0')
+except ValueError:
+    gi.require_version('Ufo', '1.0')
+
+from gi.repository import Ufo
+
+from tofu.tasks import get_memory_in, get_memory_out, get_task
+
+
+LOG = logging.getLogger(__name__)
+RESOURCES = None
+METHOD_COLORS = {
+    'tie': 'C0',
+    'ctf': 'C1',
+    'qp': 'C2',
+    'qp2': 'C3',
+    'ict': 'C4',
+}
+
+
+def is_power_of_two(value):
+    return value > 0 and value & (value - 1) == 0
+
+
+def powers_of_two(minimum=2, maximum=1048576):
+    value = minimum
+    while value <= maximum:
+        yield value
+        value <<= 1
+
+
+def closest_power_of_two(value, minimum=2, maximum=1048576):
+    values = list(powers_of_two(minimum=minimum, maximum=maximum))
+    return min(values, key=lambda candidate: abs(candidate - value))
+
+
+def _set_phase_retrieval_props(task, args):
+    task.props.method = args.retrieval_method
+    task.props.energy = args.energy
+    if len(args.propagation_distance) == 1:
+        task.props.distance = [args.propagation_distance[0]]
+    else:
+        task.props.distance_x = args.propagation_distance[0]
+        task.props.distance_y = args.propagation_distance[1]
+    task.props.pixel_size = args.pixel_size
+    task.props.regularization_rate = args.regularization_rate
+    task.props.thresholding_rate = args.thresholding_rate
+    task.props.ict_alpha = args.ict_alpha
+    task.props.ict_alpha_threshold = args.ict_alpha_threshold
+    task.props.frequency_cutoff = args.frequency_cutoff
+    task.props.output_filter = True
+
+
+def validate_args(args):
+    errors = []
+    if args.width is None or args.width <= 0:
+        errors.append("width must be greater than 0")
+    elif not is_power_of_two(args.width):
+        errors.append("width must be a power of 2")
+    if args.height is None or args.height <= 0:
+        errors.append("height must be greater than 0")
+    elif not is_power_of_two(args.height):
+        errors.append("height must be a power of 2")
+    if args.energy is None or args.energy <= 0:
+        errors.append("energy must be greater than 0")
+    if args.pixel_size is None or args.pixel_size <= 0:
+        errors.append("pixel size must be greater than 0")
+    if args.propagation_distance is None:
+        errors.append("distance must be specified")
+    else:
+        distances = tuple(args.propagation_distance)
+        if len(distances) not in (1, 2):
+            errors.append("distance must contain one value or x,y")
+        elif any(distance <= 0 for distance in distances):
+            errors.append("distance must be greater than 0")
+    if errors:
+        raise ValueError("; ".join(errors))
+
+
+def validate_result_args(args):
+    args = copy.deepcopy(args)
+    args.width = 2
+    args.height = 2
+    validate_args(args)
+
+
+def _set_sharpening_props(task, args):
+    task.props.method = args.sharpen_method
+    task.props.strength = args.sharpen_strength
+    task.props.lorentz_fwhm = args.sharpen_lorentz_fwhm
+    task.props.max_boost = args.sharpen_max_boost
+
+
+def create_filter_visualization_graph(args, sharpen=False):
+    """Create a UFO graph that writes the requested filter image to memory-out.
+
+    The graph starts with a unit complex spectrum. ``retrieve-phase`` and,
+    optionally, ``frequency-sharpen`` multiply that spectrum in frequency
+    space. The memory-out buffer stores complex-interleaved values.
+    """
+    graph = Ufo.TaskGraph()
+
+    spectrum = np.ones((args.height, args.width), dtype=np.complex64)
+    source = get_memory_in(spectrum)
+    retrieve_phase = get_task('retrieve-phase')
+    memory_out = get_memory_out(2 * args.width, args.height)
+    _set_phase_retrieval_props(retrieve_phase, args)
+    retrieve_phase.props.output_filter = False
+
+    graph.connect_nodes(source, retrieve_phase)
+    previous = retrieve_phase
+
+    if sharpen:
+        sharpen_task = get_task('frequency-sharpen')
+        _set_sharpening_props(sharpen_task, args)
+        graph.connect_nodes(previous, sharpen_task)
+        previous = sharpen_task
+
+    graph.connect_nodes(previous, memory_out)
+
+    return graph, memory_out
+
+
+def get_filter_data(args, sharpen=False):
+    """Run the visualization graph and return the memory-out NumPy array."""
+    validate_args(args)
+
+    global RESOURCES
+    graph, memory_out = create_filter_visualization_graph(args, sharpen=sharpen)
+    scheduler = Ufo.Scheduler()
+    if RESOURCES is None:
+        RESOURCES = Ufo.Resources()
+    scheduler.set_resources(RESOURCES)
+    scheduler.run(graph)
+
+    return np.array(memory_out.np_array, copy=True)
+
+
+def get_filter_data_by_method(args):
+    """Run one filter graph per selected phase-retrieval method."""
+    methods = getattr(args, 'retrieval_methods', None)
+    if methods is None:
+        methods = [args.retrieval_method]
+    result = {}
+    for method in methods:
+        method_args = copy.deepcopy(args)
+        method_args.retrieval_method = method
+        visibility = getattr(args, 'curve_visibility', {}).get(method, {})
+        if not visibility:
+            visibility = {'phase': True, 'sharpened': getattr(args, 'sharpen', False)}
+        result[method] = {}
+        if visibility.get('phase', True):
+            result[method]['phase'] = get_filter_data(method_args, sharpen=False)
+        if visibility.get('sharpened', False):
+            result[method]['sharpened'] = get_filter_data(method_args, sharpen=True)
+
+    return result
+
+
+def _prepare_processing_args(args, sharpen):
+    from tofu.util import determine_shape, next_power_of_two
+
+    args = copy.deepcopy(args)
+    args.sharpen = sharpen
+    defaults = {
+        'projection_filter': 'none',
+        'projection_filter_scale': 1.0,
+        'projection_filter_cutoff': 0.5,
+        'projection_crop_after': 'backprojection',
+        'retrieval_padded_width': 0,
+        'retrieval_padded_height': 0,
+        'retrieval_padding_mode': 'clamp_to_edge',
+        'tie_approximate_logarithm': False,
+        'tie_approximate_point': 0.75,
+        'delta': None,
+        'start': 0,
+        'number': 1,
+        'step': 1,
+        'y': 0,
+        'y_step': 1,
+        'bitdepth': 32,
+        'resize': None,
+    }
+    for name, value in defaults.items():
+        if not hasattr(args, name):
+            setattr(args, name, value)
+    if args.number is None:
+        args.number = 1
+    # Result processing follows the selected projection dimensions, not the
+    # filter-visualization dimensions. The phase retrieval pipeline then pads
+    # to power-of-two sizes before FFT.
+    args.width = None
+    args.height = None
+    width, height = determine_shape(args, path=args.projections, do_raise=True)
+    args.width = width
+    args.height = height
+    args.retrieval_padded_width = next_power_of_two(width)
+    args.retrieval_padded_height = next_power_of_two(height)
+
+    return args
+
+
+def create_result_graph(args, sharpen=False):
+    from tofu.preprocess import create_phase_retrieval_pipeline
+    from tofu.util import set_node_props, setup_read_task
+
+    args = _prepare_processing_args(args, sharpen)
+    graph = Ufo.TaskGraph()
+    reader = get_task('read')
+    set_node_props(reader, args)
+    setup_read_task(reader, args.projections, args)
+    first, last = create_phase_retrieval_pipeline(args, graph)
+    memory_out = get_memory_out(args.width, args.height)
+
+    graph.connect_nodes(reader, first)
+    graph.connect_nodes(last, memory_out)
+
+    return graph, memory_out
+
+
+def get_result_data(args, sharpen=False):
+    validate_result_args(args)
+    if not getattr(args, 'projections', None):
+        raise ValueError("projections must be specified")
+
+    global RESOURCES
+    graph, memory_out = create_result_graph(args, sharpen=sharpen)
+    scheduler = Ufo.Scheduler()
+    if RESOURCES is None:
+        RESOURCES = Ufo.Resources()
+    scheduler.set_resources(RESOURCES)
+    scheduler.run(graph)
+
+    return np.array(memory_out.np_array, copy=True)
+
+
+def get_result_data_by_method(args):
+    methods = getattr(args, 'retrieval_methods', None)
+    if methods is None:
+        methods = [args.retrieval_method]
+    result = {}
+    for method in methods:
+        method_args = copy.deepcopy(args)
+        method_args.retrieval_method = method
+        visibility = getattr(args, 'curve_visibility', {}).get(method, {})
+        if not visibility:
+            visibility = {'phase': True, 'sharpened': getattr(args, 'sharpen', False)}
+        result[method] = {}
+        if visibility.get('phase', True):
+            result[method]['phase'] = get_result_data(method_args, sharpen=False)
+        if visibility.get('sharpened', False):
+            result[method]['sharpened'] = get_result_data(method_args, sharpen=True)
+
+    return result
+
+
+def _prepare_reconstruction_args(args, sharpen):
+    from tofu import config
+    from tofu.util import determine_shape, next_power_of_two
+
+    reco_args = config.Params(sections=config.GEN_RECO_PARAMS).get_defaults()
+    for name, value in vars(args).items():
+        setattr(reco_args, name, copy.deepcopy(value))
+
+    reco_args.sharpen = sharpen
+    reco_args.output = getattr(reco_args, 'output', 'tofu-filter-visualization-reco.tif')
+    reco_args.output_bytes_per_file = 0
+    reco_args.store_type = 'float'
+    reco_args.result_type = 'float'
+    reco_args.compute_type = 'float'
+
+    reader_height = getattr(reco_args, 'reconstruction_reader_height', None)
+    reco_args.width = None
+    reco_args.height = None
+    width, height = determine_shape(reco_args, path=reco_args.projections, do_raise=True)
+    reco_args.width = width
+    reco_args.height = reader_height or (height - reco_args.y)
+    if not reco_args.retrieval_padded_width:
+        reco_args.retrieval_padded_width = next_power_of_two(width)
+    if not reco_args.retrieval_padded_height:
+        reco_args.retrieval_padded_height = next_power_of_two(height)
+
+    slice_number = getattr(args, 'reconstruction_slice', 0)
+    reco_args.region = (slice_number, slice_number + 1, 1)
+
+    return reco_args
+
+
+def create_reconstruction_graph(args, sharpen=False, gpu=None):
+    from tofu import genreco
+    from tofu.util import get_reconstructed_cube_shape, get_reconstruction_regions
+
+    args = _prepare_reconstruction_args(args, sharpen)
+    genreco._fill_missing_args(args)
+    genreco._convert_angles_to_rad(args)
+    genreco.set_projection_filter_scale(args)
+    x_region, y_region, z_region = get_reconstruction_regions(args, store=True, dtype=float)
+    x_region = [float(value) for value in x_region]
+    y_region = [float(value) for value in y_region]
+    z_region = [float(value) for value in z_region]
+    slice_width, slice_height, num_slices = get_reconstructed_cube_shape(
+        x_region, y_region, z_region)
+    if num_slices != 1:
+        raise ValueError("reconstruction visualization expects exactly one slice")
+
+    graph = Ufo.TaskGraph()
+    _source, backproject = genreco.setup_graph(
+        args, graph, x_region, y_region, z_region, gpu=gpu, do_output=False)
+    memory_out = get_memory_out(slice_width, slice_height)
+    graph.connect_nodes(backproject, memory_out)
+
+    return graph, memory_out
+
+
+def get_reconstruction_data(args, sharpen=False):
+    validate_result_args(args)
+    if not getattr(args, 'projections', None):
+        raise ValueError("projections must be specified")
+
+    global RESOURCES
+    if RESOURCES is None:
+        RESOURCES = Ufo.Resources()
+    gpu_nodes = RESOURCES.get_gpu_nodes()
+    if not gpu_nodes:
+        raise RuntimeError("No UFO GPU nodes available")
+    graph, memory_out = create_reconstruction_graph(args, sharpen=sharpen, gpu=gpu_nodes[0])
+    scheduler = Ufo.FixedScheduler()
+    scheduler.set_resources(RESOURCES)
+    scheduler.run(graph)
+
+    return np.array(memory_out.np_array, copy=True)
+
+
+def get_reconstruction_data_by_method(args):
+    methods = getattr(args, 'retrieval_methods', None)
+    if methods is None:
+        methods = [args.retrieval_method]
+    result = {}
+    for method in methods:
+        method_args = copy.deepcopy(args)
+        method_args.retrieval_method = method
+        visibility = getattr(args, 'curve_visibility', {}).get(method, {})
+        if not visibility:
+            visibility = {'phase': True, 'sharpened': getattr(args, 'sharpen', False)}
+        result[method] = {}
+        if visibility.get('phase', True):
+            result[method]['phase'] = get_reconstruction_data(method_args, sharpen=False)
+        if visibility.get('sharpened', False):
+            result[method]['sharpened'] = get_reconstruction_data(method_args, sharpen=True)
+
+    return result
+
+
+def plot_first_row(data, args=None, output=None, show=True):
+    """Plot the first row of *data* and optionally save it to *output*."""
+    import matplotlib.pyplot as plt
+
+    x, row = get_first_half_frequency_row(data, args=args)
+    fig, ax = plt.subplots()
+    ax.plot(x, row)
+    ax.set_xlabel("ICT argument")
+    ax.set_ylabel("Filter value")
+    ax.set_title("Phase retrieval and sharpening filters")
+    ax.grid(True, alpha=0.25)
+    fig.tight_layout()
+
+    if output:
+        fig.savefig(output)
+        LOG.info("Saved plot to %s", output)
+    if show:
+        plt.show()
+
+    return fig, ax
+
+
+def get_wavelength(energy):
+    return 6.62606896e-34 * 299792458 / (energy * 1.60217733e-16)
+
+
+def get_ict_argument(frequencies, args):
+    if args is None or args.energy is None or args.propagation_distance is None:
+        return frequencies
+    distance = args.propagation_distance[0]
+    wavelength = get_wavelength(args.energy)
+
+    return np.pi * wavelength * distance * frequencies * frequencies / (args.pixel_size ** 2)
+
+
+def get_max_ict_argument(energy, distance, pixel_size):
+    wavelength = get_wavelength(energy)
+
+    return np.pi * wavelength * distance * 0.25 / (pixel_size ** 2)
+
+
+def get_first_half_frequency_row(data, args=None):
+    """Return x/y values for the positive half of the filter row."""
+    real_row = data[0, ::2]
+    row = real_row[:real_row.size // 2]
+    frequencies = np.linspace(0.0, 0.5, row.size, endpoint=False)
+    x = get_ict_argument(frequencies, args)
+
+    return x, row
+
+
+def get_percentile_levels(data, lower=0.5, upper=99.5):
+    finite = np.asarray(data)[np.isfinite(data)]
+    if finite.size == 0:
+        return None
+    low, high = np.percentile(finite, (lower, upper))
+    if not np.isfinite(low) or not np.isfinite(high):
+        return None
+    if low == high:
+        span = abs(low) * 1e-6 or 1.0
+        low -= span
+        high += span
+
+    return float(low), float(high)
+
+
+class FloatSlider:
+    """Small helper around a QSlider for floating point values."""
+    def __init__(self, parent, layout, label, attr, minimum, maximum, steps=1000,
+                 scale='linear', display=None):
+        from PyQt5 import QtCore, QtGui, QtWidgets
+
+        self.value_changed = parent.value_changed
+        self.attr = attr
+        self.minimum = minimum
+        self.maximum = maximum
+        self.steps = steps
+        self.scale = scale
+        self.display = display or (lambda value: "{:.6g}".format(value))
+        self._updating = False
+        self.label = QtWidgets.QLabel(label)
+        self.label.setMinimumWidth(95)
+        self.value_edit = QtWidgets.QLineEdit()
+        self.value_edit.setMinimumWidth(72)
+        self.validator = QtGui.QDoubleValidator()
+        self.validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
+        self.value_edit.setValidator(self.validator)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setRange(0, steps)
+        self.slider.setMinimumWidth(120)
+        self.slider.valueChanged.connect(self.on_slider_changed)
+        self.value_edit.textEdited.connect(self.on_text_edited)
+        self.value_edit.editingFinished.connect(self.on_editing_finished)
+
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(self.label)
+        row.addWidget(self.slider, 1)
+        row.addWidget(self.value_edit)
+        layout.addLayout(row)
+
+    def slider_value(self):
+        fraction = self.slider.value() / self.steps
+        if self.scale == 'log':
+            log_min = np.log10(self.minimum)
+            log_max = np.log10(self.maximum)
+            return 10 ** (log_min + fraction * (log_max - log_min))
+
+        return self.minimum + fraction * (self.maximum - self.minimum)
+
+    def raw_value(self):
+        try:
+            return float(self.value_edit.text())
+        except ValueError:
+            return self.slider_value()
+
+    def value(self):
+        return min(max(self.raw_value(), self.minimum), self.maximum)
+
+    def set_value(self, value):
+        if value is None:
+            value = self.minimum
+        value = min(max(float(value), self.minimum), self.maximum)
+        self._set_slider_from_value(value)
+        self.value_edit.setText(self.display(value))
+
+    def set_range(self, minimum, maximum):
+        value = self.raw_value()
+        self.minimum = minimum
+        self.maximum = maximum
+        self.set_value(min(max(value, minimum), maximum))
+
+    def _set_slider_from_value(self, value):
+        if self.scale == 'log':
+            fraction = ((np.log10(value) - np.log10(self.minimum)) /
+                        (np.log10(self.maximum) - np.log10(self.minimum)))
+        else:
+            fraction = (value - self.minimum) / (self.maximum - self.minimum)
+        self._updating = True
+        self.slider.setValue(round(fraction * self.steps))
+        self._updating = False
+
+    def on_slider_changed(self):
+        if self._updating:
+            return
+        self.value_edit.setText(self.display(self.slider_value()))
+        self.value_changed.emit()
+
+    def on_text_edited(self, text):
+        try:
+            value = float(text)
+        except ValueError:
+            return
+        if self.minimum <= value <= self.maximum:
+            self._set_slider_from_value(value)
+        self.value_changed.emit()
+
+    def on_editing_finished(self):
+        self.value_changed.emit()
+
+
+class FilterWorker:
+    """Run one UFO filter computation on a background QThread."""
+    def __init__(self, args, request_id):
+        from PyQt5 import QtCore
+
+        class Worker(QtCore.QObject):
+            finished = QtCore.pyqtSignal(int, object)
+            failed = QtCore.pyqtSignal(int, str)
+
+            def run(self):
+                try:
+                    self.finished.emit(request_id, get_filter_data_by_method(args))
+                except Exception as exc:
+                    self.failed.emit(request_id, str(exc))
+
+        self.thread = QtCore.QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.failed.connect(self.thread.quit)
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+
+class ResultWorker:
+    """Run one projection-processing request on a background QThread."""
+    def __init__(self, args, request_id):
+        from PyQt5 import QtCore
+
+        class Worker(QtCore.QObject):
+            finished = QtCore.pyqtSignal(int, object)
+            failed = QtCore.pyqtSignal(int, str)
+
+            def run(self):
+                try:
+                    self.finished.emit(request_id, get_result_data_by_method(args))
+                except Exception as exc:
+                    self.failed.emit(request_id, str(exc))
+
+        self.thread = QtCore.QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.failed.connect(self.thread.quit)
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+
+class ReconstructionWorker:
+    """Run one reconstructed-slice request on a background QThread."""
+    def __init__(self, args, request_id):
+        from PyQt5 import QtCore
+
+        class Worker(QtCore.QObject):
+            finished = QtCore.pyqtSignal(int, object)
+            failed = QtCore.pyqtSignal(int, str)
+
+            def run(self):
+                try:
+                    self.finished.emit(request_id, get_reconstruction_data_by_method(args))
+                except Exception as exc:
+                    self.failed.emit(request_id, str(exc))
+
+        self.thread = QtCore.QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.failed.connect(self.thread.quit)
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+
+class InteractiveWindow:
+    def __init__(self, args):
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+        from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+        from matplotlib.figure import Figure
+        from PyQt5 import QtCore, QtWidgets
+
+        class SignalEmitter(QtCore.QObject):
+            value_changed = QtCore.pyqtSignal()
+
+        self.args = copy.deepcopy(args)
+        self._signals = SignalEmitter()
+        self.value_changed = self._signals.value_changed
+        self.value_changed.connect(self.schedule_update)
+        self.app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
+        self.window = QtWidgets.QMainWindow()
+        self.window.setWindowTitle("Tofu filter visualization")
+        self.window.closeEvent = self.on_main_window_close
+        central = QtWidgets.QWidget()
+        self.window.setCentralWidget(central)
+
+        main_layout = QtWidgets.QHBoxLayout(central)
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        main_layout.addWidget(splitter)
+        controls = QtWidgets.QWidget()
+        controls.setMinimumWidth(260)
+        controls_layout = QtWidgets.QVBoxLayout(controls)
+        splitter.addWidget(controls)
+
+        self.figure = Figure(figsize=(7, 4))
+        self.canvas = FigureCanvas(self.figure)
+        self.toolbar = NavigationToolbar(self.canvas, self.window)
+        self.axes = self.figure.add_subplot(111)
+        self.figure.subplots_adjust(left=0.09, right=0.98, bottom=0.11, top=0.94)
+        plot_widget = QtWidgets.QWidget()
+        plot_layout = QtWidgets.QVBoxLayout(plot_widget)
+        plot_layout.setContentsMargins(0, 0, 0, 0)
+        plot_layout.addWidget(self.toolbar)
+        plot_layout.addWidget(self.canvas, 1)
+        splitter.addWidget(plot_widget)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([340, 990])
+
+        self.sliders = []
+        self.sliders_by_attr = {}
+        self.method_curve_buttons = {}
+        self.sharpen_method_buttons = {}
+        self._thread_refs = []
+        self._busy = False
+        self._pending = False
+        self._request_id = 0
+        self._last_data = None
+        self._has_plot = False
+        self._auto_xlim = None
+        self._auto_ylim = None
+        self._force_keep_view = False
+        self._image_windows = []
+        self._image_viewers = {}
+        self._result_windows = []
+        self._result_tabs = {}
+        self._result_busy = False
+        self._result_pending = False
+        self._result_request_id = 0
+        self._result_args = None
+        self._last_result_data = None
+        self._result_status = {}
+        self._result_viewers = {}
+        self._reco_windows = []
+        self._reco_tabs = {}
+        self._reco_status = {}
+        self._reco_viewers = {}
+        self._reco_busy = False
+        self._reco_pending = False
+        self._reco_request_id = 0
+        self._reco_args = None
+        self._last_reco_data = None
+        self._reco_auto_level_windows = set()
+
+        self.status = QtWidgets.QLabel()
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.setSingleShot(True)
+        self.update_timer.setInterval(150)
+        self.update_timer.timeout.connect(self.request_update)
+        self.reco_update_timer = QtCore.QTimer()
+        self.reco_update_timer.setSingleShot(True)
+        self.reco_update_timer.setInterval(600)
+        self.reco_update_timer.timeout.connect(self.request_scheduled_reconstruction_update)
+
+        tabs = QtWidgets.QTabWidget()
+        filter_tab = QtWidgets.QWidget()
+        filter_tab_layout = QtWidgets.QVBoxLayout(filter_tab)
+        filter_tab_layout.setContentsMargins(0, 0, 0, 0)
+        filter_scroll = QtWidgets.QScrollArea()
+        filter_scroll.setWidgetResizable(True)
+        filter_content = QtWidgets.QWidget()
+        filter_layout = QtWidgets.QVBoxLayout(filter_content)
+        self._add_size_controls(filter_layout)
+        self._add_plot_controls(filter_layout)
+        self._add_phase_controls(filter_layout)
+        self._add_sharpening_controls(filter_layout)
+        filter_layout.addStretch(1)
+        filter_scroll.setWidget(filter_content)
+        filter_tab_layout.addWidget(filter_scroll)
+        reco_tab = QtWidgets.QWidget()
+        reco_tab_layout = QtWidgets.QVBoxLayout(reco_tab)
+        reco_tab_layout.setContentsMargins(0, 0, 0, 0)
+        reco_scroll = QtWidgets.QScrollArea()
+        reco_scroll.setWidgetResizable(True)
+        reco_content = QtWidgets.QWidget()
+        reco_layout = QtWidgets.QVBoxLayout(reco_content)
+        self._add_reconstruction_controls(reco_layout)
+        reco_layout.addStretch(1)
+        reco_scroll.setWidget(reco_content)
+        reco_tab_layout.addWidget(reco_scroll)
+        tabs.addTab(filter_tab, "Filters")
+        tabs.addTab(reco_tab, "Reconstruction")
+        controls_layout.addWidget(tabs, 1)
+        self._update_ict_range_sliders()
+        controls_layout.addWidget(self.status)
+
+        self.window.resize(1120, 620)
+        self.window.show()
+        self.schedule_update()
+
+    def _add_size_controls(self, layout):
+        from PyQt5 import QtWidgets
+
+        group = QtWidgets.QGroupBox("Dimensions")
+        group_layout = QtWidgets.QFormLayout(group)
+        self.width_box = QtWidgets.QComboBox()
+        self.height_box = QtWidgets.QComboBox()
+        for value in powers_of_two():
+            self.width_box.addItem(str(value), value)
+            self.height_box.addItem(str(value), value)
+        self._set_size_box_value(self.width_box, self.args.width or 4096)
+        self._set_size_box_value(self.height_box, self.args.height or 2048)
+        self.width_box.currentIndexChanged.connect(self.schedule_update)
+        self.height_box.currentIndexChanged.connect(self.schedule_update)
+        group_layout.addRow("Width", self.width_box)
+        group_layout.addRow("Height", self.height_box)
+        layout.addWidget(group)
+
+    def _set_size_box_value(self, box, value):
+        value = closest_power_of_two(value)
+        index = box.findData(value)
+        if index >= 0:
+            box.setCurrentIndex(index)
+
+    def _size_box_value(self, box):
+        return int(box.currentData())
+
+    def _add_plot_controls(self, layout):
+        from PyQt5 import QtGui, QtWidgets
+
+        group = QtWidgets.QGroupBox("Plot")
+        group_layout = QtWidgets.QFormLayout(group)
+        self.fix_y_box = QtWidgets.QCheckBox("Fix Y limits")
+        self.y_min_edit = QtWidgets.QLineEdit()
+        self.y_max_edit = QtWidgets.QLineEdit()
+        validator = QtGui.QDoubleValidator()
+        validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
+        self.y_min_edit.setValidator(validator)
+        self.y_max_edit.setValidator(validator)
+        self.y_min_edit.setText("0")
+        self.y_max_edit.setText("1")
+        self.fix_y_box.toggled.connect(self.redraw_last_plot)
+        self.y_min_edit.editingFinished.connect(self.redraw_last_plot)
+        self.y_max_edit.editingFinished.connect(self.redraw_last_plot)
+        autoscale_button = QtWidgets.QPushButton("Autoscale view")
+        autoscale_button.clicked.connect(self.autoscale_view)
+        image_button = QtWidgets.QPushButton("Show 2D filters")
+        image_button.clicked.connect(self.show_2d_filters)
+        result_button = QtWidgets.QPushButton("Show results")
+        result_button.clicked.connect(self.show_results)
+        group_layout.addRow(self.fix_y_box)
+        group_layout.addRow("Y min", self.y_min_edit)
+        group_layout.addRow("Y max", self.y_max_edit)
+        group_layout.addRow(autoscale_button)
+        group_layout.addRow(image_button)
+        group_layout.addRow(result_button)
+        layout.addWidget(group)
+
+    def _add_phase_controls(self, layout):
+        from PyQt5 import QtWidgets
+
+        group = QtWidgets.QGroupBox("Phase retrieval")
+        group_layout = QtWidgets.QVBoxLayout(group)
+        methods = QtWidgets.QGroupBox("Curves")
+        method_layout = QtWidgets.QGridLayout(methods)
+        method_layout.addWidget(QtWidgets.QLabel("Method"), 0, 0)
+        method_layout.addWidget(QtWidgets.QLabel("Phase"), 0, 1)
+        method_layout.addWidget(QtWidgets.QLabel("Sharpened"), 0, 2)
+        for method in ('tie', 'ctf', 'qp', 'qp2', 'ict'):
+            row = method_layout.rowCount()
+            phase_button = QtWidgets.QCheckBox()
+            sharpened_button = QtWidgets.QCheckBox()
+            phase_button.toggled.connect(self.schedule_update)
+            sharpened_button.toggled.connect(lambda _checked: self.schedule_update(preserve_view=True))
+            method_layout.addWidget(QtWidgets.QLabel(method), row, 0)
+            method_layout.addWidget(phase_button, row, 1)
+            method_layout.addWidget(sharpened_button, row, 2)
+            self.method_curve_buttons[method] = {
+                'phase': phase_button,
+                'sharpened': sharpened_button
+            }
+        buttons = self.method_curve_buttons.get(
+            self.args.retrieval_method, self.method_curve_buttons['tie'])
+        buttons['phase'].setChecked(True)
+        if self.args.sharpen:
+            buttons['sharpened'].setChecked(True)
+        group_layout.addWidget(methods)
+
+        specs = (
+            ("Energy [keV]", 'energy', 1.0, 100.0, 'linear'),
+            ("Distance [m]", 'propagation_distance', 0.001, 2.0, 'linear'),
+            ("Pixel size [m]", 'pixel_size', 1e-8, 1e-4, 'log'),
+            ("Regularization", 'regularization_rate', 0.0, 6.0, 'linear'),
+            ("Thresholding", 'thresholding_rate', 0.0, 1.0, 'linear'),
+            ("ICT alpha", 'ict_alpha', 1e-6, 1e6, 'log'),
+            ("ICT alpha threshold", 'ict_alpha_threshold', 0.0, np.pi, 'linear'),
+            ("Frequency cutoff", 'frequency_cutoff', 0.0, np.pi, 'linear'),
+        )
+        for label, attr, minimum, maximum, scale in specs:
+            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum, scale=scale)
+            value = getattr(self.args, attr)
+            if attr == 'propagation_distance' and value is not None:
+                value = value[0]
+            slider.set_value(value)
+            self.sliders.append(slider)
+            self.sliders_by_attr[attr] = slider
+        layout.addWidget(group)
+
+    def _add_sharpening_controls(self, layout):
+        from PyQt5 import QtWidgets
+
+        group = QtWidgets.QGroupBox("Sharpening")
+        group_layout = QtWidgets.QVBoxLayout(group)
+
+        methods = QtWidgets.QGroupBox("Method")
+        method_layout = QtWidgets.QHBoxLayout(methods)
+        for method in ('laplace', 'discrete-laplace', 'lorentz'):
+            button = QtWidgets.QRadioButton(method)
+            button.toggled.connect(self.schedule_update)
+            method_layout.addWidget(button)
+            self.sharpen_method_buttons[method] = button
+        self.sharpen_method_buttons.get(
+            self.args.sharpen_method, self.sharpen_method_buttons['laplace']).setChecked(True)
+        group_layout.addWidget(methods)
+
+        specs = (
+            ("Strength", 'sharpen_strength', 0.0, 5.0, 'linear'),
+            ("Lorentz FWHM", 'sharpen_lorentz_fwhm', 0.01, 10.0, 'linear'),
+            ("Max boost", 'sharpen_max_boost', 0.0, 10.0, 'linear'),
+        )
+        for label, attr, minimum, maximum, scale in specs:
+            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum, scale=scale)
+            slider.set_value(getattr(self.args, attr))
+            self.sliders.append(slider)
+            self.sliders_by_attr[attr] = slider
+        layout.addWidget(group)
+
+    def _add_reconstruction_controls(self, layout):
+        from PyQt5 import QtGui, QtWidgets
+
+        group = QtWidgets.QGroupBox("Reconstructed slice")
+        group_layout = QtWidgets.QFormLayout(group)
+
+        self.reco_path_label = QtWidgets.QLabel("No projections selected")
+        self.reco_path_label.setWordWrap(True)
+        choose_button = QtWidgets.QPushButton("Select projections...")
+        choose_button.clicked.connect(self.select_reconstruction_projections)
+        show_button = QtWidgets.QPushButton("Show reconstructed slice")
+        show_button.clicked.connect(self.show_reconstruction)
+        self.reco_auto_update_box = QtWidgets.QCheckBox("Auto reconstruct on parameter change")
+        self.reco_auto_update_box.setChecked(True)
+        self.reco_auto_update_box.toggled.connect(self.schedule_update)
+
+        self.reco_slice_box = QtWidgets.QSpinBox()
+        self.reco_slice_box.setRange(-1000000000, 1000000000)
+        self.reco_slice_box.setValue(0)
+        self.reco_slice_box.valueChanged.connect(self.schedule_update)
+
+        self.reco_reader_height_box = self._make_spin_box(None, minimum=0, special="auto")
+        self.reco_y_box = self._make_spin_box(getattr(self.args, 'y', 0), minimum=0)
+        self.reco_y_step_box = self._make_spin_box(getattr(self.args, 'y_step', 1), minimum=1)
+        self.reco_start_box = self._make_spin_box(getattr(self.args, 'start', 0), minimum=0)
+        self.reco_number_box = self._make_spin_box(getattr(self.args, 'number', None),
+                                                   minimum=0, special="auto")
+        self.reco_step_box = self._make_spin_box(getattr(self.args, 'step', 1), minimum=1)
+        self.reco_resize_box = self._make_spin_box(getattr(self.args, 'resize', None),
+                                                   minimum=0, special="none")
+        self.reco_bitdepth_box = self._make_spin_box(getattr(self.args, 'bitdepth', 32),
+                                                     minimum=1)
+        self.reco_retries_box = self._make_spin_box(getattr(self.args, 'retries', 0),
+                                                    minimum=0)
+        self.reco_retry_timeout_box = self._make_spin_box(
+            getattr(self.args, 'retry_timeout', 0), minimum=0)
+
+        double_validator = QtGui.QDoubleValidator()
+        double_validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
+        self.reco_center_x_edit = QtWidgets.QLineEdit()
+        self.reco_center_z_edit = QtWidgets.QLineEdit()
+        self.reco_overall_angle_edit = QtWidgets.QLineEdit()
+        self.reco_delta_edit = QtWidgets.QLineEdit()
+        for edit in (self.reco_center_x_edit, self.reco_center_z_edit,
+                     self.reco_overall_angle_edit, self.reco_delta_edit):
+            edit.setValidator(double_validator)
+            edit.editingFinished.connect(self.schedule_update)
+        self.reco_center_x_edit.setPlaceholderText("auto")
+        self.reco_center_z_edit.setPlaceholderText("auto")
+        self.reco_overall_angle_edit.setText("180")
+        if getattr(self.args, 'delta', None) is not None:
+            self.reco_delta_edit.setText("{:.6g}".format(self.args.delta))
+
+        self.reco_padding_mode_box = QtWidgets.QComboBox()
+        for mode in ('none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'):
+            self.reco_padding_mode_box.addItem(mode)
+        index = self.reco_padding_mode_box.findText(
+            getattr(self.args, 'retrieval_padding_mode', 'mirrored_repeat'))
+        self.reco_padding_mode_box.setCurrentIndex(index if index >= 0 else 0)
+        self.reco_padding_mode_box.currentIndexChanged.connect(self.schedule_update)
+
+        self.reco_padded_width_box = QtWidgets.QComboBox()
+        self.reco_padded_height_box = QtWidgets.QComboBox()
+        for box in (self.reco_padded_width_box, self.reco_padded_height_box):
+            box.addItem("auto", 0)
+            for value in powers_of_two(maximum=65536):
+                box.addItem(str(value), value)
+            box.currentIndexChanged.connect(self.schedule_update)
+        if getattr(self.args, 'retrieval_padded_width', 0):
+            self._set_optional_size_box_value(
+                self.reco_padded_width_box, self.args.retrieval_padded_width)
+        if getattr(self.args, 'retrieval_padded_height', 0):
+            self._set_optional_size_box_value(
+                self.reco_padded_height_box, self.args.retrieval_padded_height)
+
+        self.reco_disable_crop_box = QtWidgets.QCheckBox()
+        self.reco_disable_crop_box.setChecked(False)
+        self.reco_disable_crop_box.toggled.connect(self.schedule_update)
+
+        group_layout.addRow(choose_button)
+        group_layout.addRow("Projections", self.reco_path_label)
+        group_layout.addRow(self.reco_auto_update_box)
+        group_layout.addRow("Slice number", self.reco_slice_box)
+        group_layout.addRow("Read height", self.reco_reader_height_box)
+        group_layout.addRow("Read Y", self.reco_y_box)
+        group_layout.addRow("Read Y step", self.reco_y_step_box)
+        group_layout.addRow("Start", self.reco_start_box)
+        group_layout.addRow("Number", self.reco_number_box)
+        group_layout.addRow("Step", self.reco_step_box)
+        group_layout.addRow("Resize", self.reco_resize_box)
+        group_layout.addRow("Bit depth", self.reco_bitdepth_box)
+        group_layout.addRow("Retries", self.reco_retries_box)
+        group_layout.addRow("Retry timeout", self.reco_retry_timeout_box)
+        group_layout.addRow("Center X", self.reco_center_x_edit)
+        group_layout.addRow("Center Z", self.reco_center_z_edit)
+        group_layout.addRow("Overall angle [deg]", self.reco_overall_angle_edit)
+        group_layout.addRow("Delta", self.reco_delta_edit)
+        group_layout.addRow("Retrieval padding", self.reco_padding_mode_box)
+        group_layout.addRow("Padded width", self.reco_padded_width_box)
+        group_layout.addRow("Padded height", self.reco_padded_height_box)
+        group_layout.addRow("Disable projection crop", self.reco_disable_crop_box)
+        group_layout.addRow(show_button)
+        layout.addWidget(group)
+
+    def _make_spin_box(self, value, minimum=0, maximum=1000000000, special=None):
+        from PyQt5 import QtWidgets
+
+        box = QtWidgets.QSpinBox()
+        box.setRange(minimum, maximum)
+        if special is not None:
+            box.setSpecialValueText(special)
+        box.setValue(value if value is not None else minimum)
+        box.valueChanged.connect(self.schedule_update)
+
+        return box
+
+    def _set_optional_size_box_value(self, box, value):
+        index = box.findData(value)
+        if index >= 0:
+            box.setCurrentIndex(index)
+
+    def schedule_update(self, *args, preserve_view=False):
+        if preserve_view:
+            self._force_keep_view = True
+        self.update_timer.start()
+        if getattr(self, '_reco_windows', None):
+            if self.reco_auto_update_box.isChecked():
+                self.reco_update_timer.start()
+            else:
+                self.reco_update_timer.stop()
+
+    def request_scheduled_reconstruction_update(self):
+        if not self._reco_windows or not self.reco_auto_update_box.isChecked():
+            return
+        self.request_reconstruction_update(self._current_args())
+
+    def _update_ict_range_sliders(self):
+        energy = self.sliders_by_attr['energy'].raw_value()
+        distance = self.sliders_by_attr['propagation_distance'].raw_value()
+        pixel_size = self.sliders_by_attr['pixel_size'].raw_value()
+        if energy <= 0 or distance <= 0 or pixel_size <= 0:
+            return
+        maximum = get_max_ict_argument(energy, distance, pixel_size)
+
+        for attr in ('ict_alpha_threshold', 'frequency_cutoff'):
+            self.sliders_by_attr[attr].set_range(0.0, maximum)
+
+    def _current_args(self):
+        self._update_ict_range_sliders()
+        args = copy.deepcopy(self.args)
+        args.width = self._size_box_value(self.width_box)
+        args.height = self._size_box_value(self.height_box)
+        selected_methods = []
+        curve_visibility = {}
+        for method, buttons in self.method_curve_buttons.items():
+            show_phase = buttons['phase'].isChecked()
+            show_sharpened = buttons['sharpened'].isChecked()
+            curve_visibility[method] = {
+                'phase': show_phase,
+                'sharpened': show_sharpened
+            }
+            if show_phase or show_sharpened:
+                selected_methods.append(method)
+        args.retrieval_methods = selected_methods
+        args.curve_visibility = curve_visibility
+        if selected_methods:
+            args.retrieval_method = selected_methods[0]
+        for method, button in self.sharpen_method_buttons.items():
+            if button.isChecked():
+                args.sharpen_method = method
+        for slider in self.sliders:
+            value = slider.raw_value()
+            if slider.attr == 'propagation_distance':
+                value = (value,)
+            setattr(args, slider.attr, value)
+
+        return args
+
+    def _optional_float(self, edit):
+        text = edit.text().strip()
+        if not text:
+            return None
+        return float(text)
+
+    def _optional_spin_value(self, box):
+        return None if box.value() == box.minimum() and box.specialValueText() else box.value()
+
+    def _current_reconstruction_args(self, base_args=None):
+        args = copy.deepcopy(base_args if base_args is not None else self._current_args())
+        if self._reco_args:
+            args.projections = self._reco_args.projections
+        args.reconstruction_slice = self.reco_slice_box.value()
+        args.reconstruction_reader_height = self._optional_spin_value(self.reco_reader_height_box)
+        args.y = self.reco_y_box.value()
+        args.y_step = self.reco_y_step_box.value()
+        args.start = self.reco_start_box.value()
+        args.number = self._optional_spin_value(self.reco_number_box)
+        args.step = self.reco_step_box.value()
+        args.resize = self._optional_spin_value(self.reco_resize_box)
+        args.bitdepth = self.reco_bitdepth_box.value()
+        args.retries = self.reco_retries_box.value()
+        args.retry_timeout = self.reco_retry_timeout_box.value()
+        center_x = self._optional_float(self.reco_center_x_edit)
+        center_z = self._optional_float(self.reco_center_z_edit)
+        args.center_position_x = None if center_x is None else [center_x]
+        args.center_position_z = None if center_z is None else [center_z]
+        overall_angle = self._optional_float(self.reco_overall_angle_edit)
+        args.overall_angle = overall_angle
+        args.delta = self._optional_float(self.reco_delta_edit)
+        args.retrieval_padding_mode = self.reco_padding_mode_box.currentText()
+        args.retrieval_padded_width = int(self.reco_padded_width_box.currentData())
+        args.retrieval_padded_height = int(self.reco_padded_height_box.currentData())
+        args.disable_projection_crop = self.reco_disable_crop_box.isChecked()
+
+        return args
+
+    def request_update(self):
+        self._pending_args = self._current_args()
+        try:
+            validate_args(self._pending_args)
+        except ValueError as exc:
+            self.status.setText(str(exc))
+            self._pending = False
+            return
+        if self._busy:
+            self._pending = True
+        else:
+            self._start_worker(self._pending_args)
+        if self._result_windows:
+            self.request_result_update(self._pending_args)
+
+    def _start_worker(self, args):
+        self._busy = True
+        self._pending = False
+        self._request_id += 1
+        request_id = self._request_id
+        self.status.setText("Computing...")
+        self._current_worker_args = args
+        worker = FilterWorker(args, request_id)
+        worker.worker.finished.connect(self.on_data_ready)
+        worker.worker.failed.connect(self.on_failed)
+        worker.thread.finished.connect(lambda: self._thread_refs.remove(worker)
+                                       if worker in self._thread_refs else None)
+        self._thread_refs.append(worker)
+        worker.thread.start()
+
+    def on_data_ready(self, request_id, data):
+        if request_id == self._request_id:
+            self.update_plot(data, self._current_worker_args)
+        self._finish_worker()
+
+    def on_failed(self, request_id, message):
+        if request_id == self._request_id:
+            self.status.setText(message)
+        self._finish_worker()
+
+    def _finish_worker(self):
+        self._busy = False
+        if self._pending:
+            self._start_worker(self._pending_args)
+
+    def request_result_update(self, args):
+        if not self._result_args:
+            return
+        result_args = copy.deepcopy(args)
+        result_args.projections = self._result_args.projections
+        self._pending_result_args = result_args
+        if self._result_busy:
+            self._result_pending = True
+            return
+        self._start_result_worker(result_args)
+
+    def _start_result_worker(self, args):
+        self._result_busy = True
+        self._result_pending = False
+        self._result_request_id += 1
+        request_id = self._result_request_id
+        self.status.setText("Computing results...")
+        for label in self._result_status.values():
+            label.setText("Computing results...")
+        worker = ResultWorker(args, request_id)
+        worker.worker.finished.connect(self.on_result_data_ready)
+        worker.worker.failed.connect(self.on_result_failed)
+        worker.thread.finished.connect(lambda: self._thread_refs.remove(worker)
+                                       if worker in self._thread_refs else None)
+        self._thread_refs.append(worker)
+        worker.thread.start()
+
+    def on_result_data_ready(self, request_id, data):
+        if request_id == self._result_request_id:
+            self._last_result_data = data
+            self.update_result_views()
+        self._finish_result_worker()
+
+    def on_result_failed(self, request_id, message):
+        if request_id == self._result_request_id:
+            self.status.setText(message)
+            for label in self._result_status.values():
+                label.setText(message)
+        self._finish_result_worker()
+
+    def _finish_result_worker(self):
+        self._result_busy = False
+        if self._result_pending:
+            self._start_result_worker(self._pending_result_args)
+        elif self._last_result_data is not None:
+            self.status.setText("Ready")
+
+    def request_reconstruction_update(self, args):
+        if not self._reco_args:
+            return
+        reco_args = self._current_reconstruction_args(args)
+        self._pending_reco_args = reco_args
+        if self._reco_busy:
+            self._reco_pending = True
+            return
+        self._start_reconstruction_worker(reco_args)
+
+    def _start_reconstruction_worker(self, args):
+        self._reco_busy = True
+        self._reco_pending = False
+        self._reco_request_id += 1
+        request_id = self._reco_request_id
+        self.status.setText("Computing reconstructed slice...")
+        for label in self._reco_status.values():
+            label.setText("Computing reconstructed slice...")
+        worker = ReconstructionWorker(args, request_id)
+        worker.worker.finished.connect(self.on_reconstruction_data_ready)
+        worker.worker.failed.connect(self.on_reconstruction_failed)
+        worker.thread.finished.connect(lambda: self._thread_refs.remove(worker)
+                                       if worker in self._thread_refs else None)
+        self._thread_refs.append(worker)
+        worker.thread.start()
+
+    def on_reconstruction_data_ready(self, request_id, data):
+        if request_id == self._reco_request_id:
+            self._last_reco_data = data
+            self.update_reconstruction_views()
+        self._finish_reconstruction_worker()
+
+    def on_reconstruction_failed(self, request_id, message):
+        if request_id == self._reco_request_id:
+            self.status.setText(message)
+            for label in self._reco_status.values():
+                label.setText(message)
+        self._finish_reconstruction_worker()
+
+    def _finish_reconstruction_worker(self):
+        self._reco_busy = False
+        if self._reco_pending:
+            self._start_reconstruction_worker(self._pending_reco_args)
+        elif self._last_reco_data is not None:
+            self.status.setText("Ready")
+
+    def update_plot(self, data_by_method, args):
+        self._last_data = data_by_method
+        self._last_args = copy.deepcopy(args)
+        self.redraw_last_plot()
+        self.update_2d_filter_views()
+        self.status.setText("Ready")
+
+    def redraw_last_plot(self):
+        if self._last_data is None:
+            return
+        keep_x_limits = False
+        keep_y_limits = False
+        if self._has_plot:
+            x_limits = self.axes.get_xlim()
+            y_limits = self.axes.get_ylim()
+            keep_x_limits = (
+                self._force_keep_view or (
+                    self._auto_xlim is not None and
+                    not np.allclose(x_limits, self._auto_xlim)
+                )
+            )
+            keep_y_limits = (
+                self._force_keep_view or (
+                    self._auto_ylim is not None and
+                    not np.allclose(y_limits, self._auto_ylim)
+                )
+            )
+        else:
+            x_limits = y_limits = None
+        self.axes.clear()
+        if not self._last_data:
+            self.axes.text(0.5, 0.5, "Select at least one phase retrieval method",
+                           ha='center', va='center', transform=self.axes.transAxes)
+            self._has_plot = False
+            self._auto_xlim = None
+            self._auto_ylim = None
+            self._force_keep_view = False
+        else:
+            for method, curves in self._last_data.items():
+                color = METHOD_COLORS.get(method)
+                if 'phase' in curves:
+                    x, row = get_first_half_frequency_row(curves['phase'], args=self._last_args)
+                    self.axes.plot(x, row, color=color, label=method)
+                if 'sharpened' in curves:
+                    x, row = get_first_half_frequency_row(curves['sharpened'], args=self._last_args)
+                    self.axes.plot(x, row, linestyle=':', color=color,
+                                   label='{} sharpened'.format(method))
+            self.axes.legend(loc='best')
+        self.axes.set_xlabel("ICT argument")
+        self.axes.set_ylabel("Filter value")
+        self.axes.set_title("Phase retrieval and sharpening filters")
+        self.axes.grid(True, alpha=0.25)
+        if self._last_data:
+            self.axes.relim()
+            self.axes.autoscale_view()
+            new_auto_xlim = self.axes.get_xlim()
+            new_auto_ylim = self.axes.get_ylim()
+            if self.fix_y_box.isChecked():
+                try:
+                    y_min = float(self.y_min_edit.text())
+                    y_max = float(self.y_max_edit.text())
+                except ValueError:
+                    y_min = y_max = None
+                if y_min is not None and y_min < y_max:
+                    self.axes.set_ylim(y_min, y_max)
+            elif keep_y_limits:
+                self.axes.set_ylim(y_limits)
+            if keep_x_limits:
+                self.axes.set_xlim(x_limits)
+            self._auto_xlim = new_auto_xlim
+            self._auto_ylim = new_auto_ylim
+            self._force_keep_view = False
+            self._has_plot = True
+        self.canvas.draw_idle()
+
+    def autoscale_view(self):
+        self._has_plot = False
+        self.redraw_last_plot()
+
+    def show_2d_filters(self):
+        if not self._last_data:
+            self.status.setText("No filter data to display")
+            return
+
+        import pyqtgraph as pg
+        from PyQt5 import QtWidgets
+
+        window = QtWidgets.QWidget()
+        window.setWindowTitle("2D phase retrieval and sharpening filters")
+        layout = QtWidgets.QVBoxLayout(window)
+        tabs = QtWidgets.QTabWidget()
+        layout.addWidget(tabs)
+        viewer_entries = []
+
+        for method, curves in self._last_data.items():
+            for curve_name, data in curves.items():
+                image = np.fft.fftshift(data[:, ::2])
+                view = pg.ImageView()
+                view.setImage(image.T)
+                view.getImageItem().resetTransform()
+                view.getView().setAspectLocked(True, ratio=1)
+                label = method if curve_name == 'phase' else '{} sharpened'.format(method)
+                tab = QtWidgets.QWidget()
+                tab_layout = QtWidgets.QVBoxLayout(tab)
+                tab_layout.addWidget(view)
+                tabs.addTab(tab, label)
+                viewer_entries.append((method, curve_name, view))
+
+        if tabs.count() == 0:
+            self.status.setText("No visible filter curves to display")
+            window.deleteLater()
+            return
+
+        window.resize(900, 700)
+        window.show()
+        self._image_windows.append(window)
+        self._image_viewers[window] = viewer_entries
+        window.destroyed.connect(lambda _obj: self._image_windows.remove(window)
+                                 if window in self._image_windows else None)
+        window.destroyed.connect(lambda _obj: self._image_viewers.pop(window, None))
+
+    def show_results(self):
+        from PyQt5 import QtWidgets
+
+        dialog = QtWidgets.QFileDialog(self.window, "Select projections")
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+        if self._result_args and self._result_args.projections:
+            dialog.selectFile(self._result_args.projections)
+        if not dialog.exec_():
+            return
+        selected = dialog.selectedFiles()
+        if not selected:
+            return
+
+        args = self._current_args()
+        args.projections = selected[0]
+        self._result_args = args
+
+        window = QtWidgets.QWidget()
+        window.setWindowTitle("Processed phase retrieval results")
+        layout = QtWidgets.QVBoxLayout(window)
+        status = QtWidgets.QLabel("Computing results...")
+        tabs = QtWidgets.QTabWidget()
+        layout.addWidget(status)
+        layout.addWidget(tabs)
+        window.resize(900, 700)
+        window.show()
+
+        self._result_windows.append(window)
+        self._result_tabs[window] = tabs
+        self._result_status[window] = status
+        window.destroyed.connect(lambda _obj: self._result_windows.remove(window)
+                                 if window in self._result_windows else None)
+        window.destroyed.connect(lambda _obj: self._result_tabs.pop(window, None))
+        window.destroyed.connect(lambda _obj: self._result_status.pop(window, None))
+        window.destroyed.connect(lambda _obj: self._result_viewers.pop(window, None))
+        self.request_result_update(args)
+
+    def select_reconstruction_projections(self):
+        from PyQt5 import QtWidgets
+
+        selected = self._select_projection_path("Select projections for reconstruction")
+        if not selected:
+            return None
+        args = self._current_args()
+        args.projections = selected
+        self._reco_args = args
+        self.reco_path_label.setText(selected)
+        return selected
+
+    def _select_projection_path(self, title):
+        from PyQt5 import QtWidgets
+
+        dialog = QtWidgets.QFileDialog(self.window, title)
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+        if self._reco_args and self._reco_args.projections:
+            dialog.selectFile(self._reco_args.projections)
+        elif self._result_args and self._result_args.projections:
+            dialog.selectFile(self._result_args.projections)
+        if not dialog.exec_():
+            return None
+        selected = dialog.selectedFiles()
+        if not selected:
+            return None
+        return selected[0]
+
+    def show_reconstruction(self):
+        from PyQt5 import QtCore, QtGui, QtWidgets
+
+        if not self._reco_args or not self._reco_args.projections:
+            if not self.select_reconstruction_projections():
+                return
+
+        args = self._current_reconstruction_args(self._current_args())
+
+        window = QtWidgets.QWidget()
+        window.setWindowTitle("Reconstructed phase retrieval results")
+        layout = QtWidgets.QVBoxLayout(window)
+        status = QtWidgets.QLabel("Computing reconstructed slice...")
+        header = QtWidgets.QHBoxLayout()
+        levels_button = QtWidgets.QPushButton("Reset greyscale")
+        levels_button.clicked.connect(lambda: self.reset_reconstruction_levels(window))
+        apply_levels_button = QtWidgets.QPushButton("Apply greyscale to all")
+        apply_levels_button.clicked.connect(lambda: self.apply_current_reconstruction_levels(window))
+        apply_view_button = QtWidgets.QPushButton("Apply zoom to all")
+        apply_view_button.clicked.connect(lambda: self.apply_current_reconstruction_view(window))
+        sync_button = QtWidgets.QPushButton("Sync all")
+        sync_button.clicked.connect(lambda: self.sync_current_reconstruction_view(window))
+        tabs = QtWidgets.QTabWidget()
+        header.addWidget(status, 1)
+        header.addWidget(levels_button)
+        header.addWidget(apply_levels_button)
+        header.addWidget(apply_view_button)
+        header.addWidget(sync_button)
+        layout.addLayout(header)
+        layout.addWidget(tabs)
+        left_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Left), window)
+        right_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Right), window)
+        left_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
+        right_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
+        left_shortcut.activated.connect(lambda: self.switch_reconstruction_tab(window, -1))
+        right_shortcut.activated.connect(lambda: self.switch_reconstruction_tab(window, 1))
+        window._tofu_filter_visualization_shortcuts = [left_shortcut, right_shortcut]
+        window.resize(900, 700)
+        window.show()
+
+        self._reco_windows.append(window)
+        self._reco_tabs[window] = tabs
+        self._reco_status[window] = status
+        self._reco_auto_level_windows.add(window)
+        window.destroyed.connect(lambda _obj: self._reco_windows.remove(window)
+                                 if window in self._reco_windows else None)
+        window.destroyed.connect(lambda _obj: self._reco_tabs.pop(window, None))
+        window.destroyed.connect(lambda _obj: self._reco_status.pop(window, None))
+        window.destroyed.connect(lambda _obj: self._reco_viewers.pop(window, None))
+        window.destroyed.connect(lambda _obj: self._reco_auto_level_windows.discard(window))
+        self.request_reconstruction_update(args)
+
+    def reset_reconstruction_levels(self, window):
+        self._reco_auto_level_windows.add(window)
+        tabs = self._reco_tabs.get(window)
+        if tabs is not None and self._last_reco_data:
+            self.populate_reconstruction_tabs(tabs)
+
+    def apply_current_reconstruction_levels(self, window):
+        current_view, viewers = self._current_reconstruction_view(window)
+        if current_view is None:
+            return
+
+        levels = current_view.getHistogramWidget().getLevels()
+        for view, _tab in viewers.values():
+            if view is not current_view:
+                view.setLevels(*levels)
+
+    def apply_current_reconstruction_view(self, window):
+        current_view, viewers = self._current_reconstruction_view(window)
+        if current_view is None:
+            return
+
+        x_range, y_range = current_view.getView().viewRange()
+        for view, _tab in viewers.values():
+            if view is not current_view:
+                view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+
+    def sync_current_reconstruction_view(self, window):
+        self.apply_current_reconstruction_levels(window)
+        self.apply_current_reconstruction_view(window)
+
+    def switch_reconstruction_tab(self, window, step):
+        tabs = self._reco_tabs.get(window)
+        if tabs is None or tabs.count() == 0:
+            return
+        tabs.setCurrentIndex((tabs.currentIndex() + step) % tabs.count())
+
+    def _current_reconstruction_view(self, window):
+        tabs = self._reco_tabs.get(window)
+        viewers = self._reco_viewers.get(window, {})
+        if tabs is None or not viewers:
+            return None, viewers
+
+        current_tab = tabs.currentWidget()
+        for view, tab in viewers.values():
+            if tab is current_tab:
+                return view, viewers
+
+        return None, viewers
+
+    def update_2d_filter_views(self):
+        if not self._last_data:
+            return
+        for entries in list(self._image_viewers.values()):
+            for method, curve_name, view in entries:
+                curves = self._last_data.get(method, {})
+                data = curves.get(curve_name)
+                if data is not None:
+                    image = np.fft.fftshift(data[:, ::2])
+                    view.setImage(image.T, autoLevels=False)
+
+    def populate_result_tabs(self, tabs):
+        import pyqtgraph as pg
+        from PyQt5 import QtWidgets
+
+        if not self._last_result_data:
+            return
+
+        window = tabs.parentWidget()
+        viewers = self._result_viewers.setdefault(window, {})
+        desired_keys = set()
+
+        for method, curves in self._last_result_data.items():
+            for curve_name, data in curves.items():
+                label = method if curve_name == 'phase' else '{} sharpened'.format(method)
+                key = (method, curve_name)
+                desired_keys.add(key)
+                if key not in viewers:
+                    view = pg.ImageView()
+                    view.getImageItem().resetTransform()
+                    view.getView().setAspectLocked(True, ratio=1)
+                    tab = QtWidgets.QWidget()
+                    tab_layout = QtWidgets.QVBoxLayout(tab)
+                    tab_layout.addWidget(view)
+                    tabs.addTab(tab, label)
+                    viewers[key] = (view, tab)
+                else:
+                    view = viewers[key][0]
+
+                view_box = view.getView()
+                x_range, y_range = view_box.viewRange()
+                view.setImage(data.T, autoLevels=False)
+                view_box.setRange(xRange=x_range, yRange=y_range, padding=0)
+
+        for key in list(viewers):
+            if key not in desired_keys:
+                view, tab = viewers.pop(key)
+                index = tabs.indexOf(tab)
+                if index >= 0:
+                    tabs.removeTab(index)
+                tab.deleteLater()
+
+    def update_result_views(self):
+        for window, tabs in list(self._result_tabs.items()):
+            self.populate_result_tabs(tabs)
+            if window in self._result_status:
+                if tabs.count():
+                    self._result_status[window].setText("Ready")
+                else:
+                    self._result_status[window].setText("No result images to display")
+
+    def populate_reconstruction_tabs(self, tabs):
+        import pyqtgraph as pg
+        from PyQt5 import QtWidgets
+
+        if not self._last_reco_data:
+            return
+
+        window = tabs.parentWidget()
+        viewers = self._reco_viewers.setdefault(window, {})
+        desired_keys = set()
+
+        for method, curves in self._last_reco_data.items():
+            for curve_name, data in curves.items():
+                label = method if curve_name == 'phase' else '{} sharpened'.format(method)
+                key = (method, curve_name)
+                desired_keys.add(key)
+                if key not in viewers:
+                    view = pg.ImageView()
+                    view.getImageItem().resetTransform()
+                    view.getView().setAspectLocked(True, ratio=1)
+                    tab = QtWidgets.QWidget()
+                    tab_layout = QtWidgets.QVBoxLayout(tab)
+                    tab_layout.addWidget(view)
+                    tabs.addTab(tab, label)
+                    viewers[key] = (view, tab)
+                    x_range = y_range = None
+                    reset_levels = True
+                else:
+                    view = viewers[key][0]
+                    x_range, y_range = view.getView().viewRange()
+                    reset_levels = window in self._reco_auto_level_windows
+
+                view.setImage(data.T, autoLevels=False)
+                if reset_levels:
+                    levels = get_percentile_levels(data)
+                    if levels is not None:
+                        view.setLevels(*levels)
+                if x_range is not None:
+                    view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+
+        for key in list(viewers):
+            if key not in desired_keys:
+                view, tab = viewers.pop(key)
+                index = tabs.indexOf(tab)
+                if index >= 0:
+                    tabs.removeTab(index)
+                tab.deleteLater()
+
+    def update_reconstruction_views(self):
+        for window, tabs in list(self._reco_tabs.items()):
+            self.populate_reconstruction_tabs(tabs)
+            self._reco_auto_level_windows.discard(window)
+            if window in self._reco_status:
+                if tabs.count():
+                    self._reco_status[window].setText("Ready")
+                else:
+                    self._reco_status[window].setText("No reconstructed slices to display")
+
+    def on_main_window_close(self, event):
+        for window in list(self._image_windows):
+            window.close()
+        for window in list(self._result_windows):
+            window.close()
+        for window in list(self._reco_windows):
+            window.close()
+        event.accept()
+
+    def run(self):
+        return self.app.exec_()
+
+
+def run_interactive(args):
+    window = InteractiveWindow(args)
+
+    return window.run()
+
+
+def run(args):
+    """Run the UFO graph and plot the first output row."""
+    if args.interactive:
+        return run_interactive(args)
+
+    try:
+        data = get_filter_data(args, sharpen=args.sharpen)
+    except ValueError as exc:
+        raise RuntimeError(str(exc))
+    plot_first_row(data, args=args, output=args.plot_output, show=not args.no_show)
