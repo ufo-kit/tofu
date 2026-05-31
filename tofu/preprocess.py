@@ -193,53 +193,28 @@ def create_phase_retrieval_pipeline(args, graph, processing_node=None):
     graph.connect_nodes(before_ifft, ifft_phase_retrieve)
 
     if args.retrieval_method == 'tie' and args.tie_approximate_logarithm:
-        # a = 2 / 10^R, b = -10^R / 2, c = thickness_conversion
-        # t = Taylor series point, T = t * (1 - ln(t))
-        # a * b = -1 (from above)
-        # -----------------------------------------------------
-        # We will use the Taylor expansion to the 1st order of the logarithm which TIE needs:
-        # -ln (a * retrieved) * b * c ~ b * c / t * [T - a * retrieved]
-        # T - a * retrieved = T - a * F^-1{F(I) * kernel} = T - F^-1{aF(I) * kernel}
-        # for u, v = 0: aF(I) * kernel = F(I)(0, 0) because kernel(0, 0) = 1 / a, thus:
-        # T - F^-1{aF(I) * kernel} = -F^-1{aF(I - T) * kernel}, because for u, v = 0 we have:
-        # -aF(I - T) * kernel = - F(I - T) = T - F(I)(0, 0) (and the rest of the frequencies is
-        # unaffected by "T".
-        # further: -aF(I - T) * kernel = F[a(T - I)] * kernel
-        # bring in b, c and t and we have F[abc/t(T - I)] * kernel, with ab=-1 we end up with:
-        # F[c/t(I - T)] * kernel, so the approximation of the logarithm does not need any change in
-        # the TIE kernel itself, we may just transform the input image and use the rest of the
-        # pipeline as usual.
-        if args.delta is None:
-            # Do not multiply by one
-            expression = "v - 1"
-        else:
-            expression = "{} * (v - {})".format(
-                # c / t
-                thickness_conversion / args.tie_approximate_point,
-                # t * (1 - ln(t))
-                args.tie_approximate_point * (1 - np.log(args.tie_approximate_point))
-            )
+        import numpy as np
+        # Phase-retrieval kernels now have the same DC normalization. Keep the same
+        # post-retrieval phase/thickness scale for both methods, also when the
+        # logarithm is linearized before filtering.
+        phase_scale = thickness_conversion * -10 ** args.regularization_rate / 2
+        t = args.tie_approximate_point
+        expression = "{} * ({} - v)".format(
+            phase_scale / t,
+            t * (1 - np.log(t))
+        )
         calculate.props.expression = expression
         LOG.debug("Phase contrast conversion expression (log approximation): `%s'", expression)
         graph.connect_nodes(calculate, pad_phase_retrieve)
         first = calculate
         last = crop_phase_retrieve
     else:
-        if args.retrieval_method == 'tie':
-            expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : '
-            if args.tie_approximate_logarithm:
-                # ln(x) ~ x - 1 at a=1
-                expression += '(1.0f - {} * v) * {}'
-            else:
-                expression += '-log ({} * v) * {}'
-            # first term: 2 for 0.5 factor in ufo-filters and alpha = 10^-R, so divide by 10^R
-            # second term: The following converts the TIE result to the actual phase, which when
-            # multiplied by the thickness_conversion gives the projected thickness
-            thickness_conversion *= -10 ** args.regularization_rate / 2
-            expression = expression.format(2 / 10 ** args.regularization_rate, thickness_conversion)
-        elif args.retrieval_method == 'ict':
+        if args.retrieval_method in ('tie', 'ict', 'ctf'):
             thickness_conversion *= -10 ** args.regularization_rate / 2
             expression = '(isinf (v) || isnan (v) || (v <= 0)) ? 0.0f : -log (v) * {}'.format(thickness_conversion)
+        elif args.retrieval_method in ('qp', 'qp2'):
+            thickness_conversion *= -10 ** args.regularization_rate / 2
+            expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
         else:
             expression = '(isinf (v) || isnan (v)) ? 0.0f : v * {}'.format(thickness_conversion)
         LOG.debug("Phase contrast conversion expression: `%s'", expression)
