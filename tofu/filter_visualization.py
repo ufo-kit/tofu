@@ -426,6 +426,42 @@ def get_percentile_levels(data, lower=0.5, upper=99.5):
     return float(low), float(high)
 
 
+def make_profile_line_roi(pg, positions, pen):
+    from PyQt5 import QtCore
+
+    class ProfileLineROI(pg.LineSegmentROI):
+        def movePoint(self, handle, pos, modifiers=None, finish=True, coords='parent'):
+            if modifiers is None:
+                modifiers = QtCore.Qt.KeyboardModifier.NoModifier
+            if modifiers & QtCore.Qt.KeyboardModifier.ShiftModifier:
+                try:
+                    index = self.indexOfHandle(handle)
+                except IndexError:
+                    index = None
+                if index in (0, 1):
+                    point = pg.Point(pos)
+                    if coords == 'scene':
+                        point = self.mapSceneToParent(point)
+                    elif coords != 'parent':
+                        raise Exception("New point location must be given in either "
+                                        "'parent' or 'scene' coordinates.")
+
+                    other = self.mapToParent(self.getHandles()[1 - index].pos())
+                    dx = point.x() - other.x()
+                    dy = point.y() - other.y()
+                    if abs(dx) >= abs(dy):
+                        point.setY(other.y())
+                    else:
+                        point.setX(other.x())
+
+                    pos = point
+                    coords = 'parent'
+
+            return super().movePoint(handle, pos, modifiers, finish=finish, coords=coords)
+
+    return ProfileLineROI(positions, pen=pen)
+
+
 class FloatSlider:
     """Small helper around a QSlider for floating point values."""
     def __init__(self, parent, layout, label, attr, minimum, maximum, steps=1000,
@@ -452,7 +488,7 @@ class FloatSlider:
         self.slider.setMinimumWidth(120)
         self.slider.valueChanged.connect(self.on_slider_changed)
         self.value_edit.textEdited.connect(self.on_text_edited)
-        self.value_edit.editingFinished.connect(self.on_editing_finished)
+        self.value_edit.returnPressed.connect(self.on_editing_finished)
 
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self.label)
@@ -514,7 +550,6 @@ class FloatSlider:
             return
         if self.minimum <= value <= self.maximum:
             self._set_slider_from_value(value)
-        self.value_changed.emit()
 
     def on_editing_finished(self):
         self.value_changed.emit()
@@ -620,7 +655,7 @@ class InteractiveWindow:
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         main_layout.addWidget(splitter)
         controls = QtWidgets.QWidget()
-        controls.setMinimumWidth(260)
+        controls.setMinimumWidth(330)
         controls_layout = QtWidgets.QVBoxLayout(controls)
         splitter.addWidget(controls)
 
@@ -637,7 +672,7 @@ class InteractiveWindow:
         splitter.addWidget(plot_widget)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([340, 990])
+        splitter.setSizes([420, 910])
 
         self.sliders = []
         self.sliders_by_attr = {}
@@ -663,10 +698,15 @@ class InteractiveWindow:
         self._last_result_data = None
         self._result_status = {}
         self._result_viewers = {}
+        self._result_profile_plots = {}
+        self._result_profile_rois = {}
+        self._result_auto_level_windows = set()
         self._reco_windows = []
         self._reco_tabs = {}
         self._reco_status = {}
         self._reco_viewers = {}
+        self._reco_profile_plots = {}
+        self._reco_profile_rois = {}
         self._reco_busy = False
         self._reco_pending = False
         self._reco_request_id = 0
@@ -681,7 +721,7 @@ class InteractiveWindow:
         self.update_timer.timeout.connect(self.request_update)
         self.reco_update_timer = QtCore.QTimer()
         self.reco_update_timer.setSingleShot(True)
-        self.reco_update_timer.setInterval(600)
+        self.reco_update_timer.setInterval(1000)
         self.reco_update_timer.timeout.connect(self.request_scheduled_reconstruction_update)
 
         tabs = QtWidgets.QTabWidget()
@@ -762,8 +802,8 @@ class InteractiveWindow:
         self.y_min_edit.setText("0")
         self.y_max_edit.setText("1")
         self.fix_y_box.toggled.connect(self.redraw_last_plot)
-        self.y_min_edit.editingFinished.connect(self.redraw_last_plot)
-        self.y_max_edit.editingFinished.connect(self.redraw_last_plot)
+        self.y_min_edit.returnPressed.connect(self.redraw_last_plot)
+        self.y_max_edit.returnPressed.connect(self.redraw_last_plot)
         autoscale_button = QtWidgets.QPushButton("Autoscale view")
         autoscale_button.clicked.connect(self.autoscale_view)
         image_button = QtWidgets.QPushButton("Show 2D filters")
@@ -875,24 +915,20 @@ class InteractiveWindow:
 
         self.reco_slice_box = QtWidgets.QSpinBox()
         self.reco_slice_box.setRange(-1000000000, 1000000000)
+        self.reco_slice_box.setKeyboardTracking(False)
         self.reco_slice_box.setValue(0)
-        self.reco_slice_box.valueChanged.connect(self.schedule_update)
+        self.reco_slice_box.lineEdit().returnPressed.connect(self.schedule_update)
 
         self.reco_reader_height_box = self._make_spin_box(None, minimum=0, special="auto")
         self.reco_y_box = self._make_spin_box(getattr(self.args, 'y', 0), minimum=0)
         self.reco_y_step_box = self._make_spin_box(getattr(self.args, 'y_step', 1), minimum=1)
-        self.reco_start_box = self._make_spin_box(getattr(self.args, 'start', 0), minimum=0)
         self.reco_number_box = self._make_spin_box(getattr(self.args, 'number', None),
                                                    minimum=0, special="auto")
         self.reco_step_box = self._make_spin_box(getattr(self.args, 'step', 1), minimum=1)
-        self.reco_resize_box = self._make_spin_box(getattr(self.args, 'resize', None),
-                                                   minimum=0, special="none")
-        self.reco_bitdepth_box = self._make_spin_box(getattr(self.args, 'bitdepth', 32),
-                                                     minimum=1)
-        self.reco_retries_box = self._make_spin_box(getattr(self.args, 'retries', 0),
-                                                    minimum=0)
-        self.reco_retry_timeout_box = self._make_spin_box(
-            getattr(self.args, 'retry_timeout', 0), minimum=0)
+        self.reco_image_start_box = self._make_spin_box(getattr(self.args, 'image_start', 0),
+                                                        minimum=0)
+        self.reco_image_step_box = self._make_spin_box(getattr(self.args, 'image_step', 1),
+                                                       minimum=1)
 
         double_validator = QtGui.QDoubleValidator()
         double_validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
@@ -903,7 +939,7 @@ class InteractiveWindow:
         for edit in (self.reco_center_x_edit, self.reco_center_z_edit,
                      self.reco_overall_angle_edit, self.reco_delta_edit):
             edit.setValidator(double_validator)
-            edit.editingFinished.connect(self.schedule_update)
+            edit.returnPressed.connect(self.schedule_update)
         self.reco_center_x_edit.setPlaceholderText("auto")
         self.reco_center_z_edit.setPlaceholderText("auto")
         self.reco_overall_angle_edit.setText("180")
@@ -940,16 +976,13 @@ class InteractiveWindow:
         group_layout.addRow("Projections", self.reco_path_label)
         group_layout.addRow(self.reco_auto_update_box)
         group_layout.addRow("Slice number", self.reco_slice_box)
-        group_layout.addRow("Read height", self.reco_reader_height_box)
-        group_layout.addRow("Read Y", self.reco_y_box)
-        group_layout.addRow("Read Y step", self.reco_y_step_box)
-        group_layout.addRow("Start", self.reco_start_box)
+        group_layout.addRow("Height", self.reco_reader_height_box)
+        group_layout.addRow("Y", self.reco_y_box)
+        group_layout.addRow("Y step", self.reco_y_step_box)
         group_layout.addRow("Number", self.reco_number_box)
         group_layout.addRow("Step", self.reco_step_box)
-        group_layout.addRow("Resize", self.reco_resize_box)
-        group_layout.addRow("Bit depth", self.reco_bitdepth_box)
-        group_layout.addRow("Retries", self.reco_retries_box)
-        group_layout.addRow("Retry timeout", self.reco_retry_timeout_box)
+        group_layout.addRow("Image start", self.reco_image_start_box)
+        group_layout.addRow("Image step", self.reco_image_step_box)
         group_layout.addRow("Center X", self.reco_center_x_edit)
         group_layout.addRow("Center Z", self.reco_center_z_edit)
         group_layout.addRow("Overall angle [deg]", self.reco_overall_angle_edit)
@@ -966,10 +999,11 @@ class InteractiveWindow:
 
         box = QtWidgets.QSpinBox()
         box.setRange(minimum, maximum)
+        box.setKeyboardTracking(False)
         if special is not None:
             box.setSpecialValueText(special)
         box.setValue(value if value is not None else minimum)
-        box.valueChanged.connect(self.schedule_update)
+        box.lineEdit().returnPressed.connect(self.schedule_update)
 
         return box
 
@@ -1052,13 +1086,10 @@ class InteractiveWindow:
         args.reconstruction_reader_height = self._optional_spin_value(self.reco_reader_height_box)
         args.y = self.reco_y_box.value()
         args.y_step = self.reco_y_step_box.value()
-        args.start = self.reco_start_box.value()
         args.number = self._optional_spin_value(self.reco_number_box)
         args.step = self.reco_step_box.value()
-        args.resize = self._optional_spin_value(self.reco_resize_box)
-        args.bitdepth = self.reco_bitdepth_box.value()
-        args.retries = self.reco_retries_box.value()
-        args.retry_timeout = self.reco_retry_timeout_box.value()
+        args.image_start = self.reco_image_start_box.value()
+        args.image_step = self.reco_image_step_box.value()
         center_x = self._optional_float(self.reco_center_x_edit)
         center_z = self._optional_float(self.reco_center_z_edit)
         args.center_position_x = None if center_x is None else [center_x]
@@ -1333,47 +1364,25 @@ class InteractiveWindow:
         window.destroyed.connect(lambda _obj: self._image_viewers.pop(window, None))
 
     def show_results(self):
-        from PyQt5 import QtWidgets
-
-        dialog = QtWidgets.QFileDialog(self.window, "Select projections")
-        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
-        dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        if self._result_args and self._result_args.projections:
-            dialog.selectFile(self._result_args.projections)
-        if not dialog.exec_():
-            return
-        selected = dialog.selectedFiles()
+        selected = self._select_projection_path(
+            "Select projections",
+            preferred=getattr(self._result_args, 'projections', None))
         if not selected:
             return
-
         args = self._current_args()
-        args.projections = selected[0]
+        args.projections = selected
         self._result_args = args
 
-        window = QtWidgets.QWidget()
-        window.setWindowTitle("Processed phase retrieval results")
-        layout = QtWidgets.QVBoxLayout(window)
-        status = QtWidgets.QLabel("Computing results...")
-        tabs = QtWidgets.QTabWidget()
-        layout.addWidget(status)
-        layout.addWidget(tabs)
-        window.resize(900, 700)
-        window.show()
-
-        self._result_windows.append(window)
-        self._result_tabs[window] = tabs
-        self._result_status[window] = status
-        window.destroyed.connect(lambda _obj: self._result_windows.remove(window)
-                                 if window in self._result_windows else None)
-        window.destroyed.connect(lambda _obj: self._result_tabs.pop(window, None))
-        window.destroyed.connect(lambda _obj: self._result_status.pop(window, None))
-        window.destroyed.connect(lambda _obj: self._result_viewers.pop(window, None))
+        self._show_image_data_window(
+            'result', "Processed phase retrieval results", "Computing results...")
         self.request_result_update(args)
 
     def select_reconstruction_projections(self):
         from PyQt5 import QtWidgets
 
-        selected = self._select_projection_path("Select projections for reconstruction")
+        selected = self._select_projection_path(
+            "Select projections for reconstruction",
+            preferred=getattr(self._reco_args, 'projections', None))
         if not selected:
             return None
         args = self._current_args()
@@ -1382,13 +1391,15 @@ class InteractiveWindow:
         self.reco_path_label.setText(selected)
         return selected
 
-    def _select_projection_path(self, title):
+    def _select_projection_path(self, title, preferred=None):
         from PyQt5 import QtWidgets
 
         dialog = QtWidgets.QFileDialog(self.window, title)
         dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        if self._reco_args and self._reco_args.projections:
+        if preferred:
+            dialog.selectFile(preferred)
+        elif self._reco_args and self._reco_args.projections:
             dialog.selectFile(self._reco_args.projections)
         elif self._result_args and self._result_args.projections:
             dialog.selectFile(self._result_args.projections)
@@ -1400,65 +1411,127 @@ class InteractiveWindow:
         return selected[0]
 
     def show_reconstruction(self):
-        from PyQt5 import QtCore, QtGui, QtWidgets
-
         if not self._reco_args or not self._reco_args.projections:
             if not self.select_reconstruction_projections():
                 return
 
         args = self._current_reconstruction_args(self._current_args())
 
+        self._show_image_data_window(
+            'reco', "Reconstructed phase retrieval results",
+            "Computing reconstructed slice...")
+        self.request_reconstruction_update(args)
+
+    def _image_data(self, kind):
+        return self._last_result_data if kind == 'result' else self._last_reco_data
+
+    def _data_windows(self, kind):
+        return self._result_windows if kind == 'result' else self._reco_windows
+
+    def _data_tabs(self, kind):
+        return self._result_tabs if kind == 'result' else self._reco_tabs
+
+    def _data_status(self, kind):
+        return self._result_status if kind == 'result' else self._reco_status
+
+    def _data_viewers(self, kind):
+        return self._result_viewers if kind == 'result' else self._reco_viewers
+
+    def _data_profile_plots(self, kind):
+        return self._result_profile_plots if kind == 'result' else self._reco_profile_plots
+
+    def _data_profile_rois(self, kind):
+        return self._result_profile_rois if kind == 'result' else self._reco_profile_rois
+
+    def _data_auto_level_windows(self, kind):
+        return self._result_auto_level_windows if kind == 'result' else self._reco_auto_level_windows
+
+    def _show_image_data_window(self, kind, title, status_text):
+        from PyQt5 import QtCore, QtGui, QtWidgets
+        import pyqtgraph as pg
+
         window = QtWidgets.QWidget()
-        window.setWindowTitle("Reconstructed phase retrieval results")
+        window.setWindowTitle(title)
         layout = QtWidgets.QVBoxLayout(window)
-        status = QtWidgets.QLabel("Computing reconstructed slice...")
+        status = QtWidgets.QLabel(status_text)
         header = QtWidgets.QHBoxLayout()
         levels_button = QtWidgets.QPushButton("Reset greyscale")
-        levels_button.clicked.connect(lambda: self.reset_reconstruction_levels(window))
+        levels_button.clicked.connect(lambda: self.reset_image_levels(kind, window))
         apply_levels_button = QtWidgets.QPushButton("Apply greyscale to all")
-        apply_levels_button.clicked.connect(lambda: self.apply_current_reconstruction_levels(window))
+        apply_levels_button.clicked.connect(lambda: self.apply_current_image_levels(kind, window))
         apply_view_button = QtWidgets.QPushButton("Apply zoom to all")
-        apply_view_button.clicked.connect(lambda: self.apply_current_reconstruction_view(window))
+        apply_view_button.clicked.connect(lambda: self.apply_current_image_view(kind, window))
         sync_button = QtWidgets.QPushButton("Sync all")
-        sync_button.clicked.connect(lambda: self.sync_current_reconstruction_view(window))
+        sync_button.clicked.connect(lambda: self.sync_current_image_view(kind, window))
         tabs = QtWidgets.QTabWidget()
+        tabs._tofu_filter_visualization_window = window
+        tabs._tofu_filter_visualization_kind = kind
+        profile_plot = pg.PlotWidget()
+        profile_plot.setBackground('w')
+        profile_plot.setMinimumHeight(150)
+        profile_plot.setLabel('bottom', 'Distance [pixel]')
+        profile_plot.setLabel('left', 'Grey value')
+        profile_plot.showGrid(x=True, y=True, alpha=0.18)
+        for axis_name in ('bottom', 'left'):
+            axis = profile_plot.getAxis(axis_name)
+            axis.setPen(pg.mkPen((90, 96, 105), width=1))
+            axis.setTextPen(pg.mkPen((35, 39, 47)))
+        tabs.currentChanged.connect(lambda _index: self.update_image_profile(kind, window))
         header.addWidget(status, 1)
         header.addWidget(levels_button)
         header.addWidget(apply_levels_button)
         header.addWidget(apply_view_button)
         header.addWidget(sync_button)
         layout.addLayout(header)
-        layout.addWidget(tabs)
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        splitter.addWidget(tabs)
+        splitter.addWidget(profile_plot)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
+        splitter.setSizes([520, 160])
+        layout.addWidget(splitter, 1)
         left_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Left), window)
         right_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Right), window)
         left_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
         right_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
-        left_shortcut.activated.connect(lambda: self.switch_reconstruction_tab(window, -1))
-        right_shortcut.activated.connect(lambda: self.switch_reconstruction_tab(window, 1))
+        left_shortcut.activated.connect(lambda: self.switch_image_tab(kind, window, -1))
+        right_shortcut.activated.connect(lambda: self.switch_image_tab(kind, window, 1))
         window._tofu_filter_visualization_shortcuts = [left_shortcut, right_shortcut]
         window.resize(900, 700)
         window.show()
 
-        self._reco_windows.append(window)
-        self._reco_tabs[window] = tabs
-        self._reco_status[window] = status
-        self._reco_auto_level_windows.add(window)
-        window.destroyed.connect(lambda _obj: self._reco_windows.remove(window)
-                                 if window in self._reco_windows else None)
-        window.destroyed.connect(lambda _obj: self._reco_tabs.pop(window, None))
-        window.destroyed.connect(lambda _obj: self._reco_status.pop(window, None))
-        window.destroyed.connect(lambda _obj: self._reco_viewers.pop(window, None))
-        window.destroyed.connect(lambda _obj: self._reco_auto_level_windows.discard(window))
-        self.request_reconstruction_update(args)
+        windows = self._data_windows(kind)
+        tabs_by_window = self._data_tabs(kind)
+        status_by_window = self._data_status(kind)
+        viewers_by_window = self._data_viewers(kind)
+        profile_plots = self._data_profile_plots(kind)
+        profile_rois = self._data_profile_rois(kind)
+        auto_level_windows = self._data_auto_level_windows(kind)
 
-    def reset_reconstruction_levels(self, window):
-        self._reco_auto_level_windows.add(window)
-        tabs = self._reco_tabs.get(window)
-        if tabs is not None and self._last_reco_data:
-            self.populate_reconstruction_tabs(tabs)
+        windows.append(window)
+        tabs_by_window[window] = tabs
+        status_by_window[window] = status
+        profile_plots[window] = profile_plot
+        auto_level_windows.add(window)
+        window.destroyed.connect(lambda _obj: windows.remove(window)
+                                 if window in windows else None)
+        window.destroyed.connect(lambda _obj: tabs_by_window.pop(window, None))
+        window.destroyed.connect(lambda _obj: status_by_window.pop(window, None))
+        window.destroyed.connect(lambda _obj: viewers_by_window.pop(window, None))
+        window.destroyed.connect(lambda _obj: profile_plots.pop(window, None))
+        window.destroyed.connect(lambda _obj: profile_rois.pop(window, None))
+        window.destroyed.connect(lambda _obj: auto_level_windows.discard(window))
 
-    def apply_current_reconstruction_levels(self, window):
-        current_view, viewers = self._current_reconstruction_view(window)
+        return window
+
+    def reset_image_levels(self, kind, window):
+        self._data_auto_level_windows(kind).add(window)
+        tabs = self._data_tabs(kind).get(window)
+        if tabs is not None and self._image_data(kind):
+            self.populate_image_tabs(kind, tabs)
+
+    def apply_current_image_levels(self, kind, window):
+        current_view, viewers = self._current_image_view(kind, window)
         if current_view is None:
             return
 
@@ -1467,8 +1540,8 @@ class InteractiveWindow:
             if view is not current_view:
                 view.setLevels(*levels)
 
-    def apply_current_reconstruction_view(self, window):
-        current_view, viewers = self._current_reconstruction_view(window)
+    def apply_current_image_view(self, kind, window):
+        current_view, viewers = self._current_image_view(kind, window)
         if current_view is None:
             return
 
@@ -1477,19 +1550,33 @@ class InteractiveWindow:
             if view is not current_view:
                 view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
 
-    def sync_current_reconstruction_view(self, window):
-        self.apply_current_reconstruction_levels(window)
-        self.apply_current_reconstruction_view(window)
+    def sync_current_image_view(self, kind, window):
+        self.apply_current_image_levels(kind, window)
+        self.apply_current_image_view(kind, window)
+        self.apply_current_image_profile(kind, window)
 
-    def switch_reconstruction_tab(self, window, step):
-        tabs = self._reco_tabs.get(window)
+    def apply_current_image_profile(self, kind, window):
+        current_key = self._current_image_key(kind, window)
+        rois = self._data_profile_rois(kind).get(window, {})
+        current_roi = rois.get(current_key)
+        if current_roi is None:
+            return
+
+        state = current_roi.saveState()
+        for key, roi in rois.items():
+            if key != current_key:
+                roi.setState(state)
+        self.update_image_profile(kind, window)
+
+    def switch_image_tab(self, kind, window, step):
+        tabs = self._data_tabs(kind).get(window)
         if tabs is None or tabs.count() == 0:
             return
         tabs.setCurrentIndex((tabs.currentIndex() + step) % tabs.count())
 
-    def _current_reconstruction_view(self, window):
-        tabs = self._reco_tabs.get(window)
-        viewers = self._reco_viewers.get(window, {})
+    def _current_image_view(self, kind, window):
+        tabs = self._data_tabs(kind).get(window)
+        viewers = self._data_viewers(kind).get(window, {})
         if tabs is None or not viewers:
             return None, viewers
 
@@ -1499,6 +1586,54 @@ class InteractiveWindow:
                 return view, viewers
 
         return None, viewers
+
+    def _current_image_key(self, kind, window):
+        tabs = self._data_tabs(kind).get(window)
+        viewers = self._data_viewers(kind).get(window, {})
+        if tabs is None or not viewers:
+            return None
+
+        current_tab = tabs.currentWidget()
+        for key, (_view, tab) in viewers.items():
+            if tab is current_tab:
+                return key
+
+        return None
+
+    def update_image_profile(self, kind, window):
+        plot = self._data_profile_plots(kind).get(window)
+        key = self._current_image_key(kind, window)
+        if plot is None:
+            return
+        data_by_method = self._image_data(kind)
+        if key is None or not data_by_method:
+            plot.clear()
+            return
+
+        method, curve_name = key
+        data = data_by_method.get(method, {}).get(curve_name)
+        roi = self._data_profile_rois(kind).get(window, {}).get(key)
+        viewers = self._data_viewers(kind).get(window, {})
+        view = viewers.get(key, (None, None))[0]
+        if data is None or roi is None or view is None:
+            plot.clear()
+            return
+
+        displayed = np.asarray(data).T
+        values = roi.getArrayRegion(displayed, view.getImageItem(), axes=(0, 1))
+        if values is None:
+            plot.clear()
+            return
+        values = np.asarray(values).squeeze()
+        plot.clear()
+        if values.size == 0:
+            return
+        import pyqtgraph as pg
+        plot.plot(np.arange(values.size), values,
+                  pen=pg.mkPen((31, 119, 180), width=2),
+                  antialias=True)
+        plot.enableAutoRange(x=True, y=True)
+        plot.autoRange(padding=0.03)
 
     def update_2d_filter_views(self):
         if not self._last_data:
@@ -1511,18 +1646,21 @@ class InteractiveWindow:
                     image = np.fft.fftshift(data[:, ::2])
                     view.setImage(image.T, autoLevels=False)
 
-    def populate_result_tabs(self, tabs):
+    def populate_image_tabs(self, kind, tabs):
         import pyqtgraph as pg
         from PyQt5 import QtWidgets
 
-        if not self._last_result_data:
+        data_by_method = self._image_data(kind)
+        if not data_by_method:
             return
 
-        window = tabs.parentWidget()
-        viewers = self._result_viewers.setdefault(window, {})
+        window = getattr(tabs, '_tofu_filter_visualization_window', tabs.parentWidget())
+        viewers = self._data_viewers(kind).setdefault(window, {})
+        rois = self._data_profile_rois(kind).setdefault(window, {})
+        auto_level_windows = self._data_auto_level_windows(kind)
         desired_keys = set()
 
-        for method, curves in self._last_result_data.items():
+        for method, curves in data_by_method.items():
             for curve_name, data in curves.items():
                 label = method if curve_name == 'phase' else '{} sharpened'.format(method)
                 key = (method, curve_name)
@@ -1536,62 +1674,22 @@ class InteractiveWindow:
                     tab_layout.addWidget(view)
                     tabs.addTab(tab, label)
                     viewers[key] = (view, tab)
-                else:
-                    view = viewers[key][0]
-
-                view_box = view.getView()
-                x_range, y_range = view_box.viewRange()
-                view.setImage(data.T, autoLevels=False)
-                view_box.setRange(xRange=x_range, yRange=y_range, padding=0)
-
-        for key in list(viewers):
-            if key not in desired_keys:
-                view, tab = viewers.pop(key)
-                index = tabs.indexOf(tab)
-                if index >= 0:
-                    tabs.removeTab(index)
-                tab.deleteLater()
-
-    def update_result_views(self):
-        for window, tabs in list(self._result_tabs.items()):
-            self.populate_result_tabs(tabs)
-            if window in self._result_status:
-                if tabs.count():
-                    self._result_status[window].setText("Ready")
-                else:
-                    self._result_status[window].setText("No result images to display")
-
-    def populate_reconstruction_tabs(self, tabs):
-        import pyqtgraph as pg
-        from PyQt5 import QtWidgets
-
-        if not self._last_reco_data:
-            return
-
-        window = tabs.parentWidget()
-        viewers = self._reco_viewers.setdefault(window, {})
-        desired_keys = set()
-
-        for method, curves in self._last_reco_data.items():
-            for curve_name, data in curves.items():
-                label = method if curve_name == 'phase' else '{} sharpened'.format(method)
-                key = (method, curve_name)
-                desired_keys.add(key)
-                if key not in viewers:
-                    view = pg.ImageView()
-                    view.getImageItem().resetTransform()
-                    view.getView().setAspectLocked(True, ratio=1)
-                    tab = QtWidgets.QWidget()
-                    tab_layout = QtWidgets.QVBoxLayout(tab)
-                    tab_layout.addWidget(view)
-                    tabs.addTab(tab, label)
-                    viewers[key] = (view, tab)
+                    height, width = data.shape
+                    y = height / 2.0
+                    roi = make_profile_line_roi(
+                        pg, [[0, y], [max(width - 1, 0), y]],
+                        pen=pg.mkPen('y', width=2))
+                    roi.sigRegionChanged.connect(
+                        lambda *args, profile_kind=kind, profile_window=window:
+                            self.update_image_profile(profile_kind, profile_window))
+                    view.getView().addItem(roi)
+                    rois[key] = roi
                     x_range = y_range = None
                     reset_levels = True
                 else:
                     view = viewers[key][0]
                     x_range, y_range = view.getView().viewRange()
-                    reset_levels = window in self._reco_auto_level_windows
+                    reset_levels = window in auto_level_windows
 
                 view.setImage(data.T, autoLevels=False)
                 if reset_levels:
@@ -1604,20 +1702,32 @@ class InteractiveWindow:
         for key in list(viewers):
             if key not in desired_keys:
                 view, tab = viewers.pop(key)
+                roi = rois.pop(key, None)
+                if roi is not None:
+                    view.getView().removeItem(roi)
                 index = tabs.indexOf(tab)
                 if index >= 0:
                     tabs.removeTab(index)
                 tab.deleteLater()
+        self.update_image_profile(kind, window)
+
+    def update_image_data_views(self, kind, empty_text):
+        tabs_by_window = self._data_tabs(kind)
+        status_by_window = self._data_status(kind)
+        for window, tabs in list(tabs_by_window.items()):
+            self.populate_image_tabs(kind, tabs)
+            self._data_auto_level_windows(kind).discard(window)
+            if window in status_by_window:
+                if tabs.count():
+                    status_by_window[window].setText("Ready")
+                else:
+                    status_by_window[window].setText(empty_text)
+
+    def update_result_views(self):
+        self.update_image_data_views('result', "No result images to display")
 
     def update_reconstruction_views(self):
-        for window, tabs in list(self._reco_tabs.items()):
-            self.populate_reconstruction_tabs(tabs)
-            self._reco_auto_level_windows.discard(window)
-            if window in self._reco_status:
-                if tabs.count():
-                    self._reco_status[window].setText("Ready")
-                else:
-                    self._reco_status[window].setText("No reconstructed slices to display")
+        self.update_image_data_views('reco', "No reconstructed slices to display")
 
     def on_main_window_close(self, event):
         for window in list(self._image_windows):

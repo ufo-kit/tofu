@@ -98,6 +98,10 @@ SECTIONS['reading'] = {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Offset to the first read file'},
+    'image-start': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Offset to the first image in each multi-page input file'},
     'number': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -107,6 +111,10 @@ SECTIONS['reading'] = {
         'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
+    'image-step': {
+        'default': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Read every \"step\" image from each multi-page input file'},
     'resize': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
