@@ -17,7 +17,7 @@ from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
 from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
-from tofu.ez.params import EZVARS, EZVARS_aux
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.ez.util import load_values_from_ezdefault, get_fdt_names
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
@@ -28,6 +28,7 @@ from tofu.ez.GUI.Stitch_tools_tab.ezstitch_qt import EZStitchGroup
 from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
 from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
+from tofu.ez.GUI.Preprocessing_tab import PreprocessingGroup, DummyBox, PreprocessingGroupMainTab
 # from tofu.ez.Helpers.batch_search_stitch_360 import Batcher
 from tofu.ez.GUI.login_dialog import Login
 
@@ -61,6 +62,7 @@ class GUI(qtw.QWidget):
         load_values_from_ezdefault(EZVARS)
         load_values_from_ezdefault(SECTIONS)
         load_values_from_ezdefault(EZVARS_aux)
+        load_values_from_ezdefault(EZVARS_prep)
 
         # Call login dialog
         # self.login_parameters = {}
@@ -95,6 +97,9 @@ class GUI(qtw.QWidget):
         self.binning_group = ROIandHistGroup()
         self.binning_group.load_values()
 
+        self.prepro_group = PreprocessingGroupMainTab()
+        self.prepro_group.load_values()
+
         # Image Viewer
         self.image_group = ImageViewerGroup()
 
@@ -119,14 +124,19 @@ class GUI(qtw.QWidget):
         self.multi_stitch_group = MultiStitch360Group()
         self.multi_stitch_group.load_values()
 
-        self.ezmview_group = EZMViewGroup()
-        self.ezmview_group.init_values()
-
         self.ezstitch_group = EZStitchGroup()
         self.ezstitch_group.load_values()
 
         self.overlap_group = Overlap360Group()
         self.overlap_group.load_values()
+
+        # Preprocessing Tab
+        self.ezmview_group = EZMViewGroup()
+        self.ezmview_group.init_values()
+        self.prepro_extended_group = PreprocessingGroup()
+        self.prepro_extended_group.load_values()
+
+        self.dummy_box = DummyBox()
         
         #######################################################
 
@@ -138,6 +148,9 @@ class GUI(qtw.QWidget):
 
         # When RECO is done send signal from config
         self.config_group.signal_reco_done.connect(self.switch_to_image_tab)
+
+        # When more preprocessing options are selected switch to Preprocessing tab
+        self.prepro_group.signal_prepro_more.connect(self.switch_to_prepro_tab)
 
         # To pass directory names from config tab to stitch tab when button pressed
         self.multi_stitch_group.get_fdt_names_on_stitch_pressed.connect(self.config_group.set_fdt_names)
@@ -162,6 +175,12 @@ class GUI(qtw.QWidget):
         #     self.update_overlap_list
         # )
 
+        # Automatically adjust entries/params if bin and (or) crop is enabled
+        self.config_group.signal_reco_start_with_bincrop.connect(self.adjust_params_if_bin_crop)
+
+        # TODO Automatically change in/out path in Preprocessing group when it is requested in Main tab
+        # if in/out in main tab are changed and prepro is enabled change in/out in prepro tab as well
+
 
         finish = qtw.QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
@@ -179,7 +198,8 @@ class GUI(qtw.QWidget):
         main_layout.addWidget(self.filters_group, 0, 1)
         main_layout.addWidget(self.phase_retrieval_group, 1, 0)
         main_layout.addWidget(self.binning_group, 1, 1)
-        main_layout.addWidget(self.config_group, 2, 0, 2, 0)
+        main_layout.addWidget(self.prepro_group,2, 0, 1, 2)
+        main_layout.addWidget(self.config_group, 3, 0, 2, 0)
 
         image_layout = qtw.QGridLayout()
         image_layout.addWidget(self.image_group, 0, 0)
@@ -192,7 +212,7 @@ class GUI(qtw.QWidget):
         advanced_layout.addWidget(self.optimization_group, 1, 1)
         advanced_layout.addWidget(self.nlmdn_group, 0, 1)
         advanced_layout.addWidget(self.ffc_group, 2, 0)
-        advanced_layout.addWidget(self.ezmview_group, 2, 1)
+        #advanced_layout.addWidget(self.ezmview_group, 2, 1)
 
         helpers_layout = qtw.QGridLayout()
         helpers_layout.addWidget(self.overlap_group, 0, 0, 2, 1)
@@ -200,10 +220,16 @@ class GUI(qtw.QWidget):
         helpers_layout.addWidget(self.multi_stitch_group, 2, 0, 2, 1)
         helpers_layout.addWidget(self.ezstitch_group, 0, 1, 3, 1)
 
+        prep_layout = qtw.QGridLayout()
+        prep_layout.addWidget(self.ezmview_group, 0, 2)
+        prep_layout.addWidget(self.prepro_extended_group, 0, 0)
+        prep_layout.addWidget(self.dummy_box, 0, 1)
+
         # Add tabs
         self.tabs.addTab(self.tab1, "Main")
         self.tabs.addTab(self.tab2, "Reco+")
         self.tabs.addTab(self.tab3, "Stitching tools")
+        self.tabs.addTab(self.tab4, "Preprocessing")
         self.tabs.addTab(self.tab5, "Image Viewer")
 
         # Create main tab
@@ -217,6 +243,10 @@ class GUI(qtw.QWidget):
         # Create helpers tab
         self.tab3.layout = helpers_layout
         self.tab3.setLayout(self.tab3.layout)
+
+        # Create misc tab
+        self.tab4.layout = prep_layout
+        self.tab4.setLayout(self.tab4.layout)
 
         # Create image tab
         self.tab5.layout = image_layout
@@ -244,6 +274,12 @@ class GUI(qtw.QWidget):
         self.overlap_group.load_values()
         self.batch360_group.load_values()
         self.ezstitch_group.load_values()
+        self.prepro_group.load_values()
+        self.prepro_extended_group.load_values()
+        #TODO add bin_crop_groupbox
+
+    def switch_to_prepro_tab(self):
+        self.tabs.setCurrentWidget(self.tab4)
 
     def switch_to_image_tab(self):
         """
@@ -282,9 +318,9 @@ class GUI(qtw.QWidget):
                         qtw.QMessageBox.Yes | qtw.QMessageBox.No, qtw.QMessageBox.No)
         if reply == qtw.QMessageBox.Yes:
             # remove all directories with projections
-            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], get_fdt_names())
+            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], ['link','prep'])
             # remove axis-search dir too
-            tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
+            #tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
             event.accept()
         else:
             event.ignore()
@@ -316,6 +352,44 @@ class GUI(qtw.QWidget):
 
     def exit(self):
         self.close()
+
+    def adjust_params_if_bin_crop(self):
+        bf = 1
+        if EZVARS['inout']['bin_before_fbp']['value']:
+            bf*=SECTIONS['reading']['resize']['value']
+        if EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']:
+            bf*= int(EZVARS_prep['prepro']['bin_size']['value'])
+        v = int(EZVARS_prep['prepro']['y']['value'])
+        h = int(EZVARS_prep['prepro']['x']['value'])
+        if EZVARS['COR']['search-method']['value'] == 2:
+            #EZVARS['COR']['search-interval']['value']
+            arl = self.centre_of_rotation_group.search_rotation_entry.text().split(",")
+            tmp = f"{(float(arl[0])-h)/bf:.1f},{(float(arl[1])-h)/bf:.1f},{float(arl[2]):.1f}"
+            self.centre_of_rotation_group.search_rotation_entry.setText(tmp)
+            self.centre_of_rotation_group.set_search_rotation()
+            #EZVARS['COR']['patch-size']['value']
+            tmp = int(self.centre_of_rotation_group.size_of_recon_entry.text())
+            self.centre_of_rotation_group.size_of_recon_entry.setText(str(int(tmp)//bf))
+            self.centre_of_rotation_group.set_size_of_reco()
+            #EZVARS['COR']['search-row']['value']
+            tmp = self.centre_of_rotation_group.search_in_slice_entry.text()
+            self.centre_of_rotation_group.search_in_slice_entry.setText(str((int(tmp)-v)//bf))
+            self.centre_of_rotation_group.set_search_slice()
+        if EZVARS['COR']['search-method']['value'] == 3:
+            # EZVARS['COR']['user-defined-ax']['value']
+            ucors = self.centre_of_rotation_group.axis_col_entry.text().split(",")
+            print(" !!!!!!!!!!!! TRYING TO REFORMAT CORS")
+            tmp = ''
+            for cor in ucors:
+                tmp+=f"{str((float(cor)-h)/bf)},"
+            self.centre_of_rotation_group.axis_col_entry.setText(tmp[:-1])
+            self.centre_of_rotation_group.set_axis_col()
+            # EZVARS['COR']['user-defined-dax']['value']
+            tmp = self.centre_of_rotation_group.inc_axis_entry.text()
+            self.centre_of_rotation_group.inc_axis_entry.setText(str(int(tmp)//bf))
+            self.centre_of_rotation_group.set_axis_inc()
+        #TODO adjust the vertical ROI as well
+        return 0
 
 
 def main_qt(args=None):

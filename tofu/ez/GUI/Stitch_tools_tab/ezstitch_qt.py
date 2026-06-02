@@ -20,6 +20,7 @@ from tofu.ez.params import EZVARS_aux, EZVARS
 from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
+    main_360_mp_depth1,
     find_vert_olap_2_vsteps,
     validate_slice_range,
     get_cube_dims,
@@ -558,11 +559,17 @@ class EZStitchGroup(QGroupBox):
                 return
             main_sti_mp()
         else: 
+<<<<<<< HEAD
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
             #                     EZVARS_aux['vert-sti']['output-dir']['value'],
             #                     self.parameters['ezstitch_axis_of_rotation'], 0)
             reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
             fd_names = get_fd_names()
+=======
+            # main_360_mp_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
+            #                    EZVARS_aux['vert-sti']['output-dir']['value'],
+            #                    EZVARS_aux['vert-sti']['cor']['value'], 0)
+>>>>>>> MergingHereon_with_AprilMaster
             main_360sti_ufol_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
                                EZVARS_aux['vert-sti']['output-dir']['value'],
                                EZVARS_aux['vert-sti']['cor']['value'],

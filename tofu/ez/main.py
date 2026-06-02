@@ -20,6 +20,9 @@ from tofu.config import SECTIONS
 from tofu.ez.Helpers.batch_search_stitch_360 import batch_stitch, batch_olap_search
 from tofu.ez.Helpers.stitch_funcs import find_vert_olap_2_vsteps, main_sti_mp, \
     complete_message, validate_slice_range
+from shutil import rmtree
+from tofu.ez.Helpers.hereon_h5 import set_params_from_h5log
+from tofu.ez.GUI.Preprocessing_tab import fmt_and_do_prepro
 
 LOG = logging.getLogger(__name__)
 
@@ -62,7 +65,7 @@ def get_CTdirs_list(inpath, fdt_names):
         # Check if common flats/darks/flats2 are type 3 or 4
         W.checkCTdirs()
         # Need to check if common flats/darks contain only .tif files
-        W.checkCTfiles()
+        #W.checkCTfiles()
         W.sortbadgoodsets()
         return W.ctsets, W.lvl0
 
@@ -89,13 +92,13 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
         medflat_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat-median.tif")
         script_str = "import sys; from tifffile import imwrite; from tofu.ez.util import get_median_flat; imwrite(sys.argv[1], get_median_flat(sys.argv[2]))"
         cmds.append(f'python -c \'{script_str}\' "{medflat_file}" "{path2flat}"')
-    if EZVARS['inout']['preprocess']['value']:
-        cmds.append('echo " - Applying filter(s) to images "')
-        cmds_prepro = get_pre_cmd(ctset, EZVARS['inout']['preprocess-command']['value'],
-                                      EZVARS['inout']['tmp-dir']['value'])
+     if EZVARS['inout']['preprocess']['value'] and \
+                    (not EZVARS_prep['prepro']['extended_prepro']):
+        cmds.append('echo " - Preprocessing: removing outliers only"')
+        cmds_prepro = get_rmout_cmd(ctset, EZVARS['inout']['tmp-dir']['value'])
         cmds.extend(cmds_prepro)
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
     ###################################################
     if EZVARS['filters']['rm_spots']['value'] or EZVARS['filters']['rm_spots_use_median']['value']:
         # generate commands to remove sci. spots from projections
@@ -104,7 +107,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
         cmds.append('echo " - Flat-correcting and removing large spots"')
         cmds_inpaint = get_inp_cmd(ctset, EZVARS['inout']['tmp-dir']['value'], wh[0], nviews, reduction_mode=reduction_mode)
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
         cmds.extend(cmds_inpaint)
         swiFFC = False  # no need to do FFC anymore
 
@@ -113,7 +116,7 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
     # todo? also if vertical ROI is defined to speed up the phase retrieval
     if EZVARS['retrieve-phase']['apply-pr']['value'] and EZVARS['RR']['enable-RR']['value']:
         # or (SECTIONS['retrieve-phase']['enable-phase']['value'] and EZVARS['inout']['input_ROI']['value']):
-        if swiFFC:  # we still need need flat correction #Inpaint No
+        if swiFFC:  # we still need flat correction #Inpaint No
             cmds.append('echo " - Phase retrieval with flat-correction"')
             if EZVARS['flat-correction']['smart-ffc']['value']:
                 cmds.append(get_pr_sinFFC_cmd(ctset, reduction_mode=reduction_mode))
@@ -179,10 +182,11 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
         cmds.append('echo " - Generating proj from filtered sinograms"')
         cmds.append(get_sinos2proj_cmd(wh[0], n_per_pass))
         # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1])
+        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
 
     # Finally - call to tofu reco
     cmds.append('echo " - CT with axis {}; ffc:{}, PR:{}"'.format(ax, swiFFC, swiPR))
+    # External flat-field correction?
     if EZVARS['flat-correction']['smart-ffc']['value'] and swiFFC:
         cmds.append(get_sinFFC_cmd(ctset, reduction_mode=reduction_mode))
         cmds.append(get_reco_cmd(ctset, out_pattern, ax, nviews, wh, False, swiPR, reduction_mode=reduction_mode))
@@ -206,12 +210,31 @@ def execute_reconstruction():
     reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
 
     # get list of all good CT directories to be reconstructed
-
     print('*********** Analyzing input directory ************')
+    nopp = 1
+    if (EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro']['value']):
+            #(EZVARS_prep['prepro']['bin']['value'] or
+            #EZVARS_prep['prepro']['crop']['value']) ):
+        nopp = 0
+        print('*********** Preprocessing is enabled ************')
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        print('Preprocessing data now, images will be saved in subdirectory \"preprocessed\" in tmp')
+        print('# +++++++++++++++++++++++++++++++++++++++++++++++')
+        #indirs = []
+        fmt_and_do_prepro(EZVARS['inout']['input-dir']['value'],
+                          os.path.join(EZVARS['inout']['tmp-dir']['value'], 'preprocessed'))
+        print('+++++++++++++++++++++++++++++++++++++++++++++++')
+        print('Preprocessing is over, starting axis search and reconstruction')
+        print('+++++++++++++++++++++++++++++++++++++++++++++++')
+        # add_value_to_dict_entry(EZVARS['inout']['input-dir'], \
+        #         os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'))
     fdt_names = get_fdt_names()
-    # Find valid CT directories in the input directory
-    W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
-    # W is an array of tuples (path to CT directory, directory type)
+    # Find valid CT directories in the input directory or directory with preprocessed images
+    if nopp:
+        W, lvl0 = get_CTdirs_list(EZVARS['inout']['input-dir']['value'], fdt_names)
+    else:
+        W, lvl0 = get_CTdirs_list(os.path.join(EZVARS['inout']['tmp-dir']['value'],'preprocessed'), fdt_names)
+    # W is an array of tuples (path to CT directory, directory type, hereon?)
 
     # if we deal with unstitched half acqusition mode data we have to
     # convert all frames to ordinary 180-deg projections first
@@ -260,8 +283,9 @@ def execute_reconstruction():
             for i in range(len(W)):
                 axlist.append(ax + i*EZVARS['COR']['user-defined-dax']['value'])
         else:
-            if len(W) != len(axlist):
-                return "There are more data sets in the input dir than entries in the list of axes"
+            if len(W) > len(axlist):
+                print("! PROBLEM: there are more data sets in the input dir than entries in the list of axes")
+                return
             for i in range(len(axlist)):
                 axlist[i] = float(axlist[i])
         print(axlist)
@@ -269,6 +293,9 @@ def execute_reconstruction():
     for i, ctset in enumerate(W):
         # ctset is a tuple containing a path and a type (3 or 4)
         if not already_recd(ctset[0], lvl0, recd_sets):
+            #we check if it is Hereon/PetraIII CT set
+            if os.path.exists(os.path.join(ctset[0], 'h5log.yml')):
+                set_params_from_h5log(ctset[0])
             setid = ctset[0][len(lvl0) + 1:]
             num_proc_sets += 1
             # determine initial number of projections and their shape
@@ -277,19 +304,19 @@ def execute_reconstruction():
             ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
             nrows = wh[0]
             if EZVARS['inout']['input_ROI']['value']:
-                nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
-                if bad_vert_ROI(multipage, path2proj,
-                        SECTIONS['reading']['y']['value'],SECTIONS['reading']['height']['value']):
+                roi_row0, roi_height = get_roi_row0_and_height(wh[0])
+                nrows = roi_height//SECTIONS['reading']['y-step']['value']
+                if bad_vert_ROI(multipage, path2proj, roi_row0, roi_height):
                     print('{}\t{}'.format('CTset:', ctset[0]))
                     print('{:>30}\t{}'.format('Axis:', 'na'))
                     print('Vertical ROI does not contain any rows.')
                     print("{:>30}\t{}, dimensions: {}".format("Number of projections:", nviews, wh))
                     continue
-                elif (SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value']) > wh[0]:
+                elif (roi_row0 + roi_height) > wh[0]:
                     print('Vertical ROI exceeds the number of rows')
                     print('Resetting the interval to match the number of rows')
-                    SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
-                    nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
+                    roi_height = wh[0] - roi_row0
+                    nrows = roi_height//SECTIONS['reading']['y-step']['value']+1
             n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
             # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
             #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
@@ -297,24 +324,17 @@ def execute_reconstruction():
             if EZVARS['COR']['search-method']['value'] < 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
-                    ax = find_axis_corr(ctset,
-                                    EZVARS['inout']['input_ROI']['value'],
-                                    SECTIONS['reading']['y']['value'],
-                                    SECTIONS['reading']['height']['value'], multipage)
+                    ax = find_axis_corr(ctset, EZVARS['inout']['input_ROI']['value'],
+                                        roi_row0, roi_height, multipage)
                 # Find axis of rotation using auto: minimize STD of a slice
                 elif EZVARS['COR']['search-method']['value'] == 2:
-                    cmds.append("echo \"Cleaning axis-search in tmp directory\"")
-                    os.system('rm -rf {}'.format(os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')))
-                    ax = find_axis_std(ctset,  #EZVARS['inout']['tmp-dir']['value'],
-                                        os.path.join(EZVARS['inout']['output-dir']['value'], setid),
-                                        EZVARS['COR']['search-interval']['value'],
-                                        EZVARS['COR']['patch-size']['value'],
-                                        nviews, wh, reduction_mode=reduction_mode)
+                    ax = find_axis_std(ctset, nviews, wh,
+                                       os.path.join(EZVARS['inout']['output-dir']['value'], setid),
+                                       reduction_mode=reduction_mode)
                 else:
-                    ax = axlist[i]#EZVARS['COR']['user-defined-ax']['value'] + i * EZVARS['COR']['user-defined-dax']['value']
-            # If EZVARS['COR']['search-method']['value'] >= 4 then bypass axis search and use image midpoint
-            elif EZVARS['COR']['search-method']['value'] >= 4:
-                ax = find_axis_image_midpoint(wh)
+                    ax = axlist[i]
+            elif EZVARS['COR']['search-method']['value'] >= 4: #half acq mode scans
+                ax = wh[1] //2
                 print("Bypassing axis search and using image midpoint: {}".format(ax))
             add_value_to_dict_entry(SECTIONS['cone-beam-weight']['center-position-x'], str(ax))
 
@@ -349,11 +369,12 @@ def execute_reconstruction():
     print("*********** PROCESSING ************", flush=True)
     for cmd in cmds:
         if not EZVARS['inout']['dryrun']['value']:
+            print(cmd)
             os.system(cmd)
         else:
             print(cmd)
     if not EZVARS['inout']['keep-tmp']['value']:
-        clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names)
+        clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], fdt_names, ['prep','link'])
     if shared_flatsdarks_orig_value and shared_flatsdarks_orig_value != EZVARS['inout']['shared-flatsdarks']['value']:
         add_value_to_dict_entry(EZVARS['inout']['shared-flatsdarks'], shared_flatsdarks_orig_value)
     print("========================================")
@@ -369,6 +390,13 @@ def execute_reconstruction():
             LOG.error(e)
         else:
             main_sti_mp()
+            # i USED TO delete tmp data here; Stuart disabled that
+            # TODO use the temporary data in vertical stitching in the best way
+            # if not EZVARS['inout']['keep-tmp']['value']:
+            #     vert_sti_tmp = EZVARS_aux['vert-sti']['tmp-dir']['value']
+            #     for dir in os.listdir(vert_sti_tmp):
+            #         rmtree(os.path.join(vert_sti_tmp, dir))
+
 
     print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
     if (EZVARS['COR']['search-method']['value'] == 5) and EZVARS_aux['vert-sti']['dovertsti']['value']:

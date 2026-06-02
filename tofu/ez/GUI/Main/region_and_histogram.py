@@ -28,20 +28,25 @@ class ROIandHistGroup(QGroupBox):
         self.first_row_label.setText("First row in projections")
         self.first_row_label.setToolTip("Counting from the top")
         self.first_row_entry = QLineEdit()
-        self.first_row_entry.setValidator(get_int_validator())
+        #self.first_row_entry.setValidator(get_int_validator())
+        self.first_row_entry.setValidator(get_double_validator())
         self.first_row_entry.editingFinished.connect(self.set_first_row)
+        self.first_row_entry.setFixedWidth(80)
 
         self.num_rows_label = QLabel()
         self.num_rows_label.setText("Number of rows (ROI height)")
         self.num_rows_entry = QLineEdit()
-        self.num_rows_entry.setValidator(get_int_validator())
+        #self.num_rows_entry.setValidator(get_int_validator())
+        self.num_rows_entry.setValidator(get_double_validator())
         self.num_rows_entry.editingFinished.connect(self.set_num_rows)
+        self.num_rows_entry.setFixedWidth(80)
 
         self.nth_row_label = QLabel()
         self.nth_row_label.setText("Step (reconstruct every Nth row)")
         self.nth_row_entry = QLineEdit()
         self.nth_row_entry.setValidator(get_int_validator())
         self.nth_row_entry.editingFinished.connect(self.set_reco_nth_rows)
+        self.nth_row_entry.setFixedWidth(60)
 
         self.clip_histo_checkbox = QCheckBox()
         self.clip_histo_checkbox.setText("Clip histogram and save slices in")
@@ -61,12 +66,14 @@ class ROIandHistGroup(QGroupBox):
         self.min_val_entry = QLineEdit()
         #self.min_val_entry.setValidator(get_double_validator())
         self.min_val_entry.editingFinished.connect(self.set_min_val)
+        self.min_val_entry.setFixedWidth(80)
 
         self.max_val_label = QLabel()
         self.max_val_label.setText("Max value in 32-bit histogram")
         self.max_val_entry = QLineEdit()
         #self.max_val_entry.setValidator(get_double_validator())
         self.max_val_entry.editingFinished.connect(self.set_max_val)
+        self.max_val_entry.setFixedWidth(80)
 
         self.crop_slices_checkbox = QCheckBox()
         self.crop_slices_checkbox.setText("Crop slices")
@@ -81,12 +88,14 @@ class ROIandHistGroup(QGroupBox):
         self.x_val_entry = QLineEdit()
         self.x_val_entry.setValidator(get_int_validator())
         self.x_val_entry.editingFinished.connect(self.set_x)
+        self.x_val_entry.setFixedWidth(60)
 
         self.width_val_label = QLabel()
         self.width_val_label.setText("width")
         self.width_val_entry = QLineEdit()
         self.width_val_entry.setValidator(get_int_validator())
         self.width_val_entry.editingFinished.connect(self.set_width)
+        self.width_val_entry.setFixedWidth(60)
 
         self.y_val_label = QLabel()
         self.y_val_label.setText("y")
@@ -94,20 +103,47 @@ class ROIandHistGroup(QGroupBox):
         self.y_val_entry = QLineEdit()
         self.y_val_entry.setValidator(get_int_validator())
         self.y_val_entry.editingFinished.connect(self.set_y)
+        self.y_val_entry.setFixedWidth(60)
 
         self.height_val_label = QLabel()
         self.height_val_label.setText("height")
         self.height_val_entry = QLineEdit()
         self.height_val_entry.setValidator(get_int_validator())
         self.height_val_entry.editingFinished.connect(self.set_height)
+        self.height_val_entry.setFixedWidth(60)
 
         self.rotate_vol_label = QLabel()
-        self.rotate_vol_label.setText("Rotate volume counterclockwise by [deg]")
+        self.rotate_vol_label.setText("Rotate slices counterclockwise by [deg]")
         self.rotate_vol_entry = QLineEdit()
         self.rotate_vol_entry.setValidator(get_double_validator())
         self.rotate_vol_entry.editingFinished.connect(self.set_rotate_volume)
+        self.rotate_vol_entry.setFixedWidth(50)
+
+        self.bin_reco_checkbox = QCheckBox()
+        self.bin_reco_checkbox.setText("Bin")
+        self.bin_reco_checkbox.setToolTip("Images will be binned right after reading the vertical ROI\n"
+                                             "before FBP starts. \n"
+                                             "ROI In-slice will be scaled according to the binning factor")
+
+        self.bin_reco_checkbox.stateChanged.connect(self.set_bin)
+        self.bin_reco_entry = QLineEdit()
+        self.bin_reco_entry.setValidator(get_int_validator())
+        self.rotate_vol_entry.editingFinished.connect(self.set_bin_size)
+        self.bin_reco_entry.setFixedWidth(40)
+
+        self.fbp_read_step_checkbox = QCheckBox()
+        self.fbp_read_step_checkbox.setText("Read every nth projection")
+        self.fbp_read_step_checkbox.stateChanged.connect(self.set_use_every_nth_proj)
+        self.fbp_read_step_entry = QLineEdit()
+        self.fbp_read_step_entry.setValidator(get_int_validator())
+        self.fbp_read_step_entry.editingFinished.connect(self.set_read_proj_step)
+        self.fbp_read_step_entry.setFixedWidth(40)
 
         # self.setStyleSheet('background-color:Azure')
+
+        self.spacer = QLabel()
+        self.spacer.setText("     ")
+        self.spacer.setFixedWidth(50)
 
         self.set_layout()
 
@@ -118,30 +154,44 @@ class ROIandHistGroup(QGroupBox):
         layout = QGridLayout()
 
         layout.addWidget(self.select_rows_checkbox, 0, 0)
-        layout.addWidget(self.first_row_label, 1, 0)
-        layout.addWidget(self.first_row_entry, 1, 1, 1, 8)
-        layout.addWidget(self.num_rows_label, 2, 0)
-        layout.addWidget(self.num_rows_entry, 2, 1, 1, 8)
-        layout.addWidget(self.nth_row_label, 3, 0)
-        layout.addWidget(self.nth_row_entry, 3, 1, 1, 8)
-        layout.addWidget(self.clip_histo_checkbox, 4, 0)
-        layout.addWidget(self.eight_bit_rButton, 4, 1)
-        layout.addWidget(self.sixteen_bit_rButton, 4, 2)
-        layout.addWidget(self.min_val_label, 5, 0)
-        layout.addWidget(self.min_val_entry, 5, 1, 1, 8)
-        layout.addWidget(self.max_val_label, 6, 0)
-        layout.addWidget(self.max_val_entry, 6, 1, 1, 8)
-        layout.addWidget(self.crop_slices_checkbox, 7, 0)
-        layout.addWidget(self.x_val_label, 7, 1)#, Qt.AlignRight)
-        layout.addWidget(self.x_val_entry, 7, 2)
-        layout.addWidget(self.width_val_label, 7, 3)#, Qt.AlignRight)
-        layout.addWidget(self.width_val_entry, 7, 4)
-        layout.addWidget(self.y_val_label, 7, 5)
-        layout.addWidget(self.y_val_entry, 7, 6)
-        layout.addWidget(self.height_val_label, 7, 7)
-        layout.addWidget(self.height_val_entry, 7, 8)
-        layout.addWidget(self.rotate_vol_label, 8, 0)
-        layout.addWidget(self.rotate_vol_entry, 8, 1, 1, 8)
+        box0 = QGridLayout()
+        box0.addWidget(self.first_row_label, 0, 0)
+        box0.addWidget(self.first_row_entry, 0, 1, alignment=Qt.AlignmentFlag.AlignLeft )
+        box0.addWidget(self.num_rows_label, 0, 2, alignment=Qt.AlignmentFlag.AlignLeft)
+        box0.addWidget(self.num_rows_entry, 0, 3, alignment=Qt.AlignmentFlag.AlignLeft)
+        box0.addWidget(self.nth_row_label, 0, 4)
+        box0.addWidget(self.nth_row_entry, 0, 5)
+        layout.addItem(box0,1,0,1,8)
+        l=5
+        layout.addWidget(self.rotate_vol_label, l, 0)
+        layout.addWidget(self.rotate_vol_entry, l, 1)
+        #layout.addWidget(self.spacer, l, 2)
+        layout.addWidget(self.fbp_read_step_checkbox, l, 2)
+        layout.addWidget(self.fbp_read_step_entry, l, 3)
+        layout.addWidget(self.bin_reco_checkbox, l, 4, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.bin_reco_entry, l, 5)
+        l+=1
+        layout.addWidget(self.crop_slices_checkbox, l, 0)
+        l+=1
+        box1 = QGridLayout()
+        box1.addWidget(self.x_val_label, 0, 1)#, Qt.AlignRight)
+        box1.addWidget(self.x_val_entry, 0, 2, alignment=Qt.AlignmentFlag.AlignLeft)
+        box1.addWidget(self.width_val_label, 0, 3)#, Qt.AlignRight)
+        box1.addWidget(self.width_val_entry, 0, 4, alignment=Qt.AlignmentFlag.AlignLeft)
+        box1.addWidget(self.y_val_label, 0, 5)
+        box1.addWidget(self.y_val_entry, 0, 6, alignment=Qt.AlignmentFlag.AlignLeft)
+        box1.addWidget(self.height_val_label, 0, 7)
+        box1.addWidget(self.height_val_entry, 0, 8, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addItem(box1, l, 0,1,8)
+        l+=1
+        layout.addWidget(self.clip_histo_checkbox, l, 0)
+        layout.addWidget(self.eight_bit_rButton, l, 1)
+        layout.addWidget(self.sixteen_bit_rButton, l, 2)
+        l+=1
+        layout.addWidget(self.min_val_label, l, 0)
+        layout.addWidget(self.min_val_entry, l, 1, 1, 1)
+        layout.addWidget(self.max_val_label, l, 3)
+        layout.addWidget(self.max_val_entry, l, 4, 1, 1)
 
         self.setLayout(layout)
 
@@ -165,6 +215,16 @@ class ROIandHistGroup(QGroupBox):
         self.y_val_entry.setText(str(EZVARS['inout']['output-y']['value']))
         self.height_val_entry.setText(str(EZVARS['inout']['output-height']['value']))
         self.rotate_vol_entry.setText(str(reverse_tupleize()(SECTIONS['general-reconstruction']['volume-angle-z']['value'])))
+        self.bin_reco_checkbox.setChecked(EZVARS['inout']['bin_before_fbp']['value'])
+        self.bin_reco_entry.setText(str(SECTIONS['reading']['resize']['value']))
+        self.fbp_read_step_entry.setText(str(SECTIONS['reading']['step']['value']))
+        self.fbp_read_step_checkbox.setChecked(EZVARS['inout']['use_every_nth_proj']['value'])
+
+    def set_bin(self):
+        add_value_to_dict_entry(EZVARS['inout']['bin_before_fbp'], self.bin_reco_checkbox.isChecked())
+
+    def set_bin_size(self):
+        add_value_to_dict_entry(SECTIONS['reading']['resize'], str(self.bin_reco_entry))
 
     def set_select_rows(self):
         LOG.debug("Select rows: " + str(self.select_rows_checkbox.isChecked()))
@@ -254,3 +314,13 @@ class ROIandHistGroup(QGroupBox):
         dict_entry = SECTIONS['general-reconstruction']['volume-angle-z']
         add_value_to_dict_entry(dict_entry, str(self.rotate_vol_entry.text()))
         self.rotate_vol_entry.setText(str(reverse_tupleize()(dict_entry['value'])))
+
+    def set_use_every_nth_proj(self):
+        dict_entry = EZVARS['inout']['use_every_nth_proj']
+        add_value_to_dict_entry(dict_entry, self.crop_slices_checkbox.isChecked())
+        return 0
+
+    def set_read_proj_step(self):
+        dict_entry = SECTIONS['reading']['step']
+        add_value_to_dict_entry(dict_entry, int(self.height_val_entry.text()))
+        return 0

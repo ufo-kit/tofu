@@ -14,6 +14,7 @@ def save_parameters(params, file_path):
 
 EZVARS = OrderedDict()
 EZVARS_aux = OrderedDict()
+EZVARS_prep = OrderedDict()
 
 EZVARS_aux['find360olap'] = {
     'input-dir': {
@@ -253,6 +254,10 @@ EZVARS['inout'] = {
         'ezdefault': False,
         'type': bool, 
         'help': "TODO"},
+    'inpur-roi-rel': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'clip_hist': {
         'ezdefault': False,
         'type': bool, 
@@ -260,10 +265,6 @@ EZVARS['inout'] = {
     'preprocess': {
         'ezdefault': False, 
         'type': bool, 
-        'help': "TODO"},
-    'preprocess-command': {
-        'ezdefault': "remove-outliers size=3 threshold=500 sign=1", 
-        'type': str, 
         'help': "TODO"},
     'output-ROI': {
         'ezdefault': False,
@@ -285,6 +286,14 @@ EZVARS['inout'] = {
         'ezdefault': 0,
         'type': restrict_value((0,None),dtype=int), 
         'help': "Crop slices: height"},
+    'bin_before_fbp': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'use_every_nth_proj': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'dryrun': {
         'ezdefault': False, 
         'type': bool, 
@@ -337,17 +346,24 @@ EZVARS['COR'] = {
         'ezdefault': 1,
         'type': int, 
         'help': "TODO"},
+    'cor-rel-search': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
     'search-interval': {
-        'ezdefault': "1010,1030,0.5",
+        #'ezdefault': "1010,1030,0.5",
+        'ezdefault': "-50,50,5",
         'type': str, 
         'help': "TODO"},
     'patch-size': {
-        'ezdefault': 800,
-        'type': restrict_value((0,None),dtype=int), 
+        #'ezdefault': 800,
+        'ezdefault': 0.75,
+        'type': restrict_value((0,None),dtype=float),
         'help': "Size of reconstructed patch [pixel]"},
     'search-row': {
-        'ezdefault': 400,
-        'type': restrict_value((0,None), dtype=int), 
+        #'ezdefault': 400,
+        'ezdefault': 0.5,
+        'type': restrict_value((0,None), dtype=float),
         'help': "Search in slice from row number"},
     'min-std-apply-pr': {
         'ezdefault': False,
@@ -536,4 +552,129 @@ EZVARS['advanced'] = {
         'type': bool,
         'help': "TODO"
     }   
+}
+
+EZVARS_prep['prepro'] = {
+    'extended_prepro': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'bin': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'bin3d': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'crop': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'sdir_only': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'subdir': {
+        'ezdefault': "sli",
+        'type': str,
+        'help': "TODO"},
+    'output-dir': {
+        #'ezdefault': os.path.join(os.path.expanduser('~'),"images-processed"),
+        'ezdefault': '/data/hereon/wp/user/gasilovs/tmp',
+        'type': str,
+        'help': "TODO"},
+    'bigtiff': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'input-dir': {
+        'ezdefault': os.path.join(os.path.expanduser('~'),"images"),
+        'type': str,
+        'help': "TODO"},
+    'x': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'width': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'y': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'height': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_lim_range': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'im_start': {
+        'ezdefault': 0,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_range': {
+        'ezdefault': 10000,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'im_step': {
+        'ezdefault': 1,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'bin_size': {
+        'ezdefault': 2,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'clip_hist': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'out8bit': {
+        'ezdefault': True,
+        'type': bool,
+        'help': "TODO"},
+    'min_int_val': {
+        'ezdefault': -0.0003,
+        'type': float,
+        'help': "TODO"},
+    'max_int_val': {
+        'ezdefault': 0.0002,
+        'type': float,
+        'help': "TODO"},
+    'use_generic_ufo_cmd':
+        {
+            'ezdefault': False,
+            'type': bool,
+            'help': "TODO"},
+    'generic_ufo_cmd': {
+        'ezdefault': "non-local-means patch-radius=3 search-radius=10 !",
+        'type': str,
+        'help': "TODO"},
+    'rmout_pos': {
+            'ezdefault': False,
+            'type': bool,
+            'help': "TODO"},
+    'rmout_pos_size': {
+        'ezdefault': 3,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'rmout_pos_thr': {
+        'ezdefault': 500,
+        'type': restrict_value((0,None),dtype=float),
+        'help': "TODO"},
+    'rmout_neg': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
+    'rmout_neg_size': {
+        'ezdefault': 3,
+        'type': restrict_value((0,None),dtype=int),
+        'help': "TODO"},
+    'rmout_neg_thr': {
+        'ezdefault': 500,
+        'type': restrict_value((0,None),dtype=float),
+        'help': "TODO"},
 }

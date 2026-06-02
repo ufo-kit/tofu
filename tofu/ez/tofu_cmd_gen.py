@@ -9,9 +9,7 @@ from tofu.ez.ufo_cmd_gen import fmt_in_out_path
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.util import make_inpaths, fmt_in_out_path
-
-
-# TODO: check amount of RAM and generate sinograms in multiple passes if needed
+from tofu.ez.util import make_inpaths, fmt_in_out_path, get_roi_row0_and_height
 
 def check_lamino():
     cmd = ''
@@ -46,11 +44,14 @@ def check_8bit(cmd, gray256, bit, hmin, hmax):
         cmd += ' --output-minimum " {}" --output-maximum " {}"'.format(hmin, hmax)
     return cmd
 
-def check_vcrop(cmd, vcrop, y, yheight, ystep, ori_height):
-    if vcrop:
-        cmd += " --y {} --height {} --y-step {}".format(y, yheight, ystep)
-    else:
-        cmd += " --height {}".format(ori_height)
+#def check_vcrop(cmd, vcrop, y, yheight, ystep, ori_height):
+def check_vcrop(cmd, h):
+    y, yheight = get_roi_row0_and_height(h)
+    # if vcrop:
+    #     cmd += " --y {} --height {} --y-step {}".format(y, yheight, ystep)
+    # else:
+    #     cmd += " --height {}".format(h)
+    cmd += " --y {} --height {} --y-step {}".format(y, yheight, SECTIONS['reading']['y-step']['value'])
     return cmd
 
 def check_bigtif(cmd, swi):
@@ -77,10 +78,7 @@ def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh, reduction_mode="median"
     cmd += " --number {}".format(nviews)
     if SECTIONS['reading']['step']['value'] > 0.0:
         cmd += ' --angle {}'.format(SECTIONS['reading']['step']['value'])
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],
@@ -100,10 +98,7 @@ def get_ct_proj_cmd( out_pattern, ax, nviews, wh):
     cmd += " --number {}".format(nviews)
     if SECTIONS['reading']['step']['value'] > 0.0:
         cmd += ' --angle {}'.format(SECTIONS['reading']['step']['value'])
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],
@@ -112,13 +107,15 @@ def get_ct_proj_cmd( out_pattern, ax, nviews, wh):
     return cmd
 
 def get_ct_sin_cmd(out_pattern, ax, nviews, wh):
+    # TODO: check amount of RAM and generate sinograms in multiple passes if needed
     sinos_dir = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'sinos-filt')
     cmd = 'tofu tomo --sinograms {}'.format(sinos_dir)
     cmd += ' --output {}'.format(out_pattern)
     cmd += ' --axis {}'.format(ax)
     cmd += ' --offset {}'.format(SECTIONS['general-reconstruction']['volume-angle-z']['value'][0])
     if EZVARS['inout']['input_ROI']['value']:
-        cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        y0, yheight = get_roi_row0_and_height(wh[0])
+        cmd += ' --number {}'.format(yheight // SECTIONS['reading']['y-step']['value'])
     else:
         cmd += " --number {}".format(wh[0])
     cmd += " --height {}".format(nviews)
@@ -142,12 +139,9 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass, reduction_mode="med
     cmd += " --projections {}".format(in_proj_dir)
     cmd += " --output {}".format(os.path.join(tmpdir, "sinos/sin-%04i.tif"))
     cmd += " --number {}".format(nviews)
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     if not EZVARS['RR']['use-ufo']['value']:
-        # because second RR algorithm does not know how to work with multipage tiffs
+        # because the second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
     cmd += ' --flat-scale {}'.format(EZVARS['flat-correction']['flat-scale']['value'])
     cmd += f" --pass-size {n_per_pass}"
@@ -161,13 +155,9 @@ def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh, n_per_pass):
     cmd += " --projections {}".format(in_proj_dir)
     cmd += " --output {}".format(os.path.join(tmpdir, "sinos/sin-%04i.tif"))
     cmd += " --number {}".format(nviews)
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'],
-                           wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     if not EZVARS['RR']['use-ufo']['value']:
-        # because second RR algorithm does not know how to work with multipage tiffs
+        # because the second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
     cmd += f" --pass-size {n_per_pass}"
     return cmd
@@ -182,7 +172,11 @@ def get_sinos2proj_cmd(proj_height, n_per_pass):
     if not EZVARS['inout']['input_ROI']['value']:
         cmd += ' --number {}'.format(proj_height)
     else:
-        cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        y, y_height = get_roi_row0_and_height(proj_height)
+        #cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        cmd += ' --number {}'.format(y_height // SECTIONS['reading']['y-step']['value'])
+    # TODO determine num_per_pass for each data set not just once in the main function
+    # use get_data_cube_info from utils
     cmd += f" --pass-size {n_per_pass}"
     return cmd
 
@@ -279,9 +273,18 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr, reduction_mode="me
     if EZVARS['advanced']['more-reco-params']['value'] is True:
         cmd += check_lamino()
     elif EZVARS['advanced']['more-reco-params']['value'] is False:
-        cmd += ' --overall-angle 180'
+        if ctset[2]:
+            # Hereon CT set with multiple 180 intervals ?
+            cmd += f" --overall-angle {SECTIONS['general-reconstruction']['overall-angle']['value']}"
+        else:
+            # Ordinary parallel beam data
+            cmd += ' --overall-angle 180'
     ##############
-    cmd += '  --projections {}'.format(in_proj_dir)
+    cmd += ' --projections {}'.format(in_proj_dir)
+    bf = 1
+    if EZVARS['inout']['bin_before_fbp']['value']:
+        bf = SECTIONS['reading']['resize']['value']
+        cmd += f' --resize {bf}'
     cmd += ' --output {}'.format(out_pattern)
     if ffc:
         cmd += ' --fix-nan-and-inf'
@@ -300,7 +303,15 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr, reduction_mode="me
                 .format(SECTIONS['retrieve-phase']['energy']['value'], SECTIONS['retrieve-phase']['propagation-distance']['value'][0],
                         SECTIONS['retrieve-phase']['pixel-size']['value'], SECTIONS['retrieve-phase']['regularization-rate']['value'])
         )
-    cmd += " --center-position-x {}".format(ax)
+    if os.path.exists(os.path.join(ctset[0],'cors.txt')):
+        #if binning is enabled file with cors is already correct
+        #cmd+= f" --center-position-x $(cat {os.path.join(ctset[0],'cors.txt')})"
+        axshift = (ax - wh[1]*0.5) / bf
+        cmd += f" --center-position-x $(python -c \"import numpy as np; "
+        cmd += f"print(','.join([str(i) for i in np.loadtxt('{os.path.join(ctset[0],'cors.txt')}', delimiter=',') + {axshift}]))\")"
+    else:
+        #but here we must take desired binning into account
+        cmd += " --center-position-x {}".format(ax/bf)
     # if args.nviews==0:
     cmd += " --number {}".format(nviews)
     # elif args.nviews>0:
@@ -312,26 +323,34 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr, reduction_mode="me
     a = -int(wh[0] / 2.0)
     c = 1
     if EZVARS['inout']['input_ROI']['value']:
+        y0, yheight = get_roi_row0_and_height(wh[0])
         if EZVARS['RR']['enable-RR']['value']:
-            h2 = SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value'] / 2.0
+            #h2 = SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value'] / 2.0
+            h2 = yheight
             b = np.ceil(h2)
             a = -int(h2)
         else:
             h2 = int(wh[0] / 2.0)
-            a = SECTIONS['reading']['y']['value'] - h2
-            b = SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value'] - h2
+            # a = SECTIONS['reading']['y']['value'] - h2
+            # b = SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value'] - h2
+            a = y0 - h2
+            b = y0 + yheight - h2
             c = SECTIONS['reading']['y-step']['value']
+    # we do not bin vertical ROI
+    # a, b = a//bf, b//bf
     cmd += ' --region={},{},{}'.format(a, b, c)
     # crop of reconstructed slice in the axial plane
-    b = wh[1] / 2
+    b = wh[1] // bf / 2
     if EZVARS['inout']['output-ROI']['value']:
         if EZVARS['inout']['output-x']['value'] != 0 or EZVARS['inout']['output-width']['value'] != 0:
-            cmd += ' --x-region={},{},{}'.format(EZVARS['inout']['output-x']['value'] - b,
-                    EZVARS['inout']['output-x']['value'] + EZVARS['inout']['output-width']['value'] - b, 1)
+            cmd += ' --x-region={},{},{}'.format(EZVARS['inout']['output-x']['value']//bf - b,
+                    EZVARS['inout']['output-x']['value']//bf + EZVARS['inout']['output-width']['value']//bf - b, 1)
         if EZVARS['inout']['output-y']['value'] != 0 or EZVARS['inout']['output-height']['value'] != 0:
-            cmd += ' --y-region={},{},{}'.format(EZVARS['inout']['output-y']['value'] - b,
-                    EZVARS['inout']['output-y']['value'] + EZVARS['inout']['output-height']['value'] - b, 1)
-    # cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'], SECTIONS['reading']['y']['value'], SECTIONS['reading']['height']['value'], SECTIONS['reading']['y-step']['value'], wh[0])
+            cmd += ' --y-region={},{},{}'.format(EZVARS['inout']['output-y']['value']//bf - b,
+                    EZVARS['inout']['output-y']['value']//bf + EZVARS['inout']['output-height']['value']//bf - b, 1)
+    if EZVARS['inout']['bin_before_fbp']['value']:
+        cmd += f' --x-region={-b},{b},{1} --y-region={-b},{b},{1}'
+        # cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'], SECTIONS['reading']['y']['value'], SECTIONS['reading']['height']['value'], SECTIONS['reading']['y-step']['value'], wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],

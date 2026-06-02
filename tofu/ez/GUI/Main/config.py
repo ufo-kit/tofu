@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QGridLayout,
     QLabel,
+    QRadioButton,
     QGroupBox,
     QLineEdit,
 )
@@ -18,8 +19,8 @@ from tofu.ez.GUI.verify_delete import verify_safe2delete
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
 from tofu.ez.util import import_values, export_values, get_fdt_names
 from tofu.ez.GUI.message_dialog import warning_message
-from tofu.ez.params import EZVARS, EZVARS_aux
-from tofu.ez.util import add_value_to_dict_entry
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
+from tofu.ez.util import add_value_to_dict_entry, get_int_validator
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class ConfigGroup(QGroupBox):
     signal_update_vals_from_params = pyqtSignal()
     # Used to send signal when reconstruction is done
     signal_reco_done = pyqtSignal()
+    # Used to send signal when reconstruction is started and bin/crop enabled
+    signal_reco_start_with_bincrop = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -70,19 +73,6 @@ class ConfigGroup(QGroupBox):
         )
         self.bigtiff_checkbox.stateChanged.connect(self.set_big_tiff)
 
-        # Crop in the reconstruction plane
-        self.preproc_checkbox = QCheckBox()
-        self.preproc_checkbox.setText("Preprocess with a generic ufo-launch pipeline, f.i.")
-        self.preproc_checkbox.setToolTip(
-            "Selected ufo filters will be applied to each "
-            "image before reconstruction begins. \n"
-            'To print the list of filters use "ufo-query -l" command. \n'
-            'Parameters of each filter can be seen with "ufo-query -p filtername".'
-        )
-        self.preproc_checkbox.stateChanged.connect(self.set_preproc)
-
-        self.preproc_entry = QLineEdit()
-        self.preproc_entry.editingFinished.connect(self.set_preproc_entry)
 
         # Names of directories with flats/darks/projections frames
         self.dir_name_label = QLabel()
@@ -222,8 +212,8 @@ class ConfigGroup(QGroupBox):
         checkbox_layout = QGridLayout()
         checkbox_layout.addWidget(self.save_params_checkbox, 0, 0)
         checkbox_layout.addWidget(self.bigtiff_checkbox, 1, 0)
-        checkbox_layout.addWidget(self.open_image_after_reco_checkbox, 2, 0)
-        checkbox_layout.addWidget(self.keep_tmp_data_checkbox, 3, 0)
+        #checkbox_layout.addWidget(self.open_image_after_reco_checkbox, 2, 0)
+        checkbox_layout.addWidget(self.keep_tmp_data_checkbox, 2, 0)
         checkbox_groupbox.setLayout(checkbox_layout)
         layout.addWidget(checkbox_groupbox, 0, 4, 4, 1)
 
@@ -233,8 +223,27 @@ class ConfigGroup(QGroupBox):
         layout.addWidget(self.temp_dir_entry, 1, 1, 1, 3)
         layout.addWidget(self.output_dir_select, 2, 0)
         layout.addWidget(self.output_dir_entry, 2, 1, 1, 3)
-        layout.addWidget(self.preproc_checkbox, 3, 0)
-        layout.addWidget(self.preproc_entry, 3, 1, 1, 3)
+
+        # box0 = QGridLayout()
+        # box0.addWidget(self.input_dir_select, 0, 0)
+        # box0.addWidget(self.input_dir_entry, 0, 1, 1, 3)
+        # box0.addWidget(self.temp_dir_select, 1, 0)
+        # box0.addWidget(self.temp_dir_entry, 1, 1, 1, 3)
+        # box0.addWidget(self.output_dir_select, 2, 0)
+        # box0.addWidget(self.output_dir_entry, 2, 1, 1, 3)
+        # layout.addItem(box0, 0, 0)
+        #box1 = QGridLayout()
+        # l=3
+        # layout.addWidget(self.preproc_switch_rmout_only, l, 0)
+        # layout.addWidget(self.preproc_rmout_size_label, l, 1)
+        # layout.addWidget(self.preproc_rmout_size_entry, l ,2)
+        # layout.addWidget(self.preproc_spacer, l, 3)
+        # layout.addWidget(self.preproc_rmout_thr_label, l, 4)
+        # layout.addWidget(self.preproc_rmout_thr_entry, l ,5)
+        # layout.addWidget(self.preproc_spacer, l, 6)
+        # layout.addWidget(self.preproc_spacer, l, 7)
+        # layout.addWidget(self.preproc_switch_more, l, 8)
+        #layout.addItem(box1, 3, 0, 1,9)
 
         fdt_groupbox = QGroupBox()
         fdt_layout = QGridLayout()
@@ -272,8 +281,6 @@ class ConfigGroup(QGroupBox):
         self.save_params_checkbox.setChecked(EZVARS['inout']['save-params']['value'])
         self.output_dir_entry.setText(EZVARS['inout']['output-dir']['value'])
         self.bigtiff_checkbox.setChecked(EZVARS['inout']['bigtiff-output']['value'])
-        self.preproc_checkbox.setChecked(EZVARS['inout']['preprocess']['value'])
-        self.preproc_entry.setText(EZVARS['inout']['preprocess-command']['value'])
         self.darks_entry.setText(EZVARS['inout']['darks-dir']['value'])
         self.flats_entry.setText(EZVARS['inout']['flats-dir']['value'])
         self.tomo_entry.setText(EZVARS['inout']['tomo-dir']['value'])
@@ -304,6 +311,7 @@ class ConfigGroup(QGroupBox):
         dir = self.input_dir_entry.text().strip()
         add_value_to_dict_entry(dict_entry, dir)
         self.input_dir_entry.setText(dir)
+        #TODO if preprocess is enabled update the input dir there accordingly
 
     def select_output_dir(self):
         dir_explore = QFileDialog(self)
@@ -323,18 +331,6 @@ class ConfigGroup(QGroupBox):
         LOG.debug("Bigtiff: " + str(self.bigtiff_checkbox.isChecked()))
         dict_entry = EZVARS['inout']['bigtiff-output']
         add_value_to_dict_entry(dict_entry, self.bigtiff_checkbox.isChecked())
-
-    def set_preproc(self):
-        LOG.debug("Preproc: " + str(self.preproc_checkbox.isChecked()))
-        dict_entry = EZVARS['inout']['preprocess']
-        add_value_to_dict_entry(dict_entry, self.preproc_checkbox.isChecked())
-
-    def set_preproc_entry(self):
-        LOG.debug(self.preproc_entry.text())
-        dict_entry = EZVARS['inout']['preprocess-command']
-        text  = self.preproc_entry.text().strip()
-        add_value_to_dict_entry(dict_entry, text)
-        self.preproc_entry.setText(text)
 
     def set_open_image_after_reco(self):
         LOG.debug(
@@ -444,6 +440,7 @@ class ConfigGroup(QGroupBox):
         if tmp_dir:
             self.temp_dir_entry.setText(tmp_dir)
             self.set_temp_dir()
+        #TODO if preprocess is enabled the output dir there must be updated to tmp/preprocessed
 
     def set_temp_dir(self):
         LOG.debug(str(self.temp_dir_entry.text()))
@@ -541,6 +538,17 @@ class ConfigGroup(QGroupBox):
         Sets the dry-run parameter for Tofu to True
         and calls reconstruction
         """
+        if (EZVARS['inout']['preprocess']['value'] and
+                EZVARS_prep['prepro']['extended_prepro']['value'] and
+                (EZVARS_prep['prepro']['bin']['value'] or
+                EZVARS_prep['prepro']['crop']['value'])):
+            msg = "You want to bin and(or) crop the input data. \n"
+            msg += "This will change the data cube size \n "
+            msg += "and must be done before all other steps. \n"
+            msg += "Dry run cannot not format commands correctly \n"
+            msg += "until preprocessing is done and data cube dimensions changed accordingly."
+            QMessageBox.information(self, "Dry run doesn't work with bin/crop", msg)
+            return
         LOG.debug("DRY")
         EZVARS['inout']['dryrun']['value'] = str(True)
         self.reco_button_pressed()
@@ -571,7 +579,7 @@ class ConfigGroup(QGroupBox):
             fileName = fileName + ".yaml"
         # Create and write to YAML file based on given fileName
         # self.yaml_io.write_yaml(fileName, parameters.params)
-        export_values(fileName, ['ezvars', 'tofu', 'ezvars_aux'])
+        export_values(fileName, ['ezvars', 'tofu', 'ezvars_aux','ezvars_prep'])
 
     def import_settings_button_pressed(self):
         """
@@ -589,7 +597,7 @@ class ConfigGroup(QGroupBox):
         )
         if filePath:
             LOG.debug("Import YAML Path: " + filePath)
-            import_values(filePath, ['ezvars', 'tofu', 'ezvars_aux'])
+            import_values(filePath, ['ezvars', 'tofu', 'ezvars_aux', 'ezvars_prep'])
             self.signal_update_vals_from_params.emit()
 
     def reco_button_pressed(self):
@@ -598,6 +606,10 @@ class ConfigGroup(QGroupBox):
         These are then passed to execute_reconstruction
         """
         #LOG.debug("RECO")
+        if (EZVARS['inout']['preprocess']['value'] and
+                EZVARS_prep['prepro']['extended_prepro']['value']):
+            if self.adjust_params_if_bincrop_enabled_dialog():
+                return
         self.set_fdt_names()
         self.set_common_darks()
         self.set_common_flats()
@@ -606,8 +618,6 @@ class ConfigGroup(QGroupBox):
         self.set_input_dir()
         self.set_output_dir()
         self.set_temp_dir()
-        self.set_preproc()
-        self.set_preproc_entry()
         if EZVARS_aux['vert-sti']['dovertsti']['value']:
             # Warn if output dir collision
             if EZVARS['inout']['output-dir']['value'] == EZVARS_aux['vert-sti']['output-dir']['value']:
@@ -640,6 +650,32 @@ class ConfigGroup(QGroupBox):
             err_arg = err.args
             msg += err.args[0]
             QMessageBox.information(self, "Invalid Input Error", msg)
+
+    def adjust_params_if_bincrop_enabled_dialog(self):
+        if (EZVARS['inout']['bin_before_fbp']['value'] or
+                (EZVARS['inout']['preprocess']['value'] and EZVARS_prep['prepro']['extended_prepro'])
+                ):
+            msg = "You want to bin and(or) crop the input data at the first step. \n"
+            msg += "This will change the data cube size. "
+            msg += "Input data must be fully preprocessed before the axis search and all other steps. \n"
+            msg += "The axis search interval, ROI, pixel size, and other parameters must be adjusted accordingly. \n"
+            msg += "Would you like to adjust them automatically now ?\n"
+            msg += "Note: the correctness of results cannot be guaranteed, please double check everything. \n"
+            qm = QMessageBox()
+            rep = qm.question(self, 'Adjust params automatically?', msg,
+                              qm.Yes | qm.No)
+            if rep == qm.Yes:
+                self.signal_reco_start_with_bincrop.emit()
+                return 0
+            if rep == qm.No:
+                rep = qm.question(self, 'Proceed with reconstruction?', 'Proceed with reconstruction?',
+                                  qm.Yes | qm.No)
+                if rep == qm.Yes:
+                    return 0
+                else:
+                    return 1
+        else:
+            return 0
 
 
 class InvalidInputError(Exception):

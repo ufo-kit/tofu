@@ -22,11 +22,11 @@ from skimage.metrics import structural_similarity as ssim
 from tofu.ez.params import EZVARS_aux, EZVARS
 import sys
 
-try:
-    from mpi4py import MPI
-except ImportError:
-    print("Ufo-launch GPU filter will be used to stitch half acq mode data",
-          file=sys.stderr)
+# try:
+#     from mpi4py import MPI
+# except ImportError:
+#     print("Ufo-launch GPU filter will be used to stitch half acq mode data",
+#           file=sys.stderr)
 
 
 def findCTdirs(root: str, tomo_name: str):
@@ -334,7 +334,7 @@ def main_360_mp_depth1(indir, outdir, ax, cro):
         path_to_script = os.path.join(tmp, "halfacqmode-mpi-stitch.py")
         if os.path.isfile(path_to_script):
             tstart = time.time()
-            child_comm = MPI.COMM_WORLD.Spawn(
+            child_comm =COMM_WORLD.Spawn(
                 sys.executable,
                 [path_to_script, f"{ax}", f"{cro}", os.path.join(indir, sdir), out_fmt],
                 maxprocs=12)

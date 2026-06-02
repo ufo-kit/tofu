@@ -75,13 +75,13 @@ SECTIONS['reading'] = {
     'y': {
         'default': 0,
         'ezdefault': 100,
-        'type': restrict_value((0, None), dtype=int),
+        'type': restrict_value((0, None), dtype=float),
         'unit': "pixel",
         'help': 'Vertical coordinate from where to start reading the input image'},
     'height': {
         'default': None,
         'ezdefault': 200,
-        'type': restrict_value((0, None), dtype=int),
+        'type': restrict_value((0, None), dtype=float),
         'unit': "pixel",
         'help': "Number of rows which will be read"},
     'bitdepth': {
@@ -109,6 +109,7 @@ SECTIONS['reading'] = {
         'help': 'Read every \"step\" file'},
     'resize': {
         'default': None,
+        'ezdefault': 2,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Bin pixels before processing'},
     'retries': {

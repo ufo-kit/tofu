@@ -6,8 +6,8 @@ Created on Apr 20, 2020
 import os, glob, tifffile
 import shutil
 
-from tofu.ez.ctdir_walker import VALID_EXTS
-from tofu.ez.params import EZVARS, EZVARS_aux
+#from tofu.ez.ctdir_walker import VALID_EXTS # SG: It resulted in looped imports so I've disabled it and added a variable
+from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.util import get_filenames, get_first_filename, get_image_shape, read_image, restrict_value, tupleize
 from PyQt5.QtCore import QRegExp
@@ -16,7 +16,8 @@ import argparse
 from tofu.util import TiffSequenceReader
 import numpy as np
 import yaml
-import logging
+
+VALID_EXTS = ['.tif', '.tiff', '.edf']
 
 def get_dims(pth):
     # get number of projections and projections dimensions
@@ -91,8 +92,8 @@ def make_copy_of_flat(flatdir, flat_copy_name, dryrun):
     return cmd
 
 
-def clean_tmp_dirs(tmpdir, fdt_names):
-    tmp_pattern = ["proj", "sino", "mask", "flat", "dark", "radi"]
+def clean_tmp_dirs(tmpdir, fdt_names, extradirs=[]):
+    tmp_pattern = ["proj", "sino", "mask", "radi"] + extradirs
     tmp_pattern += fdt_names
     # clean directories in tmpdir if their names match pattern
     if os.path.exists(tmpdir):
@@ -211,19 +212,25 @@ def export_values(filePath, param_sections):
             try:
                 combined_dict['ezvars_aux'] = extract_values_from_dict(EZVARS_aux)
             except:
-                print("Error: cannot import EZVARS_aux section")
+                print("Error: cannot export EZVARS_aux section")
                 return 1
         if i == 'tofu':
             try:
                 combined_dict['sections'] = extract_values_from_dict(SECTIONS)
             except:
-                print("Error: cannot import TOFU section")
+                print("Error: cannot export TOFU section")
                 return 1
         if i == 'ezvars':
             try:
                 combined_dict['ezvars'] = extract_values_from_dict(EZVARS)
             except:
-                print("Error: cannot import EZVARS section")
+                print("Error: cannot export EZVARS section")
+                return 1
+        if i == 'ezvars_prep':
+            try:
+                combined_dict['ezvars_prep'] = extract_values_from_dict(EZVARS_prep)
+            except:
+                print("Error: cannot export EZVARS_prep section")
                 return 1
     print("Exporting values to: " + str(filePath))
     #print(combined_dict)
@@ -255,6 +262,12 @@ def import_values(filePath, param_sections):
             except:
                 print("Error: cannot import EZVARS_aux section")
                 return 1
+        if i == 'ezvars_prep':
+            try:
+                import_values_from_dict(EZVARS_prep, yaml_data['ezvars_prep'])
+            except:
+                print("Error: cannot import EZVARS_prep section")
+                return 1
     print("Finished importing")
     return 0
     #print(yaml_data)
@@ -269,7 +282,7 @@ def save_params(ctsetname, ax, nviews, wh):
         # Dump the params .yaml file
         try:
             filepath = os.path.join(tmp, "tofuez_all_parameters.yaml")
-            export_values(filepath, ['ezvars', 'tofu', 'ezvars_aux'])
+            export_values(filepath, ['ezvars', 'tofu', 'ezvars_aux','ezvars_prep'])
             
         except FileNotFoundError:
             print("Something went wrong when exporting the .yaml parameters file")
@@ -293,8 +306,12 @@ def save_params(ctsetname, ax, nviews, wh):
         f.write('*** Preprocessing ***\n')
         tmp = 'None'
         if EZVARS['inout']['preprocess']['value']:
-            tmp = EZVARS['inout']['preprocess-command']['value']
-        f.write('  '+tmp+'\n')
+            if EZVARS_prep['prepro']['extended_prepro']['value']:
+                tmp = 'Extended preprocessing was selected'
+            else:
+                tmp = f"Removed outliers with size {EZVARS_prep['prepro']['rmout_pos_size']['value']} and "
+                tmp +=f"threshold {EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
+            f.write('  '+tmp+'\n')
         f.write('*** Image filters ***\n')
         if EZVARS['filters']['rm_spots']['value']:
             f.write(' Remove large spots enabled\n')
@@ -529,5 +546,19 @@ def get_fdt_names():
             EZVARS['inout']['tomo-dir']['value'],
             EZVARS['inout']['flats2-dir']['value']]
 
+
 def get_fd_names():
     return tuple(EZVARS['inout'][f'{fd_type}-dir']['value'] for fd_type in ['darks', 'flats', 'flats2'])
+
+
+def get_roi_row0_and_height(h):
+    roi_row0, roi_height = 0, h
+    if EZVARS['inout']['input_ROI']['value']:
+        roi_height = SECTIONS['reading']['height']['value']
+        if roi_height<1:
+            roi_height = int(roi_height*h)
+        roi_row0 = SECTIONS['reading']['y']['value']
+        if roi_row0<1:
+            roi_row0 = int(roi_row0*h)
+    return roi_row0, roi_height
+
