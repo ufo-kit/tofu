@@ -536,8 +536,10 @@ class ConfigGroup(QGroupBox):
         Sets the dry-run parameter for Tofu to True
         and calls reconstruction
         """
-        if (EZVARS_prep['prepro']['bin']['value'] or
-                EZVARS_prep['prepro']['crop']['value']):
+        if (EZVARS['inout']['preprocess']['value'] and
+                EZVARS_prep['prepro']['extended_prepro']['value'] and
+                (EZVARS_prep['prepro']['bin']['value'] or
+                EZVARS_prep['prepro']['crop']['value'])):
             msg = "You want to bin and(or) crop the input data. \n"
             msg += "This will change the data cube size \n "
             msg += "and must be done before all other steps. \n"

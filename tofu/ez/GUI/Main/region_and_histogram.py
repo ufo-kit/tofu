@@ -28,14 +28,16 @@ class ROIandHistGroup(QGroupBox):
         self.first_row_label.setText("First row in projections")
         self.first_row_label.setToolTip("Counting from the top")
         self.first_row_entry = QLineEdit()
-        self.first_row_entry.setValidator(get_int_validator())
+        #self.first_row_entry.setValidator(get_int_validator())
+        self.first_row_entry.setValidator(get_double_validator())
         self.first_row_entry.editingFinished.connect(self.set_first_row)
         self.first_row_entry.setFixedWidth(80)
 
         self.num_rows_label = QLabel()
         self.num_rows_label.setText("Number of rows (ROI height)")
         self.num_rows_entry = QLineEdit()
-        self.num_rows_entry.setValidator(get_int_validator())
+        #self.num_rows_entry.setValidator(get_int_validator())
+        self.num_rows_entry.setValidator(get_double_validator())
         self.num_rows_entry.editingFinished.connect(self.set_num_rows)
         self.num_rows_entry.setFixedWidth(80)
 

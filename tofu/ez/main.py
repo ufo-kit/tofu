@@ -295,19 +295,19 @@ def execute_reconstruction():
             ram_amount_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
             nrows = wh[0]
             if EZVARS['inout']['input_ROI']['value']:
-                nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])
-                if bad_vert_ROI(multipage, path2proj,
-                        SECTIONS['reading']['y']['value'],SECTIONS['reading']['height']['value']):
+                roi_row0, roi_height = get_roi_row0_and_height(wh[0])
+                nrows = roi_height//SECTIONS['reading']['y-step']['value']
+                if bad_vert_ROI(multipage, path2proj, roi_row0, roi_height):
                     print('{}\t{}'.format('CTset:', ctset[0]))
                     print('{:>30}\t{}'.format('Axis:', 'na'))
                     print('Vertical ROI does not contain any rows.')
                     print("{:>30}\t{}, dimensions: {}".format("Number of projections:", nviews, wh))
                     continue
-                elif (SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value']) > wh[0]:
+                elif (roi_row0 + roi_height) > wh[0]:
                     print('Vertical ROI exceeds the number of rows')
                     print('Resetting the interval to match the number of rows')
-                    SECTIONS['reading']['height']['value'] = wh[0] - SECTIONS['reading']['y']['value']
-                    nrows = int(SECTIONS['reading']['height']['value']/SECTIONS['reading']['y-step']['value'])+1
+                    roi_height = wh[0] - roi_row0
+                    nrows = roi_height//SECTIONS['reading']['y-step']['value']+1
             n_per_pass = int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))
             # print(f" RAM {0.9*ram_amount_bytes}, width {wh[1]}, nrows {nrows}, proj size {(wh[1] * nrows * 4)}, "
             #             f"n_per_pass {int(0.9*ram_amount_bytes/ (wh[1] * nrows * 4))}")
@@ -315,10 +315,8 @@ def execute_reconstruction():
             if EZVARS['COR']['search-method']['value'] < 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
-                    ax = find_axis_corr(ctset,
-                                    EZVARS['inout']['input_ROI']['value'],
-                                    SECTIONS['reading']['y']['value'],
-                                    SECTIONS['reading']['height']['value'], multipage)
+                    ax = find_axis_corr(ctset, EZVARS['inout']['input_ROI']['value'],
+                                        roi_row0, roi_height, multipage)
                 # Find axis of rotation using auto: minimize STD of a slice
                 elif EZVARS['COR']['search-method']['value'] == 2:
                     # cmds.append("echo \"Cleaning axis-search in tmp directory\"")

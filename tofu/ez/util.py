@@ -533,3 +533,15 @@ def get_fdt_names():
             EZVARS['inout']['flats-dir']['value'],
             EZVARS['inout']['tomo-dir']['value'],
             EZVARS['inout']['flats2-dir']['value']]
+
+
+def get_roi_row0_and_height(h):
+    roi_row0, roi_height = 0, h
+    if EZVARS['inout']['input_ROI']['value']:
+        roi_height = SECTIONS['reading']['height']['value']
+        if roi_height<1:
+            roi_height = int(roi_height*h)
+        roi_row0 = SECTIONS['reading']['y']['value']
+        if roi_row0<1:
+            roi_row0 = int(roi_row0*h)
+    return roi_row0, roi_height

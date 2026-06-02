@@ -8,10 +8,7 @@ import numpy as np
 from tofu.ez.ufo_cmd_gen import fmt_in_out_path
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
-from tofu.ez.util import make_inpaths, fmt_in_out_path, get_data_cube_info
-
-
-# TODO: check amount of RAM and generate sinograms in multiple passes if needed
+from tofu.ez.util import make_inpaths, fmt_in_out_path, get_roi_row0_and_height
 
 def check_lamino():
     cmd = ''
@@ -46,11 +43,14 @@ def check_8bit(cmd, gray256, bit, hmin, hmax):
         cmd += ' --output-minimum " {}" --output-maximum " {}"'.format(hmin, hmax)
     return cmd
 
-def check_vcrop(cmd, vcrop, y, yheight, ystep, ori_height):
-    if vcrop:
-        cmd += " --y {} --height {} --y-step {}".format(y, yheight, ystep)
-    else:
-        cmd += " --height {}".format(ori_height)
+#def check_vcrop(cmd, vcrop, y, yheight, ystep, ori_height):
+def check_vcrop(cmd, h):
+    y, yheight = get_roi_row0_and_height(h)
+    # if vcrop:
+    #     cmd += " --y {} --height {} --y-step {}".format(y, yheight, ystep)
+    # else:
+    #     cmd += " --height {}".format(h)
+    cmd += " --y {} --height {} --y-step {}".format(y, yheight, SECTIONS['reading']['y-step']['value'])
     return cmd
 
 def check_bigtif(cmd, swi):
@@ -77,10 +77,7 @@ def get_1step_ct_cmd(ctset, out_pattern, ax, nviews, wh):
     cmd += " --number {}".format(nviews)
     if SECTIONS['reading']['step']['value'] > 0.0:
         cmd += ' --angle {}'.format(SECTIONS['reading']['step']['value'])
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],
@@ -100,10 +97,7 @@ def get_ct_proj_cmd( out_pattern, ax, nviews, wh):
     cmd += " --number {}".format(nviews)
     if SECTIONS['reading']['step']['value'] > 0.0:
         cmd += ' --angle {}'.format(SECTIONS['reading']['step']['value'])
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     cmd = check_8bit(cmd, EZVARS['inout']['clip_hist']['value'],
                           SECTIONS['general']['output-bitdepth']['value'],
                           SECTIONS['general']['output-minimum']['value'],
@@ -118,7 +112,8 @@ def get_ct_sin_cmd(out_pattern, ax, nviews, wh):
     cmd += ' --axis {}'.format(ax)
     cmd += ' --offset {}'.format(SECTIONS['general-reconstruction']['volume-angle-z']['value'][0])
     if EZVARS['inout']['input_ROI']['value']:
-        cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        y0, yheight = get_roi_row0_and_height(wh[0])
+        cmd += ' --number {}'.format(yheight // SECTIONS['reading']['y-step']['value'])
     else:
         cmd += " --number {}".format(wh[0])
     cmd += " --height {}".format(nviews)
@@ -142,10 +137,7 @@ def get_sinos_ffc_cmd(ctset, tmpdir, nviews, wh, n_per_pass):
     cmd += " --projections {}".format(in_proj_dir)
     cmd += " --output {}".format(os.path.join(tmpdir, "sinos/sin-%04i.tif"))
     cmd += " --number {}".format(nviews)
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'], wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     if not EZVARS['RR']['use-ufo']['value']:
         # because second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
@@ -161,11 +153,7 @@ def get_sinos_noffc_cmd(ctsetpath, tmpdir, nviews, wh, n_per_pass):
     cmd += " --projections {}".format(in_proj_dir)
     cmd += " --output {}".format(os.path.join(tmpdir, "sinos/sin-%04i.tif"))
     cmd += " --number {}".format(nviews)
-    cmd = check_vcrop(cmd, EZVARS['inout']['input_ROI']['value'],
-                           SECTIONS['reading']['y']['value'],
-                           SECTIONS['reading']['height']['value'],
-                           SECTIONS['reading']['y-step']['value'],
-                           wh[0])
+    cmd = check_vcrop(cmd, wh[0])
     if not EZVARS['RR']['use-ufo']['value']:
         # because second RR algorithm does not know how to work with multipage tiffs
         cmd += " --output-bytes-per-file 0"
@@ -182,7 +170,10 @@ def get_sinos2proj_cmd(proj_height, n_per_pass):
     if not EZVARS['inout']['input_ROI']['value']:
         cmd += ' --number {}'.format(proj_height)
     else:
-        cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        y, y_height = get_roi_row0_and_height(proj_height)
+        #cmd += ' --number {}'.format(int(SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value']))
+        cmd += ' --number {}'.format(y_height // SECTIONS['reading']['y-step']['value'])
+    # TODO determine num_per_pass fir each data set not just once in main function
     cmd += f" --pass-size {n_per_pass}"
     return cmd
 
@@ -329,14 +320,18 @@ def get_reco_cmd(ctset, out_pattern, ax, nviews, wh, ffc, pr):
     a = -int(wh[0] / 2.0)
     c = 1
     if EZVARS['inout']['input_ROI']['value']:
+        y0, yheight = get_roi_row0_and_height(wh[0])
         if EZVARS['RR']['enable-RR']['value']:
-            h2 = SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value'] / 2.0
+            #h2 = SECTIONS['reading']['height']['value'] / SECTIONS['reading']['y-step']['value'] / 2.0
+            h2 = yheight
             b = np.ceil(h2)
             a = -int(h2)
         else:
             h2 = int(wh[0] / 2.0)
-            a = SECTIONS['reading']['y']['value'] - h2
-            b = SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value'] - h2
+            # a = SECTIONS['reading']['y']['value'] - h2
+            # b = SECTIONS['reading']['y']['value'] + SECTIONS['reading']['height']['value'] - h2
+            a = y0 - h2
+            b = y0 + yheight - h2
             c = SECTIONS['reading']['y-step']['value']
     # we do not bin vertical ROI
     # a, b = a//bf, b//bf
