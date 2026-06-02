@@ -94,6 +94,31 @@ def validate_result_args(args):
     validate_args(args)
 
 
+def apply_filter_visualization_defaults(args):
+    def option_was_given(name):
+        option = '--{}'.format(name)
+        return any(arg == option or arg.startswith(option + '=') for arg in sys.argv[1:])
+
+    if getattr(args, 'width', None) is None and not option_was_given('width'):
+        args.width = 1024
+    if getattr(args, 'height', None) is None and not option_was_given('height'):
+        args.height = 1024
+    if getattr(args, 'energy', None) is None and not option_was_given('energy'):
+        args.energy = 15
+    if (getattr(args, 'propagation_distance', None) is None
+            and not option_was_given('propagation-distance')):
+        args.propagation_distance = (0.1,)
+    if (getattr(args, 'ict_alpha_threshold', 0.0) == 0.0
+            and not option_was_given('ict-alpha-threshold')):
+        args.ict_alpha_threshold = 1e30
+    if (getattr(args, 'frequency_cutoff', 1e30) == 1e30
+            and not option_was_given('frequency-cutoff')):
+        args.frequency_cutoff = 1e30
+    if (getattr(args, 'sharpen_method', 'laplace') == 'laplace'
+            and not option_was_given('sharpen-method')):
+        args.sharpen_method = 'lorentz'
+
+
 def get_single_tiff_sequence_info(path):
     from tofu.util import TiffSequenceReader, get_filenames
 
@@ -615,6 +640,7 @@ class FloatSlider:
         self.scale = scale
         self.display = display or (lambda value: "{:.6g}".format(value))
         self._updating = False
+        self._follow_maximum = False
         self.label = QtWidgets.QLabel(label)
         self.label.setMinimumWidth(95)
         self.value_edit = QtWidgets.QLineEdit()
@@ -659,15 +685,21 @@ class FloatSlider:
     def set_value(self, value):
         if value is None:
             value = self.minimum
+        self._follow_maximum = float(value) > self.maximum
         value = min(max(float(value), self.minimum), self.maximum)
         self._set_slider_from_value(value)
         self.value_edit.setText(self.display(value))
 
     def set_range(self, minimum, maximum):
         value = self.raw_value()
+        at_upper_end = value >= self.maximum
+        follow_maximum = self._follow_maximum or at_upper_end
         self.minimum = minimum
         self.maximum = maximum
+        if follow_maximum:
+            value = maximum
         self.set_value(min(max(value, minimum), maximum))
+        self._follow_maximum = follow_maximum
 
     def _set_slider_from_value(self, value):
         if self.scale == 'log':
@@ -682,6 +714,7 @@ class FloatSlider:
     def on_slider_changed(self):
         if self._updating:
             return
+        self._follow_maximum = False
         self.value_edit.setText(self.display(self.slider_value()))
         self.value_changed.emit()
 
@@ -690,6 +723,7 @@ class FloatSlider:
             value = float(text)
         except ValueError:
             return
+        self._follow_maximum = False
         if self.minimum <= value <= self.maximum:
             self._set_slider_from_value(value)
 
@@ -783,6 +817,7 @@ class InteractiveWindow:
             value_changed = QtCore.pyqtSignal()
 
         self.args = copy.deepcopy(args)
+        apply_filter_visualization_defaults(self.args)
         self._signals = SignalEmitter()
         self.value_changed = self._signals.value_changed
         self.value_changed.connect(self.schedule_update)
@@ -1559,7 +1594,6 @@ class InteractiveWindow:
 
         dialog = QtWidgets.QFileDialog(self.window, title)
         dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
-        dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
         if preferred:
             dialog.selectFile(preferred)
         elif self._reco_args and self._reco_args.projections:
@@ -2265,12 +2299,5 @@ def run_interactive(args):
 
 
 def run(args):
-    """Run the UFO graph and plot the first output row."""
-    if args.interactive:
-        return run_interactive(args)
-
-    try:
-        data = get_filter_data(args, sharpen=args.sharpen)
-    except ValueError as exc:
-        raise RuntimeError(str(exc))
-    plot_first_row(data, args=args, output=args.plot_output, show=not args.no_show)
+    """Open the interactive filter visualization window."""
+    return run_interactive(args)

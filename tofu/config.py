@@ -882,20 +882,7 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
-SECTIONS['filter-visualization'] = {
-    'interactive': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Open an interactive filter visualization window"},
-    'plot-output': {
-        'default': None,
-        'type': str,
-        'help': "Optional path where the filter row plot will be written",
-        'metavar': 'PATH'},
-    'no-show': {
-        'default': False,
-        'action': 'store_true',
-        'help': "Do not open a matplotlib window"}}
+SECTIONS['filter-visualization'] = {}
 
 SECTIONS['ez'] = {
     'ezvars': {
