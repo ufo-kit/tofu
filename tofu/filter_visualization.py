@@ -515,6 +515,56 @@ def set_parameter_tooltip(widget, name, preferred_sections=()):
         widget.setToolTip(tooltip)
 
 
+def format_region(region):
+    def format_value(value):
+        value = float(value)
+        if value.is_integer():
+            return str(int(value))
+
+        return "{:.6g}".format(value)
+
+    return ",".join(format_value(value) for value in region)
+
+
+def parse_region(text, name):
+    parts = [part.strip() for part in text.split(',')]
+    if len(parts) != 3 or any(not part for part in parts):
+        raise ValueError("{} must be specified as from,to,step".format(name))
+    try:
+        region = tuple(float(part) for part in parts)
+    except ValueError:
+        raise ValueError("{} must contain numeric from,to,step values".format(name))
+    if region[2] == 0:
+        raise ValueError("{} step must not be zero".format(name))
+    if region[1] == -1:
+        return region
+    if not len(np.arange(*region)):
+        raise ValueError("{} does not select any pixels".format(name))
+
+    return region
+
+
+def make_default_region(length):
+    return (-float(length / 2), float(length / 2 + length % 2), 1.0)
+
+
+def expand_display_region(region, length):
+    if region[1] == -1:
+        return make_default_region(length)
+
+    return tuple(float(value) for value in region)
+
+
+def reset_profile_line_roi(roi, width, height):
+    previous = roi.blockSignals(True)
+    y = max((height - 1) / 2.0, 0.0)
+    state = roi.saveState()
+    state['pos'] = (0, 0)
+    state['points'] = [(0, y), (max(width - 1, 0), y)]
+    roi.setState(state)
+    roi.blockSignals(previous)
+
+
 def make_profile_line_roi(pg, positions, pen):
     from PyQt5 import QtCore
 
@@ -795,12 +845,18 @@ class InteractiveWindow:
         self._reco_viewers = {}
         self._reco_profile_plots = {}
         self._reco_profile_rois = {}
+        self._reco_region_rois = {}
         self._reco_busy = False
         self._reco_pending = False
         self._reco_request_id = 0
         self._reco_args = None
         self._last_reco_data = None
+        self._last_reco_args = None
+        self._current_reco_worker_args = None
+        self._hide_reco_region_rois_on_next_update = False
         self._reco_auto_level_windows = set()
+        self._syncing_image_view = False
+        self._syncing_image_profile = False
 
         self.status = QtWidgets.QLabel()
         self.update_timer = QtCore.QTimer()
@@ -1039,8 +1095,14 @@ class InteractiveWindow:
         double_validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
         self.reco_center_x_edit = QtWidgets.QLineEdit()
         self.reco_overall_angle_edit = QtWidgets.QLineEdit()
+        self.reco_x_region_edit = QtWidgets.QLineEdit(
+            format_region(getattr(self.args, 'x_region', (0, -1, 1))))
+        self.reco_y_region_edit = QtWidgets.QLineEdit(
+            format_region(getattr(self.args, 'y_region', (0, -1, 1))))
         for edit in (self.reco_center_x_edit, self.reco_overall_angle_edit):
             edit.setValidator(double_validator)
+            edit.returnPressed.connect(self.schedule_update)
+        for edit in (self.reco_x_region_edit, self.reco_y_region_edit):
             edit.returnPressed.connect(self.schedule_update)
         self.reco_center_x_edit.setPlaceholderText("auto")
         self.reco_overall_angle_edit.setText("180")
@@ -1048,6 +1110,13 @@ class InteractiveWindow:
                               preferred_sections=('cone-beam-weight',))
         set_parameter_tooltip(self.reco_overall_angle_edit, 'overall-angle',
                               preferred_sections=('general-reconstruction',))
+        set_parameter_tooltip(self.reco_x_region_edit, 'x-region',
+                              preferred_sections=('general-reconstruction',))
+        set_parameter_tooltip(self.reco_y_region_edit, 'y-region',
+                              preferred_sections=('general-reconstruction',))
+
+        reset_region_button = QtWidgets.QPushButton("Reset region")
+        reset_region_button.clicked.connect(self.reset_reconstruction_region)
 
         group_layout.addRow(choose_button)
         group_layout.addRow("Projections", self.reco_path_label)
@@ -1057,6 +1126,9 @@ class InteractiveWindow:
         group_layout.addRow("Image step", self.reco_image_step_box)
         group_layout.addRow("Center X", self.reco_center_x_edit)
         group_layout.addRow("Overall angle [deg]", self.reco_overall_angle_edit)
+        group_layout.addRow("X region", self.reco_x_region_edit)
+        group_layout.addRow("Y region", self.reco_y_region_edit)
+        group_layout.addRow(reset_region_button)
         group_layout.addRow(show_button)
         layout.addWidget(group)
 
@@ -1094,6 +1166,12 @@ class InteractiveWindow:
         self.reco_slice_box.setRange(0, max(0, height - 1))
         self.reco_slice_box.setValue(height // 2)
         self.reco_slice_box.blockSignals(previous)
+
+    def reset_reconstruction_region(self):
+        self.reco_x_region_edit.setText("0,-1,1")
+        self.reco_y_region_edit.setText("0,-1,1")
+        self.reset_reconstruction_region_rois()
+        self.schedule_update()
 
     def schedule_update(self, *args, preserve_view=False):
         if preserve_view:
@@ -1173,6 +1251,8 @@ class InteractiveWindow:
         args.center_position_z = [0.5]
         overall_angle = self._optional_float(self.reco_overall_angle_edit)
         args.overall_angle = overall_angle
+        args.x_region = parse_region(self.reco_x_region_edit.text(), "x region")
+        args.y_region = parse_region(self.reco_y_region_edit.text(), "y region")
         args.delta = 1e-6
         args.retrieval_padding_mode = 'clamp_to_edge'
         args.disable_projection_crop = True
@@ -1274,7 +1354,13 @@ class InteractiveWindow:
     def request_reconstruction_update(self, args):
         if not self._reco_args:
             return
-        reco_args = self._current_reconstruction_args(args)
+        try:
+            reco_args = self._current_reconstruction_args(args)
+        except ValueError as exc:
+            self.status.setText(str(exc))
+            for label in self._reco_status.values():
+                label.setText(str(exc))
+            return
         self._pending_reco_args = reco_args
         if self._reco_busy:
             self._reco_pending = True
@@ -1289,6 +1375,7 @@ class InteractiveWindow:
         self.status.setText("Computing reconstructed slice...")
         for label in self._reco_status.values():
             label.setText("Computing reconstructed slice...")
+        self._current_reco_worker_args = copy.deepcopy(args)
         worker = ReconstructionWorker(args, request_id)
         worker.worker.finished.connect(self.on_reconstruction_data_ready)
         worker.worker.failed.connect(self.on_reconstruction_failed)
@@ -1300,6 +1387,7 @@ class InteractiveWindow:
     def on_reconstruction_data_ready(self, request_id, data):
         if request_id == self._reco_request_id:
             self._last_reco_data = data
+            self._last_reco_args = self._current_reco_worker_args
             self.update_reconstruction_views()
         self._finish_reconstruction_worker()
 
@@ -1490,7 +1578,13 @@ class InteractiveWindow:
             if not self.select_reconstruction_projections():
                 return
 
-        args = self._current_reconstruction_args(self._current_args())
+        try:
+            args = self._current_reconstruction_args(self._current_args())
+        except ValueError as exc:
+            self.status.setText(str(exc))
+            for label in self._reco_status.values():
+                label.setText(str(exc))
+            return
 
         self.view_tabs.setCurrentIndex(self.reco_view_index)
         self.request_reconstruction_update(args)
@@ -1516,6 +1610,9 @@ class InteractiveWindow:
     def _data_profile_rois(self, kind):
         return self._result_profile_rois if kind == 'result' else self._reco_profile_rois
 
+    def _data_region_rois(self, kind):
+        return {} if kind == 'result' else self._reco_region_rois
+
     def _data_auto_level_windows(self, kind):
         return self._result_auto_level_windows if kind == 'result' else self._reco_auto_level_windows
 
@@ -1530,15 +1627,20 @@ class InteractiveWindow:
         for window, tabs in list(self._data_tabs(kind).items()):
             viewers = self._data_viewers(kind).get(window, {})
             rois = self._data_profile_rois(kind).get(window, {})
+            region_rois = self._data_region_rois(kind).get(window, {})
             for key, (view, tab) in list(viewers.items()):
                 roi = rois.pop(key, None)
                 if roi is not None:
                     view.getView().removeItem(roi)
+                region_roi = region_rois.pop(key, None)
+                if region_roi is not None:
+                    view.getView().removeItem(region_roi)
                 index = tabs.indexOf(tab)
                 if index >= 0:
                     tabs.removeTab(index)
                 tab.deleteLater()
             viewers.clear()
+            region_rois.clear()
             plot = self._data_profile_plots(kind).get(window)
             if plot is not None:
                 plot.clear()
@@ -1558,10 +1660,6 @@ class InteractiveWindow:
         header = QtWidgets.QHBoxLayout()
         levels_button = QtWidgets.QPushButton("Reset greyscale")
         levels_button.clicked.connect(lambda: self.reset_image_levels(kind, key))
-        apply_levels_button = QtWidgets.QPushButton("Apply greyscale to all")
-        apply_levels_button.clicked.connect(lambda: self.apply_current_image_levels(kind, key))
-        apply_view_button = QtWidgets.QPushButton("Apply zoom to all")
-        apply_view_button.clicked.connect(lambda: self.apply_current_image_view(kind, key))
         sync_button = QtWidgets.QPushButton("Sync all")
         sync_button.clicked.connect(lambda: self.sync_current_image_view(kind, key))
         tabs = QtWidgets.QTabWidget()
@@ -1580,8 +1678,6 @@ class InteractiveWindow:
         tabs.currentChanged.connect(lambda _index: self.update_image_profile(kind, key))
         header.addWidget(status, 1)
         header.addWidget(levels_button)
-        header.addWidget(apply_levels_button)
-        header.addWidget(apply_view_button)
         header.addWidget(sync_button)
         if popout_title:
             popout_button = QtWidgets.QPushButton("Pop out")
@@ -1634,6 +1730,7 @@ class InteractiveWindow:
         viewers_by_window = self._data_viewers(kind)
         profile_plots = self._data_profile_plots(kind)
         profile_rois = self._data_profile_rois(kind)
+        region_rois = self._data_region_rois(kind)
         auto_level_windows = self._data_auto_level_windows(kind)
 
         windows.append(window)
@@ -1644,6 +1741,7 @@ class InteractiveWindow:
         window.destroyed.connect(lambda _obj: viewers_by_window.pop(window, None))
         window.destroyed.connect(lambda _obj: profile_plots.pop(window, None))
         window.destroyed.connect(lambda _obj: profile_rois.pop(window, None))
+        window.destroyed.connect(lambda _obj: region_rois.pop(window, None))
         window.destroyed.connect(lambda _obj: auto_level_windows.discard(window))
         tabs = tabs_by_window.get(window)
         if tabs is not None and self._image_data(kind):
@@ -1652,39 +1750,134 @@ class InteractiveWindow:
         return window
 
     def reset_image_levels(self, kind, window):
-        self._data_auto_level_windows(kind).add(window)
-        tabs = self._data_tabs(kind).get(window)
-        if tabs is not None and self._image_data(kind):
-            self.populate_image_tabs(kind, tabs)
+        key = self._current_image_key(kind, window)
+        view, _viewers = self._current_image_view(kind, window)
+        data_by_method = self._image_data(kind)
+        if key is None or view is None or not data_by_method:
+            self._data_auto_level_windows(kind).add(window)
+            tabs = self._data_tabs(kind).get(window)
+            if tabs is not None and data_by_method:
+                self.populate_image_tabs(kind, tabs)
+            return
+
+        data = data_by_method.get(key[0], {}).get(key[1])
+        levels = get_percentile_levels(data) if data is not None else None
+        if levels is None:
+            return
+        self._syncing_image_view = True
+        try:
+            view.setLevels(*levels)
+        finally:
+            self._syncing_image_view = False
+        self.sync_image_levels_from_view(kind, window, view)
 
     def apply_current_image_levels(self, kind, window):
         current_view, viewers = self._current_image_view(kind, window)
         if current_view is None:
             return
 
-        levels = current_view.getHistogramWidget().getLevels()
-        for view, _tab in viewers.values():
-            if view is not current_view:
-                view.setLevels(*levels)
+        self.sync_image_levels_from_view(kind, window, current_view)
+
+    def sync_image_levels_from_view(self, kind, window, source_view):
+        if self._syncing_image_view:
+            return
+
+        viewers = self._data_viewers(kind).get(window, {})
+        self._syncing_image_view = True
+        try:
+            levels = source_view.getLevels()
+            for view, _tab in viewers.values():
+                if view is not source_view:
+                    view.setLevels(*levels)
+        finally:
+            self._syncing_image_view = False
+
+    def connect_image_level_sync(self, kind, window, view):
+        histogram = view.getHistogramWidget()
+        item = getattr(histogram, 'item', histogram)
+        signals = (
+            getattr(item, 'sigLevelsChanged', None),
+            getattr(item, 'sigLevelChangeFinished', None),
+        )
+        for signal in signals:
+            if signal is not None:
+                signal.connect(lambda *args, sync_kind=kind, sync_window=window,
+                               sync_view=view:
+                               self.sync_image_levels_from_view(
+                                   sync_kind, sync_window, sync_view))
+
+    def sync_image_view_range_from_view(self, kind, window, source_view):
+        if self._syncing_image_view:
+            return
+
+        viewers = self._data_viewers(kind).get(window, {})
+        x_range, y_range = source_view.getView().viewRange()
+        self._syncing_image_view = True
+        try:
+            for view, _tab in viewers.values():
+                if view is not source_view:
+                    view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+        finally:
+            self._syncing_image_view = False
+
+    def connect_image_view_range_sync(self, kind, window, view):
+        view.getView().sigRangeChanged.connect(
+            lambda *args, sync_kind=kind, sync_window=window, sync_view=view:
+                self.sync_image_view_range_from_view(
+                    sync_kind, sync_window, sync_view))
+
+    def connect_image_view_sync(self, kind, window, view):
+        self.connect_image_level_sync(kind, window, view)
+        self.connect_image_view_range_sync(kind, window, view)
 
     def apply_current_image_view(self, kind, window):
         current_view, viewers = self._current_image_view(kind, window)
         if current_view is None:
             return
 
-        x_range, y_range = current_view.getView().viewRange()
-        for view, _tab in viewers.values():
-            if view is not current_view:
-                view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+        self.sync_image_view_range_from_view(kind, window, current_view)
+
+    def apply_current_image_profile(self, kind, window):
+        current_key = self._current_image_key(kind, window)
+        self.sync_image_profile_from_key(kind, window, current_key)
+
+    def sync_image_profile_from_key(self, kind, window, source_key):
+        if self._syncing_image_profile or source_key is None:
+            return
+
+        rois = self._data_profile_rois(kind).get(window, {})
+        current_roi = rois.get(source_key)
+        if current_roi is None:
+            return
+
+        state = current_roi.saveState()
+        self._syncing_image_profile = True
+        try:
+            for key, roi in rois.items():
+                if key != source_key:
+                    previous = roi.blockSignals(True)
+                    roi.setState(state)
+                    roi.blockSignals(previous)
+        finally:
+            self._syncing_image_profile = False
+        self.update_image_profile(kind, window)
+
+    def on_image_profile_changed(self, kind, window, key):
+        if self._syncing_image_profile:
+            return
+        self.update_image_profile(kind, window)
+        self.sync_image_profile_from_key(kind, window, key)
 
     def sync_current_image_view(self, kind, window):
         self.apply_current_image_levels(kind, window)
         self.apply_current_image_view(kind, window)
         self.apply_current_image_profile(kind, window)
+        if kind == 'reco':
+            self.apply_current_image_region(kind, window)
 
-    def apply_current_image_profile(self, kind, window):
+    def apply_current_image_region(self, kind, window):
         current_key = self._current_image_key(kind, window)
-        rois = self._data_profile_rois(kind).get(window, {})
+        rois = self._data_region_rois(kind).get(window, {})
         current_roi = rois.get(current_key)
         if current_roi is None:
             return
@@ -1693,7 +1886,25 @@ class InteractiveWindow:
         for key, roi in rois.items():
             if key != current_key:
                 roi.setState(state)
-        self.update_image_profile(kind, window)
+
+    def update_image_interaction_mode(self, *args):
+        for window in list(self._reco_viewers):
+            for roi in self._reco_profile_rois.get(window, {}).values():
+                roi.setVisible(True)
+            for roi in self._reco_region_rois.get(window, {}).values():
+                roi.setVisible(False)
+            self.update_image_profile('reco', window)
+
+    def reset_reconstruction_region_rois(self):
+        for window, viewers in list(self._reco_viewers.items()):
+            rois = self._reco_region_rois.get(window, {})
+            for key, roi in rois.items():
+                view = viewers.get(key, (None, None))[0]
+                data = self._image_data('reco').get(key[0], {}).get(key[1])
+                if view is not None and data is not None:
+                    height, width = data.shape
+                    self._set_region_roi_to_full(roi, width, height)
+                    roi.setVisible(False)
 
     def switch_image_tab(self, kind, window, step):
         tabs = self._data_tabs(kind).get(window)
@@ -1762,6 +1973,105 @@ class InteractiveWindow:
         plot.enableAutoRange(x=True, y=True)
         plot.autoRange(padding=0.03)
 
+    def _current_reco_display_regions(self, data):
+        args = self._last_reco_args or self._current_reconstruction_args(self._current_args())
+        height, width = data.shape
+        x_region = expand_display_region(args.x_region, width)
+        y_region = expand_display_region(args.y_region, height)
+
+        return x_region, y_region
+
+    def _set_region_roi_to_full(self, roi, width, height):
+        previous = roi.blockSignals(True)
+        roi.setPos([0, 0], update=False)
+        roi.setSize([max(width, 1), max(height, 1)], update=True)
+        roi.blockSignals(previous)
+
+    def handle_reconstruction_region_drag(self, view, window, key, event):
+        from PyQt5 import QtCore
+
+        if event.button() != QtCore.Qt.LeftButton or not (
+                event.modifiers() & QtCore.Qt.ControlModifier):
+            event.ignore()
+            return
+
+        roi = self._reco_region_rois.get(window, {}).get(key)
+        data = self._image_data('reco').get(key[0], {}).get(key[1])
+        if roi is None or data is None:
+            event.ignore()
+            return
+
+        height, width = data.shape
+        view_box = view.getView()
+        start = view_box.mapSceneToView(event.buttonDownScenePos())
+        current = view_box.mapSceneToView(event.scenePos())
+        x0 = max(0.0, min(float(start.x()), float(current.x()), float(width - 1)))
+        x1 = min(float(width), max(float(start.x()), float(current.x()), 1.0))
+        y0 = max(0.0, min(float(start.y()), float(current.y()), float(height - 1)))
+        y1 = min(float(height), max(float(start.y()), float(current.y()), 1.0))
+        previous = roi.blockSignals(True)
+        roi.setPos([x0, y0], update=False)
+        roi.setSize([max(x1 - x0, 1.0), max(y1 - y0, 1.0)], update=True)
+        roi.blockSignals(previous)
+        roi.setVisible(True)
+        event.accept()
+        if event.isFinish():
+            self.update_reconstruction_region_from_roi(window, key)
+
+    def install_reconstruction_region_drag_handler(self, view, window, key):
+        view_box = view.getView()
+        original_mouse_drag = view_box.mouseDragEvent
+
+        def mouse_drag_event(event, axis=None):
+            from PyQt5 import QtCore
+
+            if event.button() == QtCore.Qt.LeftButton and (
+                    event.modifiers() & QtCore.Qt.ControlModifier):
+                self.handle_reconstruction_region_drag(view, window, key, event)
+                return
+
+            original_mouse_drag(event, axis=axis)
+
+        view_box.mouseDragEvent = mouse_drag_event
+
+    def update_reconstruction_region_from_roi(self, window, key):
+        roi = self._reco_region_rois.get(window, {}).get(key)
+        data = self._image_data('reco').get(key[0], {}).get(key[1])
+        if roi is None or data is None:
+            return
+
+        height, width = data.shape
+        x_region, y_region = self._current_reco_display_regions(data)
+        pos = roi.pos()
+        size = roi.size()
+        x0 = max(0.0, min(float(pos.x()), float(pos.x() + size.x()), float(width - 1)))
+        x1 = min(float(width), max(float(pos.x()), float(pos.x() + size.x()), 1.0))
+        y0 = max(0.0, min(float(pos.y()), float(pos.y() + size.y()), float(height - 1)))
+        y1 = min(float(height), max(float(pos.y()), float(pos.y() + size.y()), 1.0))
+        x_start_px = int(np.floor(x0))
+        x_stop_px = int(np.ceil(x1))
+        y_start_px = int(np.floor(y0))
+        y_stop_px = int(np.ceil(y1))
+        if x_stop_px <= x_start_px:
+            x_stop_px = min(width, x_start_px + 1)
+        if y_stop_px <= y_start_px:
+            y_stop_px = min(height, y_start_px + 1)
+
+        x_start, _x_stop, x_step = x_region
+        y_start, _y_stop, y_step = y_region
+        new_x_region = (
+            x_start + x_start_px * x_step,
+            x_start + x_stop_px * x_step,
+            x_step)
+        new_y_region = (
+            y_start + y_start_px * y_step,
+            y_start + y_stop_px * y_step,
+            y_step)
+        self.reco_x_region_edit.setText(format_region(new_x_region))
+        self.reco_y_region_edit.setText(format_region(new_y_region))
+        self._hide_reco_region_rois_on_next_update = True
+        self.schedule_update()
+
     def update_2d_filter_views(self):
         if not self._last_data:
             return
@@ -1775,7 +2085,7 @@ class InteractiveWindow:
 
     def populate_image_tabs(self, kind, tabs):
         import pyqtgraph as pg
-        from PyQt5 import QtWidgets
+        from PyQt5 import QtCore, QtWidgets
 
         data_by_method = self._image_data(kind)
         if not data_by_method:
@@ -1784,8 +2094,20 @@ class InteractiveWindow:
         window = getattr(tabs, '_tofu_filter_visualization_window', tabs.parentWidget())
         viewers = self._data_viewers(kind).setdefault(window, {})
         rois = self._data_profile_rois(kind).setdefault(window, {})
+        region_rois = self._data_region_rois(kind).setdefault(window, {})
         auto_level_windows = self._data_auto_level_windows(kind)
         desired_keys = set()
+        current_view, _current_viewers = self._current_image_view(kind, window)
+        inherited_levels = current_view.getLevels() if current_view is not None else None
+        inherited_view_range = (
+            current_view.getView().viewRange() if current_view is not None else None)
+        inherited_profile_shape = (
+            getattr(current_view, '_tofu_filter_visualization_shape', None)
+            if current_view is not None else None)
+        current_key = self._current_image_key(kind, window)
+        current_profile_roi = rois.get(current_key)
+        inherited_profile_state = (
+            current_profile_roi.saveState() if current_profile_roi is not None else None)
 
         for method, curves in data_by_method.items():
             for curve_name, data in curves.items():
@@ -1793,6 +2115,7 @@ class InteractiveWindow:
                 key = (method, curve_name)
                 desired_keys.add(key)
                 if key not in viewers:
+                    is_new_view = True
                     view = pg.ImageView()
                     view.getImageItem().resetTransform()
                     view.getView().setAspectLocked(True, ratio=1)
@@ -1802,29 +2125,87 @@ class InteractiveWindow:
                     tabs.addTab(tab, label)
                     viewers[key] = (view, tab)
                     height, width = data.shape
+                    shape_changed = True
                     y = height / 2.0
                     roi = make_profile_line_roi(
                         pg, [[0, y], [max(width - 1, 0), y]],
                         pen=pg.mkPen('y', width=2))
                     roi.sigRegionChanged.connect(
-                        lambda *args, profile_kind=kind, profile_window=window:
-                            self.update_image_profile(profile_kind, profile_window))
+                        lambda *args, profile_kind=kind, profile_window=window,
+                        profile_key=key:
+                            self.on_image_profile_changed(
+                                profile_kind, profile_window, profile_key))
                     view.getView().addItem(roi)
                     rois[key] = roi
-                    x_range = y_range = None
-                    reset_levels = True
+                    if kind == 'reco':
+                        region_roi = pg.RectROI(
+                            [0, 0], [max(width, 1), max(height, 1)],
+                            pen=pg.mkPen('y', width=2))
+                        region_roi.setAcceptedMouseButtons(QtCore.Qt.NoButton)
+                        region_roi.setVisible(False)
+                        view.getView().addItem(region_roi)
+                        region_rois[key] = region_roi
+                        self.install_reconstruction_region_drag_handler(view, window, key)
+                    self.connect_image_view_sync(kind, window, view)
+                    if inherited_view_range is not None:
+                        x_range, y_range = inherited_view_range
+                    else:
+                        x_range = y_range = None
+                    reset_levels = inherited_levels is None or window in auto_level_windows
                 else:
+                    is_new_view = False
                     view = viewers[key][0]
-                    x_range, y_range = view.getView().viewRange()
+                    old_shape = getattr(view, '_tofu_filter_visualization_shape', None)
+                    shape_changed = old_shape != data.shape
+                    if not shape_changed:
+                        x_range, y_range = view.getView().viewRange()
+                    else:
+                        x_range = y_range = None
                     reset_levels = window in auto_level_windows
 
-                view.setImage(data.T, autoLevels=False)
-                if reset_levels:
-                    levels = get_percentile_levels(data)
-                    if levels is not None:
-                        view.setLevels(*levels)
-                if x_range is not None:
-                    view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+                self._syncing_image_view = True
+                try:
+                    view.setImage(data.T, autoLevels=False)
+                    view._tofu_filter_visualization_shape = data.shape
+                    if kind == 'reco':
+                        profile_roi = rois.get(key)
+                        if profile_roi is not None:
+                            height, width = data.shape
+                            can_inherit_profile = (
+                                inherited_profile_state is not None
+                                and inherited_profile_shape == data.shape)
+                            if is_new_view and can_inherit_profile:
+                                previous = profile_roi.blockSignals(True)
+                                profile_roi.setState(inherited_profile_state)
+                                profile_roi.blockSignals(previous)
+                            elif shape_changed:
+                                reset_profile_line_roi(profile_roi, width, height)
+                            elif can_inherit_profile:
+                                previous = profile_roi.blockSignals(True)
+                                profile_roi.setState(inherited_profile_state)
+                                profile_roi.blockSignals(previous)
+                        region_roi = region_rois.get(key)
+                        if region_roi is not None:
+                            height, width = data.shape
+                            self._set_region_roi_to_full(region_roi, width, height)
+                            if self._hide_reco_region_rois_on_next_update:
+                                region_roi.setVisible(False)
+                    if reset_levels:
+                        levels = get_percentile_levels(data)
+                        if levels is not None:
+                            view.setLevels(*levels)
+                    elif inherited_levels is not None:
+                        view.setLevels(*inherited_levels)
+                    if x_range is not None:
+                        view.getView().setRange(xRange=x_range, yRange=y_range, padding=0)
+                    elif kind == 'reco' and shape_changed:
+                        height, width = data.shape
+                        view.getView().setRange(
+                            xRange=(0, max(width - 1, 0)),
+                            yRange=(0, max(height - 1, 0)),
+                            padding=0.02)
+                finally:
+                    self._syncing_image_view = False
 
         for key in list(viewers):
             if key not in desired_keys:
@@ -1832,10 +2213,17 @@ class InteractiveWindow:
                 roi = rois.pop(key, None)
                 if roi is not None:
                     view.getView().removeItem(roi)
+                region_roi = region_rois.pop(key, None)
+                if region_roi is not None:
+                    view.getView().removeItem(region_roi)
                 index = tabs.indexOf(tab)
                 if index >= 0:
                     tabs.removeTab(index)
                 tab.deleteLater()
+        self.update_image_interaction_mode()
+        if kind == 'reco' and self._hide_reco_region_rois_on_next_update:
+            for roi in region_rois.values():
+                roi.setVisible(False)
         self.update_image_profile(kind, window)
 
     def update_image_data_views(self, kind, empty_text):
@@ -1855,6 +2243,7 @@ class InteractiveWindow:
 
     def update_reconstruction_views(self):
         self.update_image_data_views('reco', "No reconstructed slices to display")
+        self._hide_reco_region_rois_on_next_update = False
 
     def on_main_window_close(self, event):
         for window in list(self._image_windows):
