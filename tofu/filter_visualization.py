@@ -13,6 +13,7 @@ except ValueError:
 
 from gi.repository import Ufo
 
+from tofu import config
 from tofu.tasks import get_memory_in, get_memory_out, get_task
 
 
@@ -91,6 +92,22 @@ def validate_result_args(args):
     args.width = 2
     args.height = 2
     validate_args(args)
+
+
+def get_single_tiff_sequence_info(path):
+    from tofu.util import TiffSequenceReader, get_filenames
+
+    filenames = get_filenames(path)
+    if len(filenames) != 1 or not filenames[0].lower().endswith(('.tif', '.tiff')):
+        return None
+
+    with TiffSequenceReader(filenames[0]) as reader:
+        image = reader.read(0)
+        return {
+            'number': reader.num_images,
+            'height': image.shape[-2],
+            'width': image.shape[-1],
+        }
 
 
 def _set_sharpening_props(task, args):
@@ -277,20 +294,67 @@ def _prepare_reconstruction_args(args, sharpen):
     reco_args.store_type = 'float'
     reco_args.result_type = 'float'
     reco_args.compute_type = 'float'
+    reco_args.delta = 1e-6
+    reco_args.retrieval_padding_mode = 'clamp_to_edge'
+    reco_args.disable_projection_crop = True
 
-    reader_height = getattr(reco_args, 'reconstruction_reader_height', None)
+    tiff_info = get_single_tiff_sequence_info(reco_args.projections)
+    if tiff_info:
+        if reco_args.number is None:
+            reco_args.number = tiff_info['number']
+    distance = reco_args.propagation_distance[0]
+    wavelength = get_wavelength(reco_args.energy)
+    half_height = get_fresnel_required_half_height(
+        reco_args.energy, distance, reco_args.pixel_size)
+    slice_number = getattr(reco_args, 'reconstruction_slice', 0)
     reco_args.width = None
     reco_args.height = None
     width, height = determine_shape(reco_args, path=reco_args.projections, do_raise=True)
+    if height <= 0:
+        raise ValueError("projection height must be greater than 0")
+    if slice_number < 0 or slice_number >= height:
+        raise ValueError(
+            "requested reconstruction slice {} is outside the projection height "
+            "range [0, {})".format(slice_number, height))
+    required_height = 2 * half_height
+    reader_height = min(required_height, height)
+    reader_y = slice_number - half_height
+    missing_before = max(0, -reader_y)
+    missing_after = max(0, reader_y + required_height - height)
+    if missing_before or missing_after:
+        LOG.warning(
+            "Cannot read the full vertical Fresnel neighborhood around slice %d: "
+            "half_height=%d, projection_height=%d, missing_before=%d px, "
+            "missing_after=%d px. Clamping the read window to the data range.",
+            slice_number, half_height, height, missing_before, missing_after)
+    reader_y = min(max(reader_y, 0), height - reader_height)
+    local_z = slice_number - reader_y
+    reco_args.y = reader_y
+    reco_args.height = reader_height
+    reco_args.center_position_z = [0.5]
+    reco_args.z = local_z
     reco_args.width = width
-    reco_args.height = reader_height or (height - reco_args.y)
-    if not reco_args.retrieval_padded_width:
-        reco_args.retrieval_padded_width = next_power_of_two(width)
-    if not reco_args.retrieval_padded_height:
-        reco_args.retrieval_padded_height = next_power_of_two(height)
+    reco_args.retrieval_padded_width = next_power_of_two(width)
+    reco_args.retrieval_padded_height = reco_args.height
 
-    slice_number = getattr(args, 'reconstruction_slice', 0)
-    reco_args.region = (slice_number, slice_number + 1, 1)
+    reco_args.region = (local_z, local_z + 1, 1)
+    LOG.debug(
+        "Reconstruction vertical region: wavelength=%g m, distance=%g m, "
+        "pixel_size=%g m, fresnel_half_height=%d px, requested_slice=%d, "
+        "projection_height=%d, required_reader_height=%d, "
+        "reader_y=%d, reader_height=%d, center_position_z=%s, z=%s, region=%s",
+        wavelength, distance, reco_args.pixel_size, half_height, slice_number,
+        height, required_height, reco_args.y, reco_args.height,
+        reco_args.center_position_z, reco_args.z, reco_args.region)
+    LOG.debug(
+        "Reconstruction args: width=%d, number=%s, image_step=%s, "
+        "retrieval_padded_width=%d, retrieval_padded_height=%d, "
+        "retrieval_padding_mode=%s, disable_projection_crop=%s, "
+        "overall_angle=%s, center_position_x=%s",
+        reco_args.width, reco_args.number, getattr(reco_args, 'image_step', None),
+        reco_args.retrieval_padded_width, reco_args.retrieval_padded_height,
+        reco_args.retrieval_padding_mode, reco_args.disable_projection_crop,
+        reco_args.overall_angle, reco_args.center_position_x)
 
     return reco_args
 
@@ -386,6 +450,12 @@ def get_wavelength(energy):
     return 6.62606896e-34 * 299792458 / (energy * 1.60217733e-16)
 
 
+def get_fresnel_required_half_height(energy, distance, pixel_size):
+    fresnel_length = get_wavelength(energy) * distance / (2 * pixel_size ** 2)
+
+    return max(16, int(np.ceil(fresnel_length)))
+
+
 def get_ict_argument(frequencies, args):
     if args is None or args.energy is None or args.propagation_distance is None:
         return frequencies
@@ -424,6 +494,25 @@ def get_percentile_levels(data, lower=0.5, upper=99.5):
         high += span
 
     return float(low), float(high)
+
+
+def get_parameter_help(name, preferred_sections=()):
+    key = name.replace('_', '-')
+    sections = list(preferred_sections) + [
+        section for section in config.SECTIONS if section not in preferred_sections
+    ]
+    for section in sections:
+        params = config.SECTIONS[section]
+        if key in params:
+            return params[key].get('help')
+
+    return None
+
+
+def set_parameter_tooltip(widget, name, preferred_sections=()):
+    tooltip = get_parameter_help(name, preferred_sections=preferred_sections)
+    if tooltip:
+        widget.setToolTip(tooltip)
 
 
 def make_profile_line_roi(pg, positions, pen):
@@ -465,7 +554,7 @@ def make_profile_line_roi(pg, positions, pen):
 class FloatSlider:
     """Small helper around a QSlider for floating point values."""
     def __init__(self, parent, layout, label, attr, minimum, maximum, steps=1000,
-                 scale='linear', display=None):
+                 scale='linear', display=None, tooltip=None):
         from PyQt5 import QtCore, QtGui, QtWidgets
 
         self.value_changed = parent.value_changed
@@ -489,6 +578,9 @@ class FloatSlider:
         self.slider.valueChanged.connect(self.on_slider_changed)
         self.value_edit.textEdited.connect(self.on_text_edited)
         self.value_edit.returnPressed.connect(self.on_editing_finished)
+        if tooltip:
+            for widget in (self.label, self.value_edit, self.slider):
+                widget.setToolTip(tooltip)
 
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self.label)
@@ -669,10 +761,6 @@ class InteractiveWindow:
         plot_layout.setContentsMargins(0, 0, 0, 0)
         plot_layout.addWidget(self.toolbar)
         plot_layout.addWidget(self.canvas, 1)
-        splitter.addWidget(plot_widget)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([420, 910])
 
         self.sliders = []
         self.sliders_by_attr = {}
@@ -724,6 +812,21 @@ class InteractiveWindow:
         self.reco_update_timer.setInterval(1000)
         self.reco_update_timer.timeout.connect(self.request_scheduled_reconstruction_update)
 
+        self.view_tabs = QtWidgets.QTabWidget()
+        self.view_tabs.addTab(plot_widget, "Filters")
+        result_panel = self._create_image_data_panel(
+            'result', "Select projections to show processed results",
+            popout_title="Processed phase retrieval results")
+        reco_panel = self._create_image_data_panel(
+            'reco', "Select projections to show reconstructed slice",
+            popout_title="Reconstructed phase retrieval results")
+        self.result_view_index = self.view_tabs.addTab(result_panel, "Projection")
+        self.reco_view_index = self.view_tabs.addTab(reco_panel, "Reconstruction")
+        splitter.addWidget(self.view_tabs)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([480, 1120])
+
         tabs = QtWidgets.QTabWidget()
         filter_tab = QtWidgets.QWidget()
         filter_tab_layout = QtWidgets.QVBoxLayout(filter_tab)
@@ -732,11 +835,11 @@ class InteractiveWindow:
         filter_scroll.setWidgetResizable(True)
         filter_content = QtWidgets.QWidget()
         filter_layout = QtWidgets.QVBoxLayout(filter_content)
-        self._add_size_controls(filter_layout)
-        self._add_plot_controls(filter_layout)
         self._add_phase_controls(filter_layout)
         self._add_sharpening_controls(filter_layout)
         filter_layout.addStretch(1)
+        self._add_size_controls(filter_layout)
+        self._add_plot_controls(filter_layout)
         filter_scroll.setWidget(filter_content)
         filter_tab_layout.addWidget(filter_scroll)
         reco_tab = QtWidgets.QWidget()
@@ -756,7 +859,7 @@ class InteractiveWindow:
         self._update_ict_range_sliders()
         controls_layout.addWidget(self.status)
 
-        self.window.resize(1120, 620)
+        self.window.resize(1400, 820)
         self.window.show()
         self.schedule_update()
 
@@ -774,6 +877,8 @@ class InteractiveWindow:
         self._set_size_box_value(self.height_box, self.args.height or 2048)
         self.width_box.currentIndexChanged.connect(self.schedule_update)
         self.height_box.currentIndexChanged.connect(self.schedule_update)
+        set_parameter_tooltip(self.width_box, 'width', preferred_sections=('general',))
+        set_parameter_tooltip(self.height_box, 'height', preferred_sections=('reading',))
         group_layout.addRow("Width", self.width_box)
         group_layout.addRow("Height", self.height_box)
         layout.addWidget(group)
@@ -808,14 +913,11 @@ class InteractiveWindow:
         autoscale_button.clicked.connect(self.autoscale_view)
         image_button = QtWidgets.QPushButton("Show 2D filters")
         image_button.clicked.connect(self.show_2d_filters)
-        result_button = QtWidgets.QPushButton("Show results")
-        result_button.clicked.connect(self.show_results)
         group_layout.addRow(self.fix_y_box)
         group_layout.addRow("Y min", self.y_min_edit)
         group_layout.addRow("Y max", self.y_max_edit)
         group_layout.addRow(autoscale_button)
         group_layout.addRow(image_button)
-        group_layout.addRow(result_button)
         layout.addWidget(group)
 
     def _add_phase_controls(self, layout):
@@ -846,6 +948,9 @@ class InteractiveWindow:
         buttons['phase'].setChecked(True)
         if self.args.sharpen:
             buttons['sharpened'].setChecked(True)
+        tooltip = get_parameter_help('retrieval-method', preferred_sections=('retrieve-phase',))
+        if tooltip:
+            methods.setToolTip(tooltip)
         group_layout.addWidget(methods)
 
         specs = (
@@ -859,7 +964,9 @@ class InteractiveWindow:
             ("Frequency cutoff", 'frequency_cutoff', 0.0, np.pi, 'linear'),
         )
         for label, attr, minimum, maximum, scale in specs:
-            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum, scale=scale)
+            tooltip = get_parameter_help(attr, preferred_sections=('retrieve-phase',))
+            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum,
+                                 scale=scale, tooltip=tooltip)
             value = getattr(self.args, attr)
             if attr == 'propagation_distance' and value is not None:
                 value = value[0]
@@ -875,9 +982,11 @@ class InteractiveWindow:
         group_layout = QtWidgets.QVBoxLayout(group)
 
         methods = QtWidgets.QGroupBox("Method")
+        set_parameter_tooltip(methods, 'sharpen-method', preferred_sections=('sharpening',))
         method_layout = QtWidgets.QHBoxLayout(methods)
         for method in ('laplace', 'discrete-laplace', 'lorentz'):
             button = QtWidgets.QRadioButton(method)
+            set_parameter_tooltip(button, 'sharpen-method', preferred_sections=('sharpening',))
             button.toggled.connect(self.schedule_update)
             method_layout.addWidget(button)
             self.sharpen_method_buttons[method] = button
@@ -891,7 +1000,9 @@ class InteractiveWindow:
             ("Max boost", 'sharpen_max_boost', 0.0, 10.0, 'linear'),
         )
         for label, attr, minimum, maximum, scale in specs:
-            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum, scale=scale)
+            tooltip = get_parameter_help(attr, preferred_sections=('sharpening',))
+            slider = FloatSlider(self, group_layout, label, attr, minimum, maximum,
+                                 scale=scale, tooltip=tooltip)
             slider.set_value(getattr(self.args, attr))
             self.sliders.append(slider)
             self.sliders_by_attr[attr] = slider
@@ -906,6 +1017,7 @@ class InteractiveWindow:
         self.reco_path_label = QtWidgets.QLabel("No projections selected")
         self.reco_path_label.setWordWrap(True)
         choose_button = QtWidgets.QPushButton("Select projections...")
+        choose_button.setToolTip("Flat-corrected projections in a single tif file")
         choose_button.clicked.connect(self.select_reconstruction_projections)
         show_button = QtWidgets.QPushButton("Show reconstructed slice")
         show_button.clicked.connect(self.show_reconstruction)
@@ -913,88 +1025,43 @@ class InteractiveWindow:
         self.reco_auto_update_box.setChecked(True)
         self.reco_auto_update_box.toggled.connect(self.schedule_update)
 
-        self.reco_slice_box = QtWidgets.QSpinBox()
-        self.reco_slice_box.setRange(-1000000000, 1000000000)
-        self.reco_slice_box.setKeyboardTracking(False)
-        self.reco_slice_box.setValue(0)
-        self.reco_slice_box.lineEdit().returnPressed.connect(self.schedule_update)
-
-        self.reco_reader_height_box = self._make_spin_box(None, minimum=0, special="auto")
-        self.reco_y_box = self._make_spin_box(getattr(self.args, 'y', 0), minimum=0)
-        self.reco_y_step_box = self._make_spin_box(getattr(self.args, 'y_step', 1), minimum=1)
+        self.reco_slice_box = self._make_spin_box(0, maximum=1000000000)
+        self.reco_slice_box.setToolTip("Detector row to reconstruct")
+        self.reco_slice_box.lineEdit().setToolTip(self.reco_slice_box.toolTip())
         self.reco_number_box = self._make_spin_box(getattr(self.args, 'number', None),
-                                                   minimum=0, special="auto")
-        self.reco_step_box = self._make_spin_box(getattr(self.args, 'step', 1), minimum=1)
-        self.reco_image_start_box = self._make_spin_box(getattr(self.args, 'image_start', 0),
-                                                        minimum=0)
+                                                   minimum=0, special="auto", param='number',
+                                                   preferred_sections=('reading',))
         self.reco_image_step_box = self._make_spin_box(getattr(self.args, 'image_step', 1),
-                                                       minimum=1)
+                                                       minimum=1, param='image-step',
+                                                       preferred_sections=('reading',))
 
         double_validator = QtGui.QDoubleValidator()
         double_validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
         self.reco_center_x_edit = QtWidgets.QLineEdit()
-        self.reco_center_z_edit = QtWidgets.QLineEdit()
         self.reco_overall_angle_edit = QtWidgets.QLineEdit()
-        self.reco_delta_edit = QtWidgets.QLineEdit()
-        for edit in (self.reco_center_x_edit, self.reco_center_z_edit,
-                     self.reco_overall_angle_edit, self.reco_delta_edit):
+        for edit in (self.reco_center_x_edit, self.reco_overall_angle_edit):
             edit.setValidator(double_validator)
             edit.returnPressed.connect(self.schedule_update)
         self.reco_center_x_edit.setPlaceholderText("auto")
-        self.reco_center_z_edit.setPlaceholderText("auto")
         self.reco_overall_angle_edit.setText("180")
-        if getattr(self.args, 'delta', None) is not None:
-            self.reco_delta_edit.setText("{:.6g}".format(self.args.delta))
-
-        self.reco_padding_mode_box = QtWidgets.QComboBox()
-        for mode in ('none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'):
-            self.reco_padding_mode_box.addItem(mode)
-        index = self.reco_padding_mode_box.findText(
-            getattr(self.args, 'retrieval_padding_mode', 'mirrored_repeat'))
-        self.reco_padding_mode_box.setCurrentIndex(index if index >= 0 else 0)
-        self.reco_padding_mode_box.currentIndexChanged.connect(self.schedule_update)
-
-        self.reco_padded_width_box = QtWidgets.QComboBox()
-        self.reco_padded_height_box = QtWidgets.QComboBox()
-        for box in (self.reco_padded_width_box, self.reco_padded_height_box):
-            box.addItem("auto", 0)
-            for value in powers_of_two(maximum=65536):
-                box.addItem(str(value), value)
-            box.currentIndexChanged.connect(self.schedule_update)
-        if getattr(self.args, 'retrieval_padded_width', 0):
-            self._set_optional_size_box_value(
-                self.reco_padded_width_box, self.args.retrieval_padded_width)
-        if getattr(self.args, 'retrieval_padded_height', 0):
-            self._set_optional_size_box_value(
-                self.reco_padded_height_box, self.args.retrieval_padded_height)
-
-        self.reco_disable_crop_box = QtWidgets.QCheckBox()
-        self.reco_disable_crop_box.setChecked(False)
-        self.reco_disable_crop_box.toggled.connect(self.schedule_update)
+        set_parameter_tooltip(self.reco_center_x_edit, 'center-position-x',
+                              preferred_sections=('cone-beam-weight',))
+        set_parameter_tooltip(self.reco_overall_angle_edit, 'overall-angle',
+                              preferred_sections=('general-reconstruction',))
 
         group_layout.addRow(choose_button)
         group_layout.addRow("Projections", self.reco_path_label)
         group_layout.addRow(self.reco_auto_update_box)
-        group_layout.addRow("Slice number", self.reco_slice_box)
-        group_layout.addRow("Height", self.reco_reader_height_box)
-        group_layout.addRow("Y", self.reco_y_box)
-        group_layout.addRow("Y step", self.reco_y_step_box)
+        group_layout.addRow("Slice", self.reco_slice_box)
         group_layout.addRow("Number", self.reco_number_box)
-        group_layout.addRow("Step", self.reco_step_box)
-        group_layout.addRow("Image start", self.reco_image_start_box)
         group_layout.addRow("Image step", self.reco_image_step_box)
         group_layout.addRow("Center X", self.reco_center_x_edit)
-        group_layout.addRow("Center Z", self.reco_center_z_edit)
         group_layout.addRow("Overall angle [deg]", self.reco_overall_angle_edit)
-        group_layout.addRow("Delta", self.reco_delta_edit)
-        group_layout.addRow("Retrieval padding", self.reco_padding_mode_box)
-        group_layout.addRow("Padded width", self.reco_padded_width_box)
-        group_layout.addRow("Padded height", self.reco_padded_height_box)
-        group_layout.addRow("Disable projection crop", self.reco_disable_crop_box)
         group_layout.addRow(show_button)
         layout.addWidget(group)
 
-    def _make_spin_box(self, value, minimum=0, maximum=1000000000, special=None):
+    def _make_spin_box(self, value, minimum=0, maximum=1000000000, special=None,
+                       param=None, preferred_sections=()):
         from PyQt5 import QtWidgets
 
         box = QtWidgets.QSpinBox()
@@ -1004,6 +1071,9 @@ class InteractiveWindow:
             box.setSpecialValueText(special)
         box.setValue(value if value is not None else minimum)
         box.lineEdit().returnPressed.connect(self.schedule_update)
+        if param:
+            set_parameter_tooltip(box, param, preferred_sections=preferred_sections)
+            set_parameter_tooltip(box.lineEdit(), param, preferred_sections=preferred_sections)
 
         return box
 
@@ -1012,18 +1082,31 @@ class InteractiveWindow:
         if index >= 0:
             box.setCurrentIndex(index)
 
+    def _set_optional_spin_box_value(self, box, value):
+        if value is None:
+            return
+        previous = box.blockSignals(True)
+        box.setValue(value)
+        box.blockSignals(previous)
+
+    def _set_reconstruction_slice_height(self, height):
+        previous = self.reco_slice_box.blockSignals(True)
+        self.reco_slice_box.setRange(0, max(0, height - 1))
+        self.reco_slice_box.setValue(height // 2)
+        self.reco_slice_box.blockSignals(previous)
+
     def schedule_update(self, *args, preserve_view=False):
         if preserve_view:
             self._force_keep_view = True
         self.update_timer.start()
-        if getattr(self, '_reco_windows', None):
+        if getattr(self, '_reco_args', None):
             if self.reco_auto_update_box.isChecked():
                 self.reco_update_timer.start()
             else:
                 self.reco_update_timer.stop()
 
     def request_scheduled_reconstruction_update(self):
-        if not self._reco_windows or not self.reco_auto_update_box.isChecked():
+        if not self._reco_args or not self.reco_auto_update_box.isChecked():
             return
         self.request_reconstruction_update(self._current_args())
 
@@ -1083,24 +1166,16 @@ class InteractiveWindow:
         if self._reco_args:
             args.projections = self._reco_args.projections
         args.reconstruction_slice = self.reco_slice_box.value()
-        args.reconstruction_reader_height = self._optional_spin_value(self.reco_reader_height_box)
-        args.y = self.reco_y_box.value()
-        args.y_step = self.reco_y_step_box.value()
         args.number = self._optional_spin_value(self.reco_number_box)
-        args.step = self.reco_step_box.value()
-        args.image_start = self.reco_image_start_box.value()
         args.image_step = self.reco_image_step_box.value()
         center_x = self._optional_float(self.reco_center_x_edit)
-        center_z = self._optional_float(self.reco_center_z_edit)
         args.center_position_x = None if center_x is None else [center_x]
-        args.center_position_z = None if center_z is None else [center_z]
+        args.center_position_z = [0.5]
         overall_angle = self._optional_float(self.reco_overall_angle_edit)
         args.overall_angle = overall_angle
-        args.delta = self._optional_float(self.reco_delta_edit)
-        args.retrieval_padding_mode = self.reco_padding_mode_box.currentText()
-        args.retrieval_padded_width = int(self.reco_padded_width_box.currentData())
-        args.retrieval_padded_height = int(self.reco_padded_height_box.currentData())
-        args.disable_projection_crop = self.reco_disable_crop_box.isChecked()
+        args.delta = 1e-6
+        args.retrieval_padding_mode = 'clamp_to_edge'
+        args.disable_projection_crop = True
 
         return args
 
@@ -1116,7 +1191,7 @@ class InteractiveWindow:
             self._pending = True
         else:
             self._start_worker(self._pending_args)
-        if self._result_windows:
+        if self._result_args:
             self.request_result_update(self._pending_args)
 
     def _start_worker(self, args):
@@ -1363,20 +1438,6 @@ class InteractiveWindow:
                                  if window in self._image_windows else None)
         window.destroyed.connect(lambda _obj: self._image_viewers.pop(window, None))
 
-    def show_results(self):
-        selected = self._select_projection_path(
-            "Select projections",
-            preferred=getattr(self._result_args, 'projections', None))
-        if not selected:
-            return
-        args = self._current_args()
-        args.projections = selected
-        self._result_args = args
-
-        self._show_image_data_window(
-            'result', "Processed phase retrieval results", "Computing results...")
-        self.request_result_update(args)
-
     def select_reconstruction_projections(self):
         from PyQt5 import QtWidgets
 
@@ -1385,10 +1446,24 @@ class InteractiveWindow:
             preferred=getattr(self._reco_args, 'projections', None))
         if not selected:
             return None
+        old_reco_path = getattr(self._reco_args, 'projections', None)
+        old_result_path = getattr(self._result_args, 'projections', None)
+        if selected != old_reco_path or selected != old_result_path:
+            self.reset_image_data_view('result')
+            self.reset_image_data_view('reco')
         args = self._current_args()
         args.projections = selected
+        tiff_info = get_single_tiff_sequence_info(selected)
+        if tiff_info:
+            self._set_optional_spin_box_value(self.reco_number_box, tiff_info['number'])
+            self._set_reconstruction_slice_height(tiff_info['height'])
         self._reco_args = args
+        result_args = self._current_args()
+        result_args.projections = selected
+        self._result_args = result_args
         self.reco_path_label.setText(selected)
+        self.view_tabs.setCurrentIndex(self.result_view_index)
+        self.request_result_update(result_args)
         return selected
 
     def _select_projection_path(self, title, preferred=None):
@@ -1417,9 +1492,7 @@ class InteractiveWindow:
 
         args = self._current_reconstruction_args(self._current_args())
 
-        self._show_image_data_window(
-            'reco', "Reconstructed phase retrieval results",
-            "Computing reconstructed slice...")
+        self.view_tabs.setCurrentIndex(self.reco_view_index)
         self.request_reconstruction_update(args)
 
     def _image_data(self, kind):
@@ -1446,25 +1519,53 @@ class InteractiveWindow:
     def _data_auto_level_windows(self, kind):
         return self._result_auto_level_windows if kind == 'result' else self._reco_auto_level_windows
 
-    def _show_image_data_window(self, kind, title, status_text):
+    def reset_image_data_view(self, kind):
+        if kind == 'result':
+            self._last_result_data = None
+            placeholder = "Select projections to show processed results"
+        else:
+            self._last_reco_data = None
+            placeholder = "Select projections to show reconstructed slice"
+
+        for window, tabs in list(self._data_tabs(kind).items()):
+            viewers = self._data_viewers(kind).get(window, {})
+            rois = self._data_profile_rois(kind).get(window, {})
+            for key, (view, tab) in list(viewers.items()):
+                roi = rois.pop(key, None)
+                if roi is not None:
+                    view.getView().removeItem(roi)
+                index = tabs.indexOf(tab)
+                if index >= 0:
+                    tabs.removeTab(index)
+                tab.deleteLater()
+            viewers.clear()
+            plot = self._data_profile_plots(kind).get(window)
+            if plot is not None:
+                plot.clear()
+            status = self._data_status(kind).get(window)
+            if status is not None:
+                status.setText(placeholder)
+            self._data_auto_level_windows(kind).add(window)
+
+    def _create_image_data_panel(self, kind, status_text, popout_title=None, window=None):
         from PyQt5 import QtCore, QtGui, QtWidgets
         import pyqtgraph as pg
 
-        window = QtWidgets.QWidget()
-        window.setWindowTitle(title)
-        layout = QtWidgets.QVBoxLayout(window)
+        panel = QtWidgets.QWidget()
+        key = window or panel
+        layout = QtWidgets.QVBoxLayout(panel)
         status = QtWidgets.QLabel(status_text)
         header = QtWidgets.QHBoxLayout()
         levels_button = QtWidgets.QPushButton("Reset greyscale")
-        levels_button.clicked.connect(lambda: self.reset_image_levels(kind, window))
+        levels_button.clicked.connect(lambda: self.reset_image_levels(kind, key))
         apply_levels_button = QtWidgets.QPushButton("Apply greyscale to all")
-        apply_levels_button.clicked.connect(lambda: self.apply_current_image_levels(kind, window))
+        apply_levels_button.clicked.connect(lambda: self.apply_current_image_levels(kind, key))
         apply_view_button = QtWidgets.QPushButton("Apply zoom to all")
-        apply_view_button.clicked.connect(lambda: self.apply_current_image_view(kind, window))
+        apply_view_button.clicked.connect(lambda: self.apply_current_image_view(kind, key))
         sync_button = QtWidgets.QPushButton("Sync all")
-        sync_button.clicked.connect(lambda: self.sync_current_image_view(kind, window))
+        sync_button.clicked.connect(lambda: self.sync_current_image_view(kind, key))
         tabs = QtWidgets.QTabWidget()
-        tabs._tofu_filter_visualization_window = window
+        tabs._tofu_filter_visualization_window = key
         tabs._tofu_filter_visualization_kind = kind
         profile_plot = pg.PlotWidget()
         profile_plot.setBackground('w')
@@ -1476,12 +1577,17 @@ class InteractiveWindow:
             axis = profile_plot.getAxis(axis_name)
             axis.setPen(pg.mkPen((90, 96, 105), width=1))
             axis.setTextPen(pg.mkPen((35, 39, 47)))
-        tabs.currentChanged.connect(lambda _index: self.update_image_profile(kind, window))
+        tabs.currentChanged.connect(lambda _index: self.update_image_profile(kind, key))
         header.addWidget(status, 1)
         header.addWidget(levels_button)
         header.addWidget(apply_levels_button)
         header.addWidget(apply_view_button)
         header.addWidget(sync_button)
+        if popout_title:
+            popout_button = QtWidgets.QPushButton("Pop out")
+            popout_button.clicked.connect(
+                lambda: self.pop_out_image_data_view(kind, popout_title, status.text()))
+            header.addWidget(popout_button)
         layout.addLayout(header)
         splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         splitter.addWidget(tabs)
@@ -1490,13 +1596,35 @@ class InteractiveWindow:
         splitter.setStretchFactor(1, 0)
         splitter.setSizes([520, 160])
         layout.addWidget(splitter, 1)
-        left_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Left), window)
-        right_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Right), window)
+        shortcut_parent = window or panel
+        left_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Left), shortcut_parent)
+        right_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Right), shortcut_parent)
         left_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
         right_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
-        left_shortcut.activated.connect(lambda: self.switch_image_tab(kind, window, -1))
-        right_shortcut.activated.connect(lambda: self.switch_image_tab(kind, window, 1))
-        window._tofu_filter_visualization_shortcuts = [left_shortcut, right_shortcut]
+        left_shortcut.activated.connect(lambda: self.switch_image_tab(kind, key, -1))
+        right_shortcut.activated.connect(lambda: self.switch_image_tab(kind, key, 1))
+        panel._tofu_filter_visualization_shortcuts = [left_shortcut, right_shortcut]
+
+        tabs_by_window = self._data_tabs(kind)
+        status_by_window = self._data_status(kind)
+        profile_plots = self._data_profile_plots(kind)
+        auto_level_windows = self._data_auto_level_windows(kind)
+
+        tabs_by_window[key] = tabs
+        status_by_window[key] = status
+        profile_plots[key] = profile_plot
+        auto_level_windows.add(key)
+
+        return panel
+
+    def pop_out_image_data_view(self, kind, title, status_text):
+        from PyQt5 import QtWidgets
+
+        window = QtWidgets.QWidget()
+        window.setWindowTitle(title)
+        layout = QtWidgets.QVBoxLayout(window)
+        panel = self._create_image_data_panel(kind, status_text, window=window)
+        layout.addWidget(panel)
         window.resize(900, 700)
         window.show()
 
@@ -1509,10 +1637,6 @@ class InteractiveWindow:
         auto_level_windows = self._data_auto_level_windows(kind)
 
         windows.append(window)
-        tabs_by_window[window] = tabs
-        status_by_window[window] = status
-        profile_plots[window] = profile_plot
-        auto_level_windows.add(window)
         window.destroyed.connect(lambda _obj: windows.remove(window)
                                  if window in windows else None)
         window.destroyed.connect(lambda _obj: tabs_by_window.pop(window, None))
@@ -1521,6 +1645,9 @@ class InteractiveWindow:
         window.destroyed.connect(lambda _obj: profile_plots.pop(window, None))
         window.destroyed.connect(lambda _obj: profile_rois.pop(window, None))
         window.destroyed.connect(lambda _obj: auto_level_windows.discard(window))
+        tabs = tabs_by_window.get(window)
+        if tabs is not None and self._image_data(kind):
+            self.populate_image_tabs(kind, tabs)
 
         return window
 
