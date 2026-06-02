@@ -536,7 +536,15 @@ class EZStitchGroup(QGroupBox):
         try:
             verify_safe2delete(self, EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
         except FileExistsError:
-            return
+            if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
+                    EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+                qm = QMessageBox()
+                rep = qm.question(self, '', f"Do you want to bypass generation of orthogonal sections and \n"
+                                            "start stitching from data in temporary directory?", qm.Yes | qm.No)
+                if rep == qm.Yes:
+                    add_value_to_dict_entry(EZVARS_aux['vert-sti']['reusetmp'], True)
+                else:
+                    return
         try:
             verify_safe2delete(self, EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
         except FileExistsError:
@@ -558,18 +566,13 @@ class EZStitchGroup(QGroupBox):
                 warning_message("Problem with validating slice range: cannot read dimensions of Input slices.")
                 return
             main_sti_mp()
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['reusetmp'], False)
         else: 
-<<<<<<< HEAD
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
             #                     EZVARS_aux['vert-sti']['output-dir']['value'],
             #                     self.parameters['ezstitch_axis_of_rotation'], 0)
             reduction_mode = EZVARS['flat-correction']['reduction-mode']['value']
             fd_names = get_fd_names()
-=======
-            # main_360_mp_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
-            #                    EZVARS_aux['vert-sti']['output-dir']['value'],
-            #                    EZVARS_aux['vert-sti']['cor']['value'], 0)
->>>>>>> MergingHereon_with_AprilMaster
             main_360sti_ufol_depth1(EZVARS_aux['vert-sti']['input-dir']['value'],
                                EZVARS_aux['vert-sti']['output-dir']['value'],
                                EZVARS_aux['vert-sti']['cor']['value'],

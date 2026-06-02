@@ -45,6 +45,9 @@ def rename_Andor(indir):
 
 
 def main_prep(params):
+    # if this way of saving data is still used at BMIT
+    # instead of risky in-place change of the data structure
+    # TODO create simlinks in the temporary directory like I did for Hereon
     if params['ezmview_no_zero_padding']:
         rename_Andor(params['ezmview_input_dir'])
     frames = get_filenames(os.path.join(params['ezmview_input_dir'], "*.tif"))

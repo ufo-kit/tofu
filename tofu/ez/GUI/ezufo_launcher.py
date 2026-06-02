@@ -19,7 +19,7 @@ from tofu.ez.main import clean_tmp_dirs
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
 from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
-from tofu.ez.util import load_values_from_ezdefault, get_fdt_names
+from tofu.ez.util import load_values_from_ezdefault
 from tofu.ez.GUI.Advanced.advanced import AdvancedGroup
 from tofu.ez.GUI.Advanced.optimization import OptimizationGroup
 from tofu.ez.GUI.Advanced.nlmdn import NLMDNGroup
@@ -29,7 +29,6 @@ from tofu.ez.GUI.Stitch_tools_tab.ezmview_qt import EZMViewGroup
 from tofu.ez.GUI.Stitch_tools_tab.ez_360_overlap_qt import Overlap360Group
 from tofu.ez.GUI.Advanced.Batch360 import Batch360Group
 from tofu.ez.GUI.Preprocessing_tab import PreprocessingGroup, DummyBox, PreprocessingGroupMainTab
-# from tofu.ez.Helpers.batch_search_stitch_360 import Batcher
 from tofu.ez.GUI.login_dialog import Login
 
 

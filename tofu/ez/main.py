@@ -92,13 +92,13 @@ def frmt_ufo_cmds(cmds, ctset, out_pattern, ax, nviews, wh, n_per_pass, reductio
         medflat_file = os.path.join(EZVARS['inout']['tmp-dir']['value'], "flat-median.tif")
         script_str = "import sys; from tifffile import imwrite; from tofu.ez.util import get_median_flat; imwrite(sys.argv[1], get_median_flat(sys.argv[2]))"
         cmds.append(f'python -c \'{script_str}\' "{medflat_file}" "{path2flat}"')
-     if EZVARS['inout']['preprocess']['value'] and \
-                    (not EZVARS_prep['prepro']['extended_prepro']):
-        cmds.append('echo " - Preprocessing: removing outliers only"')
-        cmds_prepro = get_rmout_cmd(ctset, EZVARS['inout']['tmp-dir']['value'])
-        cmds.extend(cmds_prepro)
-        # reset location of input data
-        ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
+    if EZVARS['inout']['preprocess']['value'] and \
+                   (not EZVARS_prep['prepro']['extended_prepro']):
+       cmds.append('echo " - Preprocessing: removing outliers only"')
+       cmds_prepro = get_rmout_cmd(ctset, EZVARS['inout']['tmp-dir']['value'])
+       cmds.extend(cmds_prepro)
+       # reset location of input data
+       ctset = (EZVARS['inout']['tmp-dir']['value'], ctset[1], ctset[2])
     ###################################################
     if EZVARS['filters']['rm_spots']['value'] or EZVARS['filters']['rm_spots_use_median']['value']:
         # generate commands to remove sci. spots from projections
@@ -305,6 +305,7 @@ def execute_reconstruction():
             nrows = wh[0]
             if EZVARS['inout']['input_ROI']['value']:
                 roi_row0, roi_height = get_roi_row0_and_height(wh[0])
+                print(f'DEBUG: ROI: {roi_row0}, {roi_height}')
                 nrows = roi_height//SECTIONS['reading']['y-step']['value']
                 if bad_vert_ROI(multipage, path2proj, roi_row0, roi_height):
                     print('{}\t{}'.format('CTset:', ctset[0]))
@@ -390,8 +391,8 @@ def execute_reconstruction():
             LOG.error(e)
         else:
             main_sti_mp()
-            # i USED TO delete tmp data here; Stuart disabled that
-            # TODO use the temporary data in vertical stitching in the best way
+            # i USED TO delete tmp data here; Stuart moved what into the main_sti_mp
+
             # if not EZVARS['inout']['keep-tmp']['value']:
             #     vert_sti_tmp = EZVARS_aux['vert-sti']['tmp-dir']['value']
             #     for dir in os.listdir(vert_sti_tmp):

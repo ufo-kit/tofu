@@ -22,6 +22,7 @@ from skimage.metrics import structural_similarity as ssim
 from tofu.ez.params import EZVARS_aux, EZVARS
 import sys
 
+# TODO: configurable option MPI or ufo-launch
 # try:
 #     from mpi4py import MPI
 # except ImportError:
@@ -58,13 +59,14 @@ def make_ort_sections(ctset_path, tmp_dir_path):
     nslices, N, M, indtype_digit, indtype, npasses, ext = get_data_cube_info(tmp)
 
     indir = ctset_path
+    if EZVARS_aux['vert-sti']['reusetmp']['value']:
+        return tmp_dir_path, indtype
     if EZVARS_aux['vert-sti']['ort']['value']:
         print(" - Creating orthogonal sections")
         for vstep in Vsteps:
             in_name = enquote(os.path.join(ctset_path, vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], f"*{ext}"))
             out_name = os.path.join(tmp_dir_path,
                                     vstep, EZVARS_aux['vert-sti']['subdir-name']['value'], 'sli-%04i.tif')
-            # todo: size check and num-passes argument
             cmd = 'tofu sinos --projections {} --output {}'.format(in_name, out_name)
             cmd += " --y {} --height {} --y-step {}".format(EZVARS_aux['vert-sti']['start']['value'], 
                         EZVARS_aux['vert-sti']['stop']['value'] - EZVARS_aux['vert-sti']['start']['value'],
@@ -144,7 +146,9 @@ def main_sti_mp():
     for root, dirs, files in os.walk(EZVARS_aux['vert-sti']['input-dir']['value']):
         if EZVARS_aux['vert-sti']['subdir-name']['value'] in dirs:
             vert_sets.append(os.path.dirname(root))
+    print(f"DEBUG v sti paths: {vert_sets}")
     vert_sets = sorted(list(set(vert_sets)))
+    print(f"DEBUG v sti paths after list applied: {vert_sets}")
     if len(vert_sets) == 1:
         print(" - Working with one CT directory which contains multiple vertical views")
     elif len(vert_sets) > 1:
@@ -156,6 +160,9 @@ def main_sti_mp():
         ctdir = os.path.relpath(vert_set, start=EZVARS_aux['vert-sti']['input-dir']['value'])
         print(f"-> Working on {str(ctdir)} dataset")
         tmpdir = os.path.join(tmp_root_dir, ctdir)
+        if ctdir == '.':
+            tmpdir = tmp_root_dir
+        print(f"DEBUG v sti paths: {vert_set}, {tmp_root_dir}, {ctdir}, {tmpdir}")
         outdir = os.path.join(EZVARS_aux['vert-sti']['output-dir']['value'], ctdir)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
@@ -407,7 +414,6 @@ def main_360sti_ufol_depth1(indir, outdir, ax, cro,
             bits = 16
         outpath = os.path.join(outdir, sdir)
         cmd = fmt_stitch_cmd(inpath, bigtiff, bits, outpath, numpairs, w, ax, cro, current_reduction_mode)
-        #print(cmd)
         os.system(cmd)
 
 def compute_crop(dax, image_shape):
@@ -470,7 +476,7 @@ def main_360_mp_depth2():
         print(" -> Working On: " + str(ctdir))
         print(f"    axis position {dax[i]}, margin to crop {cra[i]} pixels")
 
-        #main_360_mp_depth1
+        #main_360_mp_depth1 # MPI stitching is actually faster #TODO selection switch: MPI or ufo/gpu
         main_360sti_ufol_depth1(ctdir,
             os.path.join(EZVARS_aux['stitch360']['output-dir']['value'], ctdirs_rel_paths[i]),
                            int(dax[i]), int(cra[i]),

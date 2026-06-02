@@ -11,8 +11,12 @@ def h5log2params(h5log, odir):
     if bid == 5:
         sx = np.array(h5log["entry"]["scan"]["data"]["s_stage_x"]["value"])[np.where(np.array(h5log['entry']['scan'] \
                                     ['data']['image_key']['value'][int(h5log['entry']['scan']['n_dark'][0]):])==0)]
+        srot = np.array(h5log["entry"]["scan"]["data"]["s_rot"]["value"])[np.where(np.array(h5log['entry']['scan'] \
+                                    ['data']['image_key']['value'][int(h5log['entry']['scan']['n_dark'][0]):])==0)]
     elif bid == 7:
         sx = np.array(h5log["entry"]["scan"]["data"]["s_stage_x"]["value"])[np.where(np.array(h5log['entry']['scan'] \
+                                    ['data']['image_key']['value'][:])==0)]
+        srot = np.array(h5log["entry"]["scan"]["data"]["s_rot"]["value"])[np.where(np.array(h5log['entry']['scan'] \
                                     ['data']['image_key']['value'][:])==0)]
     else:
         print(f"Unknown beamline id: {h5log['entry']['beamline']['name'][()].decode()}")
@@ -44,8 +48,7 @@ def h5log2params(h5log, odir):
     # extract overall angle and PR params
     h5data = {'pixel-size': str(ps*1e-3)}
     # extract overall angle
-    srot = np.array(h5log["entry"]["scan"]["data"]["s_rot"]["value"])[np.where(np.array(h5log['entry']['scan'] \
-                            ['data']['image_key']['value'][int(h5log['entry']['scan']['n_dark'][0]):])==0)]
+
     nz = len(np.where(srot<srot[1]-srot[0])[0])
     print(f"DEBUG: s_rot was {nz} times at 0 position in {os.path.dirname(odir)}")
     h5data['overall-angle'] = int(h5log["entry"]["scan"]["mode"][0])

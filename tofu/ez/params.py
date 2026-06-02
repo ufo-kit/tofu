@@ -128,6 +128,10 @@ EZVARS_aux['vert-sti'] = {
         'ezdefault': os.path.join(os.path.expanduser('~'), "ezufo_stitched_tmp"),
         'type': str,
         'help': "TODO"},
+    'reusetmp': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "TODO"},
     'subdir-name': {
         'ezdefault': "sli",
         'type': str,
@@ -258,6 +262,18 @@ EZVARS['inout'] = {
         'ezdefault': False,
         'type': bool,
         'help': "TODO"},
+    'y': {
+        'default': 0,
+        'ezdefault': 100,
+        'type': restrict_value((0, None), dtype=float),
+        'unit': "pixel",
+        'help': 'Vertical coordinate from where to start reading the input image'},
+    'height': {
+        'default': None,
+        'ezdefault': 200,
+        'type': restrict_value((0, None), dtype=float),
+        'unit': "pixel",
+        'help': "Number of rows which will be read"},
     'clip_hist': {
         'ezdefault': False,
         'type': bool, 

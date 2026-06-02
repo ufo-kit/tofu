@@ -57,7 +57,7 @@ def get_data_cube_info(pth):
     n_per_pass = int(0.9 * ram_amount_bytes / (N * M * 4))
     return nslices, N, M, bit, dt, n_per_pass, ext
 
-def bad_vert_ROI(multipage, path2proj, y, height):
+def bad_vert_ROI(multipage, path2proj, y: int, height: int):
     if multipage:
         with tifffile.TiffFile(get_filenames(path2proj)[0]) as tif:
             proj = tif.pages[0].asarray().astype(float)
@@ -361,8 +361,8 @@ def save_params(ctsetname, ax, nviews, wh):
         f.write('*** Region of interest ***\n')
         if EZVARS['inout']['input_ROI']['value']:
             f.write('Vertical ROI defined\n')
-            f.write('  first row {}\n'.format(SECTIONS['reading']['y']['value']))
-            f.write('  height {}\n'.format(SECTIONS['reading']['height']['value']))
+            f.write('  first row {}\n'.format(EZVARS['inout']['y']['value']))
+            f.write('  height {}\n'.format(EZVARS['inout']['height']['value']))
             f.write('  reconstruct every {}th row\n'.format(SECTIONS['reading']['y-step']['value']))
         else:
             f.write('Vertical ROI: all rows\n')
@@ -551,14 +551,14 @@ def get_fd_names():
     return tuple(EZVARS['inout'][f'{fd_type}-dir']['value'] for fd_type in ['darks', 'flats', 'flats2'])
 
 
-def get_roi_row0_and_height(h):
+def get_roi_row0_and_height(h) -> int:
     roi_row0, roi_height = 0, h
     if EZVARS['inout']['input_ROI']['value']:
-        roi_height = SECTIONS['reading']['height']['value']
+        roi_height = EZVARS['inout']['height']['value']
         if roi_height<1:
             roi_height = int(roi_height*h)
-        roi_row0 = SECTIONS['reading']['y']['value']
+        roi_row0 = EZVARS['inout']['y']['value']
         if roi_row0<1:
             roi_row0 = int(roi_row0*h)
-    return roi_row0, roi_height
+    return int(roi_row0), int(roi_height)
 

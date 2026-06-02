@@ -197,8 +197,8 @@ class ROIandHistGroup(QGroupBox):
 
     def load_values(self):
         self.select_rows_checkbox.setChecked(EZVARS['inout']['input_ROI']['value'])
-        self.first_row_entry.setText(str(SECTIONS['reading']['y']['value']))
-        self.num_rows_entry.setText(str(SECTIONS['reading']['height']['value']))
+        self.first_row_entry.setText(str(EZVARS['inout']['y']['value']))
+        self.num_rows_entry.setText(str(EZVARS['inout']['height']['value']))
         self.nth_row_entry.setText(str(SECTIONS['reading']['y-step']['value']))
         if int(SECTIONS['general']['output-bitdepth']['value']) == 8:
             self.eight_bit_rButton.setChecked(True)
@@ -233,13 +233,13 @@ class ROIandHistGroup(QGroupBox):
 
     def set_first_row(self):
         LOG.debug(self.first_row_entry.text())
-        dict_entry = SECTIONS['reading']['y']
+        dict_entry = EZVARS['inout']['y']
         add_value_to_dict_entry(dict_entry, str(self.first_row_entry.text()))
         self.first_row_entry.setText(str(dict_entry['value']))
 
     def set_num_rows(self):
         LOG.debug(self.num_rows_entry.text())
-        dict_entry = SECTIONS['reading']['height']
+        dict_entry = EZVARS['inout']['height']
         add_value_to_dict_entry(dict_entry, str(self.num_rows_entry.text()))
         self.num_rows_entry.setText(str(dict_entry['value']))
 
