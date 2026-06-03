@@ -94,7 +94,7 @@ def validate_result_args(args):
     validate_args(args)
 
 
-def apply_filter_visualization_defaults(args):
+def apply_tune_defaults(args):
     def option_was_given(name):
         option = '--{}'.format(name)
         return any(arg == option or arg.startswith(option + '=') for arg in sys.argv[1:])
@@ -142,7 +142,7 @@ def _set_sharpening_props(task, args):
     task.props.max_boost = args.sharpen_max_boost
 
 
-def create_filter_visualization_graph(args, sharpen=False):
+def create_tune_filter_graph(args, sharpen=False):
     """Create a UFO graph that writes the requested filter image to memory-out.
 
     The graph starts with a unit complex spectrum. ``retrieve-phase`` and,
@@ -177,7 +177,7 @@ def get_filter_data(args, sharpen=False):
     validate_args(args)
 
     global RESOURCES
-    graph, memory_out = create_filter_visualization_graph(args, sharpen=sharpen)
+    graph, memory_out = create_tune_filter_graph(args, sharpen=sharpen)
     scheduler = Ufo.Scheduler()
     if RESOURCES is None:
         RESOURCES = Ufo.Resources()
@@ -231,6 +231,9 @@ def _prepare_processing_args(args, sharpen):
         'y_step': 1,
         'bitdepth': 32,
         'resize': None,
+        'transpose_input': False,
+        'darks': None,
+        'flats': None,
     }
     for name, value in defaults.items():
         if not hasattr(args, name):
@@ -238,7 +241,7 @@ def _prepare_processing_args(args, sharpen):
     if args.number is None:
         args.number = 1
     # Result processing follows the selected projection dimensions, not the
-    # filter-visualization dimensions. The phase retrieval pipeline then pads
+    # tune filter dimensions. The phase retrieval pipeline then pads
     # to power-of-two sizes before FFT.
     args.width = None
     args.height = None
@@ -251,31 +254,41 @@ def _prepare_processing_args(args, sharpen):
     return args
 
 
-def create_result_graph(args, sharpen=False):
-    from tofu.preprocess import create_phase_retrieval_pipeline
+def create_result_graph(args, sharpen=False, phase_retrieval=True):
+    from tofu.preprocess import create_phase_retrieval_pipeline, create_preprocessing_pipeline
     from tofu.util import set_node_props, setup_read_task
 
     args = _prepare_processing_args(args, sharpen)
+    if not phase_retrieval:
+        args.energy = None
+        args.propagation_distance = None
+        args.absorptivity = True
     graph = Ufo.TaskGraph()
-    reader = get_task('read')
-    set_node_props(reader, args)
-    setup_read_task(reader, args.projections, args)
-    first, last = create_phase_retrieval_pipeline(args, graph)
     memory_out = get_memory_out(args.width, args.height)
-
-    graph.connect_nodes(reader, first)
-    graph.connect_nodes(last, memory_out)
+    if phase_retrieval:
+        reader = get_task('read')
+        set_node_props(reader, args)
+        setup_read_task(reader, args.projections, args)
+        first, last = create_phase_retrieval_pipeline(args, graph)
+        graph.connect_nodes(reader, first)
+        graph.connect_nodes(last, memory_out)
+    else:
+        last = create_preprocessing_pipeline(
+            args, graph, cone_beam_weight=False)
+        graph.connect_nodes(last, memory_out)
 
     return graph, memory_out
 
 
-def get_result_data(args, sharpen=False):
-    validate_result_args(args)
+def get_result_data(args, sharpen=False, phase_retrieval=True):
+    if phase_retrieval:
+        validate_result_args(args)
     if not getattr(args, 'projections', None):
         raise ValueError("projections must be specified")
 
     global RESOURCES
-    graph, memory_out = create_result_graph(args, sharpen=sharpen)
+    graph, memory_out = create_result_graph(
+        args, sharpen=sharpen, phase_retrieval=phase_retrieval)
     scheduler = Ufo.Scheduler()
     if RESOURCES is None:
         RESOURCES = Ufo.Resources()
@@ -289,6 +302,10 @@ def get_result_data_by_method(args):
     methods = getattr(args, 'retrieval_methods', None)
     if methods is None:
         methods = [args.retrieval_method]
+    if not methods:
+        return {'absorption': {
+            'phase': get_result_data(args, sharpen=False, phase_retrieval=False)
+        }}
     result = {}
     for method in methods:
         method_args = copy.deepcopy(args)
@@ -322,7 +339,7 @@ def get_reconstruction_projection_region(reco_args, width, height, slice_number)
     return int(xmin), int(ymin), int(xmax), int(ymax)
 
 
-def _prepare_reconstruction_args(args, sharpen):
+def _prepare_reconstruction_args(args, sharpen, phase_retrieval=True):
     from tofu import config
     from tofu.util import determine_shape, next_power_of_two
 
@@ -330,8 +347,8 @@ def _prepare_reconstruction_args(args, sharpen):
     for name, value in vars(args).items():
         setattr(reco_args, name, copy.deepcopy(value))
 
-    reco_args.sharpen = sharpen
-    reco_args.output = getattr(reco_args, 'output', 'tofu-filter-visualization-reco.tif')
+    reco_args.sharpen = sharpen if phase_retrieval else False
+    reco_args.output = getattr(reco_args, 'output', 'tofu-tune-reco.tif')
     reco_args.output_bytes_per_file = 0
     reco_args.store_type = 'float'
     reco_args.result_type = 'float'
@@ -339,15 +356,24 @@ def _prepare_reconstruction_args(args, sharpen):
     reco_args.delta = 1e-6
     reco_args.retrieval_padding_mode = 'clamp_to_edge'
     reco_args.disable_projection_crop = True
+    if not phase_retrieval:
+        reco_args.energy = None
+        reco_args.propagation_distance = None
+        reco_args.absorptivity = True
 
     tiff_info = get_single_tiff_sequence_info(reco_args.projections)
     if tiff_info:
         if reco_args.number is None:
             reco_args.number = tiff_info['number']
-    distance = reco_args.propagation_distance[0]
-    wavelength = get_wavelength(reco_args.energy)
-    half_height = get_fresnel_required_half_height(
-        reco_args.energy, distance, reco_args.pixel_size)
+    if phase_retrieval:
+        distance = reco_args.propagation_distance[0]
+        wavelength = get_wavelength(reco_args.energy)
+        half_height = get_fresnel_required_half_height(
+            reco_args.energy, distance, reco_args.pixel_size)
+    else:
+        distance = None
+        wavelength = None
+        half_height = 0
     slice_number = getattr(reco_args, 'reconstruction_slice', 0)
     reco_args.width = None
     reco_args.height = None
@@ -361,17 +387,18 @@ def _prepare_reconstruction_args(args, sharpen):
     projection_xmin, projection_ymin, projection_xmax, projection_ymax = (
         get_reconstruction_projection_region(reco_args, width, height, slice_number))
     required_y = projection_ymin - half_height
-    required_stop = projection_ymax + half_height - 1
+    required_stop = projection_ymax + half_height - (1 if phase_retrieval else 0)
     missing_before = max(0, -required_y)
     missing_after = max(0, required_stop - height)
     if missing_before or missing_after:
+        margin_name = "phase-retrieval margin" if phase_retrieval else "geometry projection region"
         LOG.warning(
-            "Cannot read the full vertical Fresnel neighborhood around the "
+            "Cannot read the full vertical %s around the "
             "geometry projection region for slice %d: projection_y=%d:%d, "
             "half_height=%d, projection_height=%d, missing_before=%d px, "
             "missing_after=%d px. Clamping the read window to the data range.",
-            slice_number, projection_ymin, projection_ymax, half_height, height,
-            missing_before, missing_after)
+            margin_name, slice_number, projection_ymin, projection_ymax, half_height,
+            height, missing_before, missing_after)
     reader_y = min(max(required_y, 0), height)
     reader_stop = min(max(required_stop, reader_y + 1), height)
     reader_height = reader_stop - reader_y
@@ -386,13 +413,13 @@ def _prepare_reconstruction_args(args, sharpen):
 
     reco_args.region = (slice_number, slice_number + 1, 1)
     LOG.debug(
-        "Reconstruction vertical region: wavelength=%g m, distance=%g m, "
+        "Reconstruction vertical region: phase_retrieval=%s, wavelength=%s m, distance=%s m, "
         "pixel_size=%g m, fresnel_half_height=%d px, requested_slice=%d, "
         "projection_height=%d, geometry_projection_x=%d:%d, "
         "geometry_projection_y=%d:%d, required_reader_y=%d, "
         "required_reader_stop=%d, reader_y=%d, reader_height=%d, local_z=%d, "
         "center_position_z=%s, z=%s, region=%s",
-        wavelength, distance, reco_args.pixel_size, half_height, slice_number,
+        phase_retrieval, wavelength, distance, reco_args.pixel_size, half_height, slice_number,
         height, projection_xmin, projection_xmax, projection_ymin, projection_ymax,
         required_y, required_stop, reco_args.y, reco_args.height, local_z,
         reco_args.center_position_z, reco_args.z, reco_args.region)
@@ -410,11 +437,11 @@ def _prepare_reconstruction_args(args, sharpen):
     return reco_args
 
 
-def create_reconstruction_graph(args, sharpen=False, gpu=None):
+def create_reconstruction_graph(args, sharpen=False, gpu=None, phase_retrieval=True):
     from tofu import genreco
     from tofu.util import get_reconstructed_cube_shape, get_reconstruction_regions
 
-    args = _prepare_reconstruction_args(args, sharpen)
+    args = _prepare_reconstruction_args(args, sharpen, phase_retrieval=phase_retrieval)
     genreco._fill_missing_args(args)
     genreco._convert_angles_to_rad(args)
     LOG.debug(
@@ -440,8 +467,9 @@ def create_reconstruction_graph(args, sharpen=False, gpu=None):
     return graph, memory_out
 
 
-def get_reconstruction_data(args, sharpen=False):
-    validate_result_args(args)
+def get_reconstruction_data(args, sharpen=False, phase_retrieval=True):
+    if phase_retrieval:
+        validate_result_args(args)
     if not getattr(args, 'projections', None):
         raise ValueError("projections must be specified")
 
@@ -451,7 +479,8 @@ def get_reconstruction_data(args, sharpen=False):
     gpu_nodes = RESOURCES.get_gpu_nodes()
     if not gpu_nodes:
         raise RuntimeError("No UFO GPU nodes available")
-    graph, memory_out = create_reconstruction_graph(args, sharpen=sharpen, gpu=gpu_nodes[0])
+    graph, memory_out = create_reconstruction_graph(
+        args, sharpen=sharpen, gpu=gpu_nodes[0], phase_retrieval=phase_retrieval)
     scheduler = Ufo.FixedScheduler()
     scheduler.set_resources(RESOURCES)
     scheduler.run(graph)
@@ -463,6 +492,10 @@ def get_reconstruction_data_by_method(args):
     methods = getattr(args, 'retrieval_methods', None)
     if methods is None:
         methods = [args.retrieval_method]
+    if not methods:
+        return {'absorption': {
+            'phase': get_reconstruction_data(args, sharpen=False, phase_retrieval=False)
+        }}
     result = {}
     for method in methods:
         method_args = copy.deepcopy(args)
@@ -867,13 +900,13 @@ class InteractiveWindow:
             value_changed = QtCore.pyqtSignal()
 
         self.args = copy.deepcopy(args)
-        apply_filter_visualization_defaults(self.args)
+        apply_tune_defaults(self.args)
         self._signals = SignalEmitter()
         self.value_changed = self._signals.value_changed
         self.value_changed.connect(self.schedule_update)
         self.app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
         self.window = QtWidgets.QMainWindow()
-        self.window.setWindowTitle("Tofu filter visualization")
+        self.window.setWindowTitle("Tofu tune")
         self.window.closeEvent = self.on_main_window_close
         central = QtWidgets.QWidget()
         self.window.setCentralWidget(central)
@@ -1796,8 +1829,8 @@ class InteractiveWindow:
         sync_button = QtWidgets.QPushButton("Sync all")
         sync_button.clicked.connect(lambda: self.sync_current_image_view(kind, key))
         tabs = QtWidgets.QTabWidget()
-        tabs._tofu_filter_visualization_window = key
-        tabs._tofu_filter_visualization_kind = kind
+        tabs._tofu_tune_window = key
+        tabs._tofu_tune_kind = kind
         profile_plot = pg.PlotWidget()
         profile_plot.setBackground('w')
         profile_plot.setMinimumHeight(150)
@@ -1832,7 +1865,7 @@ class InteractiveWindow:
         right_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
         left_shortcut.activated.connect(lambda: self.switch_image_tab(kind, key, -1))
         right_shortcut.activated.connect(lambda: self.switch_image_tab(kind, key, 1))
-        panel._tofu_filter_visualization_shortcuts = [left_shortcut, right_shortcut]
+        panel._tofu_tune_shortcuts = [left_shortcut, right_shortcut]
 
         tabs_by_window = self._data_tabs(kind)
         status_by_window = self._data_status(kind)
@@ -2167,6 +2200,34 @@ class InteractiveWindow:
 
         view_box.mouseDragEvent = mouse_drag_event
 
+    def install_projection_slice_click_handler(self, view, window, key):
+        from PyQt5 import QtCore
+
+        view_box = view.getView()
+        original_mouse_click = view_box.mouseClickEvent
+
+        def mouse_click_event(event):
+            if event.button() == QtCore.Qt.LeftButton and (
+                    event.modifiers() & QtCore.Qt.ControlModifier):
+                data = self._image_data('result').get(key[0], {}).get(key[1])
+                if data is None:
+                    event.ignore()
+                    return
+                height, _width = data.shape
+                position = view_box.mapSceneToView(event.scenePos())
+                slice_number = int(np.floor(float(position.y())))
+                slice_number = min(max(slice_number, 0), max(height - 1, 0))
+                previous = self.reco_slice_box.blockSignals(True)
+                self.reco_slice_box.setValue(slice_number)
+                self.reco_slice_box.blockSignals(previous)
+                self.schedule_update()
+                event.accept()
+                return
+
+            original_mouse_click(event)
+
+        view_box.mouseClickEvent = mouse_click_event
+
     def update_reconstruction_region_from_roi(self, window, key):
         roi = self._reco_region_rois.get(window, {}).get(key)
         data = self._image_data('reco').get(key[0], {}).get(key[1])
@@ -2224,7 +2285,7 @@ class InteractiveWindow:
         if not data_by_method:
             return
 
-        window = getattr(tabs, '_tofu_filter_visualization_window', tabs.parentWidget())
+        window = getattr(tabs, '_tofu_tune_window', tabs.parentWidget())
         viewers = self._data_viewers(kind).setdefault(window, {})
         rois = self._data_profile_rois(kind).setdefault(window, {})
         region_rois = self._data_region_rois(kind).setdefault(window, {})
@@ -2235,7 +2296,7 @@ class InteractiveWindow:
         inherited_view_range = (
             current_view.getView().viewRange() if current_view is not None else None)
         inherited_profile_shape = (
-            getattr(current_view, '_tofu_filter_visualization_shape', None)
+            getattr(current_view, '_tofu_tune_shape', None)
             if current_view is not None else None)
         current_key = self._current_image_key(kind, window)
         current_profile_roi = rois.get(current_key)
@@ -2279,6 +2340,8 @@ class InteractiveWindow:
                         view.getView().addItem(region_roi)
                         region_rois[key] = region_roi
                         self.install_reconstruction_region_drag_handler(view, window, key)
+                    if kind == 'result':
+                        self.install_projection_slice_click_handler(view, window, key)
                     self.connect_image_view_sync(kind, window, view)
                     if inherited_view_range is not None:
                         x_range, y_range = inherited_view_range
@@ -2288,7 +2351,7 @@ class InteractiveWindow:
                 else:
                     is_new_view = False
                     view = viewers[key][0]
-                    old_shape = getattr(view, '_tofu_filter_visualization_shape', None)
+                    old_shape = getattr(view, '_tofu_tune_shape', None)
                     shape_changed = old_shape != data.shape
                     if not shape_changed:
                         x_range, y_range = view.getView().viewRange()
@@ -2299,7 +2362,7 @@ class InteractiveWindow:
                 self._syncing_image_view = True
                 try:
                     view.setImage(data.T, autoLevels=False)
-                    view._tofu_filter_visualization_shape = data.shape
+                    view._tofu_tune_shape = data.shape
                     if kind == 'reco':
                         profile_roi = rois.get(key)
                         if profile_roi is not None:
@@ -2398,5 +2461,5 @@ def run_interactive(args):
 
 
 def run(args):
-    """Open the interactive filter visualization window."""
+    """Open the interactive tuning window."""
     return run_interactive(args)

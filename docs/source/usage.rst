@@ -6,6 +6,6 @@ Usage
 
     usage/io
     usage/preprocessing
-    usage/filter-visualization
+    usage/tune
     usage/genreco
     usage/flow

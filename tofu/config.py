@@ -884,7 +884,7 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
-SECTIONS['filter-visualization'] = {}
+SECTIONS['tune'] = {}
 
 SECTIONS['ez'] = {
     'ezvars': {
@@ -899,7 +899,7 @@ TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction'
 PREPROC_PARAMS = ('preprocess', 'sharpening', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
-FILTER_VISUALIZATION_PARAMS = ('retrieve-phase', 'sharpening', 'filter-visualization')
+TUNE_PARAMS = ('retrieve-phase', 'sharpening', 'tune')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
@@ -907,7 +907,7 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Sharpening', 'Cone beam weight', 'General reconstruction',
-              'Find large spots', 'Inpaint', 'Filter visualization', 'EZ')
+              'Find large spots', 'Inpaint', 'Tune', 'EZ')
 
 
 # Add unit info to help strings
