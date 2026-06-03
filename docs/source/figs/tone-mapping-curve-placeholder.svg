@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360">
+  <rect width="760" height="360" fill="#f8f8f8"/>
+  <rect x="74" y="38" width="620" height="260" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <line x1="74" y1="168" x2="694" y2="168" stroke="#999999" stroke-width="1"/>
+  <line x1="384" y1="38" x2="384" y2="298" stroke="#000000" stroke-width="3" stroke-dasharray="10 7"/>
+  <line x1="248" y1="38" x2="248" y2="298" stroke="#286edc" stroke-width="2" stroke-dasharray="2 7"/>
+  <line x1="520" y1="38" x2="520" y2="298" stroke="#286edc" stroke-width="2" stroke-dasharray="2 7"/>
+  <line x1="112" y1="38" x2="112" y2="298" stroke="#b43c28" stroke-width="2" stroke-dasharray="8 6"/>
+  <line x1="656" y1="38" x2="656" y2="298" stroke="#b43c28" stroke-width="2" stroke-dasharray="8 6"/>
+  <path d="M74 292 C180 292 250 235 325 190 C430 126 506 52 694 44" fill="none" stroke="#198754" stroke-width="5"/>
+  <text x="384" y="28" font-family="sans-serif" font-size="17" text-anchor="middle" fill="#111111">center</text>
+  <text x="248" y="318" font-family="sans-serif" font-size="15" text-anchor="middle" fill="#286edc">softmin</text>
+  <text x="520" y="318" font-family="sans-serif" font-size="15" text-anchor="middle" fill="#286edc">softmax</text>
+  <text x="112" y="318" font-family="sans-serif" font-size="15" text-anchor="middle" fill="#b43c28">hardmin</text>
+  <text x="656" y="318" font-family="sans-serif" font-size="15" text-anchor="middle" fill="#b43c28">hardmax</text>
+  <text x="384" y="348" font-family="sans-serif" font-size="18" text-anchor="middle" fill="#333333">Placeholder: tone mapping curve</text>
+  <text x="32" y="178" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#333333" transform="rotate(-90 32 178)">quantized value</text>
+  <text x="384" y="333" font-family="sans-serif" font-size="16" text-anchor="middle" fill="#333333">input grey value</text>
+</svg>

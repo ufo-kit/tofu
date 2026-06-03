@@ -47,6 +47,7 @@ Preprocess
 - flat correction;
 - applying cone beam weight;
 - phase retrieval;
+- frequency-domain sharpening;
 - projection filtering for back projection.
 
 You may use the arguments in :ref:`flatcorrect` to set up the flat correction
@@ -112,10 +113,9 @@ The arguments are:
   the same for x and y direction, otherwise first specifies x and second y
   direction) [m] (default: ``None``, meaning: turn phase retrieval off);
 - ``--pixel-size``: Pixel size [m] (default: ``1e-06``);
-- ``--regularization-rate``: Regularization rate (the value of :math:`log_{10}
-  (\delta / \beta)`, where :math:`\delta` is the real part of the complex
-  refractive index and :math:`\beta` the imaginary; typical values between [2,
-  3]) (default: ``2``);
+- ``--regularization-rate``: Base-10 logarithm of :math:`\delta / \beta`; the
+  phase retrieval filter uses :math:`\delta / \beta = 10^\mathrm{value}`.
+  Typical values are between ``2`` and ``3`` (default: ``2``);
 - ``--delta``: Real part of the complex refractive index of the material. If
   specified, phase retrieval returns projected thickness, if not, it returns
   phase (default: ``None``);
@@ -129,6 +129,28 @@ The arguments are:
 - ``--ict-alpha``: ICT regularization (default: ``0.1``);
 - ``--ict-alpha-threshold``: Below this threshold there is no ICT regularization (default: ``0.0``);
 - ``--frequency-cutoff``: Phase retrieval frequency cutoff [rad] (default: ``1e+30``);
+
+
+Sharpening
+~~~~~~~~~~
+
+``tofu preprocess`` and ``tofu reco`` can sharpen projections in the frequency
+domain with ``--sharpen``. When phase retrieval is enabled, sharpening is applied
+before the inverse Fourier transform of the phase retrieval pipeline. This reuses
+the existing Fourier-domain data and avoids an additional forward and inverse
+FFT. Without phase retrieval, sharpening is applied as a separate 2D
+FFT-sharpen-IFFT step.
+
+The arguments are:
+
+- ``--sharpen``: Apply frequency-domain sharpening (default: ``False``);
+- ``--sharpen-method``: Sharpening method, one of [``laplace``,
+  ``discrete-laplace``, ``lorentz``] (default: ``laplace``);
+- ``--sharpen-strength``: Sharpening strength (default: ``1.0``);
+- ``--sharpen-lorentz-fwhm``: Lorentz FWHM used by ``--sharpen-method lorentz``
+  (default: ``1.0``).
+- ``--sharpen-max-boost``: Maximum additional sharpening boost. A value of
+  ``0`` disables tanh limiting (default: ``0.0``).
 
 
 Projection Filtering for Back Projection

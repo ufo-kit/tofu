@@ -1,6 +1,6 @@
 import contextlib
 import json
-import pkg_resources
+from importlib import resources
 from pyqtgraph.Qt.QtCore import Qt
 from qtpynodeeditor import PortType
 
@@ -10,7 +10,7 @@ PROPERTY_ROLE = MODEL_ROLE + 1
 NODE_ROLE = PROPERTY_ROLE + 1
 
 
-with open(pkg_resources.resource_filename(__name__, 'config.json')) as f:
+with resources.files(__package__).joinpath('config.json').open() as f:
     ENTRIES = json.load(f)
 
 

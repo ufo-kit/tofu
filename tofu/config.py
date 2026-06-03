@@ -98,6 +98,10 @@ SECTIONS['reading'] = {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Offset to the first read file'},
+    'image-start': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Offset to the first image in each multi-page input file'},
     'number': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -107,6 +111,10 @@ SECTIONS['reading'] = {
         'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
+    'image-step': {
+        'default': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Read every \"step\" image from each multi-page input file'},
     'resize': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -192,7 +200,9 @@ SECTIONS['retrieve-phase'] = {
         'default': 2,
         'ezdefault': 2.3,
         'type': float,
-        'help': "Regularization rate (typical values between [2, 3])"},
+        'help': ("Value of the regularization-rate parameter: base-10 logarithm "
+                 "of delta / beta; the filter uses delta / beta = 10^value "
+                 "(typical values between [2, 3])")},
     'delta': {
         'default': None,
         'type': float,
@@ -508,6 +518,28 @@ SECTIONS['preprocess'] = {
         'default': 'backprojection',
         'help': "Whether to crop projections after filtering (can cause truncation "
                 "artifacts) or after backprojection"}}
+
+SECTIONS['sharpening'] = {
+    'sharpen': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Apply frequency-domain sharpening to preprocessed projections"},
+    'sharpen-method': {
+        'choices': ['laplace', 'discrete-laplace', 'lorentz'],
+        'default': 'laplace',
+        'help': "Frequency-domain sharpening method"},
+    'sharpen-strength': {
+        'default': 1.0,
+        'type': float,
+        'help': "Frequency-domain sharpening strength"},
+    'sharpen-lorentz-fwhm': {
+        'default': 1.0,
+        'type': float,
+        'help': "Lorentz FWHM used by --sharpen-method lorentz"},
+    'sharpen-max-boost': {
+        'default': 0.0,
+        'type': float,
+        'help': "Maximum additional sharpening boost; 0 disables tanh limiting"}}
 
 SECTIONS['cone-beam-weight'] = {
     'source-position-y': {
@@ -852,6 +884,8 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
+SECTIONS['tune'] = {}
+
 SECTIONS['ez'] = {
     'ezvars': {
         'default': None,
@@ -862,17 +896,18 @@ SECTIONS['ez'] = {
 
 TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
 
-PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
+PREPROC_PARAMS = ('preprocess', 'sharpening', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
+TUNE_PARAMS = ('retrieve-phase', 'sharpening', 'tune')
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
-              'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint')
+              'Preprocess', 'Sharpening', 'Cone beam weight', 'General reconstruction',
+              'Find large spots', 'Inpaint', 'Tune', 'EZ')
 
 
 # Add unit info to help strings

@@ -26,12 +26,32 @@ Homepage = "http://github.com/ufo-kit/tofu"
 interactive = ["IPython"]
 gui = ["pyqtgraph"]
 flow = ["networkx", "pyqtconsole", "pyxdg", "qtpynodeeditor", "pyqtgraph"]
-test = ["pytest", "pytest-qt"]
+test = ["pytest", "pytest-qt", "pytest-cov", "matplotlib"]
 ez = ["PyYAML", "pyqtgraph", "matplotlib"]
 edf = ["fabio"]
 
 [tool.pytest.ini_options]
 qt_api = "pyqt5"
+markers = [
+    "ufo: requires UFO GI bindings and plugins",
+    "gpu: requires a usable UFO GPU/OpenCL runtime",
+]
+
+[tool.coverage.run]
+source = ["tofu"]
+omit = [
+    "tofu/tests/*",
+    "*/python?.?/*",
+    "*/lib-python/?.?/*.py",
+    "*/site-packages/*",
+    "/usr/share/pyshared/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
 
 [tool.setuptools]
 packages = { find = {} }

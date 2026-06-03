@@ -1,4 +1,5 @@
 *.pyc
+htmlcov/
 build/
 dist/
 *.egg-info/

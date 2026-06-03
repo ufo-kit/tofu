@@ -3,6 +3,11 @@ import numpy as np
 from pyqtgraph.Qt.QtCore import Qt
 from pyqtgraph.Qt.QtGui import QValidator
 from pyqtgraph.Qt.QtWidgets import QFileDialog, QInputDialog, QLineEdit
+from tofu.tests.ufo import require_ufo
+
+pytestmark = pytest.mark.ufo
+require_ufo()
+
 from tofu.flow.main import get_filled_registry
 from tofu.flow.models import (CheckBoxViewItem, ComboBoxViewItem, get_composite_model_class,
                               get_composite_model_classes, get_composite_model_classes_from_json,

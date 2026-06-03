@@ -1,5 +1,12 @@
 import pytest
 from pyqtgraph.Qt.QtCore import Qt, QItemSelectionModel
+from tofu.tests.ufo import ufo_available
+
+pytestmark = [
+    pytest.mark.ufo,
+    pytest.mark.skipif(not ufo_available(), reason="UFO GI bindings are not available"),
+]
+
 from tofu.flow.propertylinkswidget import NodesView, PropertyLinks, PropertyLinksView
 from tofu.tests.flow_util import get_index_from_treemodel, populate_link_model
 

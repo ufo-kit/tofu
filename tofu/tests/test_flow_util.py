@@ -1,7 +1,7 @@
 import pytest
 from pyqtgraph.Qt.QtWidgets import QInputDialog
 from tofu.flow.util import CompositeConnection, get_config_key, saved_kwargs
-from tofu.flow.main import get_filled_registry
+from tofu.tests.ufo import ufo_available
 
 
 def test_get_config_key():
@@ -13,7 +13,11 @@ def test_get_config_key():
     assert get_config_key('foobarbaz', default=1) == 1
 
 
+@pytest.mark.ufo
+@pytest.mark.skipif(not ufo_available(), reason="UFO GI bindings are not available")
 def test_saved_kwargs(qtbot, monkeypatch, scene):
+    from tofu.flow.main import get_filled_registry
+
     registry = get_filled_registry()
     name = 'retrieve_phase'
 

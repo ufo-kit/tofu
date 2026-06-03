@@ -8,9 +8,9 @@ import json
 import logging
 import networkx as nx
 import numpy as np
-import pkg_resources
 import os
 import re
+from importlib import resources
 try:
     gi.require_version('Ufo', '0.0')
 except ValueError:
@@ -1579,7 +1579,7 @@ def get_composite_model_classes():
     import xdg.BaseDirectory
 
     composite_lists = []
-    paths = [pkg_resources.resource_filename(__name__, 'composites'),
+    paths = [str(resources.files(__package__).joinpath('composites')),
              xdg.BaseDirectory.save_data_path('tofu', 'flows', 'composites')]
 
     for path in paths:
