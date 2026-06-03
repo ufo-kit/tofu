@@ -2,6 +2,11 @@ import pytest
 from pyqtgraph.Qt.QtCore import QModelIndex
 from pyqtgraph.Qt.QtWidgets import QInputDialog
 from qtpynodeeditor import FlowView
+from tofu.tests.ufo import require_ufo
+
+pytestmark = pytest.mark.ufo
+require_ufo()
+
 from tofu.flow.models import BaseCompositeModel, UfoModelError, UfoReadModel
 from tofu.flow.util import FlowError, MODEL_ROLE, NODE_ROLE, PROPERTY_ROLE
 from tofu.tests.flow_util import add_nodes_to_scene

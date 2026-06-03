@@ -32,6 +32,10 @@ edf = ["fabio"]
 
 [tool.pytest.ini_options]
 qt_api = "pyqt5"
+markers = [
+    "ufo: requires UFO GI bindings and plugins",
+    "gpu: requires a usable UFO GPU/OpenCL runtime",
+]
 
 [tool.setuptools]
 packages = { find = {} }

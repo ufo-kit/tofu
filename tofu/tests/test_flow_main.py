@@ -6,6 +6,11 @@ import pytest
 import sys
 import xdg.BaseDirectory
 from pyqtgraph.Qt.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from tofu.tests.ufo import require_ufo
+
+pytestmark = pytest.mark.ufo
+require_ufo()
+
 from tofu.flow.execution import UfoExecutor
 from tofu.flow.main import ApplicationWindow, get_filled_registry, GlobalExceptionHandler
 from tofu.flow.scene import UfoScene

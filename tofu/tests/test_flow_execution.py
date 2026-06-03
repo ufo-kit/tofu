@@ -1,4 +1,9 @@
 import pytest
+from tofu.tests.ufo import require_ufo
+
+pytestmark = [pytest.mark.ufo, pytest.mark.gpu]
+require_ufo()
+
 from tofu.flow.execution import get_gpu_splitting_models, UfoExecutor
 from tofu.flow.main import get_filled_registry
 from tofu.flow.scene import UfoScene

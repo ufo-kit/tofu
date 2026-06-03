@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONPATH: .
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            pytest \
+            pytest-qt \
+            networkx \
+            numpy \
+            imageio \
+            tifffile \
+            scikit-image \
+            pyqtgraph \
+            PyQt5 \
+            pyqtconsole \
+            pyxdg \
+            qtpynodeeditor
+
+      - name: Run tests
+        run: pytest tofu/tests

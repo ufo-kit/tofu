@@ -1,5 +1,10 @@
 import pytest
 from pyqtgraph.Qt.QtCore import QByteArray, QMimeData, QModelIndex
+from tofu.tests.ufo import require_ufo
+
+pytestmark = pytest.mark.ufo
+require_ufo()
+
 from tofu.flow.propertylinksmodels import _get_string_path
 from tofu.flow.propertylinkswidget import _encode_mime_data
 from tofu.flow.util import MODEL_ROLE, NODE_ROLE, PROPERTY_ROLE

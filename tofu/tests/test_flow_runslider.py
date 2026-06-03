@@ -1,4 +1,9 @@
 import pytest
+from tofu.tests.ufo import require_ufo
+
+pytestmark = pytest.mark.ufo
+require_ufo()
+
 from tofu.flow.runslider import RunSlider, RunSliderError
 
 

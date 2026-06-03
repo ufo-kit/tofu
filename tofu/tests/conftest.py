@@ -4,13 +4,29 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 import pytest
 from pyqtgraph.Qt.QtWidgets import QInputDialog
-from tofu.flow.main import get_filled_registry
-from tofu.flow.scene import UfoScene
-from tofu.flow.propertylinksmodels import PropertyLinksModel, NodeTreeModel
+
+
+def pytest_collection_modifyitems(config, items):
+    skip_gpu = pytest.mark.skip(reason="UFO GPU/OpenCL runtime is not available in this job")
+    for item in items:
+        if "gpu" in item.keywords and not config.getoption("--run-gpu"):
+            item.add_marker(skip_gpu)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-gpu",
+        action="store_true",
+        default=False,
+        help="run tests that execute UFO GPU/OpenCL pipelines",
+    )
 
 
 @pytest.fixture(scope='function')
 def nodes(monkeypatch):
+    from tofu.flow.main import get_filled_registry
+    from tofu.flow.scene import UfoScene
+
     reg = get_filled_registry()
     scene = UfoScene(reg)
 
@@ -43,17 +59,24 @@ def nodes(monkeypatch):
 
 @pytest.fixture(scope='function')
 def scene():
+    from tofu.flow.main import get_filled_registry
+    from tofu.flow.scene import UfoScene
+
     reg = get_filled_registry()
     return UfoScene(reg)
 
 
 @pytest.fixture(scope='function')
 def scene_with_composite(nodes):
+    from tofu.flow.scene import UfoScene
+
     return UfoScene(nodes['cpm'].model._registry)
 
 
 @pytest.fixture(scope='function')
 def node_model():
+    from tofu.flow.propertylinksmodels import NodeTreeModel
+
     model = NodeTreeModel()
     model.setColumnCount(1)
 
@@ -62,6 +85,8 @@ def node_model():
 
 @pytest.fixture(scope='function')
 def link_model(node_model):
+    from tofu.flow.propertylinksmodels import PropertyLinksModel
+
     model = PropertyLinksModel(node_model)
 
     return model
