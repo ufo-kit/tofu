@@ -30,6 +30,9 @@ test = ["pytest", "pytest-qt"]
 ez = ["PyYAML", "pyqtgraph", "matplotlib"]
 edf = ["fabio"]
 
+[tool.pytest.ini_options]
+qt_api = "pyqt5"
+
 [tool.setuptools]
 packages = { find = {} }
 script-files = ["bin/tofu"]

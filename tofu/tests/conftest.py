@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
 import pytest
 from pyqtgraph.Qt.QtWidgets import QInputDialog
 from tofu.flow.main import get_filled_registry
