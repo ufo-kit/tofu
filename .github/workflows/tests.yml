@@ -30,6 +30,7 @@ jobs:
             setuptools \
             pytest \
             pytest-qt \
+            pytest-cov \
             networkx \
             numpy \
             imageio \
@@ -42,4 +43,4 @@ jobs:
             qtpynodeeditor
 
       - name: Run tests
-        run: pytest tofu/tests
+        run: pytest --cov --cov-report=term-missing tofu/tests
