@@ -1,10 +1,10 @@
 import glob
 import os
 import pathlib
-import pkg_resources
 import pytest
 import sys
 import xdg.BaseDirectory
+from importlib import resources
 from pyqtgraph.Qt.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 from tofu.tests.ufo import require_ufo
 
@@ -289,7 +289,7 @@ class TestApplicationWindow:
         assert prop_name == 'number'
 
     def test_on_import_composites(self, qtbot, monkeypatch, app_window):
-        tests_directory = pkg_resources.resource_filename(__name__, 'composites')
+        tests_directory = str(resources.files(__package__).joinpath('composites'))
 
         def getOpenFileNamesDefault(inst, header, path, fltr):
             # Let's pretend there are files
@@ -339,7 +339,7 @@ class TestApplicationWindow:
         assert self.message_shown
 
     def test_on_export_composite(self, qtbot, monkeypatch, scene_with_composite, app_window):
-        tests_directory = pkg_resources.resource_filename(__name__, 'composites')
+        tests_directory = str(resources.files(__package__).joinpath('composites'))
 
         def getSaveFileNameDefault(inst, header, path, fltr):
             return (os.path.join(path, self.file_name), True)

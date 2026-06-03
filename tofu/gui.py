@@ -3,10 +3,10 @@ import os
 import logging
 import numpy as np
 import tifffile
-import pkg_resources
 
 from argparse import ArgumentParser
 from contextlib import contextmanager
+from importlib import resources
 from tofu import reco, config, util, __version__
 
 try:
@@ -65,7 +65,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.params = params
         self.app = app
-        ui_file = pkg_resources.resource_filename(__name__, 'gui.ui')
+        ui_file = str(resources.files(__package__).joinpath('gui.ui'))
         self.ui = uic.loadUi(ui_file, self)
         self.ui.show()
         self.ui.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
