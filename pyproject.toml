@@ -26,7 +26,7 @@ Homepage = "http://github.com/ufo-kit/tofu"
 interactive = ["IPython"]
 gui = ["pyqtgraph"]
 flow = ["networkx", "pyqtconsole", "pyxdg", "qtpynodeeditor", "pyqtgraph"]
-test = ["pytest", "pytest-qt", "pytest-cov"]
+test = ["pytest", "pytest-qt", "pytest-cov", "matplotlib"]
 ez = ["PyYAML", "pyqtgraph", "matplotlib"]
 edf = ["fabio"]
 

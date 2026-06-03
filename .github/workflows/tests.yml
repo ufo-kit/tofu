@@ -31,6 +31,7 @@ jobs:
             pytest \
             pytest-qt \
             pytest-cov \
+            matplotlib \
             networkx \
             numpy \
             imageio \
