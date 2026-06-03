@@ -23,7 +23,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope='function')
-def nodes(monkeypatch):
+def nodes(monkeypatch, qtbot):
     from tofu.flow.main import get_filled_registry
     from tofu.flow.scene import UfoScene
 
@@ -54,23 +54,34 @@ def nodes(monkeypatch):
     model_cls = reg.create('average')
     nodes['average'] = scene.create_node(model_cls)
 
-    return nodes
+    yield nodes
+
+    scene.clear_scene()
+    qtbot.wait(0)
 
 
 @pytest.fixture(scope='function')
-def scene():
+def scene(qtbot):
     from tofu.flow.main import get_filled_registry
     from tofu.flow.scene import UfoScene
 
     reg = get_filled_registry()
-    return UfoScene(reg)
+    scene = UfoScene(reg)
+    yield scene
+
+    scene.clear_scene()
+    qtbot.wait(0)
 
 
 @pytest.fixture(scope='function')
-def scene_with_composite(nodes):
+def scene_with_composite(nodes, qtbot):
     from tofu.flow.scene import UfoScene
 
-    return UfoScene(nodes['cpm'].model._registry)
+    scene = UfoScene(nodes['cpm'].model._registry)
+    yield scene
+
+    scene.clear_scene()
+    qtbot.wait(0)
 
 
 @pytest.fixture(scope='function')
