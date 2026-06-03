@@ -6,7 +6,7 @@ try:
 except ValueError:
     gi.require_version('Ufo', '1.0')
 from gi.repository import Ufo
-from PyQt5.QtCore import QObject, pyqtSignal
+from pyqtgraph.Qt.QtCore import QObject, pyqtSignal
 from qtpynodeeditor import PortType
 from threading import Thread
 from tofu.flow.models import ARRAY_DATA_TYPE, UFO_DATA_TYPE, UfoTaskModel

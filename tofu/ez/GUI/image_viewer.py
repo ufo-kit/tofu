@@ -3,7 +3,7 @@ import logging
 import pyqtgraph as pg
 import numpy as np
 import tifffile
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QPushButton,
     QGroupBox,
     QLabel,
@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from PyQt5.QtCore import Qt
+from pyqtgraph.Qt.QtCore import Qt
 import tofu.ez.image_read_write as image_read_write
 
 #TODO Integrate axis search tab ob tofu gui into this interface
@@ -74,9 +74,9 @@ class ImageViewerGroup(QGroupBox):
         self.save_32bit_rButton.setChecked(True)
 
         self.hist_min_label = QLabel("Histogram Min:")
-        self.hist_min_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.hist_min_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.hist_max_label = QLabel("Histogram Max:")
-        self.hist_max_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.hist_max_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self.hist_min_input = QDoubleSpinBox()
         self.hist_min_input.setDecimals(12)
@@ -95,7 +95,7 @@ class ImageViewerGroup(QGroupBox):
         self.image_window.ui.histogram.gradient.hide()
         self.histo = self.image_window.getHistogramWidget()
 
-        self.scroller = QScrollBar(Qt.Horizontal)
+        self.scroller = QScrollBar(Qt.Orientation.Horizontal)
         self.scroller.orientation()
         self.scroller.setEnabled(False)
         self.scroller.valueChanged.connect(self.scroll_changed)
@@ -146,7 +146,7 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Open image button pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self, "Open .tif Image File", "", "Tiff Files (*.tif *.tiff)", options=options
         )
@@ -175,7 +175,7 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Save image to file")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filepath, _ = QFileDialog.getSaveFileName(
             self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
         )
@@ -207,7 +207,7 @@ class ImageViewerGroup(QGroupBox):
             try:
                 tiff_list = (".tif", ".tiff")
                 msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
+                msg.setIcon(QMessageBox.Icon.Information)
                 msg.setWindowTitle("Loading Images...")
                 msg.setText("Loading Images from Directory")
                 msg.show()
@@ -230,7 +230,7 @@ class ImageViewerGroup(QGroupBox):
         try:
             tiff_list = (".tif", ".tiff")
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Loading Images...")
             msg.setText("Loading Images from Directory")
             msg.show()
@@ -257,7 +257,7 @@ class ImageViewerGroup(QGroupBox):
         if directory:
             bit_depth_string = self.check_bit_depth(self.bit_depth)
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to Directory")
             msg.show()
@@ -271,14 +271,14 @@ class ImageViewerGroup(QGroupBox):
         :return: None
         """
         LOG.debug("Open big tiff button pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self, "QFileDialog.getOpenFileName()", "", "All Files (*)", options=options
         )
         if filePath:
             LOG.debug("Import image path: " + filePath)
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Loading Images...")
             msg.setText("Loading Images from BigTiff")
             msg.show()
@@ -298,13 +298,13 @@ class ImageViewerGroup(QGroupBox):
         LOG.debug("Save stack to bigtiff button pressed")
         LOG.debug("Saving with bitdepth: " + str(self.bit_depth))
         dir_explore = QFileDialog()
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filepath, _ = QFileDialog.getSaveFileName(
             self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
         )
         if filepath:
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
+            msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to BigTiff")
             msg.show()

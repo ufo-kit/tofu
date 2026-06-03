@@ -1,5 +1,9 @@
+import os
+
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
 import pytest
-from PyQt5.QtWidgets import QInputDialog
+from pyqtgraph.Qt.QtWidgets import QInputDialog
 from tofu.flow.main import get_filled_registry
 from tofu.flow.scene import UfoScene
 from tofu.flow.propertylinksmodels import PropertyLinksModel, NodeTreeModel

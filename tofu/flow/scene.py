@@ -1,8 +1,8 @@
 import logging
 import numpy as np
 import networkx as nx
-from PyQt5.QtCore import pyqtSignal, QObject
-from PyQt5.QtWidgets import QInputDialog
+from pyqtgraph.Qt.QtCore import pyqtSignal, QObject
+from pyqtgraph.Qt.QtWidgets import QInputDialog
 from qtpynodeeditor import FlowScene, NodeDataModel, PortType, opposite_port
 
 from tofu.flow.models import (BaseCompositeModel, ImageViewerModel, PropertyModel,

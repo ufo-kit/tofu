@@ -1,6 +1,6 @@
 import logging
-from PyQt5.QtCore import QDataStream, pyqtSignal
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from pyqtgraph.Qt.QtCore import QDataStream, pyqtSignal
+from pyqtgraph.Qt.QtGui import QStandardItemModel, QStandardItem
 from tofu.flow.models import PropertyModel, BaseCompositeModel
 from tofu.flow.util import MODEL_ROLE, NODE_ROLE, PROPERTY_ROLE
 

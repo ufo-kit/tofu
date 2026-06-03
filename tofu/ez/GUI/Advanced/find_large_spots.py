@@ -1,5 +1,5 @@
 import logging
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QGridLayout,
     QLabel,
     QGroupBox,

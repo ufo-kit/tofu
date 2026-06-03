@@ -16,11 +16,11 @@ try:
 except ValueError:
     gi.require_version('Ufo', '1.0')
 from gi.repository import Ufo
-from PyQt5 import QtCore
-from PyQt5.QtCore import QObject, Qt, pyqtSignal
-from PyQt5.QtGui import QDoubleValidator, QValidator
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGroupBox, QInputDialog, QLabel, QLineEdit,
-                             QScrollArea, QWidget, QFileDialog, QFormLayout, QVBoxLayout, QMenu)
+from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt.QtCore import QObject, Qt, pyqtSignal
+from pyqtgraph.Qt.QtGui import QDoubleValidator, QValidator
+from pyqtgraph.Qt.QtWidgets import (QCheckBox, QComboBox, QGroupBox, QInputDialog, QLabel, QLineEdit,
+                                    QScrollArea, QWidget, QFileDialog, QFormLayout, QVBoxLayout, QMenu)
 from qtpynodeeditor import (NodeData, NodeDataModel, NodeDataType, FlowScene, FlowView, Port,
                             PortType, opposite_port)
 from threading import Lock
@@ -416,7 +416,7 @@ class PropertyView(QWidget):
         show_all_action = contextMenu.addAction('Show All')
         hide_all_action = contextMenu.addAction('Hide All')
 
-        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))
         if action:
             if action in actions:
                 name = actions[action]
@@ -502,7 +502,7 @@ class MultiPropertyView(QWidget):
         show_all_action = contextMenu.addAction('Show All')
         hide_all_action = contextMenu.addAction('Hide All')
 
-        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))
         if action:
             if action in actions:
                 name = actions[action]
@@ -1098,7 +1098,7 @@ class BaseCompositeModel(UfoModel):
         self._other_scene.connection_created.connect(self.on_connection_created)
         self._other_scene.connection_deleted.connect(self.on_connection_deleted)
         self._other_view = FlowView(self._other_scene, parent=parent)
-        self._other_view.setWindowFlag(Qt.Window, True)
+        self._other_view.setWindowFlag(Qt.WindowType.Window, True)
         self._other_view.closeEvent = self.view_close_event
         self._other_view.setWindowTitle(self.name)
         self._other_view.resize(900, 600)
@@ -1332,7 +1332,7 @@ class UfoReadModel(UfoTaskModel):
         if not current_path:
             current_path = QtCore.QDir.homePath()
         dialog = FileDirDialog()
-        if dialog.exec_():
+        if dialog.exec():
             self['path'] = dialog.selectedFiles()[0]
 
     def _setup_ufo_task(self, ufo_task, region=None):

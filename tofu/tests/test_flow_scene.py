@@ -1,6 +1,6 @@
 import pytest
-from PyQt5.QtCore import QModelIndex
-from PyQt5.QtWidgets import QInputDialog
+from pyqtgraph.Qt.QtCore import QModelIndex
+from pyqtgraph.Qt.QtWidgets import QInputDialog
 from qtpynodeeditor import FlowView
 from tofu.flow.models import BaseCompositeModel, UfoModelError, UfoReadModel
 from tofu.flow.util import FlowError, MODEL_ROLE, NODE_ROLE, PROPERTY_ROLE

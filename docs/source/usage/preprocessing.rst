@@ -87,6 +87,8 @@ algorithm used and arguments. It is turned on if ``--energy`` and
 - ``qp``: `Quasiparticle Approach <https://doi.org/10.1364/OE.19.012066>`_;
 - ``qp2``: modified Quasiparticle approach where frequencies are not suppressed
   by zero but a small constant with the sign of the CTF sign.
+- ``ict``: `Intensity Contrast Transfer <https://doi.org/10.1364/OL.530330>`_
+  :cite:`Farago:OL530330`.
 
 The arguments are:
 
@@ -103,7 +105,7 @@ The arguments are:
 ..     print(f'- ``--{k}``: {params["help"]}{choice_str}{default_str};')
 
 - ``--retrieval-method``: Phase retrieval method, one of [``tie``, ``ctf``, ``qp``,
-  ``qp2``] (default: ``tie``);
+  ``qp2``, ``ict``] (default: ``tie``);
 - ``--energy``: X-ray energy [keV] (default: ``None``, meaning: turn phase retrieval
   off);
 - ``--propagation-distance``: Sample <-> detector distance (if one value, then use
@@ -124,6 +126,8 @@ The arguments are:
   to *<addressing mode>* section in the `OpenCL
   <https://man.opencl.org/sampler_t.html>`_ documentation for more information);
 - ``--thresholding-rate``: Thresholding rate (typical values between [0.01, 0.1]) (default: ``0.01``);
+- ``--ict-alpha``: ICT regularization (default: ``0.1``);
+- ``--ict-alpha-threshold``: Below this threshold there is no ICT regularization (default: ``0.0``);
 - ``--frequency-cutoff``: Phase retrieval frequency cutoff [rad] (default: ``1e+30``);
 
 

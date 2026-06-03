@@ -2,7 +2,7 @@ import os
 import logging
 from functools import partial
 from shutil import rmtree
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QMessageBox,
     QFileDialog,
     QCheckBox,
@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QLineEdit,
 )
-from PyQt5.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
+from pyqtgraph.Qt.QtCore import QCoreApplication, QTimer, pyqtSignal, Qt
 
 from tofu.ez.GUI.verify_delete import verify_safe2delete
 from tofu.ez.main import execute_reconstruction, clean_tmp_dirs
@@ -258,7 +258,7 @@ class ConfigGroup(QGroupBox):
         fdt_layout.addWidget(self.select_flats2_button, 1, 4)
         fdt_layout.addWidget(self.darks_absolute_entry, 2, 1)
         fdt_layout.addWidget(self.flats_absolute_entry, 2, 2)
-        fdt_layout.addWidget(self.use_flats2_checkbox, 2, 3, Qt.AlignRight)
+        fdt_layout.addWidget(self.use_flats2_checkbox, 2, 3, Qt.AlignmentFlag.AlignRight)
         fdt_layout.addWidget(self.flats2_absolute_entry, 2, 4)
         fdt_groupbox.setLayout(fdt_layout)
         layout.addWidget(fdt_groupbox, 4, 0, 1, 5)
@@ -456,24 +456,9 @@ class ConfigGroup(QGroupBox):
 
     def quit_button_pressed(self):
         """
-        Displays confirmation dialog and cleans temporary directories
+        Triggers application close which handles confirmation and cleanup
         """
-        LOG.debug("QUIT")
-        reply = QMessageBox.question(
-            self,
-            "Quit",
-            "Are you sure you want to quit?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
-            # remove all directories with projections
-            clean_tmp_dirs(EZVARS['inout']['tmp-dir']['value'], get_fdt_names())
-            # remove axis-search dir too
-            tmp = os.path.join(EZVARS['inout']['tmp-dir']['value'], 'axis-search')
-            QCoreApplication.instance().quit()
-        else:
-            pass
+        self.window().close()
 
     def help_button_pressed(self):
         """
@@ -514,10 +499,10 @@ class ConfigGroup(QGroupBox):
         LOG.debug("DELETE")
         msg = "Delete directory with reconstructed data?"
         dialog = QMessageBox.warning(
-            self, "Warning: data can be lost", msg, QMessageBox.Yes | QMessageBox.No
+            self, "Warning: data can be lost", msg, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
-        if dialog == QMessageBox.Yes:
+        if dialog == QMessageBox.StandardButton.Yes:
             if os.path.exists(str(EZVARS['inout']['output-dir']['value'])):
                 LOG.debug("YES")
                 if EZVARS['inout']['output-dir']['value'] == EZVARS['inout']['input-dir']['value']:
@@ -564,7 +549,7 @@ class ConfigGroup(QGroupBox):
         to an external .yaml file specified by user
         """
         LOG.debug("Save settings pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         fileName, _ = QFileDialog.getSaveFileName(
             self,
             "QFileDialog.getSaveFileName()",
@@ -587,7 +572,7 @@ class ConfigGroup(QGroupBox):
         Signal is sent to enable updating of displayed GUI values
         """
         LOG.debug("Import settings pressed")
-        options = QFileDialog.Options()
+        options = QFileDialog.Option.DontUseNativeDialog
         filePath, _ = QFileDialog.getOpenFileName(
             self,
             "QFileDialog.getOpenFileName()",

@@ -1,9 +1,9 @@
 import logging
 import numpy as np
 import os
-from PyQt5 import QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFileDialog, QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
+from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt.QtCore import Qt
+from pyqtgraph.Qt.QtWidgets import QFileDialog, QGridLayout, QLabel, QLineEdit, QMenu, QWidget, QSlider
 from tofu.flow.util import FlowError
 
 
@@ -144,7 +144,7 @@ class ImageLabel(QLabel):
             vd = self.screen_image.image.shape[0] // self.height()
             downsampling = max(min(hd, vd), 1)
             pixmap = self.screen_image.get_pixmap(downsampling=downsampling)
-            self.setPixmap(pixmap.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
+            self.setPixmap(pixmap.scaled(self.width(), self.height(), Qt.AspectRatioMode.KeepAspectRatio))
 
     def resizeEvent(self, event):
         self.updateImage()
@@ -164,17 +164,17 @@ class ImageViewer(QWidget):
         self.new_image_auto_levels = True
 
         self.label = ImageLabel(self.screen_image)
-        self.label.setAlignment(Qt.AlignVCenter | Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
         self.slider_edit = QLineEdit()
         self.slider_edit.setFixedSize(self.edit_width, self.edit_height)
         self.slider_edit.returnPressed.connect(self.on_slider_edit_return_pressed)
-        self.slider = QSlider(Qt.Horizontal)
+        self.slider = QSlider(Qt.Orientation.Horizontal)
         validator = QtGui.QIntValidator(0, self.slider.maximum())
         self.slider_edit.setValidator(validator)
         self.slider.valueChanged.connect(self.on_slider_value_changed)
 
-        self.min_slider = QSlider(Qt.Horizontal)
-        self.max_slider = QSlider(Qt.Horizontal)
+        self.min_slider = QSlider(Qt.Orientation.Horizontal)
+        self.max_slider = QSlider(Qt.Orientation.Horizontal)
         self.min_slider_edit = QLineEdit()
         self.min_slider_edit.setFixedSize(self.edit_width, self.edit_height)
         self.max_slider_edit = QLineEdit()
@@ -229,7 +229,7 @@ class ImageViewer(QWidget):
         except:
             LOG.debug('imageio not installed, save option disabled')
 
-        action = contextMenu.exec_(self.mapToGlobal(event.pos()))
+        action = contextMenu.exec(self.mapToGlobal(event.pos()))
         if not action:
             return
 
@@ -384,7 +384,7 @@ class ImageViewer(QWidget):
 
         self._pg_window = pyqtgraph.ImageView(view=pyqtgraph.PlotItem())
         self._pg_window.imageItem.scene().sigMouseMoved.connect(pg_mouse_moved)
-        self._pg_window.setWindowFlag(Qt.SubWindow, True)
+        self._pg_window.setWindowFlag(Qt.WindowType.SubWindow, True)
         self._update_pg_window_images()
         self._update_pg_window_index()
         self._update_pg_window_lut()

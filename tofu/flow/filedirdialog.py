@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtWidgets import QFileDialog
+from pyqtgraph.Qt.QtWidgets import QFileDialog
 
 
 class FileDirDialog(QFileDialog):
@@ -13,12 +13,12 @@ class FileDirDialog(QFileDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setOption(QFileDialog.DontUseNativeDialog)
-        self.setFileMode(QFileDialog.Directory)
+        self.setOption(QFileDialog.Option.DontUseNativeDialog)
+        self.setFileMode(QFileDialog.FileMode.Directory)
         self.currentChanged.connect(self._selected)
 
     def _selected(self, name):
         if os.path.isdir(name):
-            self.setFileMode(QFileDialog.Directory)
+            self.setFileMode(QFileDialog.FileMode.Directory)
         else:
-            self.setFileMode(QFileDialog.ExistingFile)
+            self.setFileMode(QFileDialog.FileMode.ExistingFile)

@@ -1,5 +1,5 @@
 import logging
-from PyQt5.QtWidgets import (
+from pyqtgraph.Qt.QtWidgets import (
     QButtonGroup,
     QGridLayout,
     QLabel,
@@ -8,11 +8,11 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QLineEdit,
 )
-from PyQt5.QtCore import Qt
+from pyqtgraph.Qt.QtCore import Qt
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS
 from tofu.ez.util import add_value_to_dict_entry, get_int_validator, get_double_validator
-from PyQt5.QtCore import pyqtSignal
+from pyqtgraph.Qt.QtCore import pyqtSignal
 
 LOG = logging.getLogger(__name__)
 
@@ -168,15 +168,15 @@ class FiltersGroup(QGroupBox):
         rr_layout.addWidget(self.use_LPF_rButton, 4, 0)
         rr_layout.addWidget(self.one_dimens_rButton, 4, 1)
         rr_layout.addWidget(self.two_dimens_rButton, 4, 2)
-        rr_layout.addWidget(self.sigma_horizontal_label, 4, 3, Qt.AlignRight)
+        rr_layout.addWidget(self.sigma_horizontal_label, 4, 3, Qt.AlignmentFlag.AlignRight)
         rr_layout.addWidget(self.sigma_horizontal_entry, 4, 4)
-        rr_layout.addWidget(self.sigma_vertical_label, 4, 5, Qt.AlignRight)
+        rr_layout.addWidget(self.sigma_vertical_label, 4, 5, Qt.AlignmentFlag.AlignRight)
         rr_layout.addWidget(self.sigma_vertical_entry, 4, 6)
         rr_layout.addWidget(self.sarepy_rButton, 5, 0)
         rr_layout.addWidget(self.wind_size_label, 5, 1)
         rr_layout.addWidget(self.wind_size_entry, 5, 2)
         rr_layout.addWidget(self.remove_wide_checkbox, 5, 3)
-        rr_layout.addWidget(self.remove_wide_label, 5, 4, Qt.AlignRight)
+        rr_layout.addWidget(self.remove_wide_label, 5, 4, Qt.AlignmentFlag.AlignRight)
         rr_layout.addWidget(self.remove_wide_entry, 5, 5)
         rr_layout.addWidget(self.SNR_label, 5, 6)
         rr_layout.addWidget(self.SNR_entry, 5, 7)

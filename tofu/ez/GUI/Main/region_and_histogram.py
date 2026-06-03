@@ -1,6 +1,6 @@
 import logging
-from PyQt5.QtWidgets import QGridLayout, QRadioButton, QLabel, QGroupBox, QLineEdit, QCheckBox
-from PyQt5.QtCore import Qt
+from pyqtgraph.Qt.QtWidgets import QGridLayout, QRadioButton, QLabel, QGroupBox, QLineEdit, QCheckBox
+from pyqtgraph.Qt.QtCore import Qt
 
 from tofu.ez.params import EZVARS
 from tofu.config import SECTIONS

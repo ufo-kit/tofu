@@ -1,6 +1,6 @@
 import logging
 import math
-from PyQt5.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
+from pyqtgraph.Qt.QtWidgets import QGridLayout, QLabel, QGroupBox, QLineEdit, QCheckBox
 from tofu.config import SECTIONS
 from tofu.ez.params import EZVARS
 from tofu.ez.util import add_value_to_dict_entry, reverse_tupleize, get_double_validator, get_tuple_validator
