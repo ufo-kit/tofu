@@ -200,7 +200,9 @@ SECTIONS['retrieve-phase'] = {
         'default': 2,
         'ezdefault': 2.3,
         'type': float,
-        'help': "Regularization rate (typical values between [2, 3])"},
+        'help': ("Value of the regularization-rate parameter: base-10 logarithm "
+                 "of delta / beta; the filter uses delta / beta = 10^value "
+                 "(typical values between [2, 3])")},
     'delta': {
         'default': None,
         'type': float,

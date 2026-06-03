@@ -113,10 +113,9 @@ The arguments are:
   the same for x and y direction, otherwise first specifies x and second y
   direction) [m] (default: ``None``, meaning: turn phase retrieval off);
 - ``--pixel-size``: Pixel size [m] (default: ``1e-06``);
-- ``--regularization-rate``: Regularization rate (the value of :math:`log_{10}
-  (\delta / \beta)`, where :math:`\delta` is the real part of the complex
-  refractive index and :math:`\beta` the imaginary; typical values between [2,
-  3]) (default: ``2``);
+- ``--regularization-rate``: Base-10 logarithm of :math:`\delta / \beta`; the
+  phase retrieval filter uses :math:`\delta / \beta = 10^\mathrm{value}`.
+  Typical values are between ``2`` and ``3`` (default: ``2``);
 - ``--delta``: Real part of the complex refractive index of the material. If
   specified, phase retrieval returns projected thickness, if not, it returns
   phase (default: ``None``);

@@ -375,11 +375,12 @@ def _prepare_reconstruction_args(args, sharpen):
         "Reconstruction args: width=%d, number=%s, image_step=%s, "
         "retrieval_padded_width=%d, retrieval_padded_height=%d, "
         "retrieval_padding_mode=%s, disable_projection_crop=%s, "
-        "overall_angle=%s, center_position_x=%s",
+        "overall_angle=%s, center_position_x=%s, axis_angle_x=%s, axis_angle_y=%s",
         reco_args.width, reco_args.number, getattr(reco_args, 'image_step', None),
         reco_args.retrieval_padded_width, reco_args.retrieval_padded_height,
         reco_args.retrieval_padding_mode, reco_args.disable_projection_crop,
-        reco_args.overall_angle, reco_args.center_position_x)
+        reco_args.overall_angle, reco_args.center_position_x,
+        reco_args.axis_angle_x, reco_args.axis_angle_y)
 
     return reco_args
 
@@ -391,6 +392,10 @@ def create_reconstruction_graph(args, sharpen=False, gpu=None):
     args = _prepare_reconstruction_args(args, sharpen)
     genreco._fill_missing_args(args)
     genreco._convert_angles_to_rad(args)
+    LOG.debug(
+        "Reconstruction angles after degree-to-radian conversion: "
+        "overall_angle=%s, axis_angle_x=%s, axis_angle_y=%s",
+        args.overall_angle, args.axis_angle_x, args.axis_angle_y)
     genreco.set_projection_filter_scale(args)
     x_region, y_region, z_region = get_reconstruction_regions(args, store=True, dtype=float)
     x_region = [float(value) for value in x_region]
@@ -456,7 +461,7 @@ def plot_first_row(data, args=None, output=None, show=True):
     x, row = get_first_half_frequency_row(data, args=args)
     fig, ax = plt.subplots()
     ax.plot(x, row)
-    ax.set_xlabel("ICT argument")
+    ax.set_xlabel(r"Fresnel phase $\pi \lambda d u^2$")
     ax.set_ylabel("Filter value")
     ax.set_title("Phase retrieval and sharpening filters")
     ax.grid(True, alpha=0.25)
@@ -551,6 +556,18 @@ def format_region(region):
     return ",".join(format_value(value) for value in region)
 
 
+def format_scalar(value, default=0.0):
+    if value is None:
+        value = default
+    elif isinstance(value, (list, tuple, np.ndarray)):
+        value = value[0] if len(value) else default
+    value = float(value)
+    if value.is_integer():
+        return str(int(value))
+
+    return "{:.6g}".format(value)
+
+
 def parse_region(text, name):
     parts = [part.strip() for part in text.split(',')]
     if len(parts) != 3 or any(not part for part in parts):
@@ -628,6 +645,10 @@ def make_profile_line_roi(pg, positions, pen):
 
 class FloatSlider:
     """Small helper around a QSlider for floating point values."""
+    LABEL_WIDTH = 135
+    VALUE_WIDTH = 88
+    SLIDER_MIN_WIDTH = 160
+
     def __init__(self, parent, layout, label, attr, minimum, maximum, steps=1000,
                  scale='linear', display=None, tooltip=None):
         from PyQt5 import QtCore, QtGui, QtWidgets
@@ -642,15 +663,17 @@ class FloatSlider:
         self._updating = False
         self._follow_maximum = False
         self.label = QtWidgets.QLabel(label)
-        self.label.setMinimumWidth(95)
+        self.label.setFixedWidth(self.LABEL_WIDTH)
+        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.value_edit = QtWidgets.QLineEdit()
-        self.value_edit.setMinimumWidth(72)
+        self.value_edit.setFixedWidth(self.VALUE_WIDTH)
+        self.value_edit.setAlignment(QtCore.Qt.AlignRight)
         self.validator = QtGui.QDoubleValidator()
         self.validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
         self.value_edit.setValidator(self.validator)
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(0, steps)
-        self.slider.setMinimumWidth(120)
+        self.slider.setMinimumWidth(self.SLIDER_MIN_WIDTH)
         self.slider.valueChanged.connect(self.on_slider_changed)
         self.value_edit.textEdited.connect(self.on_text_edited)
         self.value_edit.returnPressed.connect(self.on_editing_finished)
@@ -659,6 +682,8 @@ class FloatSlider:
                 widget.setToolTip(tooltip)
 
         row = QtWidgets.QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
         row.addWidget(self.label)
         row.addWidget(self.slider, 1)
         row.addWidget(self.value_edit)
@@ -832,8 +857,10 @@ class InteractiveWindow:
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         main_layout.addWidget(splitter)
         controls = QtWidgets.QWidget()
-        controls.setMinimumWidth(330)
+        controls.setMinimumWidth(390)
         controls_layout = QtWidgets.QVBoxLayout(controls)
+        controls_layout.setContentsMargins(8, 8, 8, 8)
+        controls_layout.setSpacing(8)
         splitter.addWidget(controls)
 
         self.figure = Figure(figsize=(7, 4))
@@ -916,7 +943,7 @@ class InteractiveWindow:
         splitter.addWidget(self.view_tabs)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([480, 1120])
+        splitter.setSizes([540, 1060])
 
         tabs = QtWidgets.QTabWidget()
         filter_tab = QtWidgets.QWidget()
@@ -924,8 +951,11 @@ class InteractiveWindow:
         filter_tab_layout.setContentsMargins(0, 0, 0, 0)
         filter_scroll = QtWidgets.QScrollArea()
         filter_scroll.setWidgetResizable(True)
+        filter_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
         filter_content = QtWidgets.QWidget()
         filter_layout = QtWidgets.QVBoxLayout(filter_content)
+        filter_layout.setContentsMargins(4, 4, 4, 4)
+        filter_layout.setSpacing(10)
         self._add_phase_controls(filter_layout)
         self._add_sharpening_controls(filter_layout)
         filter_layout.addStretch(1)
@@ -938,6 +968,7 @@ class InteractiveWindow:
         reco_tab_layout.setContentsMargins(0, 0, 0, 0)
         reco_scroll = QtWidgets.QScrollArea()
         reco_scroll.setWidgetResizable(True)
+        reco_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
         reco_content = QtWidgets.QWidget()
         reco_layout = QtWidgets.QVBoxLayout(reco_content)
         self._add_reconstruction_controls(reco_layout)
@@ -955,12 +986,18 @@ class InteractiveWindow:
         self.schedule_update()
 
     def _add_size_controls(self, layout):
-        from PyQt5 import QtWidgets
+        from PyQt5 import QtCore, QtWidgets
 
         group = QtWidgets.QGroupBox("Dimensions")
         group_layout = QtWidgets.QFormLayout(group)
+        group_layout.setContentsMargins(10, 8, 10, 10)
+        group_layout.setHorizontalSpacing(10)
+        group_layout.setVerticalSpacing(6)
+        group_layout.setLabelAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.width_box = QtWidgets.QComboBox()
         self.height_box = QtWidgets.QComboBox()
+        self.width_box.setFixedWidth(FloatSlider.VALUE_WIDTH)
+        self.height_box.setFixedWidth(FloatSlider.VALUE_WIDTH)
         for value in powers_of_two():
             self.width_box.addItem(str(value), value)
             self.height_box.addItem(str(value), value)
@@ -984,13 +1021,21 @@ class InteractiveWindow:
         return int(box.currentData())
 
     def _add_plot_controls(self, layout):
-        from PyQt5 import QtGui, QtWidgets
+        from PyQt5 import QtCore, QtGui, QtWidgets
 
         group = QtWidgets.QGroupBox("Plot")
         group_layout = QtWidgets.QFormLayout(group)
+        group_layout.setContentsMargins(10, 8, 10, 10)
+        group_layout.setHorizontalSpacing(10)
+        group_layout.setVerticalSpacing(6)
+        group_layout.setLabelAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.fix_y_box = QtWidgets.QCheckBox("Fix Y limits")
         self.y_min_edit = QtWidgets.QLineEdit()
         self.y_max_edit = QtWidgets.QLineEdit()
+        self.y_min_edit.setFixedWidth(FloatSlider.VALUE_WIDTH)
+        self.y_max_edit.setFixedWidth(FloatSlider.VALUE_WIDTH)
+        self.y_min_edit.setAlignment(QtCore.Qt.AlignRight)
+        self.y_max_edit.setAlignment(QtCore.Qt.AlignRight)
         validator = QtGui.QDoubleValidator()
         validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
         self.y_min_edit.setValidator(validator)
@@ -1012,15 +1057,25 @@ class InteractiveWindow:
         layout.addWidget(group)
 
     def _add_phase_controls(self, layout):
-        from PyQt5 import QtWidgets
+        from PyQt5 import QtCore, QtWidgets
 
         group = QtWidgets.QGroupBox("Phase retrieval")
         group_layout = QtWidgets.QVBoxLayout(group)
+        group_layout.setContentsMargins(10, 8, 10, 10)
+        group_layout.setSpacing(8)
         methods = QtWidgets.QGroupBox("Curves")
         method_layout = QtWidgets.QGridLayout(methods)
+        method_layout.setContentsMargins(10, 8, 10, 10)
+        method_layout.setHorizontalSpacing(14)
+        method_layout.setVerticalSpacing(4)
+        method_layout.setColumnStretch(0, 1)
         method_layout.addWidget(QtWidgets.QLabel("Method"), 0, 0)
-        method_layout.addWidget(QtWidgets.QLabel("Phase"), 0, 1)
-        method_layout.addWidget(QtWidgets.QLabel("Sharpened"), 0, 2)
+        phase_label = QtWidgets.QLabel("Phase")
+        phase_label.setAlignment(QtCore.Qt.AlignCenter)
+        sharpened_label = QtWidgets.QLabel("Sharpened")
+        sharpened_label.setAlignment(QtCore.Qt.AlignCenter)
+        method_layout.addWidget(phase_label, 0, 1)
+        method_layout.addWidget(sharpened_label, 0, 2)
         for method in ('tie', 'ctf', 'qp', 'qp2', 'ict'):
             row = method_layout.rowCount()
             phase_button = QtWidgets.QCheckBox()
@@ -1028,8 +1083,8 @@ class InteractiveWindow:
             phase_button.toggled.connect(self.schedule_update)
             sharpened_button.toggled.connect(lambda _checked: self.schedule_update(preserve_view=True))
             method_layout.addWidget(QtWidgets.QLabel(method), row, 0)
-            method_layout.addWidget(phase_button, row, 1)
-            method_layout.addWidget(sharpened_button, row, 2)
+            method_layout.addWidget(phase_button, row, 1, alignment=QtCore.Qt.AlignCenter)
+            method_layout.addWidget(sharpened_button, row, 2, alignment=QtCore.Qt.AlignCenter)
             self.method_curve_buttons[method] = {
                 'phase': phase_button,
                 'sharpened': sharpened_button
@@ -1048,7 +1103,7 @@ class InteractiveWindow:
             ("Energy [keV]", 'energy', 1.0, 100.0, 'linear'),
             ("Distance [m]", 'propagation_distance', 0.001, 2.0, 'linear'),
             ("Pixel size [m]", 'pixel_size', 1e-8, 1e-4, 'log'),
-            ("Regularization", 'regularization_rate', 0.0, 6.0, 'linear'),
+            ("log10(delta / beta)", 'regularization_rate', 0.0, 6.0, 'linear'),
             ("Thresholding", 'thresholding_rate', 0.0, 1.0, 'linear'),
             ("ICT alpha", 'ict_alpha', 1e-6, 1e6, 'log'),
             ("ICT alpha threshold", 'ict_alpha_threshold', 0.0, np.pi, 'linear'),
@@ -1071,16 +1126,21 @@ class InteractiveWindow:
 
         group = QtWidgets.QGroupBox("Sharpening")
         group_layout = QtWidgets.QVBoxLayout(group)
+        group_layout.setContentsMargins(10, 8, 10, 10)
+        group_layout.setSpacing(8)
 
         methods = QtWidgets.QGroupBox("Method")
         set_parameter_tooltip(methods, 'sharpen-method', preferred_sections=('sharpening',))
         method_layout = QtWidgets.QHBoxLayout(methods)
+        method_layout.setContentsMargins(10, 8, 10, 10)
+        method_layout.setSpacing(12)
         for method in ('laplace', 'discrete-laplace', 'lorentz'):
             button = QtWidgets.QRadioButton(method)
             set_parameter_tooltip(button, 'sharpen-method', preferred_sections=('sharpening',))
             button.toggled.connect(self.schedule_update)
             method_layout.addWidget(button)
             self.sharpen_method_buttons[method] = button
+        method_layout.addStretch(1)
         self.sharpen_method_buttons.get(
             self.args.sharpen_method, self.sharpen_method_buttons['laplace']).setChecked(True)
         group_layout.addWidget(methods)
@@ -1130,11 +1190,16 @@ class InteractiveWindow:
         double_validator.setNotation(QtGui.QDoubleValidator.ScientificNotation)
         self.reco_center_x_edit = QtWidgets.QLineEdit()
         self.reco_overall_angle_edit = QtWidgets.QLineEdit()
+        self.reco_axis_angle_x_edit = QtWidgets.QLineEdit(
+            format_scalar(getattr(self.args, 'axis_angle_x', 0.0)))
+        self.reco_axis_angle_y_edit = QtWidgets.QLineEdit(
+            format_scalar(getattr(self.args, 'axis_angle_y', 0.0)))
         self.reco_x_region_edit = QtWidgets.QLineEdit(
             format_region(getattr(self.args, 'x_region', (0, -1, 1))))
         self.reco_y_region_edit = QtWidgets.QLineEdit(
             format_region(getattr(self.args, 'y_region', (0, -1, 1))))
-        for edit in (self.reco_center_x_edit, self.reco_overall_angle_edit):
+        for edit in (self.reco_center_x_edit, self.reco_overall_angle_edit,
+                     self.reco_axis_angle_x_edit, self.reco_axis_angle_y_edit):
             edit.setValidator(double_validator)
             edit.returnPressed.connect(self.schedule_update)
         for edit in (self.reco_x_region_edit, self.reco_y_region_edit):
@@ -1144,6 +1209,11 @@ class InteractiveWindow:
         set_parameter_tooltip(self.reco_center_x_edit, 'center-position-x',
                               preferred_sections=('cone-beam-weight',))
         set_parameter_tooltip(self.reco_overall_angle_edit, 'overall-angle',
+                              preferred_sections=('general-reconstruction',))
+        set_parameter_tooltip(self.reco_axis_angle_x_edit, 'axis-angle-x',
+                              preferred_sections=('cone-beam-weight',
+                                                  'general-reconstruction'))
+        set_parameter_tooltip(self.reco_axis_angle_y_edit, 'axis-angle-y',
                               preferred_sections=('general-reconstruction',))
         set_parameter_tooltip(self.reco_x_region_edit, 'x-region',
                               preferred_sections=('general-reconstruction',))
@@ -1161,6 +1231,8 @@ class InteractiveWindow:
         group_layout.addRow("Image step", self.reco_image_step_box)
         group_layout.addRow("Center X", self.reco_center_x_edit)
         group_layout.addRow("Overall angle [deg]", self.reco_overall_angle_edit)
+        group_layout.addRow("Axis angle X [deg]", self.reco_axis_angle_x_edit)
+        group_layout.addRow("Axis angle Y [deg]", self.reco_axis_angle_y_edit)
         group_layout.addRow("X region", self.reco_x_region_edit)
         group_layout.addRow("Y region", self.reco_y_region_edit)
         group_layout.addRow(reset_region_button)
@@ -1286,6 +1358,8 @@ class InteractiveWindow:
         args.center_position_z = [0.5]
         overall_angle = self._optional_float(self.reco_overall_angle_edit)
         args.overall_angle = overall_angle
+        args.axis_angle_x = [self._optional_float(self.reco_axis_angle_x_edit) or 0.0]
+        args.axis_angle_y = [self._optional_float(self.reco_axis_angle_y_edit) or 0.0]
         args.x_region = parse_region(self.reco_x_region_edit.text(), "x region")
         args.y_region = parse_region(self.reco_y_region_edit.text(), "y region")
         args.delta = 1e-6
@@ -1488,7 +1562,7 @@ class InteractiveWindow:
                     self.axes.plot(x, row, linestyle=':', color=color,
                                    label='{} sharpened'.format(method))
             self.axes.legend(loc='best')
-        self.axes.set_xlabel("ICT argument")
+        self.axes.set_xlabel(r"Fresnel phase $\pi \lambda d u^2$")
         self.axes.set_ylabel("Filter value")
         self.axes.set_title("Phase retrieval and sharpening filters")
         self.axes.grid(True, alpha=0.25)
