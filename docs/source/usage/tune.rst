@@ -46,6 +46,11 @@ tabs switch to absorption mode. In that mode the phase retrieval pipeline is
 omitted and the displayed data are converted to absorptivity,
 :math:`-\log(I)`, by the normal preprocessing pipeline.
 
+Use ``Save filtering config...`` to write the current phase retrieval and
+sharpening settings to a tofu config file. The file contains the
+``[retrieve-phase]`` and ``[sharpening]`` sections and can be passed later with
+``--config`` to tofu commands that use these parameters.
+
 Views
 -----
 

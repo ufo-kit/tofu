@@ -1,5 +1,6 @@
 """Visualize frequency filters produced by UFO preprocessing tasks."""
 import copy
+import configparser
 import logging
 import sys
 
@@ -626,6 +627,17 @@ def format_scalar(value, default=0.0):
     return "{:.6g}".format(value)
 
 
+def format_config_value(value):
+    if value is None:
+        return ''
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (list, tuple, np.ndarray)):
+        return ','.join(format_config_value(item) for item in value)
+
+    return str(value)
+
+
 def parse_region(text, name):
     parts = [part.strip() for part in text.split(',')]
     if len(parts) != 3 or any(not part for part in parts):
@@ -1016,6 +1028,7 @@ class InteractiveWindow:
         filter_layout.setSpacing(10)
         self._add_phase_controls(filter_layout)
         self._add_sharpening_controls(filter_layout)
+        self._add_export_controls(filter_layout)
         filter_layout.addStretch(1)
         self._add_size_controls(filter_layout)
         self._add_plot_controls(filter_layout)
@@ -1217,6 +1230,19 @@ class InteractiveWindow:
             self.sliders_by_attr[attr] = slider
         layout.addWidget(group)
 
+    def _add_export_controls(self, layout):
+        from PyQt5 import QtWidgets
+
+        group = QtWidgets.QGroupBox("Export")
+        group_layout = QtWidgets.QVBoxLayout(group)
+        group_layout.setContentsMargins(10, 8, 10, 10)
+        save_button = QtWidgets.QPushButton("Save filtering config...")
+        save_button.setToolTip(
+            "Store the current phase retrieval and sharpening parameters as a tofu config file")
+        save_button.clicked.connect(self.save_filtering_config)
+        group_layout.addWidget(save_button)
+        layout.addWidget(group)
+
     def _add_reconstruction_controls(self, layout):
         from PyQt5 import QtGui, QtWidgets
 
@@ -1394,6 +1420,46 @@ class InteractiveWindow:
             setattr(args, slider.attr, value)
 
         return args
+
+    def _current_filtering_config_args(self):
+        args = self._current_args()
+        args.sharpen = any(
+            buttons['sharpened'].isChecked()
+            for buttons in self.method_curve_buttons.values())
+
+        return args
+
+    def save_filtering_config(self):
+        from PyQt5 import QtWidgets
+
+        dialog = QtWidgets.QFileDialog(self.window, "Save filtering config")
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dialog.setDefaultSuffix("conf")
+        dialog.selectFile("tofu-tune-filtering.conf")
+        if not dialog.exec_():
+            return
+        filenames = dialog.selectedFiles()
+        if not filenames:
+            return
+
+        args = self._current_filtering_config_args()
+        parser = configparser.ConfigParser()
+        for section in ('retrieve-phase', 'sharpening'):
+            parser.add_section(section)
+            for name in config.SECTIONS[section]:
+                attr = name.replace('-', '_')
+                if hasattr(args, attr):
+                    parser.set(section, name, format_config_value(getattr(args, attr)))
+
+        try:
+            with open(filenames[0], 'w') as f:
+                parser.write(f)
+        except OSError as exc:
+            self.status.setText("Could not save config: {}".format(exc))
+            return
+
+        self.status.setText("Saved filtering config to {}".format(filenames[0]))
 
     def _optional_float(self, edit):
         text = edit.text().strip()
