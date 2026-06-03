@@ -305,6 +305,23 @@ def get_result_data_by_method(args):
     return result
 
 
+def get_reconstruction_projection_region(reco_args, width, height, slice_number):
+    from tofu import genreco
+
+    geometry_args = copy.deepcopy(reco_args)
+    geometry_args.width = width
+    geometry_args.height = height
+    geometry_args.center_position_z = [0.5]
+    geometry_args.z = slice_number
+    geometry_args.region = (slice_number, slice_number + 1, 1)
+    genreco._fill_missing_args(geometry_args)
+    genreco._convert_angles_to_rad(geometry_args)
+    geometry = genreco.CTGeometry(geometry_args)
+    xmin, ymin, xmax, ymax = geometry.compute_height(region=geometry_args.region)
+
+    return int(xmin), int(ymin), int(xmax), int(ymax)
+
+
 def _prepare_reconstruction_args(args, sharpen):
     from tofu import config
     from tofu.util import determine_shape, next_power_of_two
@@ -341,35 +358,43 @@ def _prepare_reconstruction_args(args, sharpen):
         raise ValueError(
             "requested reconstruction slice {} is outside the projection height "
             "range [0, {})".format(slice_number, height))
-    required_height = 2 * half_height
-    reader_height = min(required_height, height)
-    reader_y = slice_number - half_height
-    missing_before = max(0, -reader_y)
-    missing_after = max(0, reader_y + required_height - height)
+    projection_xmin, projection_ymin, projection_xmax, projection_ymax = (
+        get_reconstruction_projection_region(reco_args, width, height, slice_number))
+    required_y = projection_ymin - half_height
+    required_stop = projection_ymax + half_height - 1
+    missing_before = max(0, -required_y)
+    missing_after = max(0, required_stop - height)
     if missing_before or missing_after:
         LOG.warning(
-            "Cannot read the full vertical Fresnel neighborhood around slice %d: "
+            "Cannot read the full vertical Fresnel neighborhood around the "
+            "geometry projection region for slice %d: projection_y=%d:%d, "
             "half_height=%d, projection_height=%d, missing_before=%d px, "
             "missing_after=%d px. Clamping the read window to the data range.",
-            slice_number, half_height, height, missing_before, missing_after)
-    reader_y = min(max(reader_y, 0), height - reader_height)
+            slice_number, projection_ymin, projection_ymax, half_height, height,
+            missing_before, missing_after)
+    reader_y = min(max(required_y, 0), height)
+    reader_stop = min(max(required_stop, reader_y + 1), height)
+    reader_height = reader_stop - reader_y
     local_z = slice_number - reader_y
     reco_args.y = reader_y
     reco_args.height = reader_height
-    reco_args.center_position_z = [0.5]
-    reco_args.z = local_z
+    reco_args.center_position_z = [0.5 - reader_y]
+    reco_args.z = slice_number
     reco_args.width = width
     reco_args.retrieval_padded_width = next_power_of_two(width)
-    reco_args.retrieval_padded_height = reco_args.height
+    reco_args.retrieval_padded_height = next_power_of_two(reco_args.height)
 
-    reco_args.region = (local_z, local_z + 1, 1)
+    reco_args.region = (slice_number, slice_number + 1, 1)
     LOG.debug(
         "Reconstruction vertical region: wavelength=%g m, distance=%g m, "
         "pixel_size=%g m, fresnel_half_height=%d px, requested_slice=%d, "
-        "projection_height=%d, required_reader_height=%d, "
-        "reader_y=%d, reader_height=%d, center_position_z=%s, z=%s, region=%s",
+        "projection_height=%d, geometry_projection_x=%d:%d, "
+        "geometry_projection_y=%d:%d, required_reader_y=%d, "
+        "required_reader_stop=%d, reader_y=%d, reader_height=%d, local_z=%d, "
+        "center_position_z=%s, z=%s, region=%s",
         wavelength, distance, reco_args.pixel_size, half_height, slice_number,
-        height, required_height, reco_args.y, reco_args.height,
+        height, projection_xmin, projection_xmax, projection_ymin, projection_ymax,
+        required_y, required_stop, reco_args.y, reco_args.height, local_z,
         reco_args.center_position_z, reco_args.z, reco_args.region)
     LOG.debug(
         "Reconstruction args: width=%d, number=%s, image_step=%s, "
