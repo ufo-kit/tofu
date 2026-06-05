@@ -40,6 +40,16 @@ def get_uint_dtype(dynamic_range):
     raise ValueError("data range does not fit into uint16")
 
 
+def get_jpeg2000_level(data_range, rmse):
+    """Return a JPEG 2000 level from a target RMSE."""
+    if rmse < 0:
+        raise ValueError("--compress-j2k-rmse must be non-negative")
+    if rmse == 0:
+        return 0
+
+    return get_psnr(data_range, rmse)
+
+
 def run_qt_app(app):
     """Run a Qt application across PyQt versions."""
     if hasattr(app, 'exec'):
@@ -566,7 +576,7 @@ def analyze(args, images):
         dynamic_range
     )
     # Dynamic range rescaled to physical range
-    j2k_psnr = get_psnr(args.compress_delta * dynamic_range, args.compress_j2k_rmse)
+    j2k_psnr = get_jpeg2000_level(args.compress_delta * dynamic_range, args.compress_j2k_rmse)
     rmse_compander = []
     rmse_decoder = []
     rmse_full = []
@@ -696,8 +706,14 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
         raise RuntimeError('--compress-center and --compress-delta must be specified')
 
     # Dynamic range rescaled to physical range
-    j2k_psnr = get_psnr(args.compress_delta * (2 ** args.compress_bits - 1), args.compress_j2k_rmse)
-    LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
+    j2k_psnr = get_jpeg2000_level(
+        args.compress_delta * (2 ** args.compress_bits - 1),
+        args.compress_j2k_rmse
+    )
+    if j2k_psnr == 0:
+        LOG.info("JPEG2000: lossless")
+    else:
+        LOG.info("JPEG2000 PSNR: %.2f", j2k_psnr)
 
     dynamic_range = 2 ** args.compress_bits - 1
     compander_cls = COMPANDER_TYPES[getattr(args, 'compress_compander', 'tanh')]
@@ -733,7 +749,7 @@ def compress(args):
         out_task.props.tiff_jpeg2000 = True
     if hasattr(out_task.props, 'level'):
         out_task.props.level = int(round(
-            get_psnr(
+            get_jpeg2000_level(
                 args.compress_delta * (2 ** args.compress_bits - 1),
                 args.compress_j2k_rmse
             )
