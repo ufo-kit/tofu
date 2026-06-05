@@ -118,7 +118,7 @@ parameters from the already determined compression spacing:
 
 .. math::
 
-   h = \sigma = \sqrt{\frac{1}{2}}\,\Delta
+   h = \sigma = \Delta
 
 where :math:`\Delta` is ``--compress-delta``. In this mode Tofu disables
 ``--denoise-estimate-sigma`` before creating the UFO denoising task, so that

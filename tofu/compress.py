@@ -746,7 +746,7 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
 
 def set_compression_aware_denoise_props(args):
     """Set denoising parameters from the compression delta."""
-    denoise_sigma = np.sqrt(0.5) * args.compress_delta
+    denoise_sigma = args.compress_delta
     args.denoise_h = denoise_sigma
     args.denoise_sigma = denoise_sigma
     args.denoise_estimate_sigma = False
