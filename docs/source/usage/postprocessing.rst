@@ -70,10 +70,10 @@ noise, so that compression does not become the dominant degradation.
 JPEG 2000 Compression
 ~~~~~~~~~~~~~~~~~~~~~
 
-The quantized companded image is then encoded with JPEG 2000. The option
-``--compress-j2k-rmse`` is specified in the original input grey-value units.
-Internally, Tofu converts it to the JPEG 2000 PSNR level using the physical
-range represented by the companded data:
+The quantized companded image is then encoded with JPEG 2000. For lossy
+JPEG 2000 output, the option ``--compress-j2k-rmse`` is specified in the
+original input grey-value units. Internally, Tofu converts it to the JPEG 2000
+PSNR level using the physical range represented by the companded data:
 
 .. math::
 
@@ -82,9 +82,40 @@ range represented by the companded data:
 where :math:`\Delta` is ``--compress-delta`` and :math:`D` is the quantized
 dynamic range.
 
-Like quantization, JPEG 2000 compression is lossy when a finite RMSE target is
-used. The analysis step reports the measured JPEG 2000 RMSE and the full
-round-trip RMSE in units of the estimated noise sigma.
+Like quantization, JPEG 2000 compression is lossy when a positive RMSE target
+is used. Set ``--compress-j2k-rmse 0`` to request lossless JPEG 2000 coding of
+the already quantized companded image. This removes JPEG 2000 loss, but the
+overall compression can still be lossy because the tone-mapped data are
+quantized before encoding. Negative RMSE values are not valid.
+
+The analysis step reports the measured JPEG 2000 RMSE and the full round-trip
+RMSE in units of the estimated noise sigma.
+
+Denoising Before Compression
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tofu compress`` can run non-local means denoising before the companding step
+when ``--denoise`` is specified. The denoising options are shared with
+``tofu denoise``.
+
+The default denoising values follow the UFO filter constructor defaults:
+
+- ``--denoise-h 0`` estimates the smoothing parameter from the first image;
+- ``--denoise-sigma 0`` leaves explicit noise compensation disabled, unless
+  ``--denoise-estimate-sigma`` is also specified;
+- ``--denoise-estimate-sigma`` estimates ``sigma`` from the first image.
+
+For compression, ``--denoise-compression-aware`` sets both denoising scale
+parameters from the already determined compression spacing:
+
+.. math::
+
+   h = \sigma = \sqrt{\frac{1}{2}}\,\Delta
+
+where :math:`\Delta` is ``--compress-delta``. In this mode Tofu disables
+``--denoise-estimate-sigma`` before creating the UFO denoising task, so that
+``h`` and ``sigma`` stay matched to the compression parameters instead of being
+estimated independently by the filter.
 
 Relation to Noise Sigma
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,6 +182,34 @@ Then run compression with the chosen parameters:
        --compress-center 0.0123 \
        --compress-delta 0.0004 \
        --compress-j2k-rmse 0.0004
+
+To use lossless JPEG 2000 coding for the quantized companded image, set the
+JPEG 2000 RMSE target to zero:
+
+.. code-block:: bash
+
+   tofu compress \
+       --images reco \
+       --output compressed-%04d.tif \
+       --compress-compander tanh \
+       --compress-center 0.0123 \
+       --compress-delta 0.0004 \
+       --compress-j2k-rmse 0
+
+To denoise in a way that is tied to the compression spacing, add
+``--denoise`` and ``--denoise-compression-aware``:
+
+.. code-block:: bash
+
+   tofu compress \
+       --images reco \
+       --output compressed-%04d.tif \
+       --compress-compander tanh \
+       --compress-center 0.0123 \
+       --compress-delta 0.0004 \
+       --compress-j2k-rmse 0.0004 \
+       --denoise \
+       --denoise-compression-aware
 
 To decompress the data later, use the same center, delta and compander:
 

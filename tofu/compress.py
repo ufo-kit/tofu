@@ -687,7 +687,8 @@ def determine_compression_parameters(args):
         args.compress_delta = max(sigma / 4, optimize_delta_to_sigma(args, sigma, images))
         LOG.debug("--compress-delta calculated: %g", args.compress_delta)
     if args.compress_j2k_rmse is None:
-        sigma = np.median([get_sigma(image) for image in images])
+        if sigma is None:
+            sigma = np.median([get_sigma(image) for image in images])
         # j2k RMSE wrt original noise sigma is 1/4
         args.compress_j2k_rmse = sigma / 4
         LOG.debug("--compress-j2k-rmse calculated using 1 / 4 of noise sigma: %g", args.compress_j2k_rmse)
@@ -725,6 +726,15 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
     ).create_ufo_task(direction=direction, processing_node=processing_node)
 
 
+def set_compression_aware_denoise_props(args):
+    """Set denoising parameters from the compression delta."""
+    denoise_sigma = np.sqrt(0.5) * args.compress_delta
+    args.denoise_h = denoise_sigma
+    args.denoise_sigma = denoise_sigma
+    args.denoise_estimate_sigma = False
+    LOG.info("Denoise h and sigma from compression delta: %g", denoise_sigma)
+
+
 def compress(args):
     """Run image compression using a UFO companding pipeline."""
     compand = create_compression_pipeline(args)
@@ -757,6 +767,8 @@ def compress(args):
 
     current = reader
     if getattr(args, 'denoise', False):
+        if getattr(args, 'denoise_compression_aware', False):
+            set_compression_aware_denoise_props(args)
         denoise = create_denoising_pipeline(args)
         graph.connect_nodes(current, denoise)
         current = denoise

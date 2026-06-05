@@ -914,13 +914,13 @@ SECTIONS['denoise'] = {
         'type': restrict_value((1, 100), dtype=int),
         'help': "Patch radius in pixels"},
     'denoise-h': {
-        'default': 0.1,
+        'default': 0.0,
         'type': restrict_value((0, None)),
-        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less"},
+        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less; 0 estimates it from the first image"},
     'denoise-sigma': {
         'default': 0.0,
         'type': restrict_value((0, None)),
-        'help': "Noise standard deviation"},
+        'help': "Noise standard deviation; 0 disables explicit noise compensation unless --denoise-estimate-sigma is set"},
     'denoise-window': {
         'default': False,
         'action': 'store_true',
@@ -929,6 +929,10 @@ SECTIONS['denoise'] = {
         'default': False,
         'action': 'store_true',
         'help': "Estimate noise standard deviation"},
+    'denoise-compression-aware': {
+        'default': False,
+        'action': 'store_true',
+        'help': "In compression mode, set denoising h and sigma from the compression delta"},
     'denoise-addressing-mode': {
         'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
         'default': 'mirrored_repeat',
