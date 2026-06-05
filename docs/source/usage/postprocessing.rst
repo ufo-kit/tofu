@@ -98,12 +98,20 @@ Denoising Before Compression
 when ``--denoise`` is specified. The denoising options are shared with
 ``tofu denoise``.
 
-The default denoising values follow the UFO filter constructor defaults:
+For standalone ``tofu denoise``, the default denoising values follow the UFO
+filter constructor defaults:
 
 - ``--denoise-h 0`` estimates the smoothing parameter from the first image;
 - ``--denoise-sigma 0`` leaves explicit noise compensation disabled, unless
   ``--denoise-estimate-sigma`` is also specified;
 - ``--denoise-estimate-sigma`` estimates ``sigma`` from the first image.
+
+For ``tofu compress --denoise``, if ``--denoise-h`` or ``--denoise-sigma`` are
+left at ``0``, Tofu sets the missing value from the compression setup and logs
+which value was used. If compression parameter estimation already calculated
+the input noise sigma, the denoising value is set to that sigma. Otherwise, it
+is set to ``--compress-delta``. Positive user-specified denoising values are
+left unchanged.
 
 For compression, ``--denoise-compression-aware`` sets both denoising scale
 parameters from the already determined compression spacing:

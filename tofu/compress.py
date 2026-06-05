@@ -670,6 +670,14 @@ def determine_compression_parameters(args):
     """Determine missing compression parameters from *args.images*."""
     images = None
     sigma = None
+    denoise_needs_parameters = (
+        getattr(args, 'denoise', False) and
+        not getattr(args, 'denoise_compression_aware', False) and
+        (
+            getattr(args, 'denoise_h', 0.0) <= 0.0 or
+            getattr(args, 'denoise_sigma', 0.0) <= 0.0
+        )
+    )
 
     if (
         args.compress_delta is None
@@ -678,8 +686,9 @@ def determine_compression_parameters(args):
         or getattr(args, 'compress_analyze', False)
     ):
         images = read_image(args.images, args=args, allow_multi=True)
-        args.compress_center = np.percentile(images, 50)
-        LOG.debug("--compress-center calculated: %g", args.compress_center)
+        if args.compress_center is None:
+            args.compress_center = np.percentile(images, 50)
+            LOG.debug("--compress-center calculated: %g", args.compress_center)
 
     if args.compress_delta is None:
         sigma = np.median([get_sigma(image) for image in images])
@@ -692,6 +701,15 @@ def determine_compression_parameters(args):
         # j2k RMSE wrt original noise sigma is 1/4
         args.compress_j2k_rmse = sigma / 4
         LOG.debug("--compress-j2k-rmse calculated using 1 / 4 of noise sigma: %g", args.compress_j2k_rmse)
+    if denoise_needs_parameters:
+        denoise_value = sigma if sigma is not None else args.compress_delta
+        denoise_source = "noise sigma" if sigma is not None else "compression delta"
+        if args.denoise_h <= 0.0:
+            args.denoise_h = denoise_value
+            LOG.debug("--denoise-h calculated using %s: %g", denoise_source, args.denoise_h)
+        if args.denoise_sigma <= 0.0:
+            args.denoise_sigma = denoise_value
+            LOG.debug("--denoise-sigma calculated using %s: %g", denoise_source, args.denoise_sigma)
 
     if sigma:
         LOG.debug("Noise sigma: %g", sigma)

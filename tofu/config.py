@@ -916,11 +916,11 @@ SECTIONS['denoise'] = {
     'denoise-h': {
         'default': 0.0,
         'type': restrict_value((0, None)),
-        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less; 0 estimates it from the first image"},
+        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less; 0 estimates it from the first image, or uses the compression noise estimate or compression delta in compression mode"},
     'denoise-sigma': {
         'default': 0.0,
         'type': restrict_value((0, None)),
-        'help': "Noise standard deviation; 0 disables explicit noise compensation unless --denoise-estimate-sigma is set"},
+        'help': "Noise standard deviation; 0 disables explicit noise compensation unless --denoise-estimate-sigma is set, or uses the compression noise estimate or compression delta in compression mode"},
     'denoise-window': {
         'default': False,
         'action': 'store_true',
