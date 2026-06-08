@@ -88,6 +88,11 @@ the already quantized companded image. This removes JPEG 2000 loss, but the
 overall compression can still be lossy because the tone-mapped data are
 quantized before encoding. Negative RMSE values are not valid.
 
+OpenJPEG uses all available CPU processors by default. Use
+``--output-jpeg2000-threads`` to limit the number of worker threads, for
+example ``--output-jpeg2000-threads 8``. A value of 0 keeps the default
+maximum.
+
 The analysis step reports the measured JPEG 2000 RMSE and the full round-trip
 RMSE in units of the estimated noise sigma.
 

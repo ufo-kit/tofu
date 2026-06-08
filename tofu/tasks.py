@@ -41,6 +41,8 @@ def get_writer(params):
         writer.props.bytes_per_file = params.output_bytes_per_file
     if hasattr(writer.props, 'tiff_bigtiff'):
         writer.props.tiff_bigtiff = params.output_bytes_per_file > 2 ** 32 - 2 ** 25
+    if hasattr(writer.props, 'jpeg2000_threads'):
+        writer.props.jpeg2000_threads = getattr(params, 'output_jpeg2000_threads', 0)
 
     return writer
 

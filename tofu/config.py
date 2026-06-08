@@ -57,6 +57,12 @@ SECTIONS['general'] = {
         'help': "Maximum bytes per file (0=single-image output, otherwise multi-image output)\
                 , 'k', 'm', 'g', 't' suffixes can be used",
         'metavar': 'BYTESPERFILE'},
+    'output-jpeg2000-threads': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of OpenJPEG worker threads for JPEG 2000-compressed TIFF output "
+                "(0 uses all available processors)",
+        'metavar': 'THREADS'},
     'output-append': {
         'default': False,
         'action': 'store_true',
@@ -73,6 +79,12 @@ SECTIONS['general'] = {
         'help': "Input width"}}
 
 SECTIONS['reading'] = {
+    'jpeg2000-threads': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of OpenJPEG worker threads for JPEG 2000-compressed TIFF input "
+                "(0 uses all available processors)",
+        'metavar': 'THREADS'},
     'y': {
         'default': 0,
         'ezdefault': 100,

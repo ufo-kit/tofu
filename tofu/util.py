@@ -82,6 +82,8 @@ def get_filenames(path):
 def setup_read_task(task, path, args):
     """Set up *task* and take care of handling file types correctly."""
     task.props.path = path
+    if hasattr(task.props, 'jpeg2000_threads'):
+        task.props.jpeg2000_threads = getattr(args, 'jpeg2000_threads', 0)
 
     fnames = get_filenames(path)
 
