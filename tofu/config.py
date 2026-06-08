@@ -10,6 +10,7 @@ LOG = logging.getLogger(__name__)
 NAME = "reco.conf"
 SECTIONS = OrderedDict()
 
+
 SECTIONS['general'] = {
     'config': {
         'default': NAME,
@@ -56,6 +57,12 @@ SECTIONS['general'] = {
         'help': "Maximum bytes per file (0=single-image output, otherwise multi-image output)\
                 , 'k', 'm', 'g', 't' suffixes can be used",
         'metavar': 'BYTESPERFILE'},
+    'output-jpeg2000-threads': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of OpenJPEG worker threads for JPEG 2000-compressed TIFF output "
+                "(0 uses all available processors)",
+        'metavar': 'THREADS'},
     'output-append': {
         'default': False,
         'action': 'store_true',
@@ -72,6 +79,12 @@ SECTIONS['general'] = {
         'help': "Input width"}}
 
 SECTIONS['reading'] = {
+    'jpeg2000-threads': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': "Number of OpenJPEG worker threads for JPEG 2000-compressed TIFF input "
+                "(0 uses all available processors)",
+        'metavar': 'THREADS'},
     'y': {
         'default': 0,
         'ezdefault': 100,
@@ -98,6 +111,10 @@ SECTIONS['reading'] = {
         'default': 0,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Offset to the first read file'},
+    'image-start': {
+        'default': 0,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Offset to the first read image in a file'},
     'number': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -107,6 +124,11 @@ SECTIONS['reading'] = {
         'ezdefault': 1,
         'type': restrict_value((0, None), dtype=int),
         'help': 'Read every \"step\" file'},
+    'image-step': {
+        'default': 1,
+        'ezdefault': 1,
+        'type': restrict_value((0, None), dtype=int),
+        'help': 'Read every \"step\" image from a file'},
     'resize': {
         'default': None,
         'type': restrict_value((0, None), dtype=int),
@@ -870,6 +892,114 @@ SECTIONS['inpaint'] = {
                 "cross in the power spectrum"},
 }
 
+SECTIONS['compress'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+    'compress-bits': {
+        'default': 16,
+        'type': int,
+        'choices': [8, 16],
+        'help': "Output dynamic range in bits"},
+    'compress-compander': {
+        'default': 'tanh',
+        'choices': ['tanh', 'arctan', 'recip_sqrt', 'clip'],
+        'help': "Compander curve"},
+    'compress-delta': {
+        'default': None,
+        'type': float,
+        'help': "Grey values spacing"},
+    'compress-j2k-rmse': {
+        'default': None,
+        'type': float,
+        'help': "Desired RMSE after conversion to Jpeg2000"},
+    'compress-center': {
+        'default': None,
+        'type': float,
+        'help': "Center parameter"},
+    'compress-input-percentile': {
+        'default': 0.1,
+        'type': restrict_value((0, 100)),
+        'help': "Input percentile from 0 to 100 that defines softmin and softmax"},
+    'compress-analyze': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Analyze input data, do not do actual processing"},
+    'compress-visualize': {
+        'default': False,
+        'action': 'store_true',
+        'help': "After analysis of the input data, visualize the results"},
+}
+
+SECTIONS['denoise'] = {
+    'images': {
+        'default': None,
+        'type': str,
+        'help': "Location with input images",
+        'metavar': 'PATH'},
+    'denoise': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Denoise images"},
+    'denoise-search-radius': {
+        'default': 10,
+        'type': restrict_value((1, 8192), dtype=int),
+        'help': "Search radius in pixels"},
+    'denoise-patch-radius': {
+        'default': 3,
+        'type': restrict_value((1, 100), dtype=int),
+        'help': "Patch radius in pixels"},
+    'denoise-h': {
+        'default': 0.0,
+        'type': restrict_value((0, None)),
+        'help': "Smoothing control parameter, should be around noise standard deviation or slightly less; 0 estimates it from the first image, or uses the compression noise estimate or compression delta in compression mode"},
+    'denoise-sigma': {
+        'default': 0.0,
+        'type': restrict_value((0, None)),
+        'help': "Noise standard deviation; 0 disables explicit noise compensation unless --denoise-estimate-sigma is set, or uses the compression noise estimate or compression delta in compression mode"},
+    'denoise-window': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Use Gaussian window by computing patch weights"},
+    'denoise-estimate-sigma': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Estimate noise standard deviation"},
+    'denoise-compression-aware': {
+        'default': False,
+        'action': 'store_true',
+        'help': "In compression mode, set denoising h and sigma from the compression delta"},
+    'denoise-addressing-mode': {
+        'choices': ['none', 'clamp', 'clamp_to_edge', 'repeat', 'mirrored_repeat'],
+        'default': 'mirrored_repeat',
+        'help': "Outlier treatment"},
+}
+
+SECTIONS['reconstruction-output'] = {
+    'compress-output': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Compand reconstruction output and write it as JPEG 2000-compressed TIFF"},
+    **{
+        name: SECTIONS['compress'][name]
+        for name in (
+            'compress-bits',
+            'compress-compander',
+            'compress-delta',
+            'compress-j2k-rmse',
+            'compress-center',
+        )
+    },
+}
+
+SECTIONS['reconstruction-denoise'] = {
+    name: options
+    for name, options in SECTIONS['denoise'].items()
+    if name != 'images'
+}
+
 SECTIONS['ez'] = {
     'ezvars': {
         'default': None,
@@ -878,11 +1008,17 @@ SECTIONS['ez'] = {
         'metavar': 'PATH'},
 }
 
-TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
+TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp',
+               'dfi', 'ir', 'sart', 'sbtv', 'reconstruction-output',
+               'reconstruction-denoise')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase', 'distortion-correction')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
-GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
+GEN_RECO_PARAMS = PREPROC_PARAMS + (
+    'general-reconstruction',
+    'reconstruction-output',
+    'reconstruction-denoise',
+)
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
@@ -890,7 +1026,8 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint')
+              'Inpaint', 'Compression', 'Denoising', 'Reconstruction output',
+              'Reconstruction denoising', 'EZ')
 
 
 # Add unit info to help strings
@@ -978,11 +1115,15 @@ class Params(object):
         self.sections = sections + ('general', 'reading')
     
     def add_parser_args(self, parser):
+        added = set()
         for section in self.sections:
             for name in sorted(SECTIONS[section]):
+                if name in added:
+                    continue
                 opts = without_keys(SECTIONS[section][name], {'ezdefault'})
                 opts.pop('unit', None)
                 parser.add_argument('--{}'.format(name), **opts)
+                added.add(name)
                 
     def add_arguments(self, parser):
         self.add_parser_args(parser)

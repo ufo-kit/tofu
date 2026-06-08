@@ -116,6 +116,24 @@ def run_inpaint(args):
     inpaint.run(args)
 
 
+def run_compress(args):
+    from tofu import compress
+
+    compress.compress(args)
+
+
+def run_decompress(args):
+    from tofu import compress
+
+    compress.decompress(args)
+
+
+def run_denoise(args):
+    from tofu import denoise
+
+    denoise.denoise(args)
+
+
 def gui(args):
     try:
         from tofu import gui
@@ -217,6 +235,9 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
+        ('compress',    run_compress,   ('compress', 'denoise'),        "Compress images"),
+        ('decompress',  run_decompress, ('compress',),                  "Decompress images"),
+        ('denoise',     run_denoise,    ('denoise',),                   "Denoise images"),
     ]
 
     if sys.version < '3.7':

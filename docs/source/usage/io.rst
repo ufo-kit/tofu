@@ -42,6 +42,12 @@ string* e.g. ``output-%04d.tif``, which will create files ``output-0000.tif``,
 of bytes written in the current file would exceed the value specified by
 ``--output-bytes-per-file``.
 
+JPEG 2000-compressed TIFF input and output use all available CPU processors by
+default. The limits can be controlled independently with
+``--jpeg2000-threads`` for reading and ``--output-jpeg2000-threads`` for
+writing. A value of 0 uses all available processors and a value of 1 disables
+OpenJPEG worker parallelism.
+
 .. note::
    You may use ``k``, ``m``, ``g``, ``t`` suffixes with
    ``--output-bytes-per-file`` to indicate respectively kibibytes
