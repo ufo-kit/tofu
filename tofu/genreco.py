@@ -15,6 +15,8 @@ from .util import (fbp_filtering_in_phase_retrieval, get_filtering_padding,
                    get_reconstructed_cube_shape, get_reconstruction_regions,
                    get_filenames, determine_shape, get_scarray_value, Vector)
 from .tasks import get_task, get_writer
+from .compress import (configure_output_writer, create_output_processing_pipeline,
+                       get_output_jpeg2000_level)
 
 
 LOG = logging.getLogger(__name__)
@@ -229,13 +231,6 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
                 index=0, make_reader=True):
     backproject = get_task('general-backproject', processing_node=gpu)
 
-    if do_output:
-        if args.dry_run:
-            sink = get_task('null', processing_node=gpu, download=True)
-        else:
-            sink = get_writer(args)
-            sink.props.filename = '{}-{:>03}-%04i.tif'.format(args.output, index)
-
     width = args.width
     height = args.height
     if args.transpose_input:
@@ -298,11 +293,17 @@ def setup_graph(args, graph, x_region, y_region, region, source=None, gpu=None, 
     else:
         source = backproject
 
+    last = create_output_processing_pipeline(args, graph, backproject, processing_node=gpu)
+
     if do_output:
-        graph.connect_nodes(backproject, sink)
+        if args.dry_run:
+            sink = get_task('null', processing_node=gpu, download=True)
+        else:
+            sink = get_writer(args)
+            sink.props.filename = '{}-{:>03}-%04i.tif'.format(args.output, index)
+            configure_output_writer(sink, args)
+        graph.connect_nodes(last, sink)
         last = sink
-    else:
-        last = backproject
 
     return (source, last)
 
@@ -473,7 +474,20 @@ class Executor(object):
                 LOG.debug('Abort requested in writing of region %s', self.region)
                 return
             buf = self.output.get_output_buffer()
-            self.writer.save(ufo.numpy.asarray(buf))
+            image = ufo.numpy.asarray(buf)
+            if getattr(self.args, 'compress_output', False):
+                dtype = np.uint8 if self.args.compress_bits == 8 else np.uint16
+                image = np.rint(image).astype(dtype)
+                self.writer.write(
+                    image,
+                    compression='jpeg2000',
+                    compressionargs={
+                        'level': get_output_jpeg2000_level(self.args),
+                        'numthreads': getattr(self.args, 'output_jpeg2000_threads', 0),
+                    },
+                )
+            else:
+                self.writer.write(image)
             self.output.release_output_buffer(buf)
 
         self.finished.set()

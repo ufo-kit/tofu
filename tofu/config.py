@@ -951,6 +951,29 @@ SECTIONS['denoise'] = {
         'help': "Outlier treatment"},
 }
 
+SECTIONS['reconstruction-output'] = {
+    'compress-output': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Compand reconstruction output and write it as JPEG 2000-compressed TIFF"},
+    **{
+        name: SECTIONS['compress'][name]
+        for name in (
+            'compress-bits',
+            'compress-compander',
+            'compress-delta',
+            'compress-j2k-rmse',
+            'compress-center',
+        )
+    },
+}
+
+SECTIONS['reconstruction-denoise'] = {
+    name: options
+    for name, options in SECTIONS['denoise'].items()
+    if name != 'images'
+}
+
 SECTIONS['ez'] = {
     'ezvars': {
         'default': None,
@@ -959,11 +982,17 @@ SECTIONS['ez'] = {
         'metavar': 'PATH'},
 }
 
-TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp', 'dfi', 'ir', 'sart', 'sbtv')
+TOMO_PARAMS = ('flat-correction', 'reconstruction', 'tomographic-reconstruction', 'fbp',
+               'dfi', 'ir', 'sart', 'sbtv', 'reconstruction-output',
+               'reconstruction-denoise')
 
 PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve-phase')
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
-GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
+GEN_RECO_PARAMS = PREPROC_PARAMS + (
+    'general-reconstruction',
+    'reconstruction-output',
+    'reconstruction-denoise',
+)
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
@@ -971,7 +1000,8 @@ NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Direct Fourier Inversion', 'Iterative reconstruction',
               'SART', 'SBTV', 'GUI settings', 'Estimation', 'Performance',
               'Preprocess', 'Cone beam weight', 'General reconstruction', 'Find large spots',
-              'Inpaint', 'Compression', 'Denoising', 'EZ')
+              'Inpaint', 'Compression', 'Denoising', 'Reconstruction output',
+              'Reconstruction denoising', 'EZ')
 
 
 # Add unit info to help strings

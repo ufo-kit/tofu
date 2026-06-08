@@ -19,6 +19,13 @@ scheme :cite:`Farago:tv5034`:
   :align: center
   :alt: 3D reconstruction geometry
 
+Output Denoising and Compression
+================================
+
+Reconstructed slices can be denoised with ``--denoise`` and companded into
+JPEG 2000-compressed TIFF output with ``--compress-output``. See
+:doc:`postprocessing` for the parameter requirements and an example.
+
 The dimensions are:
 
 - **x = lateral dimension**;

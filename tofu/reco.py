@@ -9,6 +9,7 @@ from tofu.preprocess import create_flat_correct_pipeline
 from tofu.util import (set_node_props, setup_read_task, get_filenames,
                        read_image, determine_shape, setup_padding, run_scheduler)
 from tofu.tasks import get_task, get_writer
+from tofu.compress import configure_output_writer, create_output_processing_pipeline
 
 
 LOG = logging.getLogger(__name__)
@@ -68,9 +69,14 @@ def tomo(params):
     LOG.debug("Input dimensions: {}x{} pixels".format(width, height))
 
     writer = get_writer(params)
+    configure_output_writer(writer, params)
 
     # Setup graph depending on the chosen method and input data
     g = Ufo.TaskGraph()
+
+    def connect_output(current):
+        current = create_output_processing_pipeline(params, g, current)
+        g.connect_nodes(current, writer)
 
     if params.projections is not None:
         if params.number:
@@ -145,7 +151,7 @@ def tomo(params):
             g.connect_nodes(fltr, ifft)
             g.connect_nodes(ifft, bp)
 
-        g.connect_nodes(last_node, writer)
+        connect_output(last_node)
 
     if params.method in ('sart', 'sirt', 'sbtv', 'asdpocs'):
         projector = pm.get_task_from_package('ir', 'parallel-projector')
@@ -171,7 +177,7 @@ def tomo(params):
             method.set_properties(mu=params.mu)
 
         g.connect_nodes(sino_output, method)
-        g.connect_nodes(method, writer)
+        connect_output(method)
 
     if params.method == 'dfi':
         oversampling = params.oversampling or 1
@@ -196,9 +202,9 @@ def tomo(params):
             crop = get_task('crop')
             crop.set_properties(from_center=True, width=width, height=width)
             g.connect_nodes(swap_backward, crop)
-            g.connect_nodes(crop, writer)
+            connect_output(crop)
         else:
-            g.connect_nodes(swap_backward, writer)
+            connect_output(swap_backward)
 
     scheduler = Ufo.Scheduler()
 

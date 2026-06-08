@@ -20,6 +20,8 @@ __all__ = [
     "RecipSqRootCompander",
     "TanhCompander",
     "compress",
+    "configure_output_writer",
+    "create_output_processing_pipeline",
     "decompress",
     "get_companders",
     "get_uint_dtype",
@@ -742,6 +744,70 @@ def create_compression_pipeline(args, direction='forward', processing_node=None)
         args.compress_delta,
         dynamic_range
     ).create_ufo_task(direction=direction, processing_node=processing_node)
+
+
+def get_output_jpeg2000_level(args):
+    """Return the JPEG 2000 level for companded reconstruction output."""
+    if getattr(args, 'compress_j2k_rmse', None) is None:
+        return 0
+
+    return int(round(get_jpeg2000_level(
+        args.compress_delta * (2 ** args.compress_bits - 1),
+        args.compress_j2k_rmse
+    )))
+
+
+def validate_output_compression_args(args):
+    """Validate parameters which cannot be inferred before reconstruction."""
+    if args.compress_center is None:
+        raise RuntimeError('--compress-center must be specified with --compress-output')
+    if args.compress_delta is None:
+        raise RuntimeError('--compress-delta must be specified with --compress-output')
+
+
+def configure_output_writer(writer, args):
+    """Configure a UFO writer for companded JPEG 2000 TIFF output."""
+    if not getattr(args, 'compress_output', False) or getattr(args, 'dry_run', False):
+        return
+
+    validate_output_compression_args(args)
+    if not hasattr(writer.props, 'tiff_jpeg2000'):
+        raise RuntimeError('The UFO writer does not support JPEG 2000-compressed TIFF output')
+
+    writer.props.bits = args.compress_bits
+    writer.props.rescale = False
+    writer.props.tiff_jpeg2000 = True
+    writer.props.level = get_output_jpeg2000_level(args)
+
+
+def create_output_processing_pipeline(args, graph, current, processing_node=None):
+    """Append optional denoising and companding to reconstruction output."""
+    if getattr(args, 'denoise', False):
+        if getattr(args, 'denoise_compression_aware', False):
+            if not getattr(args, 'compress_output', False):
+                raise RuntimeError(
+                    '--denoise-compression-aware requires --compress-output'
+                )
+            validate_output_compression_args(args)
+            set_compression_aware_denoise_props(args)
+
+        denoise = create_denoising_pipeline(args, processing_node=processing_node)
+        graph.connect_nodes(current, denoise)
+        current = denoise
+
+    if getattr(args, 'compress_output', False):
+        validate_output_compression_args(args)
+        dynamic_range = 2 ** args.compress_bits - 1
+        compander_cls = COMPANDER_TYPES[getattr(args, 'compress_compander', 'tanh')]
+        compand = compander_cls(
+            args.compress_center,
+            args.compress_delta,
+            dynamic_range
+        ).create_ufo_task(processing_node=processing_node)
+        graph.connect_nodes(current, compand)
+        current = compand
+
+    return current
 
 
 def set_compression_aware_denoise_props(args):

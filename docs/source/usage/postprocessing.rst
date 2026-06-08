@@ -96,6 +96,38 @@ maximum.
 The analysis step reports the measured JPEG 2000 RMSE and the full round-trip
 RMSE in units of the estimated noise sigma.
 
+Reconstruction Output
+~~~~~~~~~~~~~~~~~~~~~
+
+``tofu tomo`` and ``tofu reco`` can apply the same denoising and companding
+pipeline directly to reconstructed slices. Denoising is applied first, followed
+by companding and JPEG 2000 TIFF writing.
+
+Enable denoising with ``--denoise``. Enable companded output with
+``--compress-output``. Because reconstructed slices are only available while
+the pipeline is running, automatic compression parameter analysis is not
+possible in this mode. Specify ``--compress-center`` and ``--compress-delta``
+explicitly. If ``--compress-j2k-rmse`` is omitted, JPEG 2000 coding is
+lossless.
+
+For example::
+
+    tofu reco \
+        --projections projections.tif \
+        --output reconstruction.tif \
+        --denoise \
+        --denoise-h 0.002 \
+        --denoise-sigma 0.002 \
+        --compress-output \
+        --compress-center 0.01 \
+        --compress-delta 0.0001 \
+        --compress-bits 16
+
+``--denoise-compression-aware`` may be used together with
+``--compress-output`` to set the denoising ``h`` and ``sigma`` values from the
+compression delta. Both numbered output and the serialized single-file output
+of ``tofu reco`` support this processing.
+
 Denoising Before Compression
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
