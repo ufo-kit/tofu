@@ -7,5 +7,6 @@ Usage
     usage/io
     usage/preprocessing
     usage/tune
+    usage/postprocessing
     usage/genreco
     usage/flow
