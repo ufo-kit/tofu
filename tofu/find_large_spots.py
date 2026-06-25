@@ -24,7 +24,7 @@ def find_large_spots_median(args):
     from skimage.restoration import estimate_sigma
     from scipy.ndimage import binary_fill_holes
 
-    images = read_image(args.images, allow_multi=True)
+    images = read_image(args.images, args=args, allow_multi=True)
     if args.averaging_mode == "first":
         image = images[0]
     if args.averaging_mode == "mean":
