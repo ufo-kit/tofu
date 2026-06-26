@@ -195,10 +195,12 @@ def read_image(filename, args=None, allow_multi=False):
         start = args.image_start if args else 0
         step = args.image_step if args else 1
         images = np.array([reader.read(i) for i in range(start, num, step)])
-        height = args.height if args and args.height else images.shape[-2]
+        y = args.y if args else 0
+        y_step = args.y_step if args else 1
+        height = args.height if args and args.height else images.shape[-2] - y
+        width = args.width if args and args.width else images.shape[-1]
         if args:
-            # TODO: support width
-            images = images[:, args.y:args.y + height:args.y_step, args.y:args.y + height]
+            images = images[:, y:y + height:y_step, :width]
         if not allow_multi:
             images = images[0]
         return images
