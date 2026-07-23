@@ -990,6 +990,10 @@ SECTIONS['reconstruction-output'] = {
         'default': False,
         'action': 'store_true',
         'help': "Compand reconstruction output and write it as JPEG 2000-compressed TIFF"},
+    'compress-output-uncompressed': {
+        'default': False,
+        'action': 'store_true',
+        'help': "Write companded reconstruction output as an uncompressed TIFF"},
     **{
         name: SECTIONS['compress'][name]
         for name in (

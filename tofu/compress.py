@@ -766,18 +766,18 @@ def validate_output_compression_args(args):
 
 
 def configure_output_writer(writer, args):
-    """Configure a UFO writer for companded JPEG 2000 TIFF output."""
+    """Configure a UFO writer for companded TIFF output."""
     if not getattr(args, 'compress_output', False) or getattr(args, 'dry_run', False):
         return
 
     validate_output_compression_args(args)
-    if not hasattr(writer.props, 'tiff_jpeg2000'):
-        raise RuntimeError('The UFO writer does not support JPEG 2000-compressed TIFF output')
-
     writer.props.bits = args.compress_bits
     writer.props.rescale = False
-    writer.props.tiff_jpeg2000 = True
-    writer.props.level = get_output_jpeg2000_level(args)
+    if not getattr(args, 'compress_output_uncompressed', False):
+        if not hasattr(writer.props, 'tiff_jpeg2000'):
+            raise RuntimeError('The UFO writer does not support JPEG 2000-compressed TIFF output')
+        writer.props.tiff_jpeg2000 = True
+        writer.props.level = get_output_jpeg2000_level(args)
 
 
 def create_output_processing_pipeline(args, graph, current, processing_node=None):

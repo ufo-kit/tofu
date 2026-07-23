@@ -32,6 +32,7 @@ class Graph:
 def make_args(**overrides):
     values = {
         'compress_output': True,
+        'compress_output_uncompressed': False,
         'compress_bits': 16,
         'compress_compander': 'tanh',
         'compress_center': 1.5,
@@ -51,6 +52,7 @@ def test_reconstruction_commands_expose_postprocessing_options():
 
     for args in (tomo, reco):
         assert args.compress_output is False
+        assert args.compress_output_uncompressed is False
         assert args.denoise is False
         assert args.compress_bits == 16
 
@@ -110,6 +112,19 @@ def test_output_writer_uses_lossless_jpeg2000_by_default():
     assert writer.props.rescale is False
     assert writer.props.tiff_jpeg2000 is True
     assert writer.props.level == 0
+
+
+def test_output_writer_can_write_uncompressed_companded_tiff():
+    writer = Task('writer')
+
+    compress.configure_output_writer(
+        writer,
+        make_args(compress_output_uncompressed=True),
+    )
+
+    assert writer.props.bits == 16
+    assert writer.props.rescale is False
+    assert writer.props.tiff_jpeg2000 is False
 
 
 def test_compression_aware_denoising_requires_companded_output():
