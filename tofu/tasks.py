@@ -1,13 +1,18 @@
 import logging
+from threading import Lock
 from gi.repository import Ufo
 
 
 LOG = logging.getLogger(__name__)
 PLUGIN_MANAGER = Ufo.PluginManager()
+PLUGIN_MANAGER_LOCK = Lock()
 
 
 def get_task(name, processing_node=None, **kwargs):
-    task = PLUGIN_MANAGER.get_task(name)
+    # UfoPluginManager caches loaded modules and constructors in mutable GLib
+    # containers which are not safe to access concurrently.
+    with PLUGIN_MANAGER_LOCK:
+        task = PLUGIN_MANAGER.get_task(name)
     task.set_properties(**kwargs)
     if processing_node and task.uses_gpu():
         LOG.debug("Assigning task '%s' to node %d", name, processing_node.get_index())
