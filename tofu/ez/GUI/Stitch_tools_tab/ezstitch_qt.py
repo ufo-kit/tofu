@@ -20,6 +20,7 @@ from tofu.ez.params import EZVARS_aux, EZVARS
 from tofu.ez.Helpers.stitch_funcs import (
     main_sti_mp,
     main_360sti_ufol_depth1,
+    main_360_mp_depth1,
     find_vert_olap_2_vsteps,
     validate_slice_range,
     get_cube_dims,
@@ -535,7 +536,15 @@ class EZStitchGroup(QGroupBox):
         try:
             verify_safe2delete(self, EZVARS_aux['vert-sti']['tmp-dir']['value'], "Temporary")
         except FileExistsError:
-            return
+            if EZVARS_aux['vert-sti']['task_type']['value'] == 0 or \
+                    EZVARS_aux['vert-sti']['task_type']['value'] == 1:
+                qm = QMessageBox()
+                rep = qm.question(self, '', f"Do you want to bypass generation of orthogonal sections and \n"
+                                            "start stitching from data in temporary directory?", qm.Yes | qm.No)
+                if rep == qm.Yes:
+                    add_value_to_dict_entry(EZVARS_aux['vert-sti']['reusetmp'], True)
+                else:
+                    return
         try:
             verify_safe2delete(self, EZVARS_aux['vert-sti']['output-dir']['value'], "Output")
         except FileExistsError:
@@ -557,6 +566,7 @@ class EZStitchGroup(QGroupBox):
                 warning_message("Problem with validating slice range: cannot read dimensions of Input slices.")
                 return
             main_sti_mp()
+            add_value_to_dict_entry(EZVARS_aux['vert-sti']['reusetmp'], False)
         else: 
             # main_360_mp_depth1(self.parameters['ezstitch_input_dir'],
             #                     EZVARS_aux['vert-sti']['output-dir']['value'],

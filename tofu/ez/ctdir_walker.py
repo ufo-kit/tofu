@@ -4,17 +4,31 @@ Created on Apr 5, 2018
 @author: gasilos
 """
 
-import os
-from tofu.ez.params import EZVARS
+import os, h5py, glob
+from tofu.ez.params import EZVARS, EZVARS_prep
+from tofu.ez.Helpers.hereon_h5 import h5log2params, get_beamline_id
 
 VALID_EXTS = ['.tif', '.tiff', '.edf']
 
 class WalkCTdirs:
     """
-    Walks in the directory structure and creates list of paths to CT folders
-    Determines flats before/after
-    and checks that folders contain only tiff files
-    fdt_names = flats/darks/tomo directory names
+    Usage:
+    First findCTdirs is called to creates list of paths to "potential" CT directories
+    "Potential" CT directory is any directory containing subdirectory "tomo" or an h5 file
+    if h5 file is found function creates a standard directory structure with flats/darks/tomo subdirectories
+    which are populated with symbolic links to respective tif files stored in a standard P05/P07 file sequence
+    Secondly a check can be performed to determine whether CT data is consistent or not
+    That is kind of optional. Back when python argparser didn't support regex well I used to check that
+    flats/darks/tomo directory only contains tif files.
+    TODO: a *.tif must be added everywhere in command formatters?
+    Any other kind of tests and checks cna be performed at this step.
+    Step three: function SortGoodBad creates
+    a list with "good" CT directries with are described by a tuple of length 3
+    (path, type, hereon?) (str, int, bool)
+    TODO: create a class to describe a CT set instead of having a list
+    then an array of CTsets can contain all information about it, e.g.
+    type, origin, dimensions, experimental params such as pixel size and propagation distance, etc.
+    Note: fdt_names variable stores flats/darks/tomo directory names
     """
 
     def __init__(self, inpath, fdt_names, verb=True):
@@ -25,6 +39,7 @@ class WalkCTdirs:
         self.typ = []
         self.total = 0
         self.good = 0
+        self.huct = []
         self.verb = verb
         self._fdt_names = fdt_names
         self.common_flats = EZVARS['inout']['path2-shared-flats']['value']
@@ -40,12 +55,80 @@ class WalkCTdirs:
         Walks directories rooted at "Input Directory" location
         Appends their absolute path to ctdir if they contain a directory with same name as "tomo" entry in GUI
         """
+        print(f" ====> Walking over data in {self.lvl0}")
         for root, dirs, files in os.walk(self.lvl0):
-            for name in dirs:
-                if name == self._fdt_names[2]:
+            h5filelist = glob.glob(os.path.join(root,'*.h5')) #perphaps root contains h5 file?
+            fdt = 0
+            for dname in dirs: # is any of the subdirectories named like a dir with CT projections?
+                if dname == self._fdt_names[2]:
+                   fdt = 1
+                   dirs[:] = [] # once tomo dir is found we stop iterating over subdirectories
+            # now there can be three options:
+            if h5filelist:
+                h5filename = h5filelist[0]
+                if fdt: # (1) this is preprocessed hereon data set saved as fdt subdirectories
                     self.ctdirs.append(root)
+                    h5log = h5py.File(h5filename,'r')
+                    h5log2params(h5log, root)
+                    h5log.close()
+                    self.huct.append(1)
+                    print(f"Found preprocessed Hereon CT sequence in {root}, h5file is {h5filename}")
+                else: # (2) this is a raw hereon data set
+                    self.ctdirs.append(self.make_symlink_ctdir(root, h5filename))
+                    self.huct.append(1)
+                    print(f"Found raw Hereon CT sequence in {root} with h5 file {h5filename}")
+            elif fdt: # (3) this is an ordinary fdt structure
+                self.ctdirs.append(root)
+                self.huct.append(0)
+                print(f"Found standard CT set with standard flats/dars/tomo in {root}")
         self.ctdirs = list(set(self.ctdirs))
         self.ctdirs.sort()
+        if sum(self.huct) > 0 and (not EZVARS_prep['prepro']['extended_prepro']['value']):
+            # we are working with raw hereon data structure hence
+            # we reset input directory to the temporary directory which
+            # contains symbolic links to images. Symbolic links
+            # are ordered as a standard flats/darks/tomo structure
+            self.lvl0 = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
+
+
+    def make_symlink_ctdir(self, ctset, h5fname):
+        """
+        creates ufo-like CT directory structure populated with symlinks to P05/P07 files
+        """
+        import numpy as np
+        h5log = h5py.File(os.path.join(ctset,h5fname),'r')
+        tmplvl0dir = os.path.join(EZVARS['inout']['tmp-dir']['value'],'links2images')
+        if not os.path.exists(tmplvl0dir):
+            os.mkdir(tmplvl0dir)
+        symname = os.path.dirname(os.path.join(tmplvl0dir, ctset[len(self.lvl0)+1:]))
+        if symname != tmplvl0dir:
+            os.mkdir(symname)
+        tmpdar = os.path.join(symname, EZVARS['inout']['darks-dir']['value'])
+        tmpref = os.path.join(symname, EZVARS['inout']['flats-dir']['value'])
+        tmpimg = os.path.join(symname, EZVARS['inout']['tomo-dir']['value'])
+        os.mkdir(tmpdar)
+        os.mkdir(tmpref)
+        os.mkdir(tmpimg)
+        bid = get_beamline_id(h5log)
+        for i, imk in enumerate(h5log['entry']['scan']['data']['image_key']['value']):
+            imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()
+            if bid == 5:
+                imname = h5log['entry']['scan']['data']['image_file']['value'][i].decode()[1:]
+            iind = f"{i:05}"
+            if imk == 2:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpdar,'dar_'+iind+'.tif')}")
+            elif imk == 1:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpref,'ref_'+iind+'.tif')}")
+            elif imk == 0:
+                os.system(f"ln -s {os.path.join(ctset, imname)} \
+                                    {os.path.join(tmpimg,'img_'+iind+'.tif')}")
+        # Extract necessary hereon data
+        h5log2params(h5log, symname)
+        h5log.close()
+        return symname
+
 
     def checkCTdirs(self):
         """
@@ -143,6 +226,8 @@ class WalkCTdirs:
                 and self._checktifs(os.path.join(ctdir, self._fdt_names[3]))
             ):
                 continue
+            elif self.huct:
+                continue
             else:
                 self.typ[i] = 0
 
@@ -164,25 +249,30 @@ class WalkCTdirs:
     def sortbadgoodsets(self):
         """
         Reduces type of all directories to either
-        Good with flats 2 (1) or good without flats2 (0) or bad (<0)
+        Good with flats 2 (4) or good without flats2 (3) or bad (<0)
         """
         self.total = len(self.ctdirs)
-        self.ctsets = sorted(zip(self.ctdirs, self.typ), key=lambda s: s[0])
+        self.ctsets = sorted(zip(self.ctdirs, self.typ, self.huct), key=lambda s: s[0])
         self.total = len(self.ctsets)
-        self.good = [int(y) > 2 for x, y in self.ctsets].count(True)
+        self.good = [int(y) > 2 for x, y, z  in self.ctsets].count(True)
 
+        #print('sorting good bad')
+        print(f"This is what was found in the input directory {self.lvl0}")
         tmp = len(self.lvl0)
         if self.verb:
-            print("Total folders {}, good folders {}".format(self.total, self.good))
-            print("{:>20}\t{}".format("Path to CT set", "Typ: 0 bad, 3 no flats2, 4 with flats2"))
+            print("Total CT-like dirs {}, good CT dirs {}".format(self.total, self.good))
+            print("{:>20}\t{}".format("Path to CT set", "Type: 0 bad, 3 no flats2, 4 with flats2"))
             for ctdir in self.ctsets:
-                msg1 = ctdir[0][tmp:]
-                if msg1 == "":
-                    msg1 = "."
+                msg1 = "."+ctdir[0][tmp:]
+                #msg1 = os.path.basename(ctdir[0])
+                # if msg1 == "":
+                #     msg1 = "."
                 print("{:>20}\t{}".format(msg1, ctdir[1]))
 
         # keep paths to directories with good ct data only:
         self.ctsets = [q for q in self.ctsets if int(q[1] > 0)]
+
+        #print('Finished sorting goodbad')
 
     def Getlvl0(self):
         return self.lvl0

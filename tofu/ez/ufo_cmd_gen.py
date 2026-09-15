@@ -5,7 +5,7 @@ Created on Apr 6, 2018
 """
 import os
 from tofu.util import next_power_of_two
-from tofu.ez.params import EZVARS
+from tofu.ez.params import EZVARS, EZVARS_prep
 from tofu.config import SECTIONS
 from tofu.ez.util import enquote, make_inpaths, fmt_in_out_path
 
@@ -97,6 +97,7 @@ def get_filter2d_sinos_cmd(tmpdir, sig_hor, sig_ver, nviews, w):
     return cmd
 
 def get_pre_cmd( ctset, pre_cmd, tmpdir):
+    # Obsolete: we either format rmoutliers or doing preprocessing using the new tab
     indir = make_inpaths(ctset[0], ctset[1])
     outdir = make_outpaths(tmpdir, ctset[1])
     # add index to the name of the output directory with projections
@@ -115,22 +116,31 @@ def get_pre_cmd( ctset, pre_cmd, tmpdir):
         cmds[i] += " ! write filename={}".format(enquote(out_pattern))
     return cmds
 
+def get_rmout_cmd( ctset, tmpdir):
+    indir = make_inpaths(ctset[0], ctset[1])
+    outdir = make_outpaths(tmpdir, ctset[1])
+    # add index to the name of the output directory with projections
+    # if enabled preprocessing is always the first step
+    outdir[2] = os.path.join(tmpdir, "proj-step1")
+    # we also must create this directory to format paths correctly
+    if not os.path.exists(outdir[2]):
+        os.makedirs(outdir[2])
+    cmds = []
+    for i, fol in enumerate(indir):
+        in_pattern = os.path.join(fol, "*.tif")
+        out_pattern = os.path.join(outdir[i], "frame-%04i.tif")
+        cmds.append("ufo-launch")
+        cmds[i] += " read path={} ! ".format(enquote(in_pattern))
+        cmds[i] += f"remove-outliers sign=1"
+        cmds[i] += f" size={EZVARS_prep['prepro']['rmout_pos_size']['value']}"
+        cmds[i] += f" threshold={EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
+        cmds[i] += " ! write filename={}".format(enquote(out_pattern))
+    return cmds
+
 def get_inp_cmd(ctset, tmpdir, N, nviews, reduction_mode="median"):
     indir = make_inpaths(ctset[0], ctset[1])
     cmds = []
-    # ######### CREATE MASK #########
-    # flat1_file = os.path.join(tmpdir, "flat-median.tif")
     mask_file = os.path.join(tmpdir, "mask.tif")
-    # # generate mask
-    # cmd = 'tofu find-large-spots --images {}'.format(flat1_file)
-    # cmd += ' --spot-threshold {} --gauss-sigma {}'.format(
-    #                 SECTIONS['find-large-spots']['spot-threshold']['value'],
-    #                 SECTIONS['find-large-spots']['gauss-sigma']['value'])
-    # # cmd += " --method median --median-width 20 --dilation-disk-radius 3 --gauss-sigma 100.0" \
-    # #        " --spot-threshold 3800.0 --spot-threshold-mode absolute --grow-threshold 350.0" \
-    # #        " --find-large-spots-padding-mode mirrored_repeat"
-    # cmd += ' --output {} --output-bytes-per-file 0'.format(mask_file)
-    # cmds.append(cmd)
     ######### FLAT-CORRECT #########
     in_proj_dir, out_pattern = fmt_in_out_path(EZVARS['inout']['tmp-dir']['value'], ctset[0],
                                                EZVARS['inout']['tomo-dir']['value'])
@@ -180,16 +190,6 @@ def get_inp_cmd(ctset, tmpdir, N, nviews, reduction_mode="median"):
     if not EZVARS['inout']['keep-tmp']['value']:
         cmds.append("rm -rf {}".format(in_proj_dir))
     return cmds
-
-def get_crop_sli(out_pattern):
-    cmd = 'ufo-launch read path={}/*.tif ! '.format(os.path.dirname(out_pattern))
-    cmd += 'crop x={} width={} y={} height={} ! '. \
-        format(EZVARS['inout']['output-x']['value'], EZVARS['inout']['output-width']['value'],
-               EZVARS['inout']['output-y']['value'], EZVARS['inout']['output-height']['value'])
-    cmd += 'write filename={}'.format(out_pattern)
-    if EZVARS['inout']['clip_hist']['value']:
-        cmd += ' bits=8 rescale=False'
-    return cmd
 
 def fmt_nlmdn_ufo_cmd(inpath: str, outpath: str):
     """
@@ -254,4 +254,81 @@ def fmt_stitch_cmd(inpath, bigtiff, bits, outpath, num, w, ax, cro=0, reduction_
     if (bits == 16) or (bits == 8):
         cmd += f" bits={bits} rescale=FALSE"
     #print(cmd)
+    return cmd
+
+
+def fmt_prepro(inptrn, outptrn):
+    from tofu.ez.params import EZVARS_prep
+    from tofu.ez.util import get_dims
+    numim, [N, M], btif = get_dims(os.path.dirname(inptrn))
+    #inptrn = os.path.join(inpath, "*.tif")
+    cmd = 'ufo-launch'
+    # READ
+    cmd += f" read path={enquote(inptrn)}"
+    if EZVARS_prep['prepro']['im_lim_range']['value']:
+        if not btif:
+            cmd += f" start={EZVARS_prep['prepro']['im_start']['value']}" \
+                   f" step={EZVARS_prep['prepro']['im_step']['value']}"
+        else:
+            #TODO if there are mulitple bigtiff files one would need to find the
+            #bigtiff file with starting image and then compute the offset to image-start within the file
+            cmd += f" image-start={EZVARS_prep['prepro']['im_start']['value']}" \
+                   f" image-step={EZVARS_prep['prepro']['im_step']['value']}"
+        cmd += f" number={EZVARS_prep['prepro']['im_range']['value']}"
+        numim = EZVARS_prep['prepro']['im_range']['value'] // EZVARS_prep['prepro']['im_step']['value']
+    # Remove outliers
+    cmd = fmt_prepro_rmout(cmd)
+    # CROP
+    if EZVARS_prep['prepro']['crop']['value']:
+        if EZVARS_prep['prepro']['width']['value'] > 0 or \
+                EZVARS_prep['prepro']['height']['value'] > 0:
+            cmd += " ! crop"
+        if EZVARS_prep['prepro']['width']['value'] > 0:
+            if EZVARS_prep['prepro']['x']['value'] + \
+                    EZVARS_prep['prepro']['width']['value'] > M:
+                EZVARS_prep['prepro']['width']['value'] = M - EZVARS_prep['prepro']['x']['value']
+            cmd += f" x={EZVARS_prep['prepro']['x']['value']}"
+            cmd += f" width={EZVARS_prep['prepro']['width']['value']}"
+        if EZVARS_prep['prepro']['height']['value'] > 0:
+            if EZVARS_prep['prepro']['y']['value'] + \
+                    EZVARS_prep['prepro']['height']['value'] > N:
+                EZVARS_prep['prepro']['height']['value'] = N - EZVARS_prep['prepro']['y']['value']
+            cmd += f" y={EZVARS_prep['prepro']['y']['value']}"
+            cmd += f" height={EZVARS_prep['prepro']['height']['value']}"
+    # BIN
+    if EZVARS_prep['prepro']['bin']['value']:
+        if EZVARS_prep['prepro']['bin3d']['value']:
+            cmd += f" ! stack number={numim//EZVARS_prep['prepro']['bin_size']['value']}"
+        cmd += f" ! bin size={EZVARS_prep['prepro']['bin_size']['value']}"
+        if EZVARS_prep['prepro']['bin3d']['value']:
+            cmd += " ! slice"
+    # WRITE
+    # cmd += f" ! write filename={os.path.join(outpath, 'im-%05i.tif')}"
+    cmd += f" ! write filename={outptrn}"
+    cmd = check_bigtif(cmd, EZVARS_prep['prepro']['bigtiff']['value'])
+    # in the general case output images are floating point so I've disabled attempt
+    # to preserve the original bitrate as
+    # bits, dt = get_image_dtype(inptrn)
+    # if not EZVARS_prep['prepro']['clip_hist']['value']:
+    #     # if (int(bits) == 16) or (int(bits) == 8):
+    #     #     cmd += f" bits={bits} rescale=FALSE"
+    if EZVARS_prep['prepro']['clip_hist']['value']:
+        b = 16
+        if EZVARS_prep['prepro']['out8bit']['value']:
+            b = 8
+        cmd += f" bits={b} rescale=TRUE"
+        cmd += ' minimum={} maximum={}'. \
+            format(EZVARS_prep['prepro']['min_int_val']['value'],
+                   EZVARS_prep['prepro']['max_int_val']['value'])
+    return cmd
+
+def fmt_prepro_rmout(cmd):
+    if EZVARS_prep['prepro']['rmout_pos']['value']:
+        cmd += f" ! remove-outliers sign=1"
+        cmd += f" size={EZVARS_prep['prepro']['rmout_pos_size']['value']}"
+        cmd += f" threshold={EZVARS_prep['prepro']['rmout_pos_thr']['value']}"
+    if EZVARS_prep['prepro']['rmout_neg']['value']:
+        cmd += f" ! remove-outliers sign=-1"
+        cmd += f" size={EZVARS_prep['prepro']['rmout_neg_size']['value']}"
+        cmd += f" threshold={EZVARS_prep['prepro']['rmout_neg_thr']['value']}"
     return cmd
