@@ -28,12 +28,15 @@ class CentreOfRotationGroup(QGroupBox):
         self.auto_minimize_rButton = QRadioButton()
         self.auto_minimize_rButton.setText("Auto: Minimize STD of a slice")
         self.auto_minimize_rButton.setToolTip(
-            "Reconstructed patches are saved \nin your-temporary-data-folder\\axis-search"
+            "Reconstructed patches are saved \nin the output-dir\\axis-search"
         )
         self.auto_minimize_rButton.clicked.connect(self.set_rButton)
 
         self.cor_search_rel = QCheckBox()
         self.cor_search_rel.setText("Set search range relative to the center column")
+        # self.cor_search_rel.setToolTip(
+        #     "If checked the first and second values are added to the image center\n"
+        # )
         self.cor_search_rel.stateChanged.connect(self.set_search_params_rel)
         self.cor_search_rel.setChecked(True)
 
@@ -56,6 +59,9 @@ class CentreOfRotationGroup(QGroupBox):
         self.search_in_slice_entry = QLineEdit()
         #self.search_in_slice_entry.setValidator(get_int_validator())
         self.search_in_slice_entry.editingFinished.connect(self.set_search_slice)
+        self.search_in_slice_entry.setToolTip(
+            "If the input is in (0..1) range \n the row index is computed with respect to the image height"
+        )
 
         self.size_of_recon_label = QLabel()
         self.size_of_recon_label.setText("Size of reconstructed patch [pixel]")

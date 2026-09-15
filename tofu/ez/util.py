@@ -551,14 +551,14 @@ def get_fd_names():
     return tuple(EZVARS['inout'][f'{fd_type}-dir']['value'] for fd_type in ['darks', 'flats', 'flats2'])
 
 
-def get_roi_row0_and_height(h) -> int:
+def get_roi_row0_and_height(h) -> tuple[int, int]:
     roi_row0, roi_height = 0, h
     if EZVARS['inout']['input_ROI']['value']:
         roi_height = EZVARS['inout']['height']['value']
         if roi_height<1:
             roi_height = int(roi_height*h)
         roi_row0 = EZVARS['inout']['y']['value']
-        if roi_row0<1:
+        if (roi_row0<1) and (roi_row0>0):
             roi_row0 = int(roi_row0*h)
     return int(roi_row0), int(roi_height)
 

@@ -76,12 +76,12 @@ def find_axis_std(ctset, nviews, wh, tmpdir, reduction_mode="median"):
         cmd += '; done'
     else:
         cmd += " --output {}".format(enquote(out_pattern))
-        cmd += ' --z {}'.format(srow - image_height//2)
+        cmd += ' --z {}'.format(int(srow - image_height//2))
         cmd += ' --z-parameter center-position-x'
         if EZVARS['COR']['cor-rel-search']['value']:
-            range_string = str(w-range_min) + "," + str(w+range_max) + "," + str(step)
+            range_string = str(w+float(range_min)) + "," + str(w+float(range_max)) + "," + step
         else:
-            range_string = str(w-range_min) + "," + str(w+range_max) + "," + str(step)
+            range_string = range_min + "," + range_max + "," + step
         cmd += " --region={}".format(range_string)
     print(cmd)
     os.system(cmd)
