@@ -39,6 +39,9 @@ def run_genreco(args):
     from tofu import genreco
     genreco.genreco(args)
 
+def run_rgba_bp(args):
+    from tofu import rgbareco
+    rgbareco.run_rgba_bp(args)
 
 def run_flat_correct(args):
     from tofu import preprocess
@@ -217,6 +220,8 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
+        ('rgbabp',      run_rgba_bp,    config.RGBA_BP_PARAMS,          "RGBA Backprojection for "
+                                                                        "parallel beam tomography")
     ]
 
     if sys.version < '3.7':
