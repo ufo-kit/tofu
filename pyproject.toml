@@ -12,9 +12,13 @@ authors = [
     { name = "Tomas Farago", email = "tomas.farago@kit.edu" },
 ]
 dependencies = [
+    "imagecodecs",
     "PyGObject",
+    "PyQt5",
     "imageio",
     "numpy",
+    "pyqtgraph",
+    "scipy",
     "tifffile",
     "scikit-image",
 ]
