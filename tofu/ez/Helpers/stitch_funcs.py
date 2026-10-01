@@ -227,7 +227,8 @@ def exec_sti_mp(indir, pout, N, Nnew, Vsteps, dx, M, ramp, indtype, j):
         second = second * k
 
         a, b, c = i*Nnew, (i+1)*Nnew, (i+2)*Nnew
-        Large[a:b, :] = first[:N-dx, :]
+        if i == 0:
+            Large[a:b, :] = first[:N-dx, :]
         Large[b:b+dx, :] = np.transpose(np.transpose(first[N-dx:, :])*(1 - ramp) +
                                         np.transpose(second[:dx, :]) * ramp)
         Large[b+dx:c+dx, :] = second[dx:, :]
