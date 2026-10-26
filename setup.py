@@ -28,6 +28,8 @@ setup(
         'numpy',
         'tifffile',
         'scikit-image',
+        'matplotlib>=3.3',
+        'seaborn>=0.11',
     ],
     extras_require={
         'interactive': ['IPython'],

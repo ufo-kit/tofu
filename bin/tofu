@@ -40,6 +40,10 @@ def run_genreco(args):
     genreco.genreco(args)
 
 
+def run_fsc(args):
+    from tofu import fsc
+    fsc.run(args)
+
 def run_flat_correct(args):
     from tofu import preprocess
     preprocess.run_flat_correct(args)
@@ -217,6 +221,7 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
+        ('fsc',         run_fsc,        (),                             "Fourier shell correlation")
     ]
 
     if sys.version < '3.7':
@@ -225,12 +230,19 @@ def main():
         subparsers = parser.add_subparsers(title="Commands", dest='commands', required=True)
 
     for cmd, func, sections, text in cmd_parsers:
-        cmd_params = config.Params(sections=sections)
         cmd_parser = subparsers.add_parser(cmd, help=text, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        cmd_parser = cmd_params.add_arguments(cmd_parser)
+        if cmd == 'fsc':
+            from tofu import fsc
+            fsc.add_arguments(cmd_parser)
+        else:
+            cmd_params = config.Params(sections=sections)
+            cmd_parser = cmd_params.add_arguments(cmd_parser)
         cmd_parser.set_defaults(_func=func)
 
-    args = config.parse_known_args(parser, subparser=True)
+    if len(sys.argv) > 1 and sys.argv[1] == 'fsc':
+        args = fsc.parse_args(parser, sys.argv[2:])
+    else:
+        args = config.parse_known_args(parser, subparser=True)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     LOG.setLevel(log_level)

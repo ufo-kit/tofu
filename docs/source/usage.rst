@@ -7,4 +7,5 @@ Usage
     usage/io
     usage/preprocessing
     usage/genreco
+    usage/fsc
     usage/flow
