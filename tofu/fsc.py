@@ -1005,7 +1005,7 @@ def run(args: argparse.Namespace) -> FSCResult:
             )
         gpu = devices[args.gpu]
         LOG.info("Selected GPU %d: %s", args.gpu, gpu.get_info(Ufo.GpuNodeInfo.NAME))
-        estimate_memory(args, resolved, geometry, _device_limits(gpu))
+        # estimate_memory(args, resolved, geometry, _device_limits(gpu))
         graph, output = construct_graph(args, resolved, gpu)
         statistics = FSCShellStatistics.from_ufo(
             execute_graph(graph, output, resources)
