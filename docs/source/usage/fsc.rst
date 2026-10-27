@@ -89,16 +89,22 @@ rows extend from ``--y`` to its end.
 (default) and ``clamp_to_edge``. Even/odd reconstruction and volume output are fixed,
 not user options. A complete region must fit on one GPU; there is no slab splitting.
 
-Before reconstruction, a conservative estimate is compared with **80% of total
-device memory**. It includes backprojection buffers, scheduler pools, both spectra,
-the retained spectrum, calibration/filtering buffers, FFT workspaces and shell
-reduction buffers. Allocation, image-size and local-memory limits are also checked.
+Before reconstruction, each GPU plugin is checked independently. Each known
+allocation must fit the device allocation limit, and that plugin's known
+simultaneous input/output/private working set must fit total device memory.
+RGBA's additional allocation cap and image limits, and FSC's local-memory limit,
+are also checked. There is no combined pipeline budget or percentage reserve.
+RGBA volume mode excludes the slice-only planar buffer. Median calibration stacks
+are host allocations because ``stack`` and ``flatten`` are CPU tasks; they are
+reported separately, not charged against GPU memory.
 Exact-size non-power-of-two FFTs use expanded chirp-Z arrays and may require much
 more memory than similarly sized power-of-two volumes.
 
-This is not a measurement of free VRAM or a guarantee: backend workspace and driver
-overhead are estimated, and concurrent GPU users can cause allocation failure.
-Rejection reports the estimated requirement and relevant limits before creating
+These are plugin-local feasibility checks, not a measurement of free VRAM or a
+guarantee for the combined runtime peak. Overlapping task allocations, unknown FFT
+backend workspace, driver overhead and concurrent GPU users can cause allocation
+failure. Speculative workspace reserves and scheduler pools are not grounds for
+preflight rejection. Rejection identifies the plugin, allocation and limit before creating
 result artifacts. Reduce the region or burst, or choose a larger GPU, as appropriate.
 
 FSC configuration and interpretation
@@ -159,6 +165,54 @@ before replacement; replacement of all three files is not a filesystem transacti
 Total execution time includes preflight, GPU computation, plotting and NPZ writing,
 but excludes the final JSON write and artifact replacement.
 
+Optional reconstructed volumes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``--write-volumes`` defaults to false. When omitted, only the three FSC artifacts
+are written; an older volume export is not deleted or updated.
+
+When enabled, the command releases the main graph and then runs a second
+reconstruction on the same GPU. Both runs share exactly the same reconstruction
+builder, including correction, filtering, detector selection, regions and centres.
+The second graph is ``rgba-backproject(output-mode=volume) -> slice -> write``.
+The slice stage avoids the writer's special RGB handling of three-plane inputs.
+
+``even-odd-volumes.tif`` is one unscaled float32 BigTIFF shaped ``(2Z,Y,X)``:
+the complete even volume first, then the complete odd volume. Its dimensions,
+page count and dtype are validated before replacing a previous export. The export
+path is added to ``fsc.json`` and total execution time includes the second run.
+If requested export fails, the completed FSC PNG/JSON/NPZ are retained, an error
+is reported and the command exits nonzero. File replacement is not a multi-file
+filesystem transaction.
+
+Export does not branch or download volumes from the main FSC graph and does not
+change its computed results. It adds reconstruction time, host memory and disk I/O.
+Inputs must remain unchanged between passes. A second reconstruction may differ
+slightly through floating-point arithmetic; compare numerically rather than bitwise.
+
+For an already-filtered benchmark dataset::
+
+    tofu fsc --projections filtered.tif --number 3000 \
+        --region=-16,16,1 --center-position-x=996 \
+        --projection-filter none --write-volumes
+
+Match the benchmark's burst, addressing mode, regions, centres and projection
+selection; tofu's angle is in degrees, whereas the benchmark JSON uses radians.
+Use the NumPy benchmark on the exported volumes, with the same voxel spacings,
+shell width and maximum frequency::
+
+    python /path/to/analytical_methods/benchmarks/fsc/run_numpy_fsc.py \
+        fsc/even-odd-volumes.tif --voxel-size-x 1 --voxel-size-y 1 \
+        --voxel-size-z 1 --shell-width 0 --max-frequency 0.5
+
+Compare bin centres and counts first, then FSC, half-bit and geometric curves.
+The benchmark's additional fixed-threshold curve is not produced by tofu. Use
+the established ``rtol=2e-3, atol=2e-4`` for floating reductions; unexpected count
+differences or larger discrepancies need investigation rather than plot adjustments.
+
+Structured result access
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 Load a structured result without UFO resource creation or pickle::
 
     from tofu.fsc import FSCResult
@@ -195,6 +249,7 @@ Use ``tofu fsc --config fsc.conf`` with an INI file, for example::
     projection-filter = none
     overall-angle = 180
     output = fsc
+    write-volumes = false
 
 Supported settings in ``[general]``, ``[reading]``, ``[flat-correction]`` and
 ``[preprocess]`` are also accepted. ``[fsc]`` takes precedence, followed by explicit

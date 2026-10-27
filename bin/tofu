@@ -221,7 +221,7 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
-        ('fsc',         run_fsc,        (),                             "Fourier shell correlation")
+        ('fsc',         run_fsc,        config.FSC_PARAMS,              "Fourier shell correlation")
     ]
 
     if sys.version < '3.7':
@@ -231,18 +231,11 @@ def main():
 
     for cmd, func, sections, text in cmd_parsers:
         cmd_parser = subparsers.add_parser(cmd, help=text, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        if cmd == 'fsc':
-            from tofu import fsc
-            fsc.add_arguments(cmd_parser)
-        else:
-            cmd_params = config.Params(sections=sections)
-            cmd_parser = cmd_params.add_arguments(cmd_parser)
+        cmd_params = config.Params(sections=sections)
+        cmd_parser = cmd_params.add_arguments(cmd_parser)
         cmd_parser.set_defaults(_func=func)
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'fsc':
-        args = fsc.parse_args(parser, sys.argv[2:])
-    else:
-        args = config.parse_known_args(parser, subparser=True)
+    args = config.parse_known_args(parser, subparser=True)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     LOG.setLevel(log_level)

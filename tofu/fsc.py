@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import configparser
+import gc
 import ctypes as ct
 import ctypes.util
 from dataclasses import asdict, dataclass
@@ -18,7 +18,6 @@ from typing import Any, Sequence
 import numpy as np
 
 LOG = logging.getLogger("tofu.fsc")
-MEMORY_FRACTION = 0.8
 GEOMETRIC_MIN_SAMPLES = 10
 PLOT_STYLE = "darkgrid"
 PLOT_PALETTE = "muted"
@@ -246,169 +245,6 @@ def plot_fsc(result: FSCResult, path: str | Path, frequency_label: str) -> None:
         axis.legend()
         figure.savefig(path, dpi=PLOT_DPI, bbox_inches="tight")
         plt.close(figure)
-
-
-def _region(value: str) -> tuple[float, float, float]:
-    try:
-        parts = tuple(float(v) for v in value.split(","))
-        if len(parts) != 3 or not all(math.isfinite(v) for v in parts):
-            raise ValueError
-        if parts[1] <= parts[0] or parts[2] != 1.0:
-            raise ValueError
-    except ValueError as exc:
-        raise argparse.ArgumentTypeError(
-            "Expected finite START,STOP,1 with STOP > START"
-        ) from exc
-    return parts
-
-
-def add_arguments(parser: argparse.ArgumentParser) -> None:
-    """Register only supported options; do not inherit Params' writer flags."""
-    from tofu import config
-
-    selections = {
-        "general": ("config", "verbose", "log", "width"),
-        "reading": (
-            "y",
-            "height",
-            "bitdepth",
-            "start",
-            "step",
-            "retries",
-            "retry-timeout",
-        ),
-        "flat-correction": (
-            "projections",
-            "flats",
-            "darks",
-            "flats2",
-            "dark-scale",
-            "flat-scale",
-            "absorptivity",
-            "fix-nan-and-inf",
-        ),
-        "preprocess": (
-            "projection-filter",
-            "projection-filter-cutoff",
-            "projection-filter-scale",
-            "projection-padding-mode",
-            "projection-crop-after",
-        ),
-    }
-    for section, names in selections.items():
-        for name in names:
-            options = {
-                k: v
-                for k, v in config.SECTIONS[section][name].items()
-                if k not in ("unit", "ezdefault")
-            }
-            if name == "config":
-                options["default"] = None
-            if name == "projections":
-                options["required"] = True
-            parser.add_argument("--" + name, **options)
-    parser.add_argument(
-        "--number",
-        "--num-projections",
-        type=int,
-        required=True,
-        help="Number of selected projection frames (2..32768)",
-    )
-    parser.add_argument(
-        "--output", default="fsc", help="Directory for PNG, JSON and NPZ results"
-    )
-    parser.add_argument("--gpu", type=int, default=0, help="One visible UFO GPU index")
-    parser.add_argument("--burst", type=int, default=16)
-    parser.add_argument(
-        "--overall-angle", type=float, default=180.0, help="Angular coverage in degrees"
-    )
-    for axis in ("x", "z"):
-        parser.add_argument(
-            "--center-position-" + axis,
-            type=float,
-            help="Centre in original detector pixels (default: detector midpoint)",
-        )
-    parser.add_argument(
-        "--region", type=_region, required=True, help="Z region: START,STOP,1"
-    )
-    for axis in ("x", "y"):
-        parser.add_argument(
-            "--" + axis + "-region",
-            type=_region,
-            help="START,STOP,1; default covers the unpadded detector width",
-        )
-    parser.add_argument(
-        "--addressing-mode", choices=("none", "clamp", "clamp_to_edge"), default="clamp"
-    )
-    parser.add_argument(
-        "--reduction-mode",
-        type=str.lower,
-        choices=("average", "median"),
-        default="average",
-    )
-    for axis in ("x", "y", "z"):
-        parser.add_argument(
-            "--voxel-size-" + axis,
-            type=float,
-            default=1.0,
-            help="Reconstructed voxel spacing in a common length unit",
-        )
-    parser.add_argument(
-        "--shell-width",
-        type=float,
-        default=0.0,
-        help="Radial bin width; 0 selects automatic",
-    )
-    parser.add_argument(
-        "--max-frequency",
-        type=float,
-        default=0.0,
-        help="Frequency limit; 0 selects automatic",
-    )
-    parser.add_argument(
-        "--threshold-criterion", choices=("half-bit",), default="half-bit"
-    )
-
-
-def parse_args(
-    parser: argparse.ArgumentParser, argv: Sequence[str]
-) -> argparse.Namespace:
-    """Read compatible INI sections, then [fsc], then explicit CLI overrides."""
-    probe = argparse.ArgumentParser(add_help=False)
-    probe.add_argument("--config")
-    config_path = probe.parse_known_args(argv)[0].config
-    tokens: list[str] = []
-    if config_path:
-        settings = configparser.ConfigParser(interpolation=None)
-        if not settings.read(config_path):
-            parser.error(f"Cannot read configuration file: {config_path}")
-        option_parser = argparse.ArgumentParser(add_help=False)
-        add_arguments(option_parser)
-        actions = option_parser._option_string_actions
-        for section in ("general", "reading", "flat-correction", "preprocess", "fsc"):
-            if not settings.has_section(section):
-                continue
-            for name, value in settings.items(section):
-                option = "--" + name.replace("_", "-")
-                if option not in actions:
-                    if section == "fsc":
-                        parser.error(f"Unsupported FSC configuration option: {name}")
-                    continue
-                if value in ("", "None"):
-                    continue
-                action = actions[option]
-                if isinstance(action, argparse._StoreTrueAction):
-                    try:
-                        enabled = settings.getboolean(section, name)
-                    except ValueError as exc:
-                        parser.error(str(exc))
-                    # A false value in [fsc] can override an earlier true value.
-                    tokens = [token for token in tokens if token != option]
-                    if enabled:
-                        tokens.append(option)
-                else:
-                    tokens.append(f"{option}={value}")
-    return parser.parse_args(["fsc", *tokens, *argv])
 
 
 def resolve_geometry(shape: Sequence[int], args: argparse.Namespace) -> ShellGeometry:
@@ -658,75 +494,87 @@ def estimate_memory(
     geometry: ShellGeometry,
     limits: dict[str, int],
 ) -> dict[str, Any]:
-    """Conservative allocation ledger, not a measurement of currently free VRAM."""
+    """Check known task-local allocations, without a combined pipeline budget.
+
+    Each entry includes one current input/output and the task's known private
+    storage. Scheduler recycling pools and unknown FFT backend scratch storage
+    are not guessed. A passing check is not a promise of free memory at runtime.
+    """
     nz, ny, nx = resolved["volume_shape_zyx"]
     zp = 4 * math.ceil(nz / 4)
     width, height = resolved["backprojection_width"], resolved["height"]
     batch = 2 * args.burst
-    voxels = nx * ny * nz
-    real = 4 * voxels
-    complex_bytes = 8 * voxels
-    bins = geometry.number_of_bins
-    # G <= 4 * compute units, independently of the kernel's local-size choice.
-    groups = max(1, 4 * limits["compute_units"])
-    allocations: list[tuple[str, int, int, bool]] = []
-
-    def add(name: str, size: int, copies: int = 1, rgba: bool = False) -> None:
-        allocations.append((name, size, copies, rgba))
-
-    add("RGBA projection staging", 4 * width * height * batch, rgba=True)
-    add("RGBA texture", 2 * width * zp * batch, rgba=True)
-    add("RGBA accumulators/coalescing", 4 * nx * ny * zp, 3, rgba=True)
-    add("RGBA angle table", 8 * batch, rgba=True)
-    add("RGBA output pool", real, 2)
-    add("FFT output pool and retained FSC spectrum", complex_bytes, 3)
-    work_shape = tuple(
-        n if n & (n - 1) == 0 else 1 << (2 * n - 2).bit_length() for n in (nx, ny, nz)
-    )
-    work_bytes = 8 * math.prod(work_shape)
-    if work_shape != (nx, ny, nz):
-        add("FFT chirp-Z temporary and coefficient arrays", work_bytes, 3)
-    add("3D FFT backend workspace allowance", work_bytes)
-    add("FSC partial reductions", 32 * groups * bins)
-    add("FSC output pool/copy", 28 * bins, 3)
-
+    real = 4 * nx * ny * nz
+    spectrum = 2 * real
     plane = 4 * resolved["width"] * height
-    add("Projection reader output pool", plane, 2)
-    for name, info in resolved["inputs"].items():
-        if name == "projections":
-            continue
-        add(f"{name} reader and reduction pools", plane, 5)
-        if args.reduction_mode == "median":
-            # stack output is a reductor buffer; allow recycling plus sort workspace.
-            add(f"{name} median stack/workspace", plane * info.frames, 3)
-    if args.flats:
-        add("Flat correction output pool", plane, 2)
-    elif args.absorptivity:
-        add("Absorption conversion output pool", plane, 2)
-    if args.flats2:
-        add("Flat interpolation output pool", plane, 2)
-    if args.projection_filter != "none":
-        padded_plane = 4 * resolved["padded_width"] * height
-        add("Filtering real buffer pools", padded_plane, 4)
-        add("Filtering complex buffer pools/backend allowances", 2 * padded_plane, 6)
-        add("Filter coefficients", 4 * resolved["padded_width"])
-        if args.projection_crop_after == "filter":
-            add("Filtering crop output pool", plane, 2)
+    bins = geometry.number_of_bins
+    groups = max(1, min(4 * limits["compute_units"], nx * ny * nz))
+    tasks: dict[str, dict[str, int]] = {}
+    host_allocations: dict[str, int] = {}
+    problems: list[str] = []
 
-    total = sum(size * count for _, size, count, _ in allocations)
-    budget = int(limits["global_memory"] * MEMORY_FRACTION)
-    problems = []
-    for name, size, _, rgba in allocations:
+    def check(name: str, allocations: dict[str, int], rgba: bool = False) -> None:
+        tasks[name] = allocations
         limit = (
             min(limits["max_allocation"], 2**32) if rgba else limits["max_allocation"]
         )
-        if size > limit:
+        for label, size in allocations.items():
+            if size > limit:
+                problems.append(
+                    f"{name}: {label} needs {size / 2**20:.1f} MiB; "
+                    f"allocation limit {limit / 2**20:.1f} MiB"
+                )
+        working_set = sum(allocations.values())
+        if working_set > limits["global_memory"]:
             problems.append(
-                f"{name}: one allocation needs {size / 2**20:.1f} MiB; limit {limit / 2**20:.1f} MiB"
+                f"{name}: known working set {working_set / 2**30:.2f} GiB "
+                f"exceeds total device memory {limits['global_memory'] / 2**30:.2f} GiB"
             )
+        LOG.info("%s: known task-local working set %.3f GiB", name, working_set / 2**30)
+
+    # Volume mode has two coalesced accumulators; it does not allocate the
+    # slice-mode planar buffer. Packing the first output overlaps both accumulators.
+    check(
+        "rgba-backproject",
+        {
+            "input projection": 4 * width * height,
+            "projection staging": 4 * width * height * batch,
+            "projection texture": 2 * width * zp * batch,
+            "even accumulator": 4 * nx * ny * zp,
+            "odd accumulator": 4 * nx * ny * zp,
+            "angle table": 8 * batch,
+            "output volume": real,
+        },
+        rgba=True,
+    )
+
+    work_shape = tuple(
+        n if n & (n - 1) == 0 else 1 << (2 * n - 2).bit_length() for n in (nx, ny, nz)
+    )
+    fft_allocations = {"input volume": real, "output spectrum": spectrum}
+    if work_shape != (nx, ny, nz):
+        work_bytes = 8 * math.prod(work_shape)
+        fft_allocations.update(
+            {
+                "chirp-Z temporary": work_bytes,
+                "chirp-Z coefficients": work_bytes,
+                "chirp-Z transformed coefficients": work_bytes,
+            }
+        )
+    check("fft (3D)", fft_allocations)
+    check(
+        "fsc-core",
+        {
+            "input spectrum": spectrum,
+            "retained first spectrum": spectrum,
+            "partial reductions (group-count upper bound)": 32 * groups * bins,
+            "shell output": 28 * bins,
+        },
+    )
     if 24 * bins > limits["local_memory"]:
         problems.append(
-            f"FSC local shell table needs {24 * bins} bytes; limit {limits['local_memory']}"
+            f"fsc-core: local shell table needs {24 * bins} bytes; "
+            f"local-memory limit {limits['local_memory']}"
         )
     for name, needed in (
         ("image_width", width),
@@ -734,34 +582,88 @@ def estimate_memory(
         ("image_layers", batch),
     ):
         if needed > limits[name]:
-            problems.append(f"RGBA {name}: needs {needed}; limit {limits[name]}")
-    if total > budget:
-        problems.append("Total estimated pipeline memory exceeds the 80% budget")
-    explanation = (
-        f"FSC shape (Z,Y,X)={nz, ny, nx}: estimated {total / 2**30:.2f} GiB, "
-        f"budget {budget / 2**30:.2f} GiB (80% of total device memory)."
-    )
+            problems.append(
+                f"rgba-backproject: {name} needs {needed}; limit {limits[name]}"
+            )
+
+    for name, info in resolved["inputs"].items():
+        if name == "projections":
+            continue
+        if args.reduction_mode == "median":
+            # stack and flatten are CPU tasks: never charge their stacks to VRAM.
+            host_allocations[f"{name} stack"] = plane * info.frames
+            LOG.info(
+                "%s median stack: %.1f MiB host memory (not GPU)",
+                name,
+                plane * info.frames / 2**20,
+            )
+        else:
+            check(
+                f"average ({name})", {"input frame": plane, "accumulator/output": plane}
+            )
+    if args.flats:
+        check(
+            "flat-field-correct",
+            {
+                "projection": plane,
+                "dark": plane,
+                "flat": plane,
+                "output": plane,
+            },
+        )
+    elif args.absorptivity or args.fix_nan_and_inf:
+        check("calculate", {"input": plane, "output": plane})
+    if args.flats2:
+        check(
+            "interpolate",
+            {
+                "first input": plane,
+                "second input": plane,
+                "retained first": plane,
+                "retained second": plane,
+                "output": plane,
+            },
+        )
+    if args.projection_filter != "none":
+        padded = 4 * resolved["padded_width"] * height
+        check("pad", {"input": plane, "output": padded})
+        check("fft (projection)", {"input": padded, "output": 2 * padded})
+        check(
+            "filter",
+            {
+                "input": 2 * padded,
+                "output": 2 * padded,
+                "coefficients": 8 * resolved["padded_width"],
+            },
+        )
+        check("ifft (projection)", {"input": 2 * padded, "output": padded})
+        if args.projection_crop_after == "filter":
+            check("crop", {"input": padded, "output": plane})
     if problems:
         raise RuntimeError(
-            explanation
-            + "\n"
+            f"FSC shape (Z,Y,X)={nz, ny, nx} fails plugin-local memory checks:\n"
             + "\n".join(problems)
-            + "\nReduce the reconstruction region/burst, use coarser shells, or select a larger GPU. "
-            "Non-power-of-two shapes can require substantially larger FFT work arrays."
+            + "\nReduce the relevant region/burst, use coarser shells, or select a larger GPU."
         )
-    LOG.info(explanation)
     LOG.info(
-        "Preflight uses total, not currently free, GPU memory; concurrent users can still cause allocation failure."
+        "Plugin-local checks passed; no combined pipeline budget or percentage reserve applied. "
+        "Overlapping allocations, FFT backend workspace and other GPU users can still cause runtime allocation failure."
     )
     return {
-        "estimated_bytes": total,
-        "budget_bytes": budget,
+        "plugins": {
+            name: {
+                "allocations": allocations,
+                "working_set_bytes": sum(allocations.values()),
+            }
+            for name, allocations in tasks.items()
+        },
+        "host_allocations": host_allocations,
+        "device_memory_bytes": limits["global_memory"],
         "fft_work_shape_xyz": work_shape,
-        "allocations": {name: size * count for name, size, count, _ in allocations},
     }
 
 
-def construct_graph(
+def construct_reconstruction_graph(
     args: argparse.Namespace, resolved: dict[str, Any], gpu: Any
 ) -> tuple[Any, Any]:
     from gi.repository import Ufo
@@ -851,6 +753,21 @@ def construct_graph(
         operation_mode="even_odd",
         output_mode="volume",
     )
+    graph.connect_nodes(current, backproject)
+    return graph, backproject
+
+
+def construct_graph(
+    args: argparse.Namespace, resolved: dict[str, Any], gpu: Any
+) -> tuple[Any, Any]:
+    from gi.repository import Ufo
+    from tofu.tasks import get_task
+
+    graph, backproject = construct_reconstruction_graph(args, resolved, gpu)
+
+    def task(name: str, **properties: Any) -> Any:
+        return get_task(name, processing_node=gpu, **properties)
+
     fft = task("fft", dimensions=3, auto_zeropadding=False)
     core = task(
         "fsc-core",
@@ -863,7 +780,6 @@ def construct_graph(
     output = Ufo.OutputTask()
     output.set_property("num-dims", 2)
     for source, target in (
-        (current, backproject),
         (backproject, fft),
         (fft, core),
         (core, output),
@@ -914,6 +830,97 @@ def execute_graph(graph: Any, output: Any, resources: Any) -> np.ndarray:
             f"Expected one complete FSC pair, received {len(arrays)} results; check projection count"
         )
     return arrays[0]
+
+
+def write_volumes(
+    args: argparse.Namespace,
+    resolved: dict[str, Any],
+    gpu: Any,
+    resources: Any,
+    started: float,
+) -> Path:
+    """Optional diagnostic rerun; keep all export-only behavior in this function.
+
+    The caller has already saved FSC and released its graph. This second graph
+    intentionally downloads reconstructed volumes; the main graph never does.
+    """
+    from gi.repository import Ufo
+    from tifffile import TiffFile
+    from tofu.tasks import get_task
+
+    directory = Path(args.output)
+    destination = directory / "even-odd-volumes.tif"
+    LOG.info(
+        "Exporting even/odd volumes with a second reconstruction; inputs must remain unchanged"
+    )
+
+    def reconstruct(path: Path) -> None:
+        graph, backproject = construct_reconstruction_graph(args, resolved, gpu)
+        # Always split to 2D, including Z=3 (write otherwise interprets it as RGB).
+        slices = get_task("slice", processing_node=gpu)
+        writer = get_task(
+            "write",
+            processing_node=gpu,
+            filename=str(path),
+            bits=32,
+            rescale=False,
+            append=False,
+            tiff_bigtiff=True,
+        )
+        graph.connect_nodes(backproject, slices)
+        graph.connect_nodes(slices, writer)
+        scheduler = Ufo.FixedScheduler()
+        scheduler.set_resources(resources)
+        scheduler.set_property("expand", False)
+        try:
+            scheduler.run(graph)
+        finally:
+            # Dropping the writer closes/flushes the TIFF before metadata validation.
+            del scheduler, graph, writer, slices, backproject
+            gc.collect()
+
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix=".fsc-volumes-", dir=directory
+        ) as temporary:
+            staging = Path(temporary)
+            volume_path = staging / destination.name
+            reconstruct(volume_path)
+            nz, ny, nx = resolved["volume_shape_zyx"]
+            with TiffFile(volume_path) as tif:
+                if not tif.is_bigtiff or len(tif.pages) != 2 * nz:
+                    raise ValueError(
+                        "Export must be a BigTIFF containing exactly 2*Z pages"
+                    )
+                for page in tif.pages:
+                    if (
+                        page.shape != (ny, nx)
+                        or page.dtype != np.dtype("float32")
+                        or page.samplesperpixel != 1
+                    ):
+                        raise ValueError(
+                            "Export must contain float32 grayscale (Y,X) planes"
+                        )
+            # Prepare metadata before replacing either file. Existing FSC curves
+            # and any previous valid export survive computation/validation failure.
+            json_path = directory / "fsc.json"
+            metadata = json.loads(json_path.read_text())
+            metadata["outputs"]["volumes"] = str(destination)
+            metadata["runtime"]["total_execution_time_seconds"] = (
+                time.perf_counter() - started
+            )
+            metadata_path = staging / "fsc.json"
+            metadata_path.write_text(
+                json.dumps(metadata, indent=2, allow_nan=False) + "\n"
+            )
+            os.replace(volume_path, destination)
+            os.replace(metadata_path, json_path)
+    except Exception as exc:
+        raise RuntimeError(
+            f"FSC results were saved, but the requested volume export failed: {exc}"
+        ) from exc
+    LOG.info("Saved float32 even-then-odd volumes to %s", destination)
+    return destination
 
 
 def save_outputs(
@@ -1005,13 +1012,18 @@ def run(args: argparse.Namespace) -> FSCResult:
             )
         gpu = devices[args.gpu]
         LOG.info("Selected GPU %d: %s", args.gpu, gpu.get_info(Ufo.GpuNodeInfo.NAME))
-        # estimate_memory(args, resolved, geometry, _device_limits(gpu))
+        estimate_memory(args, resolved, geometry, _device_limits(gpu))
         graph, output = construct_graph(args, resolved, gpu)
         statistics = FSCShellStatistics.from_ufo(
             execute_graph(graph, output, resources)
         )
+        # Release task-owned spectra and FFT workspaces before optional reconstruction.
+        del graph, output
+        gc.collect()
         result = FSCResult.from_statistics(statistics, geometry)
         save_outputs(args, resolved, result, started)
+        if args.write_volumes:
+            write_volumes(args, resolved, gpu, resources, started)
         return result
     except (ValueError, OSError, ImportError, OverflowError) as exc:
         raise RuntimeError(str(exc)) from exc

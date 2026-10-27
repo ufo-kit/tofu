@@ -1,8 +1,10 @@
 import argparse
+import math
 import sys
 import logging
 import configparser as configparser
 from collections import OrderedDict
+from typing import Tuple
 from tofu.util import convert_filesize, restrict_value, tupleize, range_list
 
 
@@ -885,6 +887,79 @@ PREPROC_PARAMS = ('preprocess', 'cone-beam-weight', 'flat-correction', 'retrieve
 LAMINO_PARAMS = PREPROC_PARAMS + ('laminographic-reconstruction',)
 GEN_RECO_PARAMS = PREPROC_PARAMS + ('general-reconstruction',)
 
+def fsc_region(value: str) -> Tuple[float, float, float]:
+    try:
+        parts = tuple(float(v) for v in value.split(","))
+        if len(parts) != 3 or not all(math.isfinite(v) for v in parts):
+            raise ValueError
+        if parts[1] <= parts[0] or parts[2] != 1.0:
+            raise ValueError
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "Expected finite START,STOP,1 with STOP > START"
+        ) from exc
+    return parts
+
+
+# FSC uses an exact option set: do not inherit image-writer or phase options.
+FSC_PARAMS = ('fsc',)
+EXACT_PARAM_SECTIONS = {FSC_PARAMS}
+SCOPED_COMMANDS = {
+    'fsc': ('general', 'reading', 'flat-correction', 'preprocess', 'fsc'),
+}
+FSC_SHARED_OPTIONS = {
+    'general': ('config', 'verbose', 'log', 'width'),
+    'reading': ('y', 'height', 'bitdepth', 'start', 'step', 'retries', 'retry-timeout'),
+    'flat-correction': ('projections', 'flats', 'darks', 'flats2', 'dark-scale',
+                        'flat-scale', 'absorptivity', 'fix-nan-and-inf'),
+    'preprocess': ('projection-filter', 'projection-filter-cutoff',
+                   'projection-filter-scale', 'projection-padding-mode',
+                   'projection-crop-after'),
+}
+SECTIONS['fsc'] = {
+    name: dict(SECTIONS[section][name])
+    for section, names in FSC_SHARED_OPTIONS.items() for name in names
+}
+SECTIONS['fsc']['config']['default'] = None
+SECTIONS['fsc']['projections']['required'] = True
+SECTIONS['fsc'].update({
+    'number': {'type': int, 'default': None, 'required': True,
+               'aliases': ('num-projections',),
+               'help': 'Number of selected projection frames (2..32768)'},
+    'output': {'default': 'fsc', 'help': 'Directory for FSC results'},
+    'gpu': {'type': int, 'default': 0, 'help': 'One visible UFO GPU index'},
+    'burst': {'type': int, 'default': 16, 'help': 'RGBA burst size'},
+    'overall-angle': {'type': float, 'default': 180.0,
+                      'help': 'Angular coverage in degrees'},
+    'center-position-x': {'type': float, 'default': None,
+                          'help': 'Centre in original detector pixels (default: width/2)'},
+    'center-position-z': {'type': float, 'default': None,
+                          'help': 'Centre in original detector pixels (default: height/2)'},
+    'region': {'type': fsc_region, 'required': True, 'default': None,
+                'help': 'Z region: START,STOP,1'},
+    'x-region': {'type': fsc_region, 'default': None,
+                  'help': 'START,STOP,1; default covers the unpadded detector width'},
+    'y-region': {'type': fsc_region, 'default': None,
+                  'help': 'START,STOP,1; default covers the unpadded detector width'},
+    'addressing-mode': {'choices': ('none', 'clamp', 'clamp_to_edge'),
+                        'default': 'clamp', 'help': 'RGBA detector addressing mode'},
+    'reduction-mode': {'type': str.lower, 'choices': ('average', 'median'),
+                       'default': 'average', 'help': 'Calibration reduction method'},
+    'shell-width': {'type': float, 'default': 0.0,
+                    'help': 'Radial bin width; 0 selects automatic'},
+    'max-frequency': {'type': float, 'default': 0.0,
+                      'help': 'Frequency limit; 0 selects automatic'},
+    'threshold-criterion': {'choices': ('half-bit',), 'default': 'half-bit',
+                            'help': 'Resolution threshold criterion'},
+    'write-volumes': {'action': 'store_true', 'default': False,
+                      'help': 'Reconstruct again after FSC and export even/odd float32 BigTIFF'},
+})
+for axis in ('x', 'y', 'z'):
+    SECTIONS['fsc']['voxel-size-' + axis] = {
+        'type': float, 'default': 1.0,
+        'help': 'Reconstructed voxel spacing in a common length unit',
+    }
+
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
               'Sinogram generation', 'General reconstruction', 'Tomographic reconstruction',
               'Laminographic reconstruction', 'Filtered backprojection',
@@ -923,6 +998,8 @@ def parse_known_args(parser, subparser=False):
     command line. Use *parser* for parsing and is *subparser* is True take into
     account that there is a value on the command line specifying the subparser.
     """
+    if subparser and len(sys.argv) > 1 and sys.argv[1] in SCOPED_COMMANDS:
+        return parse_scoped_args(parser, sys.argv[1], sys.argv[2:])
     if len(sys.argv) > 1:
         subparser_value = [sys.argv[1]] if subparser else []
         config_values = config_to_list(config_name=get_config_name())
@@ -950,6 +1027,8 @@ def config_to_list(config_name=''):
         return []
 
     for section in SECTIONS:
+        if section in SCOPED_COMMANDS:
+            continue
         for name, opts in ((n, o) for n, o in list(SECTIONS[section].items()) if config.has_option(section, n)):
             value = config.get(section, name)
 
@@ -976,14 +1055,15 @@ def without_keys(d, keys):
 
 class Params(object):
     def __init__(self, sections=()):
-        self.sections = sections + ('general', 'reading')
+        self.sections = sections if sections in EXACT_PARAM_SECTIONS else sections + ('general', 'reading')
     
     def add_parser_args(self, parser):
         for section in self.sections:
             for name in sorted(SECTIONS[section]):
                 opts = without_keys(SECTIONS[section][name], {'ezdefault'})
                 opts.pop('unit', None)
-                parser.add_argument('--{}'.format(name), **opts)
+                aliases = opts.pop('aliases', ())
+                parser.add_argument('--{}'.format(name), *('--' + alias for alias in aliases), **opts)
                 
     def add_arguments(self, parser):
         self.add_parser_args(parser)
@@ -1032,7 +1112,10 @@ def log_values(args):
     """
     args = args.__dict__
 
-    for section, name in zip(SECTIONS, NICE_NAMES):
+    names = dict(zip(SECTIONS, NICE_NAMES))
+    if args.get('commands') == 'fsc':
+        names = {'fsc': 'Fourier shell correlation'}
+    for section, name in names.items():
         entries = sorted((k for k in list(args.keys()) if k.replace('_', '-') in SECTIONS[section]))
 
         if entries:
@@ -1041,3 +1124,44 @@ def log_values(args):
             for entry in entries:
                 value = args[entry] if args[entry] is not None else "-"
                 LOG.debug("  {:<16} {}".format(entry, value))
+
+
+def parse_scoped_args(parser, command, argv):
+    """Merge only a command's supported settings, with CLI taking precedence."""
+    probe = argparse.ArgumentParser(add_help=False)
+    probe.add_argument('--config')
+    config_path = probe.parse_known_args(argv)[0].config
+    values = {}
+    definitions = SECTIONS[command]
+    aliases = {alias: name for name, opts in definitions.items()
+               for alias in opts.get('aliases', ())}
+    if config_path:
+        settings = configparser.ConfigParser(interpolation=None)
+        if not settings.read(config_path):
+            parser.error('Cannot read configuration file: {}'.format(config_path))
+        for section in SCOPED_COMMANDS[command]:
+            if not settings.has_section(section):
+                continue
+            for key, value in settings.items(section):
+                key = key.replace('_', '-')
+                name = aliases.get(key, key)
+                if name not in definitions:
+                    if section == command:
+                        parser.error('Unsupported {} configuration option: {}'.format(command, key))
+                    continue
+                if value in ('', 'None'):
+                    continue
+                if definitions[name].get('action') == 'store_true':
+                    try:
+                        value = settings.BOOLEAN_STATES[value.lower()]
+                    except KeyError:
+                        parser.error('Invalid boolean for {}: {}'.format(name, value))
+                values[name] = value
+    tokens = []
+    for name, value in values.items():
+        if definitions[name].get('action') == 'store_true':
+            if value:
+                tokens.append('--' + name)
+        else:
+            tokens.append('--{}={}'.format(name, value))
+    return parser.parse_args([command] + tokens + list(argv))
