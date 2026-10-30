@@ -3,6 +3,7 @@ import math
 import sys
 import logging
 import configparser as configparser
+import shlex
 from collections import OrderedDict
 from typing import Tuple
 from tofu.util import convert_filesize, restrict_value, tupleize, range_list
@@ -927,14 +928,18 @@ SECTIONS['fsc'].update({
                'aliases': ('num-projections',),
                'help': 'Number of selected projection frames (2..32768)'},
     'output': {'default': 'fsc', 'help': 'Directory for FSC results'},
-    'gpu': {'type': int, 'default': 0, 'help': 'One visible UFO GPU index'},
+    'gpus': {'type': int, 'nargs': '+', 'default': None, 'aliases': ('gpu',),
+             'help': 'Visible GPU indices (default: all); one region per worker'},
     'burst': {'type': int, 'default': 16, 'help': 'RGBA burst size'},
     'overall-angle': {'type': float, 'default': 180.0,
                       'help': 'Angular coverage in degrees'},
     'center-position-x': {'type': float, 'default': None,
                           'help': 'Centre in original detector pixels (default: width/2)'},
-    'center-position-z': {'type': float, 'default': None,
-                          'help': 'Centre in original detector pixels (default: height/2)'},
+    'center-position-z': {'type': tupleize(), 'default': None,
+                          'help': 'Comma-separated region centres in original detector pixels'},
+    'num-regions': {'type': restrict_value((1, None), dtype=int), 'default': None,
+                    'help': 'Place N regions across selected detector rows (default: one region); '
+                            'mutually exclusive with center-position-z'},
     'region': {'type': fsc_region, 'required': True, 'default': None,
                 'help': 'Z region: START,STOP,1'},
     'x-region': {'type': fsc_region, 'default': None,
@@ -952,7 +957,7 @@ SECTIONS['fsc'].update({
     'threshold-criterion': {'choices': ('half-bit',), 'default': 'half-bit',
                             'help': 'Resolution threshold criterion'},
     'write-volumes': {'action': 'store_true', 'default': False,
-                      'help': 'Reconstruct again after FSC and export even/odd float32 BigTIFF'},
+                      'help': 'After all FSCs, export one even/odd float32 BigTIFF per region'},
 })
 for axis in ('x', 'y', 'z'):
     SECTIONS['fsc']['voxel-size-' + axis] = {
@@ -1157,11 +1162,25 @@ def parse_scoped_args(parser, command, argv):
                     except KeyError:
                         parser.error('Invalid boolean for {}: {}'.format(name, value))
                 values[name] = value
+    # Region selectors are alternatives, including across config/CLI boundaries.
+    # An explicit CLI selector overrides the alternative supplied by the config.
+    explicit = {token.split('=', 1)[0] for token in argv if token.startswith('--')}
+    if command == 'fsc':
+        if '--center-position-z' in explicit:
+            values.pop('num-regions', None)
+        if '--num-regions' in explicit:
+            values.pop('center-position-z', None)
     tokens = []
     for name, value in values.items():
         if definitions[name].get('action') == 'store_true':
             if value:
                 tokens.append('--' + name)
+        elif definitions[name].get('nargs') == '+':
+            tokens.append('--' + name)
+            tokens.extend(shlex.split(value))
         else:
             tokens.append('--{}={}'.format(name, value))
-    return parser.parse_args([command] + tokens + list(argv))
+    args = parser.parse_args([command] + tokens + list(argv))
+    if command == 'fsc' and args.num_regions is not None and args.center_position_z is not None:
+        parser.error('--num-regions and --center-position-z are mutually exclusive')
+    return args

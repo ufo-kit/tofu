@@ -5,15 +5,17 @@ import gc
 import ctypes as ct
 import ctypes.util
 from dataclasses import asdict, dataclass
+from concurrent.futures import ThreadPoolExecutor
 import json
 import logging
 import math
 import os
 from pathlib import Path
 import tempfile
-from threading import Thread
+from queue import Empty, Queue
+from threading import Event, Lock, Thread
 import time
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 import numpy as np
 
@@ -207,7 +209,12 @@ class FSCResult:
         return cls.from_statistics(statistics, geometry)
 
 
-def plot_fsc(result: FSCResult, path: str | Path, frequency_label: str) -> None:
+def plot_fsc(
+    result: FSCResult,
+    path: str | Path,
+    frequency_label: str,
+    title: str = "Fourier shell correlation",
+) -> None:
     """All visual choices live here; the geometric curve is not a threshold."""
     import matplotlib
 
@@ -240,7 +247,7 @@ def plot_fsc(result: FSCResult, path: str | Path, frequency_label: str) -> None:
             xlim=(0.0, result.geometry.max_frequency),
             xlabel=frequency_label,
             ylabel="FSC",
-            title="Fourier shell correlation",
+            title=title,
         )
         axis.legend()
         figure.savefig(path, dpi=PLOT_DPI, bbox_inches="tight")
@@ -356,8 +363,8 @@ def _inspect_input(
 def resolve_inputs(args: argparse.Namespace) -> dict[str, Any]:
     if not 2 <= args.number <= 32768:
         raise ValueError("--number must be between 2 and 32768")
-    if not 1 <= args.burst <= 128 or args.gpu < 0:
-        raise ValueError("Burst must be in 1..128 and GPU index must be nonnegative")
+    if not 1 <= args.burst <= 128:
+        raise ValueError("Burst must be in 1..128")
     if args.step < 1 or min(args.start, args.y, args.retries, args.retry_timeout) < 0:
         raise ValueError("Invalid reading selection or retry settings")
     if any(v is not None and v <= 0 for v in (args.width, args.height)):
@@ -365,7 +372,6 @@ def resolve_inputs(args: argparse.Namespace) -> dict[str, Any]:
     for name in (
         "overall_angle",
         "center_position_x",
-        "center_position_z",
         "dark_scale",
         "flat_scale",
         "projection_filter_scale",
@@ -416,11 +422,8 @@ def resolve_inputs(args: argparse.Namespace) -> dict[str, Any]:
         if args.center_position_x is None
         else args.center_position_x
     )
-    cz = (
-        detector.height / 2.0
-        if args.center_position_z is None
-        else args.center_position_z
-    )
+    # Individual centres are resolved separately, after detector cropping is known.
+    cz = detector.height / 2.0
     x_region = args.x_region or (-detector.width / 2.0, detector.width / 2.0, 1.0)
     y_region = args.y_region or (-detector.width / 2.0, detector.width / 2.0, 1.0)
     shape = tuple(math.ceil(r[1] - r[0]) for r in (args.region, y_region, x_region))
@@ -788,7 +791,144 @@ def construct_graph(
     return graph, output
 
 
-def execute_graph(graph: Any, output: Any, resources: Any) -> np.ndarray:
+@dataclass(frozen=True)
+class FSCRegion:
+    """One independently reconstructed region, in original detector coordinates."""
+
+    index: int
+    center: float
+    detector_region: tuple[float, float, float]
+
+    def resolve(self, shared: dict[str, Any], row_offset: int) -> dict[str, Any]:
+        return {
+            **shared,
+            "center_position_z": self.center,
+            "backprojection_center_z": self.center - row_offset,
+        }
+
+
+def resolve_regions(
+    args: argparse.Namespace, shared: dict[str, Any]
+) -> list[FSCRegion]:
+    if args.center_position_z is not None and args.num_regions is not None:
+        raise ValueError("--num-regions and --center-position-z are mutually exclusive")
+    if args.center_position_z is not None:
+        centers = tuple(args.center_position_z)
+    elif args.num_regions is not None:
+        number = args.num_regions
+        if number < 1 or number > shared["height"]:
+            raise ValueError(
+                "--num-regions must be between 1 and the selected detector height"
+            )
+        # Integer band boundaries and midpoints avoid introducing fractional row shifts.
+        edges = [args.y + i * shared["height"] // number for i in range(number + 1)]
+        centers = tuple(float((a + b) // 2) for a, b in zip(edges, edges[1:]))
+    else:
+        # Preserve the original single-region default, including with detector cropping.
+        centers = (shared["detector_height"] / 2.0,)
+    if not centers or any(not math.isfinite(center) for center in centers):
+        raise ValueError("Specify at least one finite Z centre")
+    if len(set(centers)) != len(centers):
+        raise ValueError("Z centres must be distinct")
+    regions = []
+    for index, center in enumerate(centers, 1):
+        start, stop = center + args.region[0], center + args.region[1]
+        if start < args.y or stop > args.y + shared["height"]:
+            raise ValueError(
+                f"Region {index}: detector interval [{start:g}, {stop:g}) lies outside "
+                f"selected rows [{args.y}, {args.y + shared['height']}); "
+                "reduce --region or choose another centre"
+            )
+        regions.append(FSCRegion(index, center, (start, stop, 1.0)))
+    return regions
+
+
+class PipelineControl:
+    """Cancel active schedulers and unblock their output consumers on interruption."""
+
+    def __init__(self) -> None:
+        self.stopped = Event()
+        self._lock = Lock()
+        self._active: dict[int, tuple[Any, Any]] = {}
+
+    def register(self, scheduler: Any, output: Any = None) -> None:
+        with self._lock:
+            if self.stopped.is_set():
+                raise RuntimeError("FSC execution cancelled")
+            self._active[id(scheduler)] = (scheduler, output)
+
+    def unregister(self, scheduler: Any) -> None:
+        with self._lock:
+            self._active.pop(id(scheduler), None)
+
+    def cancel(self) -> None:
+        with self._lock:
+            self.stopped.set()
+            active = list(self._active.values())
+        for scheduler, output in active:
+            scheduler.abort()
+            if output is not None:
+                output.emit("inputs-stopped")
+
+
+def run_region_jobs(
+    regions: Sequence[FSCRegion],
+    workers: Sequence[tuple[int, Any, Any]],
+    operation: Callable[[FSCRegion, Any, Any, PipelineControl], Any],
+    continue_on_error: bool = False,
+) -> tuple[dict[int, Any], dict[int, str]]:
+    """A dynamic queue, with one persistent worker and resource owner per GPU."""
+    pending: Queue[FSCRegion] = Queue()
+    for region in regions:
+        pending.put(region)
+    control = PipelineControl()
+    successes: dict[int, Any] = {}
+    failures: dict[int, str] = {}
+    lock = Lock()
+
+    def work(worker: tuple[int, Any, Any]) -> None:
+        device_index, resources, gpu = worker
+        while not control.stopped.is_set():
+            try:
+                region = pending.get_nowait()
+            except Empty:
+                return
+            LOG.info(
+                "Region %d on GPU %d: detector rows %s",
+                region.index,
+                device_index,
+                region.detector_region,
+            )
+            try:
+                value = operation(region, resources, gpu, control)
+                with lock:
+                    successes[region.index] = value
+            except Exception as exc:
+                with lock:
+                    failures[region.index] = str(exc)
+                LOG.error("Region %d failed: %s", region.index, exc)
+                if not continue_on_error:
+                    # Let other in-flight graphs finish, but do not start more work.
+                    control.stopped.set()
+            finally:
+                pending.task_done()
+
+    pool = ThreadPoolExecutor(max_workers=len(workers), thread_name_prefix="fsc-gpu")
+    try:
+        futures = [pool.submit(work, worker) for worker in workers]
+        for future in futures:
+            future.result()
+    except BaseException:
+        control.cancel()
+        raise
+    finally:
+        pool.shutdown(wait=True)
+    return successes, failures
+
+
+def execute_graph(
+    graph: Any, output: Any, resources: Any, control: PipelineControl | None = None
+) -> np.ndarray:
     from gi.repository import Ufo
     import ufo.numpy
 
@@ -808,8 +948,10 @@ def execute_graph(graph: Any, output: Any, resources: Any) -> np.ndarray:
 
     worker = Thread(target=execute, name="tofu-fsc-scheduler", daemon=True)
     arrays = []
-    worker.start()
+    if control is not None:
+        control.register(scheduler, output)
     try:
+        worker.start()
         while True:
             buffer = output.get_output_buffer()
             if buffer is None:
@@ -821,8 +963,12 @@ def execute_graph(graph: Any, output: Any, resources: Any) -> np.ndarray:
         worker.join()
     except BaseException:
         scheduler.abort()
-        worker.join(timeout=5.0)
+        if worker.ident is not None:
+            worker.join()
         raise
+    finally:
+        if control is not None:
+            control.unregister(scheduler)
     if failures:
         raise RuntimeError(f"FSC pipeline failed: {failures[0]}") from failures[0]
     if len(arrays) != 1:
@@ -837,7 +983,8 @@ def write_volumes(
     resolved: dict[str, Any],
     gpu: Any,
     resources: Any,
-    started: float,
+    destination: Path,
+    control: PipelineControl | None = None,
 ) -> Path:
     """Optional diagnostic rerun; keep all export-only behavior in this function.
 
@@ -848,8 +995,7 @@ def write_volumes(
     from tifffile import TiffFile
     from tofu.tasks import get_task
 
-    directory = Path(args.output)
-    destination = directory / "even-odd-volumes.tif"
+    directory = destination.parent
     LOG.info(
         "Exporting even/odd volumes with a second reconstruction; inputs must remain unchanged"
     )
@@ -872,9 +1018,13 @@ def write_volumes(
         scheduler = Ufo.FixedScheduler()
         scheduler.set_resources(resources)
         scheduler.set_property("expand", False)
+        if control is not None:
+            control.register(scheduler)
         try:
             scheduler.run(graph)
         finally:
+            if control is not None:
+                control.unregister(scheduler)
             # Dropping the writer closes/flushes the TIFF before metadata validation.
             del scheduler, graph, writer, slices, backproject
             gc.collect()
@@ -901,20 +1051,8 @@ def write_volumes(
                         raise ValueError(
                             "Export must contain float32 grayscale (Y,X) planes"
                         )
-            # Prepare metadata before replacing either file. Existing FSC curves
-            # and any previous valid export survive computation/validation failure.
-            json_path = directory / "fsc.json"
-            metadata = json.loads(json_path.read_text())
-            metadata["outputs"]["volumes"] = str(destination)
-            metadata["runtime"]["total_execution_time_seconds"] = (
-                time.perf_counter() - started
-            )
-            metadata_path = staging / "fsc.json"
-            metadata_path.write_text(
-                json.dumps(metadata, indent=2, allow_nan=False) + "\n"
-            )
+            # Workers never edit the shared JSON; the coordinator owns metadata.
             os.replace(volume_path, destination)
-            os.replace(metadata_path, json_path)
     except Exception as exc:
         raise RuntimeError(
             f"FSC results were saved, but the requested volume export failed: {exc}"
@@ -923,107 +1061,224 @@ def write_volumes(
     return destination
 
 
+def artifact_names(region: FSCRegion, number: int) -> dict[str, str]:
+    prefix = f"region-{region.index:03d}-" if number > 1 else ""
+    return {
+        "plot": prefix + "fsc.png",
+        "npz": prefix + "fsc-result.npz",
+        "volumes": prefix + "even-odd-volumes.tif",
+    }
+
+
+def crossing_summary(results: Sequence[FSCResult]) -> dict[str, Any]:
+    """Descriptive statistics of detected crossings, not an aggregate resolution."""
+    crossings = [
+        r.crossing_frequency for r in results if r.crossing_frequency is not None
+    ]
+    return {
+        "regions_with_crossing": len(crossings),
+        "regions_without_crossing": len(results) - len(crossings),
+        "minimum_crossing_frequency": min(crossings) if crossings else None,
+        "median_crossing_frequency": float(np.median(crossings)) if crossings else None,
+        "maximum_crossing_frequency": max(crossings) if crossings else None,
+    }
+
+
+def save_metadata(document: dict[str, Any], directory: Path, started: float) -> None:
+    # One wall-clock duration, never a sum of worker durations. The final metadata
+    # write/replacement itself is necessarily outside the recorded interval.
+    document["runtime"] = {
+        "total_execution_time_seconds": time.perf_counter() - started
+    }
+    with tempfile.TemporaryDirectory(prefix=".fsc-json-", dir=directory) as temporary:
+        path = Path(temporary) / "fsc.json"
+        path.write_text(json.dumps(document, indent=2, allow_nan=False) + "\n")
+        os.replace(path, directory / path.name)
+
+
 def save_outputs(
     args: argparse.Namespace,
     resolved: dict[str, Any],
-    result: FSCResult,
+    regions: Sequence[FSCRegion],
+    results: Sequence[FSCResult],
     started: float,
-) -> None:
+    gpu_indices: Sequence[int],
+) -> dict[str, Any]:
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     normalized = all(getattr(args, "voxel_size_" + axis) == 1.0 for axis in "xyz")
     unit = (
         "cycles/reconstructed voxel" if normalized else "cycles/configured length unit"
     )
-    names = ("fsc.png", "fsc-result.npz", "fsc.json")
-    # Finish all serialization before replacing any previous result artifacts.
+    configuration = {
+        key: value
+        for key, value in vars(args).items()
+        if not key.startswith("_")
+        and key not in ("commands", "center_position_z", "threshold_criterion")
+        and value is not None
+    }
+    configuration.update(
+        gpus=list(gpu_indices),
+        num_regions=len(regions),
+        x_region=resolved["x_region"],
+        y_region=resolved["y_region"],
+        center_position_x=resolved["center_position_x"],
+        overall_angle_radians=resolved["overall_angle_radians"],
+        backprojection_center_x=resolved["backprojection_center_x"],
+        detector_shape_yx=[resolved["detector_height"], resolved["detector_width"]],
+        selected_detector_height=resolved["height"],
+        backprojection_width=resolved["backprojection_width"],
+        operation_mode="even_odd",
+        output_mode="volume",
+    )
+    document = {
+        "configuration": configuration,
+        "volume_shape_zyx": resolved["volume_shape_zyx"],
+        "shell_geometry": {**asdict(results[0].geometry), "frequency_unit": unit},
+        "result": {"threshold_criterion": "half-bit", "regions": []},
+    }
+    if len(regions) > 1:
+        document["result"]["crossing_summary"] = crossing_summary(results)
     with tempfile.TemporaryDirectory(prefix=".fsc-", dir=output) as temporary:
         staging = Path(temporary)
-        plot_fsc(result, staging / names[0], f"Spatial frequency ({unit})")
-        result.to_npz(staging / names[1])
-        configuration = {
-            key: value
-            for key, value in vars(args).items()
-            if not key.startswith("_") and key != "commands"
-        }
-        configuration.update(
-            x_region=resolved["x_region"],
-            y_region=resolved["y_region"],
-            center_position_x=resolved["center_position_x"],
-            center_position_z=resolved["center_position_z"],
-            overall_angle_radians=resolved["overall_angle_radians"],
-            backprojection_center_x=resolved["backprojection_center_x"],
-            backprojection_center_z=resolved["backprojection_center_z"],
-            detector_shape_yx=[resolved["detector_height"], resolved["detector_width"]],
-            selected_detector_height=resolved["height"],
-            backprojection_width=resolved["backprojection_width"],
-            operation_mode="even_odd",
-            output_mode="volume",
-        )
-        crossing = result.crossing_frequency
-        document = {
-            "configuration": configuration,
-            "volume_shape_zyx": resolved["volume_shape_zyx"],
-            "shell_geometry": {**asdict(result.geometry), "frequency_unit": unit},
-            "runtime": {"total_execution_time_seconds": time.perf_counter() - started},
-            "result": {
-                "threshold_criterion": "half-bit",
-                "crossing_frequency": crossing,
-                "frequency_unit": unit,
-                "status": (
-                    "crossing_found"
-                    if crossing is not None
-                    else "no_crossing_in_sampled_band"
-                ),
-            },
-            "outputs": {
-                "plot": str(output / names[0]),
-                "npz": str(output / names[1]),
-                "json": str(output / names[2]),
-            },
-        }
-        (staging / names[2]).write_text(
-            json.dumps(document, indent=2, allow_nan=False) + "\n"
-        )
-        for name in names:
+        filenames = []
+        for region, result in zip(regions, results):
+            names = artifact_names(region, len(regions))
+            start, stop, _ = region.detector_region
+            title = f"FSC — region {region.index}, detector rows [{start:g}, {stop:g})"
+            plot_fsc(
+                result,
+                staging / names["plot"],
+                f"Spatial frequency ({unit})",
+                title=title,
+            )
+            result.to_npz(staging / names["npz"])
+            filenames.extend((names["plot"], names["npz"]))
+            crossing = result.crossing_frequency
+            document["result"]["regions"].append(
+                {
+                    "region": region.index,
+                    "center_position_z": region.center,
+                    "detector_region": region.detector_region,
+                    "crossing_frequency": crossing,
+                    "status": (
+                        "crossing_found"
+                        if crossing is not None
+                        else "no_crossing_in_sampled_band"
+                    ),
+                    "outputs": {
+                        key: str(output / names[key]) for key in ("plot", "npz")
+                    },
+                }
+            )
+            LOG.info("Region %d half-bit crossing: %s %s", region.index, crossing, unit)
+        # Prepare every plot/archive before replacing any existing artifact.
+        for name in filenames:
             os.replace(staging / name, output / name)
-    if result.crossing_frequency is None:
-        LOG.info("Half-bit FSC: no crossing in sampled band")
-    else:
-        LOG.info(
-            "First half-bit FSC crossing: %.9g %s", result.crossing_frequency, unit
-        )
-    LOG.info("Saved FSC results to %s", output)
+    save_metadata(document, output, started)
+    return document
 
 
-def run(args: argparse.Namespace) -> FSCResult:
-    """Reconstruct a single region and return its device-reduced FSC result."""
+def run(args: argparse.Namespace) -> FSCResult | tuple[FSCResult, ...]:
+    """Run independent regions; preserve the scalar return for a single region."""
     from gi.repository import Ufo
 
     started = time.perf_counter()
     try:
         resolved = resolve_inputs(args)
+        regions = resolve_regions(args, resolved)
         geometry = resolve_geometry(resolved["volume_shape_zyx"], args)
-        resources = Ufo.Resources.new()
-        devices = resources.get_gpu_nodes()
-        if args.gpu >= len(devices):
+        first_resources = Ufo.Resources.new()
+        devices = first_resources.get_gpu_nodes()
+        indices = list(range(len(devices))) if args.gpus is None else list(args.gpus)
+        if not indices or any(i < 0 or i >= len(devices) for i in indices):
             raise ValueError(
-                f"GPU index {args.gpu} unavailable; {len(devices)} visible device(s)"
+                f"--gpus must select available indices; {len(devices)} visible GPU(s)"
             )
-        gpu = devices[args.gpu]
-        LOG.info("Selected GPU %d: %s", args.gpu, gpu.get_info(Ufo.GpuNodeInfo.NAME))
-        estimate_memory(args, resolved, geometry, _device_limits(gpu))
-        graph, output = construct_graph(args, resolved, gpu)
-        statistics = FSCShellStatistics.from_ufo(
-            execute_graph(graph, output, resources)
-        )
-        # Release task-owned spectra and FFT workspaces before optional reconstruction.
-        del graph, output
-        gc.collect()
-        result = FSCResult.from_statistics(statistics, geometry)
-        save_outputs(args, resolved, result, started)
+        if len(set(indices)) != len(indices):
+            raise ValueError("--gpus must not contain duplicate indices")
+        # Every worker GPU must accommodate the unchanged region shape. No silent
+        # size changes or device omissions: users can narrow --gpus when necessary.
+        for index in indices[: len(regions)]:
+            try:
+                estimate_memory(
+                    args, resolved, geometry, _device_limits(devices[index])
+                )
+            except (ValueError, RuntimeError) as exc:
+                raise ValueError(f"GPU {index}: {exc}") from exc
+        workers = []
+        for position, index in enumerate(indices[: len(regions)]):
+            resources = first_resources if position == 0 else Ufo.Resources.new()
+            gpu = resources.get_gpu_nodes()[index]
+            workers.append((index, resources, gpu))
+            LOG.info("GPU worker %d: %s", index, gpu.get_info(Ufo.GpuNodeInfo.NAME))
+
+        def compute(
+            region: FSCRegion, resources: Any, gpu: Any, control: PipelineControl
+        ) -> FSCResult:
+            local = region.resolve(resolved, args.y)
+            graph, output = construct_graph(args, local, gpu)
+            try:
+                statistics = FSCShellStatistics.from_ufo(
+                    execute_graph(graph, output, resources, control)
+                )
+            finally:
+                # Release spectra, accumulators and FFT workspaces before the next job.
+                del graph, output
+                gc.collect()
+            return FSCResult.from_statistics(statistics, geometry)
+
+        computed, failures = run_region_jobs(regions, workers, compute)
+        if failures:
+            raise RuntimeError(
+                "FSC failed; no new result artifacts saved: "
+                + "; ".join(
+                    f"region {index}: {message}"
+                    for index, message in sorted(failures.items())
+                )
+            )
+        results = tuple(computed[region.index] for region in regions)
+        for result in results[1:]:
+            if not np.array_equal(result.k_bin, results[0].k_bin) or not np.array_equal(
+                result.n_shell, results[0].n_shell
+            ):
+                raise RuntimeError(
+                    "Regions produced incompatible frequency bins or shell counts"
+                )
+        document = save_outputs(args, resolved, regions, results, started, indices)
         if args.write_volumes:
-            write_volumes(args, resolved, gpu, resources, started)
-        return result
+
+            def export(
+                region: FSCRegion, resources: Any, gpu: Any, control: PipelineControl
+            ) -> Path:
+                destination = (
+                    Path(args.output) / artifact_names(region, len(regions))["volumes"]
+                )
+                return write_volumes(
+                    args,
+                    region.resolve(resolved, args.y),
+                    gpu,
+                    resources,
+                    destination,
+                    control,
+                )
+
+            exported, failures = run_region_jobs(
+                regions, workers, export, continue_on_error=True
+            )
+            for entry in document["result"]["regions"]:
+                index = entry["region"]
+                if index in exported:
+                    entry["outputs"]["volumes"] = str(exported[index])
+                elif index in failures:
+                    entry["volume_export_error"] = failures[index]
+            save_metadata(document, Path(args.output), started)
+            if failures:
+                raise RuntimeError(
+                    "FSC results were saved, but volume export failed for region(s): "
+                    + ", ".join(map(str, sorted(failures)))
+                )
+        LOG.info("Saved %d regional FSC result(s) to %s", len(regions), args.output)
+        return results[0] if len(results) == 1 else results
     except (ValueError, OSError, ImportError, OverflowError) as exc:
         raise RuntimeError(str(exc)) from exc
