@@ -337,7 +337,7 @@ def execute_reconstruction():
                     ax = find_axis_std(ctset, nviews, wh,
                                        os.path.join(EZVARS['inout']['output-dir']['value'], setid),
                                        reduction_mode=reduction_mode)
-                    if axis_pause_hook is not None:
+                    if axis_pause_hook is not None and EZVARS['COR']['interactive-ax']['value']:
                         start, _, step = [float(v) for v in
                                           EZVARS['COR']['search-interval']['value'].split(',')]
                         if EZVARS['COR']['cor-rel-search']['value']:

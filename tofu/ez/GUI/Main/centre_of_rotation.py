@@ -44,6 +44,14 @@ class CentreOfRotationGroup(QGroupBox):
         self.auto_minimize_apply_pr.setText("Apply PR while searching")
         self.auto_minimize_apply_pr.stateChanged.connect(self.set_minimize_apply_pr)
 
+        self.interactive_ax_checkbox = QCheckBox()
+        self.interactive_ax_checkbox.setText("Pause to pick axis in Image Viewer")
+        self.interactive_ax_checkbox.setToolTip(
+            "After the minimize-STD search, open the axis-search slices in the Image Viewer.\n"
+            "Scroll to the best slice and press 'Set and Continue' to use its axis."
+        )
+        self.interactive_ax_checkbox.stateChanged.connect(self.set_interactive_ax)
+
         self.define_axis_rButton = QRadioButton()
         self.define_axis_rButton.setText("Define rotation axis manually")
         self.define_axis_rButton.clicked.connect(self.set_rButton)
@@ -120,18 +128,20 @@ class CentreOfRotationGroup(QGroupBox):
         layout.addWidget(self.search_in_slice_entry, 3, 1, 1, 2)
         layout.addWidget(self.size_of_recon_label, 4, 0)
         layout.addWidget(self.size_of_recon_entry, 4, 1, 1, 2)
-        layout.addWidget(self.define_axis_rButton, 5, 0)
-        layout.addWidget(self.axis_col_label, 6, 0)
-        layout.addWidget(self.axis_col_entry, 6, 1, 1, 2)
-        layout.addWidget(self.inc_axis_label, 7, 0)
-        layout.addWidget(self.inc_axis_entry, 7, 1, 1, 2)
-        layout.addWidget(self.image_midpoint_rButton, 8, 0)
-        layout.addWidget(self.unstitched360_rButton, 8, 1)
+        layout.addWidget(self.interactive_ax_checkbox, 5, 0)
+        layout.addWidget(self.define_axis_rButton, 6, 0)
+        layout.addWidget(self.axis_col_label, 7, 0)
+        layout.addWidget(self.axis_col_entry, 7, 1, 1, 2)
+        layout.addWidget(self.inc_axis_label, 8, 0)
+        layout.addWidget(self.inc_axis_entry, 8, 1, 1, 2)
+        layout.addWidget(self.image_midpoint_rButton, 9, 0)
+        layout.addWidget(self.unstitched360_rButton, 9, 1)
 
         self.setLayout(layout)
 
     def load_values(self):
         self.set_rButton_from_params()
+        self.interactive_ax_checkbox.setEnabled(self.auto_minimize_rButton.isChecked())
         self.search_rotation_entry.setText(str(EZVARS['COR']['search-interval']['value']))
         self.search_in_slice_entry.setText(str(EZVARS['COR']['search-row']['value']))
         self.size_of_recon_entry.setText(str(EZVARS['COR']['patch-size']['value']))
@@ -139,6 +149,7 @@ class CentreOfRotationGroup(QGroupBox):
         self.inc_axis_entry.setText(str(EZVARS['COR']['user-defined-dax']['value']))
         self.cor_search_rel.setChecked(EZVARS['COR']['cor-rel-search']['value'])
         self.auto_minimize_apply_pr.setChecked(EZVARS['COR']['min-std-apply-pr']['value'])
+        self.interactive_ax_checkbox.setChecked(EZVARS['COR']['interactive-ax']['value'])
 
     def set_rButton(self):
         dict_entry = EZVARS['COR']['search-method']
@@ -159,6 +170,7 @@ class CentreOfRotationGroup(QGroupBox):
             LOG.debug("Use Stitching Tab - Batch360")
             add_value_to_dict_entry(dict_entry, 5)
             enable_360Batch_group = True
+        self.interactive_ax_checkbox.setEnabled(self.auto_minimize_rButton.isChecked())
         self.enable_360Batch_Group_in_Advanced.emit(enable_360Batch_group)
 
 
@@ -211,6 +223,11 @@ class CentreOfRotationGroup(QGroupBox):
         LOG.debug("PR while min std ax search: " + str(self.auto_minimize_apply_pr.isChecked()))
         dict_entry = EZVARS['COR']['min-std-apply-pr']
         add_value_to_dict_entry(dict_entry, self.auto_minimize_apply_pr.isChecked())
+
+    def set_interactive_ax(self):
+        LOG.debug("Pick axis in viewer: " + str(self.interactive_ax_checkbox.isChecked()))
+        dict_entry = EZVARS['COR']['interactive-ax']
+        add_value_to_dict_entry(dict_entry, self.interactive_ax_checkbox.isChecked())
 
     def set_search_params_rel(self):
         dict_entry = EZVARS['COR']['cor-rel-search']

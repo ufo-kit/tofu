@@ -385,6 +385,11 @@ EZVARS['COR'] = {
         'ezdefault': False,
         'type': bool,
         'help': "Will apply phase retreival but only while estimating the axis"},
+    'interactive-ax': {
+        'ezdefault': False,
+        'type': bool,
+        'help': "Pause after the minimize-STD axis search so the user can "
+                "pick the axis in the Image Viewer (GUI only)"},
     # 'user-defined-ax': {
     #     'ezdefault': 0.0,
     #     'type': restrict_value((0,None), dtype=float),
