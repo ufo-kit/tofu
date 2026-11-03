@@ -188,6 +188,7 @@ class GUI(qtw.QWidget):
         self._pause_loop = QEventLoop()
         self.image_group.set_and_continue_button.clicked.connect(self._pause_loop.quit)
         ez_main.axis_pause_hook = self.pause_for_axis
+        ez_main.corr_pause_hook = self.pause_for_corr_axis
 
         finish = QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
@@ -321,9 +322,30 @@ class GUI(qtw.QWidget):
         Shows axis-search slices in the Image Viewer, waits until the user clicks
         "Set and Continue" and returns the axis of the currently displayed slice.
         """
-        self.tabs.setCurrentWidget(self.tab5)
+        self.image_group.show_overlap(False)
         self.image_group.open_stack_from_path(stack_dir)
         self.image_group.scroller.setValue(int(round((ax - start) / step)))
+        self._wait_for_set_and_continue()
+        return start + step * self.image_group.scroller.value()
+
+    def pause_for_corr_axis(self, first, last, ax):
+        """
+        Called from find_axis_corr after the correlation axis search.
+        Shows first projection minus flipped and shifted last one (as in tofu gui),
+        waits until the user clicks "Set and Continue" and returns the axis set by the slider.
+        """
+        viewer = self.image_group.overlap_viewer
+        w2 = first.shape[1] / 2.0
+        self.image_group.show_overlap(True)
+        viewer.set_images(first, last)
+        viewer.set_position(w2 + (w2 - ax) * 2)
+        self._wait_for_set_and_continue()
+        self.image_group.show_overlap(False)
+        return w2 + (w2 - viewer.slider.value()) / 2
+
+    def _wait_for_set_and_continue(self):
+        """Switch to the Image Viewer and block in a nested event loop until 'Set and Continue'"""
+        self.tabs.setCurrentWidget(self.tab5)
         self.image_group.set_and_continue_button.setEnabled(True)
         self.config_group.reco_button.setEnabled(False)      # no re-entrant runs
         self.config_group.dry_run_button.setEnabled(False)
@@ -331,7 +353,6 @@ class GUI(qtw.QWidget):
         self.image_group.set_and_continue_button.setEnabled(False)
         self.config_group.reco_button.setEnabled(True)
         self.config_group.dry_run_button.setEnabled(True)
-        return start + step * self.image_group.scroller.value()
 
     def closeEvent(self, event):
         """

@@ -17,6 +17,7 @@ from pyqtgraph.Qt.QtWidgets import (
 )
 from pyqtgraph.Qt.QtCore import Qt
 import tofu.ez.image_read_write as image_read_write
+from tofu.vis.qt import OverlapViewer
 
 #TODO Integrate axis search tab ob tofu gui into this interface
 
@@ -104,6 +105,10 @@ class ImageViewerGroup(QGroupBox):
         self.scroller.setEnabled(False)
         self.scroller.valueChanged.connect(self.scroll_changed)
 
+        # First projection vs. flipped last one, shifted by the slider (axis search by correlation)
+        self.overlap_viewer = OverlapViewer()
+        self.overlap_viewer.hide()
+
         self.set_layout()
 
     def set_layout(self):
@@ -130,6 +135,7 @@ class ImageViewerGroup(QGroupBox):
         layout.addWidget(self.apply_histogram_button, 0, 5)
         layout.addWidget(self.set_and_continue_button, 1, 5)
         layout.addWidget(self.image_window, 2, 0, 1, 6)
+        layout.addWidget(self.overlap_viewer, 2, 0, 1, 6)
         layout.addWidget(self.scroller, 4, 0, 1, 5)
 
         self.setLayout(layout)
@@ -137,6 +143,12 @@ class ImageViewerGroup(QGroupBox):
         self.resize(640, 480)
 
         self.show()
+
+    def show_overlap(self, on):
+        """Switch between the overlap viewer and the normal image/stack view"""
+        self.overlap_viewer.setVisible(on)
+        self.image_window.setVisible(not on)
+        self.scroller.setVisible(not on)
 
     def scroll_changed(self):
         """

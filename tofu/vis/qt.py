@@ -131,8 +131,8 @@ class OverlapViewer(QtWidgets.QWidget):
                      format(self.first.shape, self.first, self.second.shape, self.second))
 
         width = self.first.shape[0]
-        self.slider.setRange(-width / 2, int(1.5 * width))
-        self.slider.setSliderPosition(self.first.shape[0] / 2)
+        self.slider.setRange(-width // 2, int(1.5 * width))
+        self.slider.setSliderPosition(width // 2)
         self.update_image()
 
     def set_position(self, position):

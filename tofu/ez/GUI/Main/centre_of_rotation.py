@@ -47,8 +47,10 @@ class CentreOfRotationGroup(QGroupBox):
         self.interactive_ax_checkbox = QCheckBox()
         self.interactive_ax_checkbox.setText("Pause to pick axis in Image Viewer")
         self.interactive_ax_checkbox.setToolTip(
-            "After the minimize-STD search, open the axis-search slices in the Image Viewer.\n"
-            "Scroll to the best slice and press 'Set and Continue' to use its axis."
+            "After the automatic axis search, pause in the Image Viewer:\n"
+            " - Correlate: first projection minus the flipped last one; move the slider until they cancel\n"
+            " - Minimize STD: axis-search slices; scroll to the sharpest one\n"
+            "Press 'Set and Continue' to use the selected axis."
         )
         self.interactive_ax_checkbox.stateChanged.connect(self.set_interactive_ax)
 
@@ -110,7 +112,6 @@ class CentreOfRotationGroup(QGroupBox):
 
         # TODO Used for proper spacing - should be a better way
         self.blank_label = QLabel("                                ")
-        self.blank_label2 = QLabel("                                ")
 
         self.set_layout()
 
@@ -118,7 +119,7 @@ class CentreOfRotationGroup(QGroupBox):
         layout = QGridLayout()
         layout.addWidget(self.auto_correlate_rButton, 0, 0)
         layout.addWidget(self.blank_label, 0, 1)
-        layout.addWidget(self.blank_label2, 0, 2)
+        layout.addWidget(self.interactive_ax_checkbox, 0, 2)
         layout.addWidget(self.auto_minimize_rButton, 1, 0)
         layout.addWidget(self.cor_search_rel, 1, 1)
         layout.addWidget(self.auto_minimize_apply_pr, 1, 2)
@@ -128,20 +129,20 @@ class CentreOfRotationGroup(QGroupBox):
         layout.addWidget(self.search_in_slice_entry, 3, 1, 1, 2)
         layout.addWidget(self.size_of_recon_label, 4, 0)
         layout.addWidget(self.size_of_recon_entry, 4, 1, 1, 2)
-        layout.addWidget(self.interactive_ax_checkbox, 5, 0)
-        layout.addWidget(self.define_axis_rButton, 6, 0)
-        layout.addWidget(self.axis_col_label, 7, 0)
-        layout.addWidget(self.axis_col_entry, 7, 1, 1, 2)
-        layout.addWidget(self.inc_axis_label, 8, 0)
-        layout.addWidget(self.inc_axis_entry, 8, 1, 1, 2)
-        layout.addWidget(self.image_midpoint_rButton, 9, 0)
-        layout.addWidget(self.unstitched360_rButton, 9, 1)
+        layout.addWidget(self.define_axis_rButton, 5, 0)
+        layout.addWidget(self.axis_col_label, 6, 0)
+        layout.addWidget(self.axis_col_entry, 6, 1, 1, 2)
+        layout.addWidget(self.inc_axis_label, 7, 0)
+        layout.addWidget(self.inc_axis_entry, 7, 1, 1, 2)
+        layout.addWidget(self.image_midpoint_rButton, 8, 0)
+        layout.addWidget(self.unstitched360_rButton, 8, 1)
 
-        self.setLayout(layout)
+    self.setLayout(layout)
 
     def load_values(self):
         self.set_rButton_from_params()
-        self.interactive_ax_checkbox.setEnabled(self.auto_minimize_rButton.isChecked())
+        self.interactive_ax_checkbox.setEnabled(self.auto_correlate_rButton.isChecked() or
+                                                self.auto_minimize_rButton.isChecked())
         self.search_rotation_entry.setText(str(EZVARS['COR']['search-interval']['value']))
         self.search_in_slice_entry.setText(str(EZVARS['COR']['search-row']['value']))
         self.size_of_recon_entry.setText(str(EZVARS['COR']['patch-size']['value']))
@@ -170,7 +171,8 @@ class CentreOfRotationGroup(QGroupBox):
             LOG.debug("Use Stitching Tab - Batch360")
             add_value_to_dict_entry(dict_entry, 5)
             enable_360Batch_group = True
-        self.interactive_ax_checkbox.setEnabled(self.auto_minimize_rButton.isChecked())
+        self.interactive_ax_checkbox.setEnabled(self.auto_correlate_rButton.isChecked() or
+                                                self.auto_minimize_rButton.isChecked())
         self.enable_360Batch_Group_in_Advanced.emit(enable_360Batch_group)
 
 

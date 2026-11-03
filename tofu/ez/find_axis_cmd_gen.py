@@ -88,7 +88,9 @@ def find_axis_std(ctset, nviews, wh, tmpdir, reduction_mode="median"):
     points, maximum = evaluate_images_simp(out_pattern + "*.tif", "msag")
     return res[0] + res[2] * maximum
 
-def find_axis_corr(ctset, vcrop, y, height, multipage):
+def find_axis_corr(ctset, vcrop, y, height, multipage, pick_axis=None):
+    """pick_axis: optional callback (first, last, ax) -> ax to let the user
+    refine the axis found by correlation (used by the ez GUI)"""
     #TODO use tiffsequencereader
     indir = make_inpaths(ctset[0], ctset[1])
     """Use correlation to estimate center of rotation for tomography."""
@@ -143,6 +145,8 @@ def find_axis_corr(ctset, vcrop, y, height, multipage):
     center = np.unravel_index(conv.argmax(), conv.shape)[1]
 
     x = (width / 2.0 + center) / 2.0
+    if pick_axis is not None:
+        x = pick_axis(first, last, x)
     if os.path.exists(os.path.join(ctset[0], 'cors.txt')):
         with open(os.path.join(ctset[0], 'cors.txt')) as f:
             tmp = f.read()

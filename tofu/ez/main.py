@@ -30,6 +30,9 @@ LOG = logging.getLogger(__name__)
 # (axis_search_dir, start, step, ax) and returns the axis to use.
 # None (CLI / --ezvars) means no pause.
 axis_pause_hook = None
+# Set by the GUI. Called after the correlation axis search with
+# (first, last, ax) and returns the axis to use.
+corr_pause_hook = None
 
 
 def get_CTdirs_list(inpath, fdt_names):
@@ -330,8 +333,11 @@ def execute_reconstruction():
             if EZVARS['COR']['search-method']['value'] < 4:
                 # Find axis of rotation using auto: correlate first/last projections
                 if EZVARS['COR']['search-method']['value'] == 1:
+                    pick_axis = corr_pause_hook if EZVARS['COR']['interactive-ax']['value'] else None
                     ax = find_axis_corr(ctset, EZVARS['inout']['input_ROI']['value'],
-                                        roi_row0, roi_height, multipage)
+                                        roi_row0, roi_height, multipage, pick_axis=pick_axis)
+                    if pick_axis is not None:
+                        print(f"Axis set by user: {ax}")
                 # Find axis of rotation using auto: minimize STD of a slice
                 elif EZVARS['COR']['search-method']['value'] == 2:
                     ax = find_axis_std(ctset, nviews, wh,
