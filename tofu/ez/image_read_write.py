@@ -72,12 +72,14 @@ def write_image(image: np.ndarray, target_directory: str, target_name: str, data
     imwrite(data_file_path, data=image.astype(dtype=data_type))
 
 
-def write_all_images(tiff_arr: np.ndarray, target_directory: str, data_type=np.float32):
+def write_all_images(tiff_arr: np.ndarray, target_directory: str, data_type=np.float32,
+                     convert=None):
     """
     Writes all images in numpy array as individual files in a directory
     :param tiff_arr: Array containing images
     :param target_directory: Path to directory to write images
     :param data_type: Data type to write the images
+    :param convert: Optional function applied to each image before writing
     :return:
     """
     print("Writing Images to Directory")
@@ -87,6 +89,8 @@ def write_all_images(tiff_arr: np.ndarray, target_directory: str, data_type=np.f
     length_str = str(tiff_arr.shape[0])
     num_digits = len(length_str)
     for image in tiff_arr:
+        if convert is not None:
+            image = convert(image)
         write_image(
             image, target_directory, "Image_" + str(index).zfill(num_digits + 1) + ".tif", data_type
         )

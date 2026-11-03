@@ -5,6 +5,7 @@ import numpy as np
 import tifffile
 from pyqtgraph.Qt.QtWidgets import (
     QPushButton,
+    QAbstractSpinBox,
     QGroupBox,
     QLabel,
     QDoubleSpinBox,
@@ -70,7 +71,7 @@ class ImageViewerGroup(QGroupBox):
         self.save_16bit_rButton.setChecked(False)
 
         self.save_32bit_rButton = QRadioButton()
-        self.save_32bit_rButton.setText("Save as 32-bit")
+        self.save_32bit_rButton.setText("Save as 32-bit float")
         self.save_32bit_rButton.clicked.connect(self.set_32bit)
         self.save_32bit_rButton.setChecked(True)
 
@@ -81,11 +82,13 @@ class ImageViewerGroup(QGroupBox):
 
         self.hist_min_input = QDoubleSpinBox()
         self.hist_min_input.setDecimals(12)
-        self.hist_min_input.setRange(-10, 10)
+        self.hist_min_input.setRange(-1e9, 1e9)
+        self.hist_min_input.setStepType(QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
         self.hist_min_input.valueChanged.connect(self.min_spin_changed)
         self.hist_max_input = QDoubleSpinBox()
         self.hist_max_input.setDecimals(12)
-        self.hist_max_input.setRange(-10, 10)
+        self.hist_max_input.setRange(-1e9, 1e9)
+        self.hist_max_input.setStepType(QAbstractSpinBox.StepType.AdaptiveDecimalStepType)
         self.hist_max_input.valueChanged.connect(self.max_spin_changed)
 
         self.apply_histogram_button = QPushButton("Apply Histogram to Image Stack")
@@ -99,6 +102,8 @@ class ImageViewerGroup(QGroupBox):
 
         self.image_window.ui.histogram.gradient.hide()
         self.histo = self.image_window.getHistogramWidget()
+        # keep min/max entries in sync when histogram levels are dragged
+        self.histo.sigLevelsChanged.connect(self.levels_changed)
 
         self.scroller = QScrollBar(Qt.Orientation.Horizontal)
         self.scroller.orientation()
@@ -160,7 +165,20 @@ class ImageViewerGroup(QGroupBox):
         Updated the currently displayed image based on position of scroll bar
         :return: None
         """
-        self.image_window.setImage(self.tiff_arr[self.scroller.value()].T)
+        # keep histogram levels and zoom while scrolling: same clipping for the entire stack
+        self.image_window.setImage(self.tiff_arr[self.scroller.value()].T,
+                                   autoLevels=False, autoRange=False, autoHistogramRange=False)
+
+    def levels_changed(self):
+        """
+        Updates the min/max entries when histogram levels change (dragging the histogram);
+        signals are blocked so that the entries do not set the levels back
+        """
+        lo, hi = self.histo.getLevels()
+        for box, val in ((self.hist_min_input, lo), (self.hist_max_input, hi)):
+            box.blockSignals(True)
+            box.setValue(val)
+            box.blockSignals(False)
 
     def open_image_from_file(self):
         """
@@ -203,19 +221,40 @@ class ImageViewerGroup(QGroupBox):
         )
         if filepath:
             LOG.debug(filepath)
-            bit_depth_string = self.check_bit_depth(self.bit_depth)
-            img = self.image_window.imageItem.qimage
-            # https://www.programmersought.com/article/73475006380/
-            size = img.size()
-            s = img.bits().asstring(
-                size.width() * size.height() * img.depth() // 8
-            )  # format 0xffRRGGBB
-            arr = np.fromstring(s, dtype=np.uint8).reshape(
-                (size.height(), size.width(), img.depth() // 8)
-            )
+            # current image: displayed slice of a stack, or a single opened image
+            img = self.tiff_arr[self.scroller.value()] if self.scroller.isEnabled() else self.img_arr
+            params = self.get_save_params(img)
+            if params is None:
+                return
+            lo, hi, dtype = params
             image_read_write.write_image(
-                arr.T[0].T, os.path.dirname(filepath), os.path.basename(filepath), bit_depth_string
+                self.convert_for_saving(img, lo, hi, dtype),
+                os.path.dirname(filepath), os.path.basename(filepath), dtype
             )
+
+    def convert_for_saving(self, img, lo, hi, dtype):
+        """
+        Clips image to histogram levels [lo, hi]; for integer types rescales
+        [lo, hi] to the full range of the type
+        """
+        img = np.clip(img, lo, hi)
+        if dtype == "float32":
+            return img.astype(np.float32)
+        maxval = np.iinfo(dtype).max
+        return np.rint((img - lo) * (maxval / (hi - lo))).astype(dtype)
+
+    def get_save_params(self, data):
+        """
+        Returns histogram levels and dtype for saving, or None if there is nothing to save
+        """
+        if data.size == 0:
+            QMessageBox.warning(self, "Nothing to save", "No image is loaded")
+            return None
+        lo, hi = self.histo.getLevels()
+        if hi <= lo:
+            QMessageBox.warning(self, "Invalid histogram", "Histogram max must be larger than min")
+            return None
+        return lo, hi, self.check_bit_depth(self.bit_depth)
 
     def open_stack_from_directory(self):
         """
@@ -236,9 +275,10 @@ class ImageViewerGroup(QGroupBox):
                 self.tiff_arr = image_read_write.read_all_images(directory, tiff_list)
                 self.scroller.setRange(0, self.tiff_arr.shape[0] - 1)
                 self.scroller.setEnabled(True)
-                self.image_window.setImage(self.tiff_arr[0].T)
-                msg.close()
+                # auto levels are computed from the middle slice and kept while scrolling
                 mid_index = self.tiff_arr.shape[0] // 2
+                self.image_window.setImage(self.tiff_arr[mid_index].T)
+                msg.close()
                 self.scroller.setValue(mid_index)
             except image_read_write.InvalidDataSetError:
                 print("Invalid Data Set")
@@ -259,9 +299,10 @@ class ImageViewerGroup(QGroupBox):
             self.tiff_arr = image_read_write.read_all_images(dir_path, tiff_list)
             self.scroller.setRange(0, self.tiff_arr.shape[0] - 1)
             self.scroller.setEnabled(True)
-            self.image_window.setImage(self.tiff_arr[0].T)
-            msg.close()
+            # auto levels are computed from the middle slice and kept while scrolling
             mid_index = self.tiff_arr.shape[0] // 2
+            self.image_window.setImage(self.tiff_arr[mid_index].T)
+            msg.close()
             self.scroller.setValue(mid_index)
         except image_read_write.InvalidDataSetError:
             print("Invalid Data Set")
@@ -277,14 +318,19 @@ class ImageViewerGroup(QGroupBox):
         directory = dir_explore.getExistingDirectory()
         LOG.debug("Writing to directory: " + directory)
         if directory:
-            bit_depth_string = self.check_bit_depth(self.bit_depth)
+            params = self.get_save_params(self.tiff_arr)
+            if params is None:
+                return
+            lo, hi, dtype = params
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to Directory")
             msg.show()
-            self.apply_histogram_to_images()
-            image_read_write.write_all_images(self.tiff_arr, directory, bit_depth_string)
+            # convert slice by slice: loaded data stays untouched, no second copy of the stack in RAM
+            image_read_write.write_all_images(
+                self.tiff_arr, directory, dtype,
+                convert=lambda im: self.convert_for_saving(im, lo, hi, dtype))
             msg.close()
 
     def open_big_tiff(self):
@@ -307,9 +353,10 @@ class ImageViewerGroup(QGroupBox):
             self.tiff_arr = tifffile.imread(filePath).astype(dtype=np.float32)
             self.scroller.setRange(0, self.tiff_arr.shape[0] - 1)
             self.scroller.setEnabled(True)
-            self.image_window.setImage(self.tiff_arr[0].T)
-            msg.close()
+            # auto levels are computed from the middle slice and kept while scrolling
             mid_index = self.tiff_arr.shape[0] // 2
+            self.image_window.setImage(self.tiff_arr[mid_index].T)
+            msg.close()
             self.scroller.setValue(mid_index)
 
     def save_stack_to_big_tiff(self):
@@ -325,14 +372,19 @@ class ImageViewerGroup(QGroupBox):
             self, "QFileDialog.getSaveFileName()", "", "Tiff Files (*.tif *.tiff)", options=options
         )
         if filepath:
+            params = self.get_save_params(self.tiff_arr)
+            if params is None:
+                return
+            lo, hi, dtype = params
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Saving Images...")
             msg.setText("Saving Images to BigTiff")
             msg.show()
-            # self.apply_histogram_to_images()
-            bit_depth_string = self.check_bit_depth(self.bit_depth)
-            tifffile.imwrite(filepath, self.tiff_arr, bigtiff=True, dtype=bit_depth_string)
+            # one page per slice: loaded data stays untouched, no second copy of the stack in RAM
+            with tifffile.TiffWriter(filepath, bigtiff=True) as tif:
+                for im in self.tiff_arr:
+                    tif.write(self.convert_for_saving(im, lo, hi, dtype))
             msg.close()
 
     def min_spin_changed(self):
@@ -379,7 +431,7 @@ class ImageViewerGroup(QGroupBox):
         elif bit_depth == 16:
             return "uint16"
         elif bit_depth == 32:
-            return "uint32"
+            return "float32"
 
     def set_8bit(self):
         """
