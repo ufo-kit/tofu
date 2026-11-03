@@ -26,6 +26,11 @@ from tofu.ez.GUI.Preprocessing_tab import fmt_and_do_prepro
 
 LOG = logging.getLogger(__name__)
 
+# Set by the GUI. Called after the std axis search with
+# (axis_search_dir, start, step, ax) and returns the axis to use.
+# None (CLI / --ezvars) means no pause.
+axis_pause_hook = None
+
 
 def get_CTdirs_list(inpath, fdt_names):
     """
@@ -332,6 +337,14 @@ def execute_reconstruction():
                     ax = find_axis_std(ctset, nviews, wh,
                                        os.path.join(EZVARS['inout']['output-dir']['value'], setid),
                                        reduction_mode=reduction_mode)
+                    if axis_pause_hook is not None:
+                        start, _, step = [float(v) for v in
+                                          EZVARS['COR']['search-interval']['value'].split(',')]
+                        if EZVARS['COR']['cor-rel-search']['value']:
+                            start += wh[1] / 2   # same offset as in find_axis_std
+                        ax = axis_pause_hook(os.path.join(EZVARS['inout']['output-dir']['value'],
+                                                          setid, 'axis-search'), start, step, ax)
+                        print(f"Axis set by user: {ax}")
                 else:
                     ax = axlist[i]
             elif EZVARS['COR']['search-method']['value'] >= 4: #half acq mode scans

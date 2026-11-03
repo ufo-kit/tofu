@@ -5,6 +5,7 @@ import sys
 try:
     from pyqtgraph.Qt import QtWidgets as qtw
     from pyqtgraph.Qt.QtGui import QAction
+    from pyqtgraph.Qt.QtCore import QEventLoop
 except ModuleNotFoundError:
     raise ModuleNotFoundError("Cannot import modules for ez, please install tofu with [ez] extras.")
 
@@ -17,6 +18,7 @@ from tofu.ez.GUI.Main.phase_retrieval import PhaseRetrievalGroup
 from tofu.ez.GUI.Main.region_and_histogram import ROIandHistGroup
 from tofu.ez.GUI.Main.config import ConfigGroup
 from tofu.ez.main import clean_tmp_dirs
+import tofu.ez.main as ez_main
 from tofu.ez.GUI.image_viewer import ImageViewerGroup
 from tofu.ez.params import EZVARS, EZVARS_aux, EZVARS_prep
 from tofu.config import SECTIONS
@@ -182,6 +184,11 @@ class GUI(qtw.QWidget):
         # if in/out in main tab are changed and prepro is enabled change in/out in prepro tab as well
 
 
+        # Pause after automatic axis search so the user can pick the axis in the viewer
+        self._pause_loop = QEventLoop()
+        self.image_group.set_and_continue_button.clicked.connect(self._pause_loop.quit)
+        ez_main.axis_pause_hook = self.pause_for_axis
+
         finish = QAction("Quit", self)
         finish.triggered.connect(self.closeEvent)
 
@@ -289,7 +296,7 @@ class GUI(qtw.QWidget):
         """
         if EZVARS['inout']['open-viewer']['value'] is True:
             LOG.debug("Switch to Image Tab")
-            self.tabs.setCurrentWidget(self.tab2)
+            self.tabs.setCurrentWidget(self.tab5)
             if os.path.isdir(str(EZVARS['inout']['output-dir']['value'] + '/sli')):
                 files = os.listdir(str(EZVARS['inout']['output-dir']['value'] + '/sli'))
                 #Start thread here to load images
@@ -308,6 +315,24 @@ class GUI(qtw.QWidget):
             else:
                 print("No output directory found")
                 
+    def pause_for_axis(self, stack_dir, start, step, ax):
+        """
+        Called from execute_reconstruction after the automatic axis search.
+        Shows axis-search slices in the Image Viewer, waits until the user clicks
+        "Set and Continue" and returns the axis of the currently displayed slice.
+        """
+        self.tabs.setCurrentWidget(self.tab5)
+        self.image_group.open_stack_from_path(stack_dir)
+        self.image_group.scroller.setValue(int(round((ax - start) / step)))
+        self.image_group.set_and_continue_button.setEnabled(True)
+        self.config_group.reco_button.setEnabled(False)      # no re-entrant runs
+        self.config_group.dry_run_button.setEnabled(False)
+        self._pause_loop.exec()                               # GUI stays interactive here
+        self.image_group.set_and_continue_button.setEnabled(False)
+        self.config_group.reco_button.setEnabled(True)
+        self.config_group.dry_run_button.setEnabled(True)
+        return start + step * self.image_group.scroller.value()
+
     def closeEvent(self, event):
         """
         Creates verification message box

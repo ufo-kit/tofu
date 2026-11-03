@@ -90,6 +90,10 @@ class ImageViewerGroup(QGroupBox):
         self.apply_histogram_button = QPushButton("Apply Histogram to Image Stack")
         self.apply_histogram_button.clicked.connect(self.apply_histogram_button_clicked)
 
+        self.set_and_continue_button = QPushButton("Set and Continue")
+        self.set_and_continue_button.setStyleSheet("background-color: lightgrey; font: 11pt")
+        self.set_and_continue_button.setEnabled(False)
+
         self.image_window = pg.ImageView()
 
         self.image_window.ui.histogram.gradient.hide()
@@ -124,6 +128,7 @@ class ImageViewerGroup(QGroupBox):
         layout.addItem(vbox, 0, 3, 2, 1)
         layout.addItem(gridbox, 0, 4, 2, 1)
         layout.addWidget(self.apply_histogram_button, 0, 5)
+        layout.addWidget(self.set_and_continue_button, 1, 5)
         layout.addWidget(self.image_window, 2, 0, 1, 6)
         layout.addWidget(self.scroller, 4, 0, 1, 5)
 
