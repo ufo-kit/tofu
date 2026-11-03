@@ -322,11 +322,14 @@ class GUI(qtw.QWidget):
         Shows axis-search slices in the Image Viewer, waits until the user clicks
         "Set and Continue" and returns the axis of the currently displayed slice.
         """
+        scroller = self.image_group.scroller
+        to_axis = lambda i: start + step * i
         self.image_group.show_overlap(False)
         self.image_group.open_stack_from_path(stack_dir)
-        self.image_group.scroller.setValue(int(round((ax - start) / step)))
+        self._track_axis(scroller, to_axis)
+        scroller.setValue(int(round((ax - start) / step)))
         self._wait_for_set_and_continue()
-        return start + step * self.image_group.scroller.value()
+        return self._untrack_axis(scroller, to_axis)
 
     def pause_for_corr_axis(self, first, last, ax):
         """
@@ -336,12 +339,26 @@ class GUI(qtw.QWidget):
         """
         viewer = self.image_group.overlap_viewer
         w2 = first.shape[1] / 2.0
+        to_axis = lambda v: w2 + (w2 - v) / 2
         self.image_group.show_overlap(True)
         viewer.set_images(first, last)
+        self._track_axis(viewer.slider, to_axis)
         viewer.set_position(w2 + (w2 - ax) * 2)
         self._wait_for_set_and_continue()
         self.image_group.show_overlap(False)
-        return w2 + (w2 - viewer.slider.value()) / 2
+        return self._untrack_axis(viewer.slider, to_axis)
+
+    def _track_axis(self, slider, to_axis):
+        """Show the axis for the current slider position in the viewer label"""
+        self._axis_slot = lambda v: self.image_group.axis_label.setText(f"Axis: {to_axis(v):.1f} px")
+        slider.valueChanged.connect(self._axis_slot)
+        self._axis_slot(slider.value())
+
+    def _untrack_axis(self, slider, to_axis):
+        """Stop updating the label and return the selected axis rounded to 0.1 px"""
+        slider.valueChanged.disconnect(self._axis_slot)
+        self.image_group.axis_label.setText("")
+        return round(to_axis(slider.value()), 1)
 
     def _wait_for_set_and_continue(self):
         """Switch to the Image Viewer and block in a nested event loop until 'Set and Continue'"""

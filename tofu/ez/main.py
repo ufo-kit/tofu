@@ -337,7 +337,7 @@ def execute_reconstruction():
                     ax = find_axis_corr(ctset, EZVARS['inout']['input_ROI']['value'],
                                         roi_row0, roi_height, multipage, pick_axis=pick_axis)
                     if pick_axis is not None:
-                        print(f"Axis set by user: {ax}")
+                        print(f"Axis set by user: {ax:.1f}")
                 # Find axis of rotation using auto: minimize STD of a slice
                 elif EZVARS['COR']['search-method']['value'] == 2:
                     ax = find_axis_std(ctset, nviews, wh,
@@ -350,7 +350,7 @@ def execute_reconstruction():
                             start += wh[1] / 2   # same offset as in find_axis_std
                         ax = axis_pause_hook(os.path.join(EZVARS['inout']['output-dir']['value'],
                                                           setid, 'axis-search'), start, step, ax)
-                        print(f"Axis set by user: {ax}")
+                        print(f"Axis set by user: {ax:.1f}")
                 else:
                     ax = axlist[i]
             elif EZVARS['COR']['search-method']['value'] >= 4: #half acq mode scans

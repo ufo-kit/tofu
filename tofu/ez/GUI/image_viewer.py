@@ -109,6 +109,10 @@ class ImageViewerGroup(QGroupBox):
         self.overlap_viewer = OverlapViewer()
         self.overlap_viewer.hide()
 
+        # Shows the axis for the current slider position while paused for axis selection
+        self.axis_label = QLabel("")
+        self.axis_label.setStyleSheet("font: 11pt; font-weight: bold")
+
         self.set_layout()
 
     def set_layout(self):
@@ -137,6 +141,7 @@ class ImageViewerGroup(QGroupBox):
         layout.addWidget(self.image_window, 2, 0, 1, 6)
         layout.addWidget(self.overlap_viewer, 2, 0, 1, 6)
         layout.addWidget(self.scroller, 4, 0, 1, 5)
+        layout.addWidget(self.axis_label, 4, 5)
 
         self.setLayout(layout)
 
