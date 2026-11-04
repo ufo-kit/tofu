@@ -44,6 +44,11 @@ def run_fsc(args):
     from tofu import fsc
     fsc.run(args)
 
+
+def run_frc(args):
+    from tofu import frc
+    frc.run(args)
+
 def run_flat_correct(args):
     from tofu import preprocess
     preprocess.run_flat_correct(args)
@@ -221,7 +226,8 @@ def main():
         ('interactive', run_shell,      tomo_params,                    "Run interactive mode"),
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
-        ('fsc',         run_fsc,        config.FSC_PARAMS,              "Fourier shell correlation")
+        ('fsc',         run_fsc,        config.FSC_PARAMS,              "Fourier shell correlation"),
+        ('frc',         run_frc,        config.FRC_PARAMS,              "Diagnostic Fourier ring correlation")
     ]
 
     if sys.version < '3.7':

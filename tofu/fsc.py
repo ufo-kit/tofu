@@ -19,8 +19,16 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
+from tofu.correlation import (
+    GEOMETRIC_MIN_SAMPLES,
+    first_curve_crossing,
+    geometric_bound,
+    half_bit_threshold,
+    information_threshold,
+    normalize,
+)
+
 LOG = logging.getLogger("tofu.fsc")
-GEOMETRIC_MIN_SAMPLES = 10
 PLOT_STYLE = "darkgrid"
 PLOT_PALETTE = "muted"
 PLOT_CONTEXT = "notebook"
@@ -84,53 +92,6 @@ class FSCShellStatistics:
         )
 
 
-def half_bit_threshold(counts: np.ndarray) -> np.ndarray:
-    counts = np.asarray(counts, dtype=np.float64)
-    result = np.full(counts.shape, np.nan)
-    valid = np.isfinite(counts) & (counts > 0)
-    root = np.sqrt(counts[valid])
-    s = (np.sqrt(2.0) - 1.0) / 2.0
-    h = 2.0 * np.sqrt(s)
-    result[valid] = (s * root + h + 1.0) / ((s + 1.0) * root + h)
-    return result
-
-
-def geometric_bound(statistics: FSCShellStatistics) -> np.ndarray:
-    minimum = statistics.minimum_magnitude.astype(np.float64)
-    maximum = statistics.maximum_magnitude.astype(np.float64)
-    result = np.full(minimum.shape, np.nan)
-    valid = (
-        (statistics.n_shell > GEOMETRIC_MIN_SAMPLES)
-        & np.isfinite(minimum)
-        & np.isfinite(maximum)
-        & (minimum >= 0)
-        & (maximum > 0)
-        & (minimum <= maximum)
-    )
-    ratio = minimum[valid] / maximum[valid]
-    result[valid] = 2.0 * np.sqrt(ratio) / (1.0 + ratio)
-    return result
-
-
-def first_curve_crossing(
-    frequency: np.ndarray, fsc: np.ndarray, threshold: np.ndarray
-) -> float | None:
-    """First downward crossing between adjacent finite samples; no extrapolation."""
-    frequency, fsc, threshold = np.broadcast_arrays(frequency, fsc, threshold)
-    difference = fsc - threshold
-    for i in range(1, len(frequency)):
-        if (
-            np.isfinite(frequency[i - 1 : i + 1]).all()
-            and np.isfinite(difference[i - 1 : i + 1]).all()
-            and difference[i - 1] > 0 >= difference[i]
-        ):
-            fraction = difference[i - 1] / (difference[i - 1] - difference[i])
-            return float(
-                frequency[i - 1] + fraction * (frequency[i] - frequency[i - 1])
-            )
-    return None
-
-
 @dataclass(frozen=True)
 class FSCResult:
     """FSC and diagnostic curves. Load an artifact with :meth:`from_npz`."""
@@ -142,10 +103,18 @@ class FSCResult:
     geometric_bound: np.ndarray
     geometry: ShellGeometry
     statistics: FSCShellStatistics
+    threshold_criterion: str = "one-bit"
+
+    @property
+    def threshold(self) -> np.ndarray:
+        return information_threshold(self.n_shell, self.threshold_criterion)
 
     @classmethod
     def from_statistics(
-        cls, statistics: FSCShellStatistics, geometry: ShellGeometry
+        cls,
+        statistics: FSCShellStatistics,
+        geometry: ShellGeometry,
+        threshold_criterion: str = "one-bit",
     ) -> FSCResult:
         if len(statistics.k_bin) != geometry.number_of_bins:
             raise ValueError("Output bin count differs from resolved geometry")
@@ -154,13 +123,12 @@ class FSCResult:
         )
         if not np.array_equal(statistics.k_bin, expected):
             raise ValueError("Output bin centres differ from resolved geometry")
-        first = statistics.power_1_sum.astype(np.float64)
-        second = statistics.power_2_sum.astype(np.float64)
-        denominator = np.sqrt(first * second)
-        valid = (statistics.n_shell > 0) & (first > 0) & (second > 0)
-        fsc = np.full(first.shape, np.nan)
-        np.divide(
-            statistics.cross_sum.astype(np.float64), denominator, out=fsc, where=valid
+        information_threshold(statistics.n_shell, threshold_criterion)
+        fsc = normalize(
+            statistics.cross_sum,
+            statistics.power_1_sum,
+            statistics.power_2_sum,
+            statistics.n_shell,
         )
         return cls(
             fsc,
@@ -170,11 +138,12 @@ class FSCResult:
             geometric_bound(statistics),
             geometry,
             statistics,
+            threshold_criterion,
         )
 
     @property
     def crossing_frequency(self) -> float | None:
-        return first_curve_crossing(self.k_bin, self.fsc, self.half_bit_threshold)
+        return first_curve_crossing(self.k_bin, self.fsc, self.threshold)
 
     def to_npz(self, path: str | Path) -> None:
         """Save numeric arrays only; no pickled Python objects."""
@@ -185,6 +154,8 @@ class FSCResult:
         arrays.update(
             fsc=self.fsc,
             half_bit_threshold=self.half_bit_threshold,
+            threshold=self.threshold,
+            threshold_criterion=self.threshold_criterion,
             geometric_bound=self.geometric_bound,
             delta_k_xyz=np.asarray(self.geometry.delta_k_xyz),
             shell_width=self.geometry.shell_width,
@@ -206,7 +177,12 @@ class FSCResult:
                 float(data["max_frequency"]),
                 int(data["number_of_bins"]),
             )
-        return cls.from_statistics(statistics, geometry)
+            criterion = (
+                str(data["threshold_criterion"])
+                if "threshold_criterion" in data
+                else "half-bit"
+            )
+        return cls.from_statistics(statistics, geometry, criterion)
 
 
 def plot_fsc(
@@ -228,7 +204,12 @@ def plot_fsc(
         for index, (curve, label, style, width) in enumerate(
             [
                 (result.fsc, "FSC", "-", 1.5),
-                (result.half_bit_threshold, "Half-bit threshold", "-.", 1.1),
+                (
+                    result.threshold,
+                    result.threshold_criterion.capitalize() + " threshold",
+                    "-.",
+                    1.1,
+                ),
                 (result.geometric_bound, "Geometric lower bound", ":", 1.3),
             ]
         ):
@@ -1135,7 +1116,7 @@ def save_outputs(
         "configuration": configuration,
         "volume_shape_zyx": resolved["volume_shape_zyx"],
         "shell_geometry": {**asdict(results[0].geometry), "frequency_unit": unit},
-        "result": {"threshold_criterion": "half-bit", "regions": []},
+        "result": {"threshold_criterion": args.threshold_criterion, "regions": []},
     }
     if len(regions) > 1:
         document["result"]["crossing_summary"] = crossing_summary(results)
@@ -1171,7 +1152,13 @@ def save_outputs(
                     },
                 }
             )
-            LOG.info("Region %d half-bit crossing: %s %s", region.index, crossing, unit)
+            LOG.info(
+                "Region %d %s crossing: %s %s",
+                region.index,
+                args.threshold_criterion,
+                crossing,
+                unit,
+            )
         # Prepare every plot/archive before replacing any existing artifact.
         for name in filenames:
             os.replace(staging / name, output / name)
@@ -1226,7 +1213,9 @@ def run(args: argparse.Namespace) -> FSCResult | tuple[FSCResult, ...]:
                 # Release spectra, accumulators and FFT workspaces before the next job.
                 del graph, output
                 gc.collect()
-            return FSCResult.from_statistics(statistics, geometry)
+            return FSCResult.from_statistics(
+                statistics, geometry, args.threshold_criterion
+            )
 
         computed, failures = run_region_jobs(regions, workers, compute)
         if failures:

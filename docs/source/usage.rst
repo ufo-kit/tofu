@@ -8,4 +8,5 @@ Usage
     usage/preprocessing
     usage/genreco
     usage/fsc
+    usage/frc
     usage/flow

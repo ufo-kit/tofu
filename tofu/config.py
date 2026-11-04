@@ -954,7 +954,7 @@ SECTIONS['fsc'].update({
                     'help': 'Radial bin width; 0 selects automatic'},
     'max-frequency': {'type': float, 'default': 0.0,
                       'help': 'Frequency limit; 0 selects automatic'},
-    'threshold-criterion': {'choices': ('half-bit',), 'default': 'half-bit',
+    'threshold-criterion': {'choices': ('one-bit', 'half-bit'), 'default': 'one-bit',
                             'help': 'Resolution threshold criterion'},
     'write-volumes': {'action': 'store_true', 'default': False,
                       'help': 'After all FSCs, export one even/odd float32 BigTIFF per region'},
@@ -963,6 +963,35 @@ for axis in ('x', 'y', 'z'):
     SECTIONS['fsc']['voxel-size-' + axis] = {
         'type': float, 'default': 1.0,
         'help': 'Reconstructed voxel spacing in a common length unit',
+    }
+
+FRC_PARAMS = ('frc',)
+EXACT_PARAM_SECTIONS.add(FRC_PARAMS)
+SCOPED_COMMANDS['frc'] = ('general', 'reading', 'flat-correction', 'frc')
+SECTIONS['frc'] = {
+    name: dict(SECTIONS['fsc'][name])
+    for name in ('config', 'verbose', 'log', 'projections', 'flats', 'darks',
+                 'dark-scale', 'flat-scale', 'absorptivity', 'fix-nan-and-inf',
+                 'reduction-mode', 'threshold-criterion', 'max-frequency')
+}
+SECTIONS['frc'].update({
+    'threshold-criterion': {'choices': ('one-bit', 'half-bit'), 'default': 'one-bit',
+                            'help': 'Diagnostic information reference curve (not resolution)'},
+    'number': {'type': int, 'default': None, 'aliases': ('num-projections',),
+               'help': 'Initial projection frames to consider (default: all TIFF frames)'},
+    'num-corr': {'type': int, 'default': None,
+                 'help': 'Equidistant disjoint consecutive pairs (default: all)'},
+    'x': {'type': int, 'default': 0, 'help': 'ROI left edge in detector pixels'},
+    'y': {'type': int, 'default': 0, 'help': 'ROI top edge in detector pixels'},
+    'width': {'type': int, 'default': None, 'help': 'ROI width (default: remaining width)'},
+    'height': {'type': int, 'default': None, 'help': 'ROI height (default: remaining height)'},
+    'gpu': {'type': int, 'default': 0, 'help': 'One visible GPU index'},
+    'output': {'default': 'frc', 'help': 'Directory for diagnostic FRC artifacts'},
+    'ring-width': {'type': float, 'default': 0.0, 'help': 'Radial bin width; zero selects automatic'},
+})
+for axis in ('x', 'y'):
+    SECTIONS['frc']['pixel-size-' + axis] = {
+        'type': float, 'default': 1.0, 'help': 'Pixel spacing in a common length unit',
     }
 
 NICE_NAMES = ('General', 'Input', 'Flat field correction', 'Phase retrieval',
@@ -1120,6 +1149,8 @@ def log_values(args):
     names = dict(zip(SECTIONS, NICE_NAMES))
     if args.get('commands') == 'fsc':
         names = {'fsc': 'Fourier shell correlation'}
+    elif args.get('commands') == 'frc':
+        names = {'frc': 'Fourier ring correlation'}
     for section, name in names.items():
         entries = sorted((k for k in list(args.keys()) if k.replace('_', '-') in SECTIONS[section]))
 

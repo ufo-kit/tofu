@@ -108,8 +108,14 @@ No FFT shift or automatic volume padding is used. The plot extends to the resolv
 maximum frequency, normally 0.5 cycles/voxel for unit spacing; otherwise frequencies
 are per configured length unit.
 
-``--threshold-criterion half-bit`` (van Heel & Schatz, 2005) is the only criterion supported for now.
-With full-spectrum count n, ``s=(sqrt(2)-1)/2`` and ``h=2*sqrt(s)``, its value is
+``--threshold-criterion`` supports ``one-bit`` (the new default) and ``half-bit``
+(van Heel & Schatz, 2005). Specify ``half-bit`` explicitly to reproduce the previous
+default. Both use full-spectrum shell counts; they do not apply effective-sample
+corrections for masking or symmetry. The selected criterion is saved in new NPZ
+archives; older archives without this metadata load using their historical half-bit
+interpretation.
+With full-spectrum count n, ``s=(2**I-1)/2`` for I=1 (one-bit) or I=0.5
+(half-bit), and ``h=2*sqrt(s)``, its value is
 ``(s*sqrt(n)+h+1)/((s+1)*sqrt(n)+h)``. Equal-shaped regions with shared settings have
 identical counts and thresholds; returned counts and bin centres are checked for
 equality. The first adjacent finite positive-to-nonpositive FSC-minus-threshold
@@ -126,7 +132,7 @@ Outputs and optional volumes
 ``--output`` is a directory (default ``fsc``). A single region retains ``fsc.png``
 and ``fsc-result.npz``. Multiple regions write flat, indexed filenames:
 ``region-001-fsc.png``, ``region-001-fsc-result.npz``, etc. Each plot includes that
-region's FSC, half-bit threshold and geometric bound, with its detector interval in
+region's FSC, selected threshold and geometric bound, with its detector interval in
 the title. There is no combined or aggregate plot.
 
 One ``fsc.json`` stores shared configuration, shape and shell geometry once.
@@ -172,4 +178,3 @@ settings and preprocessing: exact counts/bins, then ``rtol=2e-3, atol=2e-4`` for
     projection-filter = none
     write-volumes = false
     output = fsc
-
