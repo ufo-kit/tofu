@@ -1,4 +1,4 @@
-"""Diagnostic FRC of disjoint adjacent TIFF projections, on one GPU."""
+"""Fourier Ring Correlation"""
 
 from __future__ import annotations
 

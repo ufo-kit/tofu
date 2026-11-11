@@ -956,8 +956,8 @@ SECTIONS['fsc'].update({
                       'help': 'Frequency limit; 0 selects automatic'},
     'threshold-criterion': {'choices': ('one-bit', 'half-bit'), 'default': 'one-bit',
                             'help': 'Resolution threshold criterion'},
-    'write-volumes': {'action': 'store_true', 'default': False,
-                      'help': 'After all FSCs, export one even/odd float32 BigTIFF per region'},
+    'slices': {'action': 'store_true', 'default': None,
+               'help': 'After FSC, export one normalized singular float32 BigTIFF per region'},
 })
 for axis in ('x', 'y', 'z'):
     SECTIONS['fsc']['voxel-size-' + axis] = {

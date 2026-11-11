@@ -648,7 +648,12 @@ def estimate_memory(
 
 
 def construct_reconstruction_graph(
-    args: argparse.Namespace, resolved: dict[str, Any], gpu: Any
+    args: argparse.Namespace,
+    resolved: dict[str, Any],
+    gpu: Any,
+    *,
+    operation_mode: str,
+    output_mode: str,
 ) -> tuple[Any, Any]:
     from gi.repository import Ufo
     from tofu.tasks import get_task
@@ -734,8 +739,8 @@ def construct_reconstruction_graph(
         x_region=list(resolved["x_region"]),
         y_region=list(resolved["y_region"]),
         addressing_mode=args.addressing_mode,
-        operation_mode="even_odd",
-        output_mode="volume",
+        operation_mode=operation_mode,
+        output_mode=output_mode,
     )
     graph.connect_nodes(current, backproject)
     return graph, backproject
@@ -747,7 +752,13 @@ def construct_graph(
     from gi.repository import Ufo
     from tofu.tasks import get_task
 
-    graph, backproject = construct_reconstruction_graph(args, resolved, gpu)
+    graph, backproject = construct_reconstruction_graph(
+        args,
+        resolved,
+        gpu,
+        operation_mode="even_odd",
+        output_mode="volume",
+    )
 
     def task(name: str, **properties: Any) -> Any:
         return get_task(name, processing_node=gpu, **properties)
@@ -959,7 +970,7 @@ def execute_graph(
     return arrays[0]
 
 
-def write_volumes(
+def write_slices(
     args: argparse.Namespace,
     resolved: dict[str, Any],
     gpu: Any,
@@ -967,24 +978,26 @@ def write_volumes(
     destination: Path,
     control: PipelineControl | None = None,
 ) -> Path:
-    """Optional diagnostic rerun; keep all export-only behavior in this function.
+    """Optionally reconstruct and write one normalized singular volume.
 
     The caller has already saved FSC and released its graph. This second graph
-    intentionally downloads reconstructed volumes; the main graph never does.
+    intentionally downloads reconstructed slices; the main graph never does.
     """
     from gi.repository import Ufo
     from tifffile import TiffFile
     from tofu.tasks import get_task
 
     directory = destination.parent
-    LOG.info(
-        "Exporting even/odd volumes with a second reconstruction; inputs must remain unchanged"
-    )
+    LOG.info("Exporting singular reconstruction; inputs must remain unchanged")
 
     def reconstruct(path: Path) -> None:
-        graph, backproject = construct_reconstruction_graph(args, resolved, gpu)
-        # Always split to 2D, including Z=3 (write otherwise interprets it as RGB).
-        slices = get_task("slice", processing_node=gpu)
+        graph, backproject = construct_reconstruction_graph(
+            args,
+            resolved,
+            gpu,
+            operation_mode="singular",
+            output_mode="slices",
+        )
         writer = get_task(
             "write",
             processing_node=gpu,
@@ -994,8 +1007,7 @@ def write_volumes(
             append=False,
             tiff_bigtiff=True,
         )
-        graph.connect_nodes(backproject, slices)
-        graph.connect_nodes(slices, writer)
+        graph.connect_nodes(backproject, writer)
         scheduler = Ufo.FixedScheduler()
         scheduler.set_resources(resources)
         scheduler.set_property("expand", False)
@@ -1007,21 +1019,21 @@ def write_volumes(
             if control is not None:
                 control.unregister(scheduler)
             # Dropping the writer closes/flushes the TIFF before metadata validation.
-            del scheduler, graph, writer, slices, backproject
+            del scheduler, graph, writer, backproject
             gc.collect()
 
     try:
         with tempfile.TemporaryDirectory(
-            prefix=".fsc-volumes-", dir=directory
+            prefix=".fsc-slices-", dir=directory
         ) as temporary:
             staging = Path(temporary)
             volume_path = staging / destination.name
             reconstruct(volume_path)
             nz, ny, nx = resolved["volume_shape_zyx"]
             with TiffFile(volume_path) as tif:
-                if not tif.is_bigtiff or len(tif.pages) != 2 * nz:
+                if not tif.is_bigtiff or len(tif.pages) != nz:
                     raise ValueError(
-                        "Export must be a BigTIFF containing exactly 2*Z pages"
+                        "Export must be a BigTIFF containing exactly Z pages"
                     )
                 for page in tif.pages:
                     if (
@@ -1036,9 +1048,9 @@ def write_volumes(
             os.replace(volume_path, destination)
     except Exception as exc:
         raise RuntimeError(
-            f"FSC results were saved, but the requested volume export failed: {exc}"
+            f"FSC results were saved, but the requested slice export failed: {exc}"
         ) from exc
-    LOG.info("Saved float32 even-then-odd volumes to %s", destination)
+    LOG.info("Saved normalized float32 singular volume to %s", destination)
     return destination
 
 
@@ -1047,7 +1059,7 @@ def artifact_names(region: FSCRegion, number: int) -> dict[str, str]:
     return {
         "plot": prefix + "fsc.png",
         "npz": prefix + "fsc-result.npz",
-        "volumes": prefix + "even-odd-volumes.tif",
+        "slices": prefix + "slices.tif",
     }
 
 
@@ -1235,15 +1247,15 @@ def run(args: argparse.Namespace) -> FSCResult | tuple[FSCResult, ...]:
                     "Regions produced incompatible frequency bins or shell counts"
                 )
         document = save_outputs(args, resolved, regions, results, started, indices)
-        if args.write_volumes:
+        if args.slices:
 
             def export(
                 region: FSCRegion, resources: Any, gpu: Any, control: PipelineControl
             ) -> Path:
                 destination = (
-                    Path(args.output) / artifact_names(region, len(regions))["volumes"]
+                    Path(args.output) / artifact_names(region, len(regions))["slices"]
                 )
-                return write_volumes(
+                return write_slices(
                     args,
                     region.resolve(resolved, args.y),
                     gpu,
@@ -1258,13 +1270,13 @@ def run(args: argparse.Namespace) -> FSCResult | tuple[FSCResult, ...]:
             for entry in document["result"]["regions"]:
                 index = entry["region"]
                 if index in exported:
-                    entry["outputs"]["volumes"] = str(exported[index])
+                    entry["outputs"]["slices"] = str(exported[index])
                 elif index in failures:
-                    entry["volume_export_error"] = failures[index]
+                    entry["slice_export_error"] = failures[index]
             save_metadata(document, Path(args.output), started)
             if failures:
                 raise RuntimeError(
-                    "FSC results were saved, but volume export failed for region(s): "
+                    "FSC results were saved, but slice export failed for region(s): "
                     + ", ".join(map(str, sorted(failures)))
                 )
         LOG.info("Saved %d regional FSC result(s) to %s", len(regions), args.output)

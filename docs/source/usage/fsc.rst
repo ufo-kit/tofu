@@ -126,8 +126,8 @@ Each plot also shows the geometric diagnostic ``2*sqrt(M*m)/(M+m)`` (Miqueles et
 magnitude extrema. Counts <=10, empty shells and all-zero shells are masked; ``m=0<M`` gives zero.
 This is not a resolution threshold, rather projected as diagnostic lower bound for FSC.
 
-Outputs and optional volumes
-----------------------------
+Outputs and optional diagnostic slices
+---------------------------------------
 
 ``--output`` is a directory (default ``fsc``). A single region retains ``fsc.png``
 and ``fsc-result.npz``. Multiple regions write flat, indexed filenames:
@@ -144,11 +144,14 @@ median and max of detected crossing frequencies, plus counts with/without crossi
 This descriptive summary excludes missing crossings and is neither pooled FSC nor
 a global resolution estimate; if none cross, its three frequencies are null.
 
-``--write-volumes`` defaults to false. When enabled, all FSC artifacts are saved
-first; workers then run a second reconstruction per region using the same prefix
-builder, followed by ``slice -> write``. Export is one unscaled float32 BigTIFF per region, shaped
-``(2Z,Y,X)``, complete even volume then complete odd volume: ``even-odd-volumes.tif`` for one region or
-``region-001-even-odd-volumes.tif`` etc.
+``--slices`` is an optional diagnostic convenience and is not an FSC input or
+result. When enabled, all FSC artifacts are saved first; workers then use the same
+preprocessing and geometry to run a separate RGBA reconstruction in ``singular``
+mode with all selected projections. This does not download or alter the even/odd
+spectra used by FSC. Each region produces one normalized, unscaled float32 BigTIFF
+of shape ``(Z,Y,X)``: ``slices.tif`` for one region or
+``region-001-slices.tif`` etc. Omitting ``--slices`` launches no second
+reconstruction. The former ``--write-volumes`` option has been removed.
 
 Structured access and configuration
 -----------------------------------
@@ -164,8 +167,8 @@ Every NPZ remains independently loadable without UFO resources or pickle::
 Archives contain raw statistics/extrema, curves and shell geometry. Raw floats are
 float32, counts int64 and normalization/criteria float64; invalid bins remain NaN
 without clamping. ``numpy.load(path, allow_pickle=False)`` also exposes named arrays.
-Compare exported volumes with the NumPy benchmark using the same spacing, shell
-settings and preprocessing: exact counts/bins, then ``rtol=2e-3, atol=2e-4`` for floats.
+The optional singular reconstruction is intended for visual inspection and pipeline
+diagnosis; it is not the pair of even/odd volumes from which the FSC is calculated.
 
 ``--config fsc.conf`` accepts INI settings, for example::
 
@@ -176,5 +179,5 @@ settings and preprocessing: exact counts/bins, then ``rtol=2e-3, atol=2e-4`` for
     num-regions = 4
     gpus = 0 1
     projection-filter = none
-    write-volumes = false
+    slices = true
     output = fsc
