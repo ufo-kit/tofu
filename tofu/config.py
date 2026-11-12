@@ -975,6 +975,16 @@ SECTIONS['frc'] = {
                  'reduction-mode', 'threshold-criterion', 'max-frequency')
 }
 SECTIONS['frc'].update({
+    'img1': {'default': None, 'help': 'First single-frame grayscale TIFF'},
+    'img2': {'default': None, 'help': 'Second single-frame grayscale TIFF'},
+    'pair': {'type': int, 'nargs': 2, 'default': None, 'metavar': ('I', 'J'),
+             'help': 'Two distinct zero-based projection indices (no acquisition sweep)'},
+    'region-grid': {'type': int, 'nargs': 2, 'default': None, 'metavar': ('ROWS', 'COLS'),
+                    'help': 'Divide the outer ROI into an exactly fitting grid'},
+    'window-size': {'type': int, 'nargs': 2, 'default': None, 'metavar': ('HEIGHT', 'WIDTH'),
+                    'help': 'Sliding windows for an explicit pair only'},
+    'window-stride': {'type': int, 'nargs': 2, 'default': None, 'metavar': ('Y', 'X'),
+                      'help': 'Window steps; defaults to window size (smaller steps overlap)'},
     'threshold-criterion': {'choices': ('one-bit', 'half-bit'), 'default': 'one-bit',
                             'help': 'Diagnostic information reference curve (not resolution)'},
     'number': {'type': int, 'default': None, 'aliases': ('num-projections',),
@@ -989,6 +999,7 @@ SECTIONS['frc'].update({
     'output': {'default': 'frc', 'help': 'Directory for diagnostic FRC artifacts'},
     'ring-width': {'type': float, 'default': 0.0, 'help': 'Radial bin width; zero selects automatic'},
 })
+SECTIONS['frc']['projections']['required'] = False
 for axis in ('x', 'y'):
     SECTIONS['frc']['pixel-size-' + axis] = {
         'type': float, 'default': 1.0, 'help': 'Pixel spacing in a common length unit',
@@ -1201,12 +1212,26 @@ def parse_scoped_args(parser, command, argv):
             values.pop('num-regions', None)
         if '--num-regions' in explicit:
             values.pop('center-position-z', None)
+    if command == 'frc':
+        alternatives = {
+            '--projections': ('img1', 'img2'),
+            '--img1': ('projections', 'pair', 'number', 'num-corr'),
+            '--img2': ('projections', 'pair', 'number', 'num-corr'),
+            '--pair': ('num-corr',),
+            '--num-corr': ('pair',),
+            '--region-grid': ('window-size', 'window-stride'),
+            '--window-size': ('region-grid',),
+        }
+        for selector, excluded in alternatives.items():
+            if selector in explicit:
+                for name in excluded:
+                    values.pop(name, None)
     tokens = []
     for name, value in values.items():
         if definitions[name].get('action') == 'store_true':
             if value:
                 tokens.append('--' + name)
-        elif definitions[name].get('nargs') == '+':
+        elif definitions[name].get('nargs') == '+' or isinstance(definitions[name].get('nargs'), int):
             tokens.append('--' + name)
             tokens.extend(shlex.split(value))
         else:
