@@ -1,9 +1,19 @@
 Fourier shell correlation
 =========================
 
-``tofu fsc`` characterizes one or more equal-shaped reconstruction regions for estimating spatial
-resolution limit in cycles/reconstructed-voxels. To compute FSC the specified region is reconstructed
-independently from even and odd set of projections.
+Fourier Shell Correlation (FSC) estimates resolution by measuring how reproducible a reconstruction
+in 3D is at each spatial frequency. The data are split into two statistically independent halves, for
+example even- and odd-numbered projections, and each half is reconstructed separately. The two
+reconstructions are Fourier transformed. Their coefficients are then compared, using a normalized
+cross-correlation, within concentric shells (3D), each covering one spatial frequency in all
+directions. Real structure in the sample is the same in both halves, so it contributes consistently
+and correlates. Noise is independent between the halves and averages out. The curve therefore
+starts near 1 at low frequencies and falls as the signal-to-noise ratio drops at finer scales.
+The frequency where it crosses a chosen threshold gives the resolution: the finest length scale
+at which the reconstruction is reproducible.
+
+.. math::
+    \mathrm{FSC}(r) = \frac{\mathrm{Re}\sum_{\mathbf{k}\in r} F_1(\mathbf{k})\,F_2^*(\mathbf{k})}{\sqrt{\sum_{\mathbf{k}\in r}|F_1(\mathbf{k})|^2\,\sum_{\mathbf{k}\in r}|F_2(\mathbf{k})|^2}}
 
 Usage and region selection
 --------------------------
@@ -122,9 +132,9 @@ equality. The first adjacent finite positive-to-nonpositive FSC-minus-threshold
 transition is linearly interpolated. NaN gaps are not bridged, and an initially
 sub-threshold bin is not a crossing. Missing crossings are not extrapolated.
 
-Each plot also shows the geometric diagnostic ``2*sqrt(M*m)/(M+m)`` (Miqueles et al., 2025) from shell
+Each plot also shows the geometric diagnostic ``2*sqrt(M*m)/(M+m)`` :cite:`Miqueles2025` from shell
 magnitude extrema. Counts <=10, empty shells and all-zero shells are masked; ``m=0<M`` gives zero.
-This is not a resolution threshold, rather projected as diagnostic lower bound for FSC.
+This is projected as a diagnostic lower bound for FSC.
 
 Outputs and optional diagnostic slices
 ---------------------------------------

@@ -1,9 +1,20 @@
 Fourier ring correlation
 ========================
 
-``tofu frc`` measures similarity between projection images, **not spatial
-resolution**. Different angles do not contain exactly the same signal; structural
-variation and shared calibration artifacts can affect the diagnostic.
+Fourier Ring Correlation (FRC) estimates resolution by measuring how reproducible a reconstruction in
+2D is at each spatial frequency. It requires two independent representations / reconstructions of
+the signal. We may synthesize these reconstructions from single image or two consecutive projections
+may be considered as close enough representations of the same signal if we are densely sampling the
+projection space. They are Fourier transformed. Their coefficients are then compared, using a
+normalized cross-correlation, within concentric rings, each covering one spatial frequency in all
+directions. Real structure in the sample is the same in both halves, so it contributes consistently
+and correlates. Noise is independent between the halves and averages out. The curve therefore starts
+near 1 at low frequencies and falls as the signal-to-noise ratio drops at finer scales. The frequency
+where it crosses a chosen threshold gives the resolution: the finest length scale at which the
+reconstruction is reproducible.
+
+.. math::
+    \mathrm{FRC}(r) = \frac{\mathrm{Re}\sum_{\mathbf{k}\in r} F_1(\mathbf{k})\,F_2^*(\mathbf{k})}{\sqrt{\sum_{\mathbf{k}\in r}|F_1(\mathbf{k})|^2\,\sum_{\mathbf{k}\in r}|F_2(\mathbf{k})|^2}}
 
 Inputs and pair selection
 -------------------------
@@ -14,10 +25,10 @@ Choose one input mode::
     tofu frc --projections radios/ --number 3001 --num-corr 50 --output frc
 
     # Explicit zero-based pair within a projection dataset
-    tofu frc --projections projections.tif --pair 10 42 --output pair-frc
+    tofu frc --projections projections.tif --pair 10 11 --output frc
 
     # Two distinct single-frame grayscale TIFFs
-    tofu frc --img1 first.tif --img2 second.tif --output image-frc
+    tofu frc --img1 first.tif --img2 second.tif --output frc
 
 ``--projections`` accepts a TIFF file, directory or glob, including multipage
 TIFFs. Files are sorted lexicographically, then pages are read in order.
@@ -128,10 +139,6 @@ Plots and artifacts
 * ``frc.json`` records configuration (omitting unspecified null defaults),
   shared geometry, region definitions, pair indices, a pair-by-region crossing
   matrix, device information and total command execution time.
-
-Curves are never pooled. No acquisition-frequency heatmap is produced.
-Missing crossings are marked separately, not plotted as measured zero or maximum
-frequencies. Numeric artifacts are saved before plotting.
 
 Replot without UFO or rerunning the computation::
 
