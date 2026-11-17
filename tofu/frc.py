@@ -537,7 +537,8 @@ def plot_frc(result: FRCResult, path: str | Path) -> None:
                     else f"Diagnostic FRC: pair {result.pair_indices[0].tolist()}"
                 )
                 if len(result.regions_xywh):
-                    title += f"\nRegion {region}: x,y,w,h={tuple(result.regions_xywh[region])}"
+                    x, y, w, h = result.regions_xywh[region]
+                    title += f"\nRegion {region}: x,y,w,h=[{x}, {y}, {w}, {h}]"
                 axis.set_title(title)
                 axis.legend()
         figure.savefig(path, dpi=PLOT_DPI)
@@ -771,7 +772,6 @@ def run(args: argparse.Namespace) -> FRCResult:
                 "device": str(gpu.get_info(Ufo.GpuNodeInfo.NAME)),
             },
             "result": {
-                "interpretation": "diagnostic, not spatial resolution",
                 "threshold_criterion": args.threshold_criterion,
                 "count_convention": "full-spectrum ring coefficients",
                 "pair_indices": result.pair_indices.tolist(),
@@ -789,7 +789,7 @@ def run(args: argparse.Namespace) -> FRCResult:
         document["runtime"]["total_seconds"] = time.perf_counter() - started
         metadata.write_text(json.dumps(document, indent=2, allow_nan=False) + "\n")
         LOG.info(
-            "Saved %d diagnostic FRC curves to %s", len(pairs) * len(regions), directory
+            "Saved %d FRC curves to %s", len(pairs) * len(regions), directory
         )
         return result
     except (ValueError, OSError, ImportError, OverflowError, GLib.Error) as exc:

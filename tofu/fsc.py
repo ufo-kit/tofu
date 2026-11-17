@@ -94,7 +94,7 @@ class FSCShellStatistics:
 
 @dataclass(frozen=True)
 class FSCResult:
-    """FSC and diagnostic curves. Load an artifact with :meth:`from_npz`."""
+    """FSC result curves. Load an artifact with :meth:`from_npz`."""
 
     fsc: np.ndarray
     k_bin: np.ndarray

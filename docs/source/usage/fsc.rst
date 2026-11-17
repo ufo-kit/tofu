@@ -132,9 +132,9 @@ equality. The first adjacent finite positive-to-nonpositive FSC-minus-threshold
 transition is linearly interpolated. NaN gaps are not bridged, and an initially
 sub-threshold bin is not a crossing. Missing crossings are not extrapolated.
 
-Each plot also shows the geometric diagnostic ``2*sqrt(M*m)/(M+m)`` :cite:`Miqueles2025` from shell
+Each plot also shows the geometric ``2*sqrt(M*m)/(M+m)`` :cite:`Miqueles2025` from shell
 magnitude extrema. Counts <=10, empty shells and all-zero shells are masked; ``m=0<M`` gives zero.
-This is projected as a diagnostic lower bound for FSC.
+This is projected as a mathematical lower bound for FSC.
 
 Outputs and optional diagnostic slices
 ---------------------------------------

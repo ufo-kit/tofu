@@ -227,7 +227,7 @@ def main():
         ('find-large-spots', run_find_large_spots, ('find-large-spots',), "Find large spots on images"),
         ('inpaint',     run_inpaint,    ('inpaint',),                   "Inpaint images"),
         ('fsc',         run_fsc,        config.FSC_PARAMS,              "Fourier shell correlation"),
-        ('frc',         run_frc,        config.FRC_PARAMS,              "Diagnostic Fourier ring correlation")
+        ('frc',         run_frc,        config.FRC_PARAMS,              "Fourier ring correlation")
     ]
 
     if sys.version < '3.7':

@@ -996,7 +996,7 @@ SECTIONS['frc'].update({
     'width': {'type': int, 'default': None, 'help': 'ROI width (default: remaining width)'},
     'height': {'type': int, 'default': None, 'help': 'ROI height (default: remaining height)'},
     'gpu': {'type': int, 'default': 0, 'help': 'One visible GPU index'},
-    'output': {'default': 'frc', 'help': 'Directory for diagnostic FRC artifacts'},
+    'output': {'default': 'frc', 'help': 'Directory for FRC artifacts'},
     'ring-width': {'type': float, 'default': 0.0, 'help': 'Radial bin width; zero selects automatic'},
 })
 SECTIONS['frc']['projections']['required'] = False
