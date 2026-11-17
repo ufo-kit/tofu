@@ -30,7 +30,7 @@ PLOT_FIGSIZE = (7.2, 4.5)  # Per subplot
 PLOT_DPI = 180
 PLOT_CMAP = "viridis"
 PLOT_INVALID_COLOR = "dimgray"
-PLOT_LIMITS = (-1, 1)
+PLOT_LIMITS = (0, 1)
 PLOT_LINE_COLOR = "tab:blue"
 PLOT_THRESHOLD_COLOR = "tab:orange"
 PLOT_BOUND_COLOR = "tab:green"
@@ -515,7 +515,7 @@ def plot_frc(result: FRCResult, path: str | Path) -> None:
                         result.threshold,
                         "-.",
                         color=PLOT_THRESHOLD_COLOR,
-                        label=result.threshold_criterion.capitalize() + " reference",
+                        label=result.threshold_criterion.capitalize() + " threshold",
                     )
                     axis.plot(
                         result.k_bin,
